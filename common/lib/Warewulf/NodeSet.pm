@@ -39,9 +39,9 @@ stores.
 sub
 new($$)
 {
-    my $proto               = shift;
-    my $class               = ref($proto) || $proto;
-    my $self                = ();
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $self = ();
 
     %{$self} = ();
 
@@ -58,20 +58,60 @@ The add method will add a node object into the nodeset object.
 sub
 add($$)
 {
-    my $self                = shift;
-    my $nodeobj             = shift;
+    my $self = shift;
+    my $nodeobj = shift;
 
-    if ( defined($nodeobj) ) {
+    if (defined($nodeobj)) {
         my $hostname = $nodeobj->hostname();
         my $ipaddr = $nodeobj->ipaddr();
-        $self->{"BY_HOSTNAME"}{"$hostname"} = $nodeobj;
-        $self->{"BY_IPADDR"}{"$ipaddr"} = $nodeobj;
+        my $hwaddr = $nodeobj->hwaddr();
+        if ($hostname) {
+            push(@{$self->{"BY_HOSTNAME"}{"$hostname"}}, $nodeobj);
+        }
+        if ($ipaddr) {
+            push(@{$self->{"BY_IPADDR"}{"$ipaddr"}}, $nodeobj);
+        }
+        if ($hwaddr) {
+            push(@{$self->{"BY_HWADDR"}{"$hwaddr"}}, $nodeobj);
+        }
     }
 
     return();
 }
 
 
+=item get($searchby)
+
+Return the relevant node object(s) by searching for the given searchby
+criteria. Valid search credentials are hostname, IP address, and HW
+address if these were stored in the original object ***WHEN THE OBJECT
+WAS INITIALLY ADDED TO THIS NODESET***.
+
+The return value will be either a list or a scalar depending on how you
+request the data.
+
+=cut
+sub
+get($$)
+{
+    my $self = shift;
+    my $val = shift;
+    my @return;
+
+    if (exists($self->{"BY_HOSTNAME"}{"$val"})) {
+        push(@return, @{$self->{"BY_HOSTNAME"}{"$val"}});
+    } elsif (exists($self->{"BY_IPADDR"}{"$val"})) {
+        push(@return, @{$self->{"BY_IPADDR"}{"$val"}});
+    } elsif (exists($self->{"BY_HWADDR"}{"$val"})) {
+        push(@return, @{$self->{"BY_HWADDR"}{"$val"}});
+    }
+
+    if (@return) {
+        return(wantarray ? @return : $return[0]);
+    } else {
+        return();
+    }
+}
 
 
 

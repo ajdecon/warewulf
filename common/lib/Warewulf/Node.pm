@@ -60,12 +60,12 @@ depending if a value/paramater is given.
 sub
 ipaddr($$)
 {
-    my $self                = shift;
-    my $val                 = shift;
+    my $self = shift;
+    my $val = shift;
 
-    if ( defined($val) ) {
+    if (defined($val)) {
         $self->{"IPADDR"} = $val;
-    } elsif ( exists($self->{"IPADDR"}) ) {
+    } elsif (exists($self->{"IPADDR"})) {
         return($self->{"IPADDR"});
     }
     return();
@@ -81,13 +81,34 @@ depending if a value/paramater is given.
 sub
 hostname($$)
 {
-    my $self                = shift;
-    my $val                 = shift;
+    my $self = shift;
+    my $val = shift;
 
-    if ( defined($val) ) {
+    if (defined($val)) {
         $self->{"HOSTNAME"} = $val;
-    } elsif ( exists($self->{"HOSTNAME"}) ) {
+    } elsif (exists($self->{"HOSTNAME"})) {
         return($self->{"HOSTNAME"});
+    }
+    return();
+}
+
+
+=item hwaddr()
+
+The hwaddr method will either store or return the hardware address for this object
+depending if a value/paramater is given.
+
+=cut
+sub
+hwaddr($$)
+{
+    my $self = shift;
+    my $val = shift;
+
+    if (defined($val)) {
+        $self->{"HWADDR"} = $val;
+    } elsif (exists($self->{"HWADDR"})) {
+        return($self->{"HWADDR"});
     }
     return();
 }
@@ -103,12 +124,12 @@ depending if a value/paramater is given.
 sub
 data($$)
 {
-    my $self                = shift;
-    my $val                 = shift;
+    my $self = shift;
+    my $val = shift;
 
-    if ( defined($val) ) {
+    if (defined($val)) {
         $self->{"DATA"} = $val;
-    } elsif ( exists($self->{"DATA"}) ) {
+    } elsif (exists($self->{"DATA"})) {
         return($self->{"DATA"});
     }
     return();
