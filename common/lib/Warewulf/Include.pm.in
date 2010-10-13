@@ -1,0 +1,76 @@
+
+package Warewulf::Include;
+
+use Exporter;
+use File::Basename;
+use vars qw($VERSION %path %info);
+
+our @ISA = ("Exporter");
+
+our @EXPORT = qw(
+);
+
+$VERSION = "@VERSION@";
+
+=head1 NAME
+
+Warewulf::Include - Warewulf base configuration paramaters
+
+=head1 ABOUT
+
+This package gets updated at build time to match the configure options
+that it was called with. Including this file will make a global
+configuration hash available (%pconfig). Below is the list of exported
+values.
+
+=head1 SYNOPSIS
+
+    use Warewulf::Include;
+
+    foreach my $key ( keys %Warewulf::Include::info) {
+        print "$key: $Warewulf::Include::info{$key}\n";
+    }
+    foreach my $key ( keys %Warewulf::Include::path) {
+        print "$key: $Warewulf::Include::path{$key}\n";
+    }
+
+=head1 INFO
+
+    PROGNAME
+    BASE_VERSION
+    VERSION
+    BUILD
+    PREFIX
+
+=head1 PATH
+
+    PREFIX
+    STATEDIR
+    SYSCONFDIR
+    LIBDIR
+    DATADIR
+
+=cut
+
+my $prefix = "@prefix@";
+my $exec_prefix = "@exec_prefix@";
+
+
+$info{"PROGNAME"}                        = basename($0);
+$info{"VERSION"}                         = $VERSION;
+
+$path{"PREFIX"}                          = "@prefix@";
+$path{"STATEDIR"}                        = "@localstatedir@";
+$path{"SYSCONFDIR"}                      = "@sysconfdir@";
+$path{"LIBDIR"}                          = "@libdir@";
+$path{"DATADIR"}                         = "@datadir@";
+$path{"LIBEXECDIR"}                      = "@libexecdir@";
+
+=head1 SEE ALSO
+
+Warewulf
+
+=cut
+
+
+1;
