@@ -1,3 +1,4 @@
+SUBDIRS =  HTML
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 

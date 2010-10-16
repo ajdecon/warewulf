@@ -36,8 +36,13 @@ Generate a random string of a given length
 sub
 rand_string($)
 {
-    return();
+   my $size             = (shift || "8" ) - 1;
+   my @alphanumeric     = ('a'..'z', 'A'..'Z', 0..9);
+   my $randstring       = join '', map $alphanumeric[rand @alphanumeric], 0..$size;
+
+   return $randstring;
 }
+
 
 
 =item croak()
