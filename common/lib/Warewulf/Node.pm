@@ -68,6 +68,7 @@ ipaddr($$)
     } elsif (exists($self->{"IPADDR"})) {
         return($self->{"IPADDR"});
     }
+
     return();
 }
 
@@ -89,6 +90,7 @@ hostname($$)
     } elsif (exists($self->{"HOSTNAME"})) {
         return($self->{"HOSTNAME"});
     }
+
     return();
 }
 
@@ -110,6 +112,7 @@ hwaddr($$)
     } elsif (exists($self->{"HWADDR"})) {
         return($self->{"HWADDR"});
     }
+
     return();
 }
 
@@ -132,6 +135,7 @@ data($$)
     } elsif (exists($self->{"DATA"})) {
         return($self->{"DATA"});
     }
+
     return();
 }
 

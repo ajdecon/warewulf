@@ -3,6 +3,8 @@ package Warewulf::Config;
 
 use Warewulf::Include;
 use Warewulf::Debug;
+use Warewulf::Logger;
+use Warewulf::Util;
 use Text::ParseWords;
 
 use Exporter;
@@ -120,7 +122,7 @@ reread($)
     $self->{"STREAM"}       = ();
 
     foreach my $file ( @{$self->{"FILE"}} ) {
-        &dprint(3, "Looking for config file: $file\n");
+        lprint(NOTICE, "Looking for config file: $file\n");
         if ( -f $file ) {
             open(FILE, $file);
             while(my $line = <FILE>) {
@@ -128,8 +130,7 @@ reread($)
             }
             close FILE;
         } else {
-            &dprint(1, "Config file not found: $file\n");
-            #print "WARN: config file not found: $file\n";
+            lprint(INFO, "Config file not found: $file\n");
         }
     }
 

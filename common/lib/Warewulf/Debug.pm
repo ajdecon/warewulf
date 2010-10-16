@@ -7,6 +7,7 @@ our @ISA = ('Exporter');
 
 our @EXPORT = qw (
     &dprint
+    &backtrace
 );
 
 =head1 NAME
@@ -22,27 +23,29 @@ The Warewulf::Debug provides debugging functions
     use Warewulf::Debug;
 
 
-=item dprint(level, "message")
+=item backtrace()
 
-Print a debugging message of a particular numeric level. This requires the
-scalar $debug to be declared with "our" in the main script to operate.
+Throw a backtrace at the current location in the code.
 
 =cut
 sub
-dprint(@)
+backtrace()
 {
-    my $level = shift;
-    my @message = @_ ;
+    my $file             = ();
+    my $line             = ();
+    my $subroutine       = ();
+    my $i                = ();
+    my @tmp              = ();
 
-    if ( @message and $main::debug ) {
-
-        if ( $level <= $main::debug ) {
-            printf STDERR @message;
-        }
-
+    print STDERR "STACK TRACE:\n";
+    print STDERR "------------\n";
+    for ($i = 0; @tmp = caller($i); $i++) {
+        $subroutine = $tmp[3];
+        (undef, $file, $line) = caller($i);
+        $file =~ s/^.*\/([^\/]+)$/$1/;
+        print STDERR '      ', ' ' x $i, "$subroutine() called at $file:$line\n";
     }
-
-    return();
+    print STDERR "\n";
 }
 
 

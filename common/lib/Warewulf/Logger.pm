@@ -1,6 +1,7 @@
 
 package Warewulf::Logger;
 
+use Warewulf::Daemon;
 use Exporter;
 
 use constant INFO => 1;
@@ -77,8 +78,27 @@ lprint($$)
     my $level = shift;
     my $string = shift;
 
-    if ($LEVEL >= $level) {
-        chomp($string);
+    chomp($string);
+    if (&daemon_check()) {
+        # Test log file
+        open(LOG, ">> /tmp/test.log");
+        print LOG "$string\n";
+        close LOG;
+    } elsif ($LEVEL >= $level) {
+        if ($LEVEL == DEBUG) {
+            (undef, undef, undef, $s) = caller(1);
+            if (!defined($s)) {
+                $s = "MAIN";
+            }
+            (undef, $f, $l) = caller(0);
+                $f =~ s/^.*\/([^\/]+)$/$1/;
+            $s =~ s/\w+:://g;
+            $s .= "()" if ($s =~ /^\w+$/);
+            $f = "" if (!defined($f));
+            $l = "" if (!defined($l));
+            $s = "" if (!defined($s));
+            print STDERR "[$f/$l/$s]: ";
+        }
         print STDERR "$string\n";
     }
 
@@ -96,7 +116,26 @@ lprintf($$$)
     my $format = shift;
     my @args = @_;
 
-    if ($LEVEL >= $level) {
+    if (&daemon_check()) {
+        # Test log file
+        open(LOG, ">> /tmp/test.log");
+        printf LOG $format, @args;
+        close LOG;
+    } elsif ($LEVEL >= $level) {
+        if ($LEVEL == DEBUG) {
+            (undef, undef, undef, $s) = caller(1);
+            if (!defined($s)) {
+                $s = "MAIN";
+            }
+            (undef, $f, $l) = caller(0);
+                $f =~ s/^.*\/([^\/]+)$/$1/;
+            $s =~ s/\w+:://g;
+            $s .= "()" if ($s =~ /^\w+$/);
+            $f = "" if (!defined($f));
+            $l = "" if (!defined($l));
+            $s = "" if (!defined($s));
+            print STDERR "[$f/$l/$s]: ";
+        }
         printf STDERR $format, @args;
     }
 
