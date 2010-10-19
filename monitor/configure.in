@@ -1,0 +1,36 @@
+AC_PREREQ(2.59)
+AC_INIT(warewulf-monitor, 0.0.1, gmk@lbl.gov)
+AC_CONFIG_SRCDIR([.])
+AM_CONFIG_HEADER([config.h])
+
+AC_PROG_INSTALL
+AM_INIT_AUTOMAKE
+AC_PROG_LIBTOOL
+AC_PROG_CC
+
+AC_PATH_PROG(PERLBIN, perl)
+if test -z "$PERLBIN"; then
+   AC_MSG_ERROR([perl not found])
+fi
+AC_SUBST(PERLBIN)
+
+AC_MSG_CHECKING(for Perl vendor lib path)
+eval `perl -V:installvendorlib`
+PERL_VENDORLIB=$installvendorlib
+AC_ARG_WITH(perllibdir, [  --with-perllibdir=path  Manually specify where the perl modules should go], [
+if test -n "$withval" -a "x$withval" != "xno" ; then
+   PERL_VENDORLIB=$withval
+fi
+])
+AC_MSG_RESULT($PERL_VENDORLIB)
+AC_SUBST(PERL_VENDORLIB)
+
+
+AC_SUBST(PERLBIN)
+
+AC_OUTPUT(Makefile
+   warewulf-monitor.spec
+   lib/Makefile
+   lib/Warewulf/Makefile
+)
+
