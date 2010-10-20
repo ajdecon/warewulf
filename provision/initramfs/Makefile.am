@@ -1,4 +1,4 @@
-all: rootfs
+all: initramfs.cpio
 
 top_srcdir = @top_srcdir@
 
@@ -45,13 +45,20 @@ rootfs: busybox
 	rm -f rootfs/linuxrc
 	install -m 755 init rootfs/init
 
+initramfs.cpio: rootfs
+	cp devs.cpio initramfs
+	cd rootfs/; find . | cpio -o -H newc -A -F ../initramfs.cpio
+
+install:
+	install -d -m 755 $(DESTDIR)/$(localstatedir)/warewulf/
+	install -m 644 initramfs $(DESTDIR)/$(localstatedir)/warewulf/initramfs.cpio
 
 clean:
 	rm -rf _work
 	rm -rf rootfs
-	rm -rf Makefile
+	rm -rf initramfs
 
 
 
-EXTRA_DIST = $(BUSYBOX_SOURCE) *.config
+EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio
 

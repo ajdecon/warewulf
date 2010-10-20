@@ -26,7 +26,6 @@ unionfs:
 clean:
 	rm -rf _work
 	rm -f unionfs
-	rm -f Makefile
 
 
 EXTRA_DIST = $(UNIONFS_SOURCE)
