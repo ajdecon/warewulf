@@ -1,0 +1,11 @@
+#!/bin/sh
+
+
+if test -n "$ip"; then
+   > /etc/resolv.conf
+   ifconfig $interface $ip netmask $subnet
+   route add default gw $router
+   for i in "$dns"; do
+      echo "nameserver $i" >> /etc/resolv.conf
+   done
+fi

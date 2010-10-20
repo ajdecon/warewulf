@@ -4,5 +4,63 @@
 #
 
 
+. /etc/functions
+
+mkdir /proc 2>/dev/null
+mkdir /sys  2>/dev/null
+mkdir /tmp  2>/dev/null
+mkdir /var  2>/dev/null
+mkdir /usr  2>/dev/null
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+
+clear
+
+if [ -x "/sbin/syslogd" ]; then
+   msg_blue "Starting syslogd\n"
+   mkdir -p /var/log/
+   /sbin/syslogd -O /var/log/messages
+fi
+if [ -x "/sbin/klogd" ]; then
+   msg_blue "Starting klogd\n"
+   /sbin/klogd -c 1
+fi
+if [ -x "/sbin/mdev" ]; then
+   msg_blue "Starting mdev\n"
+   echo /sbin/mdev > /proc/sys/kernel/hotplug
+   /sbin/mdev -s
+fi
+
+
+echo "Hardware probe here..."
+sleep 5
+
+
+ifup() {
+    DEVICE=$1
+    if [ -n "$ETH_IP" -a -n "$ETH_NETMASK" ]; then
+        msg_blue "Configuring $DEVICE: $ETH_IP/$ETH_NETMASK"
+        run ifconfig $DEVICE $ETH_IP netmask $ETH_NETMASK up
+    else
+        if ifconfig $DEVICE up >/dev/null 2>&1; then
+            msg_blue "Configuring $DEVICE: DHCP"
+            sleep 2
+            run udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script
+        fi
+    fi
+}
+
+
+
+
+if [ -n "$ETH_DEV" ]; then
+    ifup $ETH_DEV
+else
+    for i in eth0 eth1 eth2 eth3 eth4; do
+        ifup $ETH_DEV
+    done
+fi
+
 
 

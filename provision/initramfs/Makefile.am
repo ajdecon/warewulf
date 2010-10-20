@@ -44,6 +44,8 @@ rootfs: busybox
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	rm -f rootfs/linuxrc
 	install -m 755 init rootfs/init
+	install -m 755 functions rootfs/etc/functions
+	install -m 755 dhcp-script rootfs/sbin/
 
 initramfs.cpio: rootfs
 	cp devs.cpio initramfs
@@ -60,5 +62,5 @@ clean:
 
 
 
-EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio
+EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio functions dhcp-script
 
