@@ -1,4 +1,4 @@
-SUBDIRS = 3rd_party lib initramfs
+SUBDIRS = lib initramfs modules
 
 MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
 DISTCLEANFILES = 
