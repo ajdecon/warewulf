@@ -25,11 +25,22 @@ fi
 AC_MSG_RESULT($PERL_VENDORLIB)
 AC_SUBST(PERL_VENDORLIB)
 
+AC_CHECK_LIB(fuse, fuse_main, , [
+AC_MSG_ERROR([Fatal:  Fuse libraries not found.])
+])
+
+#AC_PATH_PROG(NASM, nasm)
+#if test -z "$NASM"; then
+#   AC_MSG_ERROR([nasm not found])
+#fi
+
 
 AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
    warewulf-provision.spec
+   3rd_party/Makefile
+   initramfs/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )

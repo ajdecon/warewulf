@@ -1,0 +1,73 @@
+.PHONY all: busybox unionfs
+
+top_srcdir = @top_srcdir@
+
+UNIONFS_VERSION = 0.24
+UNIONFS_SOURCE = $(top_srcdir)/3rd_party/unionfs-fuse-$(UNIONFS_VERSION).tar.bz2
+UNIONFS_DIR = unionfs-fuse-$(UNIONFS_VERSION)
+
+
+BUSYBOX_VERSION = 1.17.2
+BUSYBOX_SOURCE = $(top_srcdir)/3rd_party/busybox-$(BUSYBOX_VERSION).tar.bz2
+BUSYBOX_DIR = busybox-$(BUSYBOX_VERSION)
+BUSYBOX_PATCHES = busybox-1.17.2-iplink.patch
+
+
+
+unionfs:
+	@ if [ ! -d "_work/unionfs-fuse/$(UNIONFS_DIR)" ]; then \
+	    echo "Preparing to build unionfs-fuse" ;\
+	    mkdir -p _work/unionfs-fuse;\
+	    tar xjf $(UNIONFS_SOURCE) -C _work/unionfs-fuse/ ;\
+	fi
+	@ if [ ! -f "_work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs" ]; then \
+	    echo "Building unionfs-fuse" ;\
+	    make -C _work/unionfs-fuse/$(UNIONFS_DIR) ;\
+	fi
+	@ if [ ! -f "unionfs" ]; then \
+	    echo "Installing unionfs" ;\
+	    cp -a _work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs unionfs ;\
+	fi
+
+
+
+busybox:
+	@ if [ ! -d "_work/busybox/$(BUSYBOX_DIR)" ]; then \
+	    echo "Preparing to build initramfs core" ;\
+	    mkdir -p _work/busybox ;\
+	    tar xjf $(BUSYBOX_SOURCE) -C _work/busybox/ ;\
+	    for i in $(BUSYBOX_PATCHES); do \
+	        (cd _work/busybox/$(BUSYBOX_DIR); patch -p1 < ../../../patches/$${i} || exit 1) \
+	    done ;\
+	    cp configs/busybox.config _work/busybox/$(BUSYBOX_DIR)/.config ;\
+	fi
+	@ if [ ! -f "_work/busybox/$(BUSYBOX_DIR)/busybox" ]; then \
+	    echo "Building initramfs core" ;\
+	    make -C _work/busybox/$(BUSYBOX_DIR) busybox ;\
+	fi
+	@ if [ ! -d "_work/busybox/$(BUSYBOX_DIR)/_install" ]; then \
+	    echo "Installing initramfs core" ;\
+	    make -C _work/busybox/$(BUSYBOX_DIR) install ;\
+	    ln -s _work/busybox/$(BUSYBOX_DIR)/_install busybox ;\
+	fi
+
+
+clean:
+	rm -rf _work
+	rm -f busybox
+	rm -f unionfs
+
+distclean maintainer-clean mostlyclean: clean
+	rm Makefile
+
+distdir:
+	cp $(BUSYBOX_SOURCE) $(distdir)/
+	cp Makefile.in $(distdir)/
+	mkdir $(distdir)/configs $(distdir)/patches
+	cp configs/* $(distdir)/configs/
+	cp patches/*.patch $(distdir)/patches/
+
+check installcheck:
+
+dvi pdf ps info html tags ctags:
+
