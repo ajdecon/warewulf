@@ -20,16 +20,16 @@ clear
 if [ -x "/sbin/syslogd" ]; then
    msg_blue "Starting syslogd\n"
    mkdir -p /var/log/
-   /sbin/syslogd -O /var/log/messages
+   run /sbin/syslogd -O /var/log/messages
 fi
 if [ -x "/sbin/klogd" ]; then
    msg_blue "Starting klogd\n"
-   /sbin/klogd -c 1
+   run /sbin/klogd -c 1
 fi
 if [ -x "/sbin/mdev" ]; then
    msg_blue "Starting mdev\n"
    echo /sbin/mdev > /proc/sys/kernel/hotplug
-   /sbin/mdev -s
+   run /sbin/mdev -s
 fi
 
 
@@ -42,25 +42,41 @@ ifup() {
     if [ -n "$ETH_IP" -a -n "$ETH_NETMASK" ]; then
         msg_blue "Configuring $DEVICE: $ETH_IP/$ETH_NETMASK"
         run ifconfig $DEVICE $ETH_IP netmask $ETH_NETMASK up
+        RETVAL=$1
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
             msg_blue "Configuring $DEVICE: DHCP"
             sleep 2
             run udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script
+            RETVAL=$1
         fi
     fi
+    return $RETVAL
 }
 
 
 
 
 if [ -n "$ETH_DEV" ]; then
-    ifup $ETH_DEV
+    for i in $ETH_DEV; do
+        ifup $i
+    done
 else
     for i in eth0 eth1 eth2 eth3 eth4; do
-        ifup $ETH_DEV
+        ifup $i
     done
 fi
+
+
+
+for i in /etc/warewulf/init/*; do
+    if [ -x "$i" -a -f "$i" ]; then
+        sh $i
+    fi
+done
+
+
+
 
 
 
