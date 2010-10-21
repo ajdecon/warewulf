@@ -8,6 +8,9 @@ export WWDEBUG
 WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
 
+WWCGI=`sed -e '/ wwcgi=/!d;s/.*wwcgi=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWMASTER
+
 ETH_IP=`sed -e '/ eth_ip=/!d;s/.*eth_ip=\([^ ]*\).*/\1/' /proc/cmdline`
 export ETH_IP
 

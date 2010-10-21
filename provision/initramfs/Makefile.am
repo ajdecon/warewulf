@@ -46,6 +46,7 @@ rootfs: busybox
 	install -m 755 init rootfs/init
 	install -m 755 functions rootfs/etc/functions
 	install -m 755 dhcp-script rootfs/sbin/
+	install -m 755 detect rootfs/sbin/
 
 initramfs.cpio: rootfs
 	cp devs.cpio initramfs
@@ -62,5 +63,5 @@ clean:
 
 
 
-EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio functions dhcp-script
+EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio functions dhcp-script detect
 
