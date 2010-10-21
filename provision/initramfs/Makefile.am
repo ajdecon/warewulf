@@ -49,12 +49,12 @@ rootfs: busybox
 	install -m 755 detect rootfs/sbin/
 
 initramfs.cpio: rootfs
-	cp devs.cpio initramfs
+	cp devs.cpio initramfs.cpio
 	cd rootfs/; find . | cpio -o -H newc -A -F ../initramfs.cpio
 
 install:
 	install -d -m 755 $(DESTDIR)/$(localstatedir)/warewulf/
-	install -m 644 initramfs $(DESTDIR)/$(localstatedir)/warewulf/initramfs.cpio
+	install -m 644 initramfs.cpio $(DESTDIR)/$(localstatedir)/warewulf/initramfs.cpio
 
 clean:
 	rm -rf _work
