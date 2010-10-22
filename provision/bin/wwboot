@@ -1,0 +1,113 @@
+#!/usr/bin/perl -Tw
+#
+# Copyright (c) 2003-2010, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# The GNU GPL Document can be found at:
+# http://www.gnu.org/copyleft/gpl.html
+#
+
+
+
+use Warewulf::Include;
+use Warewulf::Config;
+use Warewulf::Logger;
+use Warewulf::Util;
+use Getopt::Long;
+use File::Path;
+
+Getopt::Long::Configure ("bundling");
+
+my $debug;
+my $verbose;
+my $rpm;
+my $kversion;
+my $depmod_map_arg = "";
+my $randstring = &rand_string("12");
+my $tmpdir = "/var/tmp/wwinitrd.$randstring";
+my $wwinitramfs = "$Warewulf::Include::path{STATEDIR}/warewulf/initramfs.cpio";
+
+%ENV = ();
+$ENV{"PATH"} = "/bin:/usr/bin";
+
+
+GetOptions(
+   'd|debug'    => \$debug,
+   'v|verbose'  => \$verbose,
+   'r|rpm'      => \$rpm,
+);
+
+if ($debug) {
+    set_log_level(DEBUG);
+} elsif ($verbose) {
+    set_log_level(NOTICE);
+} else {
+    set_log_level(INFO);
+}
+
+my $config = Warewulf::Config->new();
+my $modules = join(" ", $config->get("modules include"));
+
+if (! -f $wwinitramfs) {
+    die "Could not locate the Warewulf CPIO archive at: $wwcpio!\n";
+}
+
+# Check for depmod option for map files
+open(DEPMOD, "/sbin/depmod --help 2>&1 |");
+while (my $line = <DEPMOD>) {
+    chomp $line;
+    if ( $line =~ /^\s*-m\s+/ ) {
+        $depmod_map_arg = "-m";
+        &lprint(INFO, "Will use the \"-m\" option to depmod to trigger map file generation\n");
+    }
+}
+close DEPMOD;
+
+if ($rpm) {
+    $rpm = $ARGV[0];
+    if ($ARGV[0] =~ /^([\/\.\-_a-zA-Z0-9]+\.rpm)$/) {
+        $rpm = $1;
+        if (-f $rpm) {
+            open(RPM, "rpm -qp --qf '%{version}-%{release}' $rpm 2>/dev/null |");
+            $kversion = <RPM>;
+            close RPM;
+        }
+        if ($kversion =~ /^([0-9_\.]+\-[a-zA-Z0-9_\..]+)$/) {
+            my $kversion_safe = $1;
+            &lprint(DEBUG, "creating temporary directory at: $tmpdir\n");
+            mkpath($tmpdir);
+            &lprint(INFO, "Extracting the kernel modules\n");
+            system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
+            system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
+            my $tmpinitramfs = "/tftpboot/wwinitramfs-$kversion_safe";
+            system("cp $wwinitramfs $tmpinitramfs");
+            system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
+            &lprint(INFO, "Compressing the initramfs\n");
+            system("gzip -f -9 $tmpinitramfs");
+            system("rm -rf $tmpdir/*");
+            &lprint(INFO, "Extracting the kernel object\n");
+            system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
+            system("cp $tmpdir/boot/vmlinuz-* /tftpboot/");
+            system("rm -rf $tmpdir");
+        }
+    }
+} else {
+    die "This program only understands RPM files at the moment\n";
+}
+
+
+
+
+
+

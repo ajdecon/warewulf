@@ -39,6 +39,7 @@ AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
    warewulf-provision.spec
+   bin/Makefile
    etc/Makefile
    initramfs/Makefile
    modules/Makefile

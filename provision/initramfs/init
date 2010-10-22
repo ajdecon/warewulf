@@ -35,44 +35,42 @@ clear
 if [ -x "/sbin/syslogd" ]; then
    msg_blue "Starting syslogd\n"
    mkdir -p /var/log/
-   run /sbin/syslogd -O /var/log/messages
+   /sbin/syslogd -O /var/log/messages
 fi
 if [ -x "/sbin/klogd" ]; then
    msg_blue "Starting klogd\n"
-   run /sbin/klogd -c 1
+   /sbin/klogd -c 1
 fi
 if [ -x "/sbin/mdev" ]; then
    msg_blue "Starting mdev\n"
    echo /sbin/mdev > /proc/sys/kernel/hotplug
-   run /sbin/mdev -s
+   /sbin/mdev -s
 fi
 
-msg_blue "Beginning hardware probe..."
+msg_blue "Beginning hardware probe...\n"
 
-for module in /sbin/detect | sort | uniq; do
+for module in `/sbin/detect | sort | uniq`; do
     msg_gray "   Loading module: $module\n"
-    run modprobe $module
+    modprobe $module
 done
 
 
 ifup() {
     DEVICE=$1
     if [ -n "$ETH_IP" -a -n "$ETH_NETMASK" ]; then
-        msg_blue "Configuring $DEVICE: $ETH_IP/$ETH_NETMASK"
-        run ifconfig $DEVICE $ETH_IP netmask $ETH_NETMASK up
-        RETVAL=$1
+        msg_blue "Configuring $DEVICE: $ETH_IP/$ETH_NETMASK\n"
+        ifconfig $DEVICE $ETH_IP netmask $ETH_NETMASK up
+        RETVAL=$?
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
-            msg_blue "Configuring $DEVICE: DHCP"
+            msg_blue "Configuring $DEVICE: DHCP\n"
             sleep 2
-            run udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script
-            RETVAL=$1
+            udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script
+            RETVAL=$?
         fi
     fi
     return $RETVAL
 }
-
-
 
 
 if [ -n "$ETH_DEV" ]; then
@@ -96,9 +94,9 @@ done
 
 
 while true; do
+    echo "Connecting to: $WWCGI"
     wget -O - $WWCGI | /bin/sh
-
-    sleep 1
+    sleep 5
 done
 
 

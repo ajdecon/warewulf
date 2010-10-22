@@ -28,7 +28,7 @@ WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
 
 WWCGI=`sed -e '/ wwcgi=/!d;s/.*wwcgi=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWMASTER
+export WWCGI
 
 ETH_IP=`sed -e '/ eth_ip=/!d;s/.*eth_ip=\([^ ]*\).*/\1/' /proc/cmdline`
 export ETH_IP
@@ -48,6 +48,10 @@ export ETH_DEV
 ETH_MTU=`sed -e '/ eth_mtu=/!d;s/.*eth_mtu=\([^ ]*\).*/\1/' /proc/cmdline`
 export ETH_MTU
 
+
+if [ -z "$WWCGI" ]; then
+   WWCGI="http://$WWMASTER/WW"
+fi
 
 
 
@@ -105,15 +109,15 @@ msg() {
 
 run() {
     if [ -n "$1" ]; then
-        if [ $WWDEBUG -eq "0" ]; then
+        if [ $WWDEBUG -eq 0 ]; then
             $@ >/dev/null 2>&1
             RETVAL=$?
-        elif [ $WWDEBUG -eq "1" ]; then
+        elif [ $WWDEBUG -eq 1 ]; then
             echo -ne "$GRAY"
             $@ >/dev/null
             RETVAL=$?
             echo -ne "$NORMAL"
-        elif [ $WWDEBUG -gt "1" ]; then
+        elif [ $WWDEBUG -gt 1 ]; then
             echo -ne "$GRAY"
             $@
             RETVAL=$?
