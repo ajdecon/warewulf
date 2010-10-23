@@ -1,3 +1,5 @@
+SUBDIRS = Provision
+
 perlmodsdir = ${PERL_VENDORLIB}
 
 dist_perlmods_SCRIPTS = 

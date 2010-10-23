@@ -34,17 +34,33 @@ AC_MSG_ERROR([Fatal:  Fuse libraries not found.])
 #   AC_MSG_ERROR([nasm not found])
 #fi
 
+AC_EXPAND_DIR(fulldatadir, "$datadir")
+AC_SUBST(fulldatadir)
+
+AC_EXPAND_DIR(fulllibexecdir, "$libexecdir")
+AC_SUBST(fulllibexecdir)
+
+AC_EXPAND_DIR(fulllocalstatedir, "$localstatedir")
+AC_SUBST(fulllocalstatedir)
+
+AC_EXPAND_DIR(fulldatadir, "$datadir")
+AC_SUBST(fulldatadir)
+
 
 AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
    warewulf-provision.spec
    bin/Makefile
+   cgi-bin/Makefile
    etc/Makefile
+   etc/warewulf-httpd.conf
    initramfs/Makefile
    modules/Makefile
    modules/unionfs/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
+   lib/Warewulf/Provision/Include.pm
+   lib/Warewulf/Provision/Makefile
 )
 

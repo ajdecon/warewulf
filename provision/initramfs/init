@@ -19,8 +19,6 @@
 #
 
 
-. /etc/functions
-
 mkdir /proc 2>/dev/null
 mkdir /sys  2>/dev/null
 mkdir /tmp  2>/dev/null
@@ -30,42 +28,51 @@ mkdir /usr  2>/dev/null
 mount -t proc none /proc
 mount -t sysfs none /sys
 
+. /etc/functions
+
+
+dmesg -n 1 >/dev/null 2>&1
+
 clear
 
-if [ -x "/sbin/syslogd" ]; then
-   msg_blue "Starting syslogd\n"
-   mkdir -p /var/log/
-   /sbin/syslogd -O /var/log/messages
+msg_blue "Welcome to Warewulf!\n"
+echo
+
+if [ -n "$WWNODE" ]; then
+    msg_white "Setting Hostname: "
+    msg_gray "$WWNODE\n"
+    hostname $WWNODE
 fi
-if [ -x "/sbin/klogd" ]; then
-   msg_blue "Starting klogd\n"
-   /sbin/klogd -c 1
-fi
+
 if [ -x "/sbin/mdev" ]; then
-   msg_blue "Starting mdev\n"
    echo /sbin/mdev > /proc/sys/kernel/hotplug
    /sbin/mdev -s
 fi
 
-msg_blue "Beginning hardware probe...\n"
+msg_white  "Loading drivers: "
 
 for module in `/sbin/detect | sort | uniq`; do
-    msg_gray "   Loading module: $module\n"
+    msg_gray " $module"
     modprobe $module
 done
 
+echo
 
 ifup() {
     DEVICE=$1
-    if [ -n "$ETH_IP" -a -n "$ETH_NETMASK" ]; then
-        msg_blue "Configuring $DEVICE: $ETH_IP/$ETH_NETMASK\n"
-        ifconfig $DEVICE $ETH_IP netmask $ETH_NETMASK up
-        RETVAL=$?
+    if [ -n "$WWIP" -a -n "$WWNETMASK" ]; then
+        if ifconfig $DEVICE up >/dev/null 2>&1; then
+            msg_white  "Configuring $DEVICE: "
+            msg_gray "$WWIP/$WWNETMASK\n"
+            ifconfig $DEVICE $WWIP netmask $WWNETMASK up
+            RETVAL=$?
+        fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
-            msg_blue "Configuring $DEVICE: DHCP\n"
+            msg_white "Configuring $DEVICE: "
+            msg_gray "DHCP\n"
             sleep 2
-            udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script
+            udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script >/dev/null
             RETVAL=$?
         fi
     fi
@@ -73,8 +80,8 @@ ifup() {
 }
 
 
-if [ -n "$ETH_DEV" ]; then
-    for i in $ETH_DEV; do
+if [ -n "$WWDEV" ]; then
+    for i in $WWDEV; do
         ifup $i
     done
 else
@@ -93,9 +100,12 @@ done
 
 
 
+msg_white "Connecting to Warewulf master: "
+msg_gray "$WWCGI\n"
+echo "-------------------------------------------------------------------------------"
+
 while true; do
-    echo "Connecting to: $WWCGI"
-    wget -O - $WWCGI | /bin/sh
+    wget -q -O - $WWCGI 2>/dev/null | /bin/sh
     sleep 5
 done
 

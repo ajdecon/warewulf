@@ -20,7 +20,7 @@
 
 
 
-use Warewulf::Include;
+use Warewulf::Provision::Include;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Util;
@@ -36,7 +36,7 @@ my $kversion;
 my $depmod_map_arg = "";
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-my $wwinitramfs = "$Warewulf::Include::path{STATEDIR}/warewulf/initramfs.cpio";
+my $wwinitramfs = "$Warewulf::Provision::Include::path{STATEDIR}/warewulf/initramfs.cpio";
 
 %ENV = ();
 $ENV{"PATH"} = "/bin:/usr/bin";
@@ -60,7 +60,7 @@ my $config = Warewulf::Config->new();
 my $modules = join(" ", $config->get("modules include"));
 
 if (! -f $wwinitramfs) {
-    die "Could not locate the Warewulf CPIO archive at: $wwcpio!\n";
+    die "Could not locate the Warewulf CPIO archive at: $wwinitramfs!\n";
 }
 
 # Check for depmod option for map files

@@ -1,0 +1,29 @@
+LoadModule perl_module modules/mod_perl.so
+PerlSwitches -w
+PerlSwitches -T
+PerlSwitches -I/var/www/stage/cgi-bin
+
+PerlPreConnectionHandler Apache2::Reload
+
+Alias /WW/static /usr/share/warewulf/www
+
+<Directory @fulllibexecdir@/warewulf/cgi-bin>
+    SetHandler perl-script
+    PerlResponseHandler ModPerl::Registry
+    PerlOptions +ParseHeaders
+    Options +ExecCGI
+</Directory>
+
+<Directory @fulldatadir@/warewulf/www>
+    Options Indexes MultiViews
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>
+
+
+Listen 9870
+<VirtualHost *:9870>
+    ScriptAlias / @fulllibexecdir@/warewulf/cgi-bin/nodeinterface.pl
+</VirtualHost>
+
