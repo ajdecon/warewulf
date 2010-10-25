@@ -4,9 +4,10 @@ package Warewulf::Logger;
 use Warewulf::Daemon;
 use Exporter;
 
-use constant INFO => 1;
-use constant NOTICE => 2;
-use constant DEBUG => 3;
+use constant ERROR => -1;
+use constant INFO => 0;
+use constant NOTICE => 1;
+use constant DEBUG => 2;
 
 our @ISA = ('Exporter');
 
@@ -14,6 +15,7 @@ our @EXPORT = qw (
     INFO
     NOTICE
     DEBUG
+    ERROR
     &get_log_level
     &set_log_level
     &lprint
@@ -47,7 +49,7 @@ set_log_level(@)
 {
     my $level = shift;
 
-    if ($level >= INFO and $level <= DEBUG) {
+    if ($level > INFO and $level <= DEBUG) {
         print "Setting log level to: $level\n";
         $LEVEL = $level;
     } elsif ($level) {
@@ -84,7 +86,7 @@ lprint($$)
         open(LOG, ">> /tmp/test.log");
         print LOG "$string\n";
         close LOG;
-    } elsif ($LEVEL >= $level) {
+    } elsif ($LEVEL >= $level or $level == -1) {
         if ($LEVEL == DEBUG) {
             (undef, undef, undef, $s) = caller(1);
             if (!defined($s)) {

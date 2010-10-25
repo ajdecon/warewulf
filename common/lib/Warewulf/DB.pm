@@ -23,7 +23,7 @@ The Warewulf::DB interface simplies typically used DB calls.
 
 =item new()
 
-Throw a backtrace at the current location in the code.
+Create the object.
 
 =cut
 sub
@@ -124,7 +124,7 @@ user($$)
     return($self->{"USER"});
 }
 
-=item password($password)
+=item passwd($password)
 
 Set the DB password
 

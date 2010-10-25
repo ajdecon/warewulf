@@ -8,6 +8,8 @@ use vars qw($VERSION %path %info);
 our @ISA = ("Exporter");
 
 our @EXPORT = qw(
+    &wwinfo
+    &wwpath
 );
 
 $VERSION = "@VERSION@";
@@ -65,6 +67,37 @@ $path{"SYSCONFDIR"}                      = "@sysconfdir@";
 $path{"LIBDIR"}                          = "@libdir@";
 $path{"DATADIR"}                         = "@datadir@";
 $path{"LIBEXECDIR"}                      = "@libexecdir@";
+
+
+sub
+wwinfo($)
+{
+    my $var = uc(shift);
+
+    if (exists($info{"$var"})) {
+        return($info{"$var"});
+    } else {
+        &lprint(DEBUG, "Requested an unknown paramater\n");
+    }
+
+    return();
+}
+
+
+sub
+wwpath($)
+{
+    my $var = uc(shift);
+
+    if (exists($path{"$var"})) {
+        return($path{"$var"});
+    } else {
+        &lprint(DEBUG, "Requested an unknown paramater\n");
+    }
+
+    return();
+}
+
 
 =head1 SEE ALSO
 
