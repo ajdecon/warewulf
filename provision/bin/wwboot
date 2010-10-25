@@ -91,7 +91,7 @@ if ($rpm) {
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
             foreach my $module ($config->get("capabilities")) {
-                my $path = &wwpath("wwmoduledir") . "/" . $module;
+                my $path = &wwpath("initramfsdir") . "/" . $module;
                 if (-d $path) {
                     &lprint(INFO, "Including module: $module\n");
                     system("cd $path; cp -rap . $tmpdir/");

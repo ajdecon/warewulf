@@ -17,7 +17,6 @@ unionfs:
 	    make -C _work/unionfs-fuse/$(UNIONFS_DIR) ;\
 	fi
 	@ if [ ! -f "unionfs" ]; then \
-	    echo "Installing unionfs" ;\
 	    cp -a _work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs unionfs ;\
 	fi
 
