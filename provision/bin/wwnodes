@@ -43,19 +43,19 @@ my $command = shift(@ARGV);
 if ($command eq "add") {
     my $name = shift(@ARGV);
 
-    if ( $name ) {
+    if ($name) {
         if ($name =~ /^([a-zA-Z0-9\-_]+)$/) {
-            $db->command("INSERT INTO nodes (name) VALUES (?)", $1);
-        } elsif ( $name ) {
+            $db->command("INSERT INTO nodes (name,cluster) VALUES (?,?)", $1, $cluster);
+        } elsif ($name) {
             &lprint(ERROR, "Illeagle characters for node name\n");
         }
     } else {
         &lprint(ERROR, "Please supply a node name\n");
     }
 
-} elsif ( $command eq "set" ) {
+} elsif ($command eq "set") {
 
-} elsif ( $command eq "list" ) {
+} elsif ($command eq "list") {
     $db->command("SELECT name FROM nodes");
     while (my ($node) = $db->fetch_row()) {
         print "$node\n";
