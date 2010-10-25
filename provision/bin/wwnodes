@@ -1,0 +1,63 @@
+#!/usr/bin/perl -Tw
+
+use Warewulf::DB;
+use Warewulf::Logger;
+use Warewulf::Config;
+use Getopt::Long;
+
+Getopt::Long::Configure ("bundling");
+
+my $debug;
+my $verbose;
+my $cluster;
+
+
+GetOptions(
+    'd|debug' => \$debug,
+    'v|verbose' => \$verbose,
+    'c|cluster=s' => \$cluster,
+);
+
+if ($debug) {
+    set_log_level(DEBUG);
+} elsif ($verbose) {
+    set_log_level(NOTICE);
+} else {
+    set_log_level(INFO);
+}
+
+my $db = Warewulf::DB->new();
+my $config = Warewulf::Config->new();
+
+$db->driver("mysql");
+$db->host($config->get("database server"));
+$db->database($config->get("database name"));
+$db->user($config->get("database user"));
+$db->passwd($config->get("database password"));
+$db->connect();
+
+
+my $command = shift(@ARGV);
+
+
+if ($command eq "add") {
+    my $name = shift(@ARGV);
+
+    if ( $name ) {
+        if ($name =~ /^([a-zA-Z0-9\-_]+)$/) {
+            $db->command("INSERT INTO nodes (name) VALUES (?)", $1);
+        } elsif ( $name ) {
+            &lprint(ERROR, "Illeagle characters for node name\n");
+        }
+    } else {
+        &lprint(ERROR, "Please supply a node name\n");
+    }
+
+} elsif ( $command eq "set" ) {
+
+} elsif ( $command eq "list" ) {
+    $db->command("SELECT name FROM nodes");
+    while (my ($node) = $db->fetch_row()) {
+        print "$node\n";
+    }
+}
