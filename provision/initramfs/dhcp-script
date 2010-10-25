@@ -21,10 +21,17 @@
 
 
 if test -n "$ip"; then
-   > /etc/resolv.conf
    ifconfig $interface $ip netmask $subnet
-   route add default gw $router
+fi
+if test -n "$dns"; then
+   > /etc/resolv.conf
    for i in "$dns"; do
       echo "nameserver $i" >> /etc/resolv.conf
    done
+fi
+if test -n "$router"; then
+   route add default gw $router
+fi
+if test -n "$hostname"; then
+    hostname $hostname
 fi

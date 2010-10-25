@@ -46,6 +46,9 @@ AC_SUBST(fulllocalstatedir)
 AC_EXPAND_DIR(fulldatadir, "$datadir")
 AC_SUBST(fulldatadir)
 
+initramfsdir="$localstatedir/warewulf/initramfs/";
+AC_SUBST(initramfsdir)
+
 
 AC_SUBST(PERLBIN)
 
@@ -56,8 +59,10 @@ AC_OUTPUT(Makefile
    etc/Makefile
    etc/warewulf-httpd.conf
    initramfs/Makefile
+   initramfs/capabilities/Makefile
+   initramfs/capabilities/statelite/Makefile
    modules/Makefile
-   modules/unionfs/Makefile
+   share/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
    lib/Warewulf/Provision/Include.pm

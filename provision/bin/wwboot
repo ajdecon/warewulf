@@ -36,7 +36,7 @@ my $kversion;
 my $depmod_map_arg = "";
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-my $wwinitramfs = "$Warewulf::Provision::Include::path{STATEDIR}/warewulf/initramfs.cpio";
+my $wwinitramfs = &wwpath("statedir") ."/warewulf/initramfs.cpio";
 
 %ENV = ();
 $ENV{"PATH"} = "/bin:/usr/bin";
@@ -57,7 +57,7 @@ if ($debug) {
 }
 
 my $config = Warewulf::Config->new();
-my $modules = join(" ", $config->get("modules include"));
+my $modules = join(" ", $config->get("drivers"));
 
 if (! -f $wwinitramfs) {
     die "Could not locate the Warewulf CPIO archive at: $wwinitramfs!\n";
@@ -69,7 +69,7 @@ while (my $line = <DEPMOD>) {
     chomp $line;
     if ( $line =~ /^\s*-m\s+/ ) {
         $depmod_map_arg = "-m";
-        &lprint(INFO, "Will use the \"-m\" option to depmod to trigger map file generation\n");
+        &lprint(NOTICE, "Will use the \"-m\" option to depmod to trigger map file generation\n");
     }
 }
 close DEPMOD;
@@ -90,6 +90,15 @@ if ($rpm) {
             &lprint(INFO, "Extracting the kernel modules\n");
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
+            foreach my $module ($config->get("capabilities")) {
+                my $path = &wwpath("wwmoduledir") . "/" . $module;
+                if (-d $path) {
+                    &lprint(INFO, "Including module: $module\n");
+                    system("cd $path; cp -rap . $tmpdir/");
+                } else {
+                    &lprint(DEBUG, "Defined module not found: $module\n");
+                }
+            }
             my $tmpinitramfs = "/tftpboot/wwinitramfs-$kversion_safe";
             system("cp $wwinitramfs $tmpinitramfs");
             system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");

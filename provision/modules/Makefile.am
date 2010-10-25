@@ -1,2 +1,2 @@
-SUBDIRS = unionfs
+SUBDIRS = 
 

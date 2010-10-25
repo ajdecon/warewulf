@@ -1,4 +1,4 @@
-SUBDIRS = lib initramfs modules etc bin cgi-bin
+SUBDIRS = lib initramfs modules etc bin cgi-bin share
 
 MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
 DISTCLEANFILES = 

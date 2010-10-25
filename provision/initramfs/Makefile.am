@@ -1,3 +1,5 @@
+SUBDIRS = capabilities
+
 all: initramfs.cpio
 
 top_srcdir = @top_srcdir@
@@ -6,8 +8,6 @@ BUSYBOX_VERSION = 1.17.3
 BUSYBOX_SOURCE = busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_DIR = busybox-$(BUSYBOX_VERSION)
 BUSYBOX_PATCHES = 
-
-SUBDIRS =
 
 busybox:
 	@ if [ ! -d "_work/$(BUSYBOX_DIR)" ]; then \

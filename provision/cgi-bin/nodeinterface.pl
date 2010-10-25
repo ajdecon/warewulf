@@ -4,11 +4,8 @@ use CGI;
 
 my $q = CGI->new();
 
-
 print $q->header();
 
-$counter++;
-
-print "echo Hello World: $counter\n";
+print "echo Hello World\n";
 
 

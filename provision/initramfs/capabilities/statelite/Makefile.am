@@ -6,7 +6,6 @@ UNIONFS_VERSION = 0.24
 UNIONFS_SOURCE = unionfs-fuse-$(UNIONFS_VERSION).tar.bz2
 UNIONFS_DIR = unionfs-fuse-$(UNIONFS_VERSION)
 
-
 unionfs:
 	@ if [ ! -d "_work/unionfs-fuse/$(UNIONFS_DIR)" ]; then \
 	    echo "Preparing to build unionfs-fuse" ;\
@@ -22,6 +21,9 @@ unionfs:
 	    cp -a _work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs unionfs ;\
 	fi
 
+install:
+	install -d -m 755 $(DESTDIR)$(initramfsdir)/statelite/sbin/
+	install -m 755 unionfs $(DESTDIR)$(initramfsdir)/statelite/sbin/
 
 clean:
 	rm -rf _work
