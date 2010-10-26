@@ -50,7 +50,7 @@ set_log_level(@)
     my $level = shift;
 
     if ($level > INFO and $level <= DEBUG) {
-        print "Setting log level to: $level\n";
+        print "Setting output level to: $level\n";
         $LEVEL = $level;
     } elsif ($level) {
         print STDERR "ERROR: Could not set log level to: $level\n";

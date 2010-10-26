@@ -51,94 +51,62 @@ new($$)
 }
 
 
-=item ipaddr()
+=item get(key)
 
-The ipaddr method will either store or return the IP address for this object
-depending if a value/paramater is given.
+Return the value of the key defined.
 
 =cut
 sub
-ipaddr($$)
+get($)
 {
-    my $self = shift;
-    my $val = shift;
+    my $self                = shift;
+    my $key                 = shift;
 
-    if (defined($val)) {
-        $self->{"IPADDR"} = $val;
-    } elsif (exists($self->{"IPADDR"})) {
-        return($self->{"IPADDR"});
-    }
-
-    return();
+    return($self->{"$key"});
 }
 
 
-=item hostname()
+=item set(key,value)
 
-The hostname method will either store or return the hostname for this object
-depending if a value/paramater is given.
-
-=cut
-sub
-hostname($$)
-{
-    my $self = shift;
-    my $val = shift;
-
-    if (defined($val)) {
-        $self->{"HOSTNAME"} = $val;
-    } elsif (exists($self->{"HOSTNAME"})) {
-        return($self->{"HOSTNAME"});
-    }
-
-    return();
-}
-
-
-=item hwaddr()
-
-The hwaddr method will either store or return the hardware address for this object
-depending if a value/paramater is given.
+Set a key/value pair.
 
 =cut
 sub
-hwaddr($$)
+set($$)
 {
-    my $self = shift;
-    my $val = shift;
+    my $self                = shift;
+    my $key                 = shift;
+    my $value               = shift;
 
-    if (defined($val)) {
-        $self->{"HWADDR"} = $val;
-    } elsif (exists($self->{"HWADDR"})) {
-        return($self->{"HWADDR"});
-    }
+    $self->{"$key"} = $value;
 
-    return();
+    return($value);
 }
 
 
 
-=item data()
+=item *([value])
 
-The data method will either store or return the raw data for this object
-depending if a value/paramater is given.
+Any methods will be automatically translated into a get/set command, so
+you can do things like this:
+
+   $store->anything_you_wish_to_use->("the value should be here");
+   my $value = $store->anything_you_wish_to_use();
 
 =cut
 sub
-data($$)
+AUTOLOAD($)
 {
-    my $self = shift;
-    my $val = shift;
+    my $self                = shift;
+    my $key                 = $AUTOLOAD;
+    my $value               = shift;
 
-    if (defined($val)) {
-        $self->{"DATA"} = $val;
-    } elsif (exists($self->{"DATA"})) {
-        return($self->{"DATA"});
+    if ($value) {
+        $self->set($key, $value);
     }
 
-    return();
+    return($self->get($key));
 }
-
 
 
 =back

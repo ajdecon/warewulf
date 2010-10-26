@@ -65,6 +65,10 @@ add($$)
         my $hostname = $nodeobj->hostname();
         my $ipaddr = $nodeobj->ipaddr();
         my $hwaddr = $nodeobj->hwaddr();
+        my $id = $nodeobj->id();
+        if ($id) {
+            push(@{$self->{"BY_ID"}{"$id"}}, $nodeobj);
+        }
         if ($hostname) {
             push(@{$self->{"BY_HOSTNAME"}{"$hostname"}}, $nodeobj);
         }
@@ -100,6 +104,8 @@ get($$)
 
     if (exists($self->{"BY_HOSTNAME"}{"$val"})) {
         push(@return, @{$self->{"BY_HOSTNAME"}{"$val"}});
+    } elsif (exists($self->{"BY_ID"}{"$val"})) {
+        push(@return, @{$self->{"BY_ID"}{"$val"}});
     } elsif (exists($self->{"BY_IPADDR"}{"$val"})) {
         push(@return, @{$self->{"BY_IPADDR"}{"$val"}});
     } elsif (exists($self->{"BY_HWADDR"}{"$val"})) {

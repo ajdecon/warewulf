@@ -129,8 +129,9 @@ reread($)
                 push(@{$self->{"STREAM"}}, $line);
             }
             close FILE;
+            lprint(NOTICE, "Reading config file: $file\n");
         } else {
-            lprint(NOTICE, "Config file not found: $file\n");
+            lprint(DEBUG, "Config file not found: $file\n");
         }
     }
 
