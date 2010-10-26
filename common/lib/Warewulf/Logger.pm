@@ -92,14 +92,13 @@ lprint($$)
             if (!defined($s)) {
                 $s = "MAIN";
             }
-            (undef, $f, $l) = caller(0);
-                $f =~ s/^.*\/([^\/]+)$/$1/;
+            ($f, undef, $l) = caller(0);
             $s =~ s/\w+:://g;
             $s .= "()" if ($s =~ /^\w+$/);
             $f = "" if (!defined($f));
             $l = "" if (!defined($l));
             $s = "" if (!defined($s));
-            print STDERR "[$f/$l/$s]: ";
+            printf STDERR "%-40s", "[$f->$s/$l]: ";
         }
         print STDERR "$string\n";
     }
@@ -129,14 +128,13 @@ lprintf($$$)
             if (!defined($s)) {
                 $s = "MAIN";
             }
-            (undef, $f, $l) = caller(0);
-                $f =~ s/^.*\/([^\/]+)$/$1/;
+            ($f, undef, $l) = caller(0);
             $s =~ s/\w+:://g;
             $s .= "()" if ($s =~ /^\w+$/);
             $f = "" if (!defined($f));
             $l = "" if (!defined($l));
             $s = "" if (!defined($s));
-            print STDERR "[$f/$l/$s]: ";
+            printf STDERR "%-40s", "[$f->$s/$l]: ";
         }
         printf STDERR $format, @args;
     }
