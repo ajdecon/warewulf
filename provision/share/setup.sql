@@ -9,8 +9,10 @@ DROP TABLE IF EXISTS nodeids;
 DROP TABLE IF EXISTS modules;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS triggers;
-DROP TABLE IF EXISTS hwaddr;
+DROP TABLE IF EXISTS ethernet;
 DROP TABLE IF EXISTS nodes;
+DROP TABLE IF EXISTS cluster;
+DROP TABLE IF EXISTS rack;
 DROP TABLE IF EXISTS vnfs;
 
 
@@ -73,12 +75,38 @@ CREATE TABLE IF NOT EXISTS groups
 ) ENGINE=INNODB;
 
 
+CREATE TABLE IF NOT EXISTS clusters
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    name VARCHAR(256) NOT NULL,
+    create_time BIGINT,
+    update_time BIGINT,
+    lastcontact_time BIGINT,
+    description TEXT,
+    notes TEXT,
+    active BOOLEAN,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+
+
+CREATE TABLE IF NOT EXISTS racks
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    name VARCHAR(256) NOT NULL,
+    create_time BIGINT,
+    update_time BIGINT,
+    lastcontact_time BIGINT,
+    description TEXT,
+    notes TEXT,
+    active BOOLEAN,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+
+
 CREATE TABLE IF NOT EXISTS nodes
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
-    cluster VARCHAR(256) NOT NULL,
-    rack VARCHAR(256) NOT NULL,
     create_time BIGINT,
     update_time BIGINT,
     lastcontact_time BIGINT,
@@ -86,16 +114,23 @@ CREATE TABLE IF NOT EXISTS nodes
     notes TEXT,
     debug BOOLEAN,
     active BOOLEAN,
+    cluster_id INT,
+    rack_id INT,
     vnfs_id INT,
     FOREIGN KEY (vnfs_id) REFERENCES vnfs (id),
+    FOREIGN KEY (cluster_id) REFERENCES clusters (id),
+    FOREIGN KEY (rack_id) REFERENCES racks (id),
     PRIMARY KEY (id)
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS hwaddr
+CREATE TABLE IF NOT EXISTS ethernet
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
-    name VARCHAR(256) NOT NULL,
+    hwaddr VARCHAR(256) NOT NULL,
+    ipaddr INT,
+    netmask INT,
+    gateway INT,
     node_id INT,
     FOREIGN KEY (node_id) REFERENCES nodes (id),
     PRIMARY KEY (id)
