@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS ethernet
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     hwaddr VARCHAR(256) NOT NULL,
+    device VARCHAR(8),
     ipaddr INT,
     netmask INT,
     gateway INT,
