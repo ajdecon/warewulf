@@ -76,25 +76,25 @@ execute($$)
 
     if (@returns and $from) {
         $sql = "SELECT ";
-        $sql .= join(", ", map { (($_->[1]) ? (uc($_->[1]) ."($_->[0]) AS $_->[0]") : ($_->[0])) } $query->get_returns());
+        $sql .= join(", ", map { (($_->[1]) ? (uc($_->[1]) ."($_->[0]) AS $_->[0]") : ($_->[0])) } @returns);
 
         $sql .= " FROM $from ";
 
         if (@matches) {
             $sql .= "WHERE ";
-            $sql .= join(" AND ", map { "$_->[0] ". uc($_->[1]) ." $_->[2]" } @matches);
+            $sql .= join(" AND ", map { "$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } @matches);
             $sql .= " ";
         }
 
         if (@sorts) {
             $sql .= "ORDER BY ";
-            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] $_->[1]") : ($_->[0])) } @sorts);
+            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] " . uc($_->[1])) : ($_->[0])) } @sorts);
             $sql .= " ";
         }
 
         if (@limits) {
             $sql .= "LIMIT ";
-            $sql .= join(", ", map { (($_->[1]) ? ("$_->[1] OFFSET $_->[0]") : ($_->[0])) } @limits);
+            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] OFFSET $_->[1]") : ($_->[0])) } @limits);
             $sql .= " ";
         }
 
