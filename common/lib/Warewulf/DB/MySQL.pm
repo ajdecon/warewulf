@@ -66,11 +66,44 @@ execute($$)
 {
     my $self = shift;
     my $query = shift;
+    my $sql;
 
-    my $sql = "SELECT ";
+    my $from = $query->get_namespace();
+    my @returns = $query->get_returns();
+    my @matches = $query->get_matches();
+    my @sorts = $query->get_sorts();
+    my @limits = $query->get_limits();
 
-    $sql .= join(", ", map { (($_[1]) ? ("$_[1]($_[0]) AS $_[0]") : ($_[0])) } $query->returns());
+    if (@returns and $from) {
+        $sql = "SELECT ";
+        $sql .= join(", ", map { (($_->[1]) ? (uc($_->[1]) ."($_->[0]) AS $_->[0]") : ($_->[0])) } $query->get_returns());
 
+        $sql .= " FROM $from ";
+
+        if (@matches) {
+            $sql .= "WHERE ";
+            $sql .= join(", ", map { "$_->[0] ". uc($_->[1]) ." $_->[2]" } @matches);
+            $sql .= " ";
+        }
+
+        if (@sorts) {
+            $sql .= "ORDER BY ";
+            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] $_->[1]") : ($_->[0])) } @sorts);
+            $sql .= " ";
+        }
+
+        if (@limits) {
+            $sql .= "LIMIT ";
+            $sql .= join(", ", map { (($_->[1]) ? ("$_->[1] OFFSET $_->[0]") : ($_->[0])) } @limits);
+            $sql .= " ";
+        }
+
+print "$sql\n";
+
+    } else {
+        &lprint(DEBUG, "DB->execute called with a query that didn't want to return anything\n");
+        return;
+    }
 
 }
 

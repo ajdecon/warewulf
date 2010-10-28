@@ -18,9 +18,10 @@ The Warewulf::DBQuery interface provides an abstract interface to the DB object
 
     use Warewulf::DBQuery;
 
-=item new()
+=item new(namespace)
 
-Create the object.
+Create the object. By default the namespace is that of the caller, but this
+can be overridden if requested.
 
 =cut
 sub
@@ -28,15 +29,26 @@ new($$)
 {
     my $proto               = shift;
     my $class               = ref($proto) || $proto;
+    my $caller              = shift ||# ($caller, undef, undef) = caller(0);
     my $self;
 
     %{$self} = ();
 
+    $self->{"NAMESPACE"} = $caller;
+
     bless($self, $class);
 
-    return($self);
+    return $self;
 }
 
+
+sub
+get_namespace($)
+{
+    my $self = shift;
+
+    return $self->{"NAMESPACE"};
+}
 
 =item add_match(entry to match, operator, constraint)
 
@@ -58,9 +70,9 @@ add_match($$$$)
 }
 
 sub
-get_matches()
+get_matches($)
 {
-    my ($self) = @_;
+    my $self = shift;
 
     return @{$self->{"MATCHES"}};
 }
@@ -84,9 +96,9 @@ add_sort($$$)
 sub
 get_sorts()
 {
-    my ($self) = @_;
+    my $self = shift;
 
-    return @{$self->{"SORTS"}};
+    return @{$self->{"SORT"}};
 }
 
 
@@ -112,7 +124,7 @@ add_return($$$)
 sub
 get_returns()
 {
-    my ($self) = @_;
+    my $self = shift;
 
     return @{$self->{"RETURN"}};
 }
@@ -138,7 +150,7 @@ add_limit($$$)
 sub
 get_limits()
 {
-    my ($self) = @_;
+    my $self = shift;
 
     return @{$self->{"LIMIT"}};
 }
