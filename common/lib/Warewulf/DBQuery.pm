@@ -38,7 +38,7 @@ new($$)
 }
 
 
-=item match(entry to match, operator, constraint)
+=item add_match(entry to match, operator, constraint)
 
 Add a matching constraint to the query. Allowed operators are:
 
@@ -46,7 +46,7 @@ Add a matching constraint to the query. Allowed operators are:
 
 =cut
 sub
-match($$$$)
+add_match($$$$)
 {
     my $self = shift;
     my $entry = shift;
@@ -57,25 +57,40 @@ match($$$$)
 
 }
 
+sub
+get_matches()
+{
+    my ($self) = @_;
 
-=item sortby(field, ASC/DESC)
+    return @{$self->{"MATCHES"}};
+}
+
+=item add_sort(field, ASC/DESC)
 
 How should the results be sorted?
 
 =cut
 sub
-sortby($$$)
+add_sort($$$)
 {
     my $self = shift;
     my $field = shift;
     my $order = shift;
 
-    push(@{$self->{"SORTBY"}}, [ $field, $order ]);
+    push(@{$self->{"SORT"}}, [ $field, $order ]);
 
 }
 
+sub
+get_sorts()
+{
+    my ($self) = @_;
 
-=item return(column name, present)
+    return @{$self->{"SORTS"}};
+}
+
+
+=item add_return(column name, present)
 
 How should the data be presented? By default it will just return the string
 corresponding to the entry requested, but you can also do a COUNT of the
@@ -83,7 +98,7 @@ entries found, or return the MAX entry.
 
 =cut
 sub
-return($$$)
+add_return($$$)
 {
     my $self = shift;
     my $column = shift;
@@ -94,14 +109,22 @@ return($$$)
 }
 
 
-=item limit(start, count)
+sub
+get_returns()
+{
+    my ($self) = @_;
+
+    return @{$self->{"RETURN"}};
+}
+
+=item add_limit(start, count)
 
 How many rows should be returned? The first argument is the first row to
 display starting at zero, and the second argument is a count from the first.
 
 =cut
 sub
-limit($$$)
+add_limit($$$)
 {
     my $self = shift;
     my $start = shift;
@@ -111,6 +134,14 @@ limit($$$)
 
 }
 
+
+sub
+get_limits()
+{
+    my ($self) = @_;
+
+    return @{$self->{"LIMIT"}};
+}
 
 
 

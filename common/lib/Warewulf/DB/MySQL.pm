@@ -69,16 +69,7 @@ execute($$)
 
     my $sql = "SELECT ";
 
-
-    if (exists($query->{"RETURN"})) {
-        foreach my $q (@{$query->{"RETURN"}) {
-            if (exists($q[1])) {
-                $sql .= "$q[1]($q[0]) ";
-            } else {
-                $sql .= "$q[0] ";
-            }
-        }
-    }
+    $sql .= join(", ", map { (($_[1]) ? ("$_[1]($_[0]) AS $_[0]") : ($_[0])) } $query->returns());
 
 
 }
