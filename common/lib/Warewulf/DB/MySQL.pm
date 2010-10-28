@@ -82,7 +82,7 @@ execute($$)
 
         if (@matches) {
             $sql .= "WHERE ";
-            $sql .= join(", ", map { "$_->[0] ". uc($_->[1]) ." $_->[2]" } @matches);
+            $sql .= join(" AND ", map { "$_->[0] ". uc($_->[1]) ." $_->[2]" } @matches);
             $sql .= " ";
         }
 
