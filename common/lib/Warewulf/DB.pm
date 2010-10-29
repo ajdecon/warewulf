@@ -19,6 +19,52 @@ The Warewulf::DB interface simplies typically used DB calls.
 
     use Warewulf::DB;
 
+The interface provides the following interface schema:
+
+        Query field       Return type
+
+    Node
+        name            : string
+        description     : string
+        notes           : string
+        debug           : string
+        active          : string
+        cluster         : string
+        rack            : string
+        vnfs            : string
+        hwaddr          : list
+        ipaddr          : list
+        group           : list
+
+    cluster
+        name            : string
+        description     : string
+        notes           : string
+        active          : string
+        node            : list
+
+    rack
+        name            : string
+        description     : string
+        notes           : string
+        active          : string
+        node            : list
+
+    modules
+        name            : string
+        description     : string
+        notes           : string
+        active          : string
+        script          : long text
+        node            : list
+
+    ethernet
+        name            : string
+        description     : string
+        notes           : string
+        active          : string
+        device          : string
+
 
 
 =item new()

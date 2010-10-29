@@ -121,6 +121,30 @@ get($$)
 
 
 
+=item iterate()
+
+Return an array of all node objects in this NodeSet.
+
+=cut
+sub
+iterate($)
+{
+    my $self = shift;
+    my @return;
+
+    foreach my $obj_array (keys %{$self->{"BY_ID"}}) {
+        push(@return, @{$obj_array});
+    }
+
+    if (@return) {
+        return(@return);
+    } else {
+        return();
+    }
+}
+
+
+
 
 =back
 

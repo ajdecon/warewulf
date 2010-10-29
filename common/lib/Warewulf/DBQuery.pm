@@ -29,12 +29,9 @@ new($$)
 {
     my $proto               = shift;
     my $class               = ref($proto) || $proto;
-    my $caller              = shift ||# ($caller, undef, undef) = caller(0);
     my $self;
 
     %{$self} = ();
-
-    $self->{"NAMESPACE"} = $caller;
 
     bless($self, $class);
 
@@ -42,15 +39,26 @@ new($$)
 }
 
 
+=item table(table name)
+
+What table are we querying
+
+=cut
 sub
-get_namespace($)
+table($)
 {
     my $self = shift;
+    my $table = shift;
 
-    return $self->{"NAMESPACE"};
+    if ($table) {
+        $self->{"TABLE"} = $table;
+    }
+
+    return $self->{"TABLE"};
 }
 
-=item add_match(entry to match, operator, constraint)
+
+=item match(entry to match, operator, constraint)
 
 Add a matching constraint to the query. Allowed operators are:
 
@@ -58,104 +66,80 @@ Add a matching constraint to the query. Allowed operators are:
 
 =cut
 sub
-add_match($$$$)
+match($$$$)
 {
     my $self = shift;
     my $entry = shift;
     my $operator = shift;
     my $constraint = shift;
 
-    push(@{$self->{"MATCHES"}}, [ $entry, $operator, $constraint ]);
+    if ($entry and $operator and $constraint) {
+        push(@{$self->{"MATCHES"}}, [ $entry, $operator, $constraint ]);
+    }
 
+    return(@{$self->{"MATCHES"}});
 }
 
-sub
-get_matches($)
-{
-    my $self = shift;
 
-    return @{$self->{"MATCHES"}};
-}
-
-=item add_sort(field, ASC/DESC)
+=item order(field, ASC/DESC)
 
 How should the results be sorted?
 
 =cut
 sub
-add_sort($$$)
+order($$$)
 {
     my $self = shift;
     my $field = shift;
     my $order = shift;
 
-    push(@{$self->{"SORT"}}, [ $field, $order ]);
+    if ($field and $order) {
+        push(@{$self->{"SORT"}}, [ $field, $order ]);
+    }
 
-}
-
-sub
-get_sorts()
-{
-    my $self = shift;
-
-    return @{$self->{"SORT"}};
+    return(@{$self->{"SORT"}});
 }
 
 
-=item add_return(column name, present)
+=item set(column name, value)
 
-How should the data be presented? By default it will just return the string
-corresponding to the entry requested, but you can also do a COUNT of the
-entries found, or return the MAX entry.
+Set the column data to the defined value
 
 =cut
 sub
-add_return($$$)
+set($$$)
 {
     my $self = shift;
     my $column = shift;
-    my $present = shift;
+    my $value = shift;
 
-    push(@{$self->{"RETURN"}}, [ $column, $present]);
+    if ($column and $value) {
+        push(@{$self->{"SET"}}, [ $column, $value]);
+    }
 
+    return(@{$self->{"SET"}});
 }
 
 
-sub
-get_returns()
-{
-    my $self = shift;
-
-    return @{$self->{"RETURN"}};
-}
-
-=item add_limit(start, count)
+=item limit(start, count)
 
 How many rows should be returned? The first argument is the first row to
 display starting at zero, and the second argument is a count from the first.
 
 =cut
 sub
-add_limit($$$)
+limit($$$)
 {
     my $self = shift;
     my $start = shift;
     my $end = shift;
 
-    push(@{$self->{"LIMIT"}}, [ $start, $end]);
+    if ($start) {
+        push(@{$self->{"LIMIT"}}, [ $start, $end]);
+    }
 
+    return(@{$self->{"LIMIT"}});
 }
-
-
-sub
-get_limits()
-{
-    my $self = shift;
-
-    return @{$self->{"LIMIT"}};
-}
-
-
 
 
 1;

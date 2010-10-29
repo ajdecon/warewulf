@@ -68,13 +68,56 @@ execute($$)
     my $query = shift;
     my $sql;
 
-    my $from = $query->get_namespace();
-    my @returns = $query->get_returns();
-    my @matches = $query->get_matches();
-    my @sorts = $query->get_sorts();
-    my @limits = $query->get_limits();
+    my $table = $query->table();
+    my @set = $query->set();
+    my @matches = $query->match();
+    my @order = $query->order();
+    my @limits = $query->limit();
+    my @joins;
 
-    if (@returns and $from) {
+    if ($table) {
+        if (@set) {
+            $sql .= "UPDATE $table SET ";
+            $sql .= join(", ", map { "$_->[0] = '". $self->{"DBH"}->quote($_->[1]) ."'" } @set);
+        } else {
+            if ($table eq "nodes") {
+                $sql .= "SELECT nodes.id AS id,
+                                nodes.name AS name,
+                                nodes.description AS description,
+                                nodes.notes AS notes,
+                                nodes.debug AS debug,
+                                nodes.active AS active,
+                                clusters.name AS cluster,
+                                racks.name AS rack,
+                                vnfs.name AS vnfs,
+                                GROUP_CONCAT(ethernets.id) AS ethernets,
+                                GROUP_CONCAT(groups.name) AS groups
+                                FROM nodes
+                                LEFT JOIN clusters ON nodes.cluster_id = clusters.id
+                                LEFT JOIN racks ON nodes.rack_id = racks.id
+                                LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id
+                                LEFT JOIN ethernets ON nodes.id = ethernets.node_id
+                                LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id
+                                LEFT JOIN groups ON nodes_groups.group_id = groups.id
+                                GROUP BY nodes.id";
+            }
+
+        }
+
+
+
+    } else {
+        # no table name
+    }
+
+
+
+
+
+
+
+
+    if (@get and $from) {
         $sql = "SELECT ";
         $sql .= join(", ", map { (($_->[1]) ? (uc($_->[1]) ."($_->[0]) AS $_->[0]") : ($_->[0])) } @returns);
 
