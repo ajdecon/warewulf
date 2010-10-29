@@ -122,16 +122,16 @@ reread($)
     $self->{"STREAM"}       = ();
 
     foreach my $file ( @{$self->{"FILE"}} ) {
-        lprint(DEBUG, "Looking for config file: $file\n");
+        dprint("Looking for config file: $file\n");
         if ( -f $file ) {
             open(FILE, $file);
             while(my $line = <FILE>) {
                 push(@{$self->{"STREAM"}}, $line);
             }
             close FILE;
-            lprint(NOTICE, "Reading config file: $file\n");
+            nprint("Reading config file: $file\n");
         } else {
-            lprint(DEBUG, "Config file not found: $file\n");
+            dprint("Config file not found: $file\n");
         }
     }
 

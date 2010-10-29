@@ -4,27 +4,27 @@ package Warewulf::Logger;
 use Warewulf::Daemon;
 use Exporter;
 
-use constant ERROR => -1;
-use constant INFO => 0;
-use constant NOTICE => 1;
-use constant DEBUG => 2;
+my $WWLOG_CRITICAL = 0;
+my $WWLOG_ERROR = 1;
+my $WWLOG_WARNING = 2;
+my $WWLOG_NOTICE = 3;
+my $WWLOG_INFO = 4;
+my $WWLOG_DEBUG = 5;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = qw (
-    INFO
-    NOTICE
-    DEBUG
-    ERROR
-    &get_log_level
-    &set_log_level
-    &lprint
-    &lprintf
-);
+our @EXPORT = ('&get_log_level', '&set_log_level', '&cprint',
+               '&cprintf', '&eprint', '&eprintf', '&wprint',
+               '&wprintf', '&nprint', '&nprintf', '&iprint',
+               '&iprintf', '&dprint', '&dprintf');
+
+our @EXPORTOK = ('$WWLOG_CRITICAL', '$WWLOG_ERROR', '$WWLOG_WARNING',
+                 '$WWLOG_NOTICE', '$WWLOG_INFO', '$WWLOG_DEBUG',
+                 '&lprint', '&lprintf');
 
 my $LEVEL = 0;
 
-
+my $LOGFILE = undef;
 
 =head1 NAME
 
@@ -45,16 +45,29 @@ Set the log level to print at
 
 =cut
 sub
-set_log_level(@)
+set_log_level($)
 {
-    my $level = shift;
+    my ($level) = @_;
 
-    if ($level > INFO and $level <= DEBUG) {
-        print "Setting output level to: $level\n";
-        $LEVEL = $level;
-    } elsif ($level) {
-        print STDERR "ERROR: Could not set log level to: $level\n";
+    if (uc($level) eq "CRITICAL") {
+        $level = $WWLOG_CRITICAL;
+    } elsif (uc($level) eq "ERROR") {
+        $level = $WWLOG_ERROR;
+    } elsif (uc($level) eq "WARNING") {
+        $level = $WWLOG_WARNING;
+    } elsif (uc($level) eq "NOTICE") {
+        $level = $WWLOG_NOTICE;
+    } elsif (uc($level) eq "INFO") {
+        $level = $WWLOG_INFO;
+    } elsif (uc($level) eq "DEBUG") {
+        $level = $WWLOG_DEBUG;
+    } else {
+        $level = int($level);
     }
+    if ($level >= $WWLOG_CRITICAL && $level <= $WWLOG_DEBUG) {
+        $LEVEL = $level;
+    }
+    return $LEVEL;
 }
 
 =item get_log_level()
@@ -65,81 +78,163 @@ Return the log level which is set
 sub
 get_log_level()
 {
-    return($LEVEL);
+    return $LEVEL;
 }
 
+=item leader(LEVEL)
 
-=item lprint(LEVEL, $string)
-
-Print a log message
+Generate leader for log file.
 
 =cut
 sub
-lprint($$)
+leader($)
 {
-    my $level = shift;
-    my $string = shift;
+    my ($level) = @_;
 
-    chomp($string);
-    if (&daemon_check()) {
-        # Test log file
-        open(LOG, ">> /tmp/test.log");
-        print LOG "$string\n";
-        close LOG;
-    } elsif ($LEVEL >= $level or $level == -1) {
-        if ($LEVEL == DEBUG) {
-            (undef, undef, undef, $s) = caller(1);
-            if (!defined($s)) {
-                $s = "MAIN";
-            }
-            ($f, undef, $l) = caller(0);
-            $s =~ s/\w+:://g;
-            $s .= "()" if ($s =~ /^\w+$/);
-            $f = "" if (!defined($f));
-            $l = "" if (!defined($l));
-            $s = "" if (!defined($s));
-            printf STDERR "%-40s", "[$f->$s/$l]: ";
+    if (!defined($LOGFILE)) {
+        if (&daemon_check()) {
+            # Test log file
+            open($LOGFILE, ">> /tmp/test.log");
+        } else {
+            open($LOGFILE, ">&STDERR");
         }
-        print STDERR "$string\n";
     }
+    if ($level == $WWLOG_DEBUG) {
+        my $depth = 1;
 
+        (undef, undef, undef, $s) = caller($depth + 1);
+        if ($s && $s =~ /^Warewulf::Logger::.printf?$/) {
+            $depth++;
+            (undef, undef, undef, $s) = caller($depth + 1);
+        }
+        if (!defined($s)) {
+            $s = "MAIN";
+        }
+        ($f, undef, $l) = caller($depth);
+        $s =~ s/\w+:://g;
+        $s .= "()" if ($s =~ /^\w+$/);
+        $f = "" if (!defined($f));
+        $l = "" if (!defined($l));
+        $s = "" if (!defined($s));
+        return sprintf("%-40s", "[$f->$s/$l]:  ");
+    } elsif ($level == $WWLOG_CRITICAL) {
+        return "CRITICAL:  ";
+    } elsif ($level == $WWLOG_ERROR) {
+        return "ERROR:  ";
+    } elsif ($level == $WWLOG_WARNING) {
+        return "WARNING:  ";
+    }
+    return "";
+}
+
+=item lprint(LEVEL, $string)
+
+Log a message at a given log level.
+
+=cut
+sub
+lprint
+{
+    my ($level, $string) = @_;
+
+    if ($level > $LEVEL) {
+        return;
+    }
+    chomp($string);
+    $string = &leader($level) . $string;
+    print $LOGFILE "$string\n";
 }
 
 =item lprintf(LEVEL, $format, @arguments)
 
-Print a log message using printf
+Log a message at a given log level (with format).
 
 =cut
 sub
-lprintf($$$)
+lprintf
 {
     my $level = shift;
     my $format = shift;
     my @args = @_;
 
-    if (&daemon_check()) {
-        # Test log file
-        open(LOG, ">> /tmp/test.log");
-        printf LOG $format, @args;
-        close LOG;
-    } elsif ($LEVEL >= $level) {
-        if ($LEVEL == DEBUG) {
-            (undef, undef, undef, $s) = caller(1);
-            if (!defined($s)) {
-                $s = "MAIN";
-            }
-            ($f, undef, $l) = caller(0);
-            $s =~ s/\w+:://g;
-            $s .= "()" if ($s =~ /^\w+$/);
-            $f = "" if (!defined($f));
-            $l = "" if (!defined($l));
-            $s = "" if (!defined($s));
-            printf STDERR "%-40s", "[$f->$s/$l]: ";
-        }
-        printf STDERR $format, @args;
+    if ($level > $LEVEL) {
+        return;
     }
-
+    $format = &leader($level) . $format;
+    printf $LOGFILE $format, @args;
 }
+
+=item cprint($string)
+
+Log a message at the CRITICAL log level (without format).
+
+=item cprintf($format, ...)
+
+Log a message at the CRITICAL log level (with format).
+
+=cut
+sub cprint {return lprint($WWLOG_CRITICAL, @_);}
+sub cprintf {return lprintf($WWLOG_CRITICAL, @_);}
+
+=item eprint($string)
+
+Log a message at the ERROR log level (without format).
+
+=item eprintf($format, ...)
+
+Log a message at the ERROR log level (with format).
+
+=cut
+sub eprint {return lprint($WWLOG_ERROR, @_);}
+sub eprintf {return lprintf($WWLOG_ERROR, @_);}
+
+=item wprint($string)
+
+Log a message at the WARNING log level (without format).
+
+=item wprintf($format, ...)
+
+Log a message at the WARNING log level (with format).
+
+=cut
+sub wprint {return lprint($WWLOG_WARNING, @_);}
+sub wprintf {return lprintf($WWLOG_WARNING, @_);}
+
+=item nprint($string)
+
+Log a message at the NOTICE log level (without format).
+
+=item nprintf($format, ...)
+
+Log a message at the NOTICE log level (with format).
+
+=cut
+sub nprint {return lprint($WWLOG_NOTICE, @_);}
+sub nprintf {return lprintf($WWLOG_NOTICE, @_);}
+
+=item iprint($string)
+
+Log a message at the INFO log level (without format).
+
+=item iprintf($format, ...)
+
+Log a message at the INFO log level (with format).
+
+=cut
+sub iprint {return lprint($WWLOG_INFO, @_);}
+sub iprintf {return lprintf($WWLOG_INFO, @_);}
+
+=item dprint($string)
+
+Log a message at the DEBUG log level (without format).
+
+=item dprintf($format, ...)
+
+Log a message at the DEBUG log level (with format).
+
+=cut
+sub dprint {return lprint($WWLOG_DEBUG, @_);}
+sub dprintf {return lprintf($WWLOG_DEBUG, @_);}
 
 
 

@@ -2,3 +2,7 @@ Thu Oct 28 09:52:32 2010                        Michael Jennings (mej)
 
 Misc. fixes/cleanups to query execution.
 ----------------------------------------------------------------------
+Fri Oct 29 03:38:13 2010                        Michael Jennings (mej)
+
+Refactor Logger to offer convenience functions instead of requiring a flag.
+----------------------------------------------------------------------

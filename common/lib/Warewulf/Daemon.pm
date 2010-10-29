@@ -42,7 +42,7 @@ daemonize()
     $SIG{PIPE} = 'IGNORE';
 
     $SIG{HUP} = sub {
-        lprint(INFO, "Recieved a SIGHUP... nothing to do here");
+        iprint("Recieved a SIGHUP... nothing to do here");
         return(1);
     };
 
@@ -52,7 +52,7 @@ daemonize()
         if (-f "/var/run/$progname.pid") {
             unlink("/var/run/$progname.pid");
         }
-        lprint(INFO, "Recieved a SIGTERM... exiting");
+        iprint("Recieved a SIGTERM... exiting");
     };
 
     $SIG{INT} = sub {
@@ -61,7 +61,7 @@ daemonize()
         if (-f "/var/run/$progname.pid") {
             unlink("/var/run/$progname.pid");
         }
-        lprint(INFO, "Recieved a SIGINIT... exiting");
+        iprint("Recieved a SIGINIT... exiting");
     };
 
     open(STDIN, "/dev/null");

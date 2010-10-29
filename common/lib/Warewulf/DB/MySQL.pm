@@ -39,13 +39,13 @@ new($$)
  
     %{$self} = ();
 
-    &lprint(DEBUG, "DATABASE NAME:      $db_name\n");
-    &lprint(DEBUG, "DATABASE SERVER:    $db_server\n");
-    &lprint(DEBUG, "DATABASE USER:      $db_user\n");
+    &dprint("DATABASE NAME:      $db_name\n");
+    &dprint("DATABASE SERVER:    $db_server\n");
+    &dprint("DATABASE USER:      $db_user\n");
 
     $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
     if ( $self->{"DBH"}) {
-        &lprint(NOTICE, "Successfully connected to database!\n");
+        &nprint("Successfully connected to database!\n");
     } else {
         die "Could not connect to DB: $!!\n";
     }
