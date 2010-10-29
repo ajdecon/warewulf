@@ -71,17 +71,21 @@ execute($$)
     my $table = $query->table();
     my @set = $query->set();
     my @matches = $query->match();
-    my @order = $query->order();
+    my @orders = $query->order();
     my @limits = $query->limit();
-    my @joins;
+    my $sql_query;
+    my $sql_where;
+    my $sql_order;
+    my $sql_limit;
+    my $sql_group;
 
     if ($table) {
         if (@set) {
-            $sql .= "UPDATE $table SET ";
-            $sql .= join(", ", map { "$_->[0] = '". $self->{"DBH"}->quote($_->[1]) ."'" } @set);
+            $sql_query .= "UPDATE $table SET ";
+            $sql_query .= join(", ", map { "$_->[0] = '". $self->{"DBH"}->quote($_->[1]) ."'" } @set);
         } else {
             if ($table eq "nodes") {
-                $sql .= "SELECT nodes.id AS id,
+                $sql_query .= "SELECT nodes.id AS id,
                                 nodes.name AS name,
                                 nodes.description AS description,
                                 nodes.notes AS notes,
@@ -90,63 +94,41 @@ execute($$)
                                 clusters.name AS cluster,
                                 racks.name AS rack,
                                 vnfs.name AS vnfs,
-                                GROUP_CONCAT(ethernets.id) AS ethernets,
-                                GROUP_CONCAT(groups.name) AS groups
+                                GROUP_CONCAT(DISTINCT(ethernets.hwaddr)) AS hwaddr,
+                                GROUP_CONCAT(DISTINCT CONCAT(ethernets.device, ':', ethernets.ipaddr)) AS ipaddr,
+                                GROUP_CONCAT(DISTINCT(groups.name)) AS groups
                                 FROM nodes
                                 LEFT JOIN clusters ON nodes.cluster_id = clusters.id
                                 LEFT JOIN racks ON nodes.rack_id = racks.id
                                 LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id
                                 LEFT JOIN ethernets ON nodes.id = ethernets.node_id
                                 LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id
-                                LEFT JOIN groups ON nodes_groups.group_id = groups.id
-                                GROUP BY nodes.id";
+                                LEFT JOIN groups ON nodes_groups.group_id = groups.id";
+
+                $sql_group = "GROUP BY nodes.id";
             }
 
         }
+        if (@matches) {
+            $sql_where .= "WHERE ";
+            $sql_where .= join(" AND ", map { "$table.$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } @matches);
+        }
 
+        if (@orders) {
+            $sql_order .= "ORDER BY ";
+            $sql_order .= join(", ", map { (($_->[1]) ? ("$_->[0] " . uc($_->[1])) : ("$_->[0]")) } @orders);
+        }
+        if (@limits) {
+            $sql_limit .= "LIMIT ";
+            $sql_limit .= join(", ", map { (($_->[1]) ? ("$_->[0] OFFSET $_->[1]") : ($_->[0])) } @limits);
+        }
 
 
     } else {
         # no table name
     }
 
-
-
-
-
-
-
-
-    if (@get and $from) {
-        $sql = "SELECT ";
-        $sql .= join(", ", map { (($_->[1]) ? (uc($_->[1]) ."($_->[0]) AS $_->[0]") : ($_->[0])) } @returns);
-
-        $sql .= " FROM $from ";
-
-        if (@matches) {
-            $sql .= "WHERE ";
-            $sql .= join(" AND ", map { "$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } @matches);
-            $sql .= " ";
-        }
-
-        if (@sorts) {
-            $sql .= "ORDER BY ";
-            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] " . uc($_->[1])) : ($_->[0])) } @sorts);
-            $sql .= " ";
-        }
-
-        if (@limits) {
-            $sql .= "LIMIT ";
-            $sql .= join(", ", map { (($_->[1]) ? ("$_->[0] OFFSET $_->[1]") : ($_->[0])) } @limits);
-            $sql .= " ";
-        }
-
-print "$sql\n";
-
-    } else {
-        &lprint(DEBUG, "DB->execute called with a query that didn't want to return anything\n");
-        return;
-    }
+print "$sql_query $sql_where $sql_group $sql_order $sql_limit\n";
 
 }
 

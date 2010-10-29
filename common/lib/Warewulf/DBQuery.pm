@@ -93,11 +93,11 @@ order($$$)
     my $field = shift;
     my $order = shift;
 
-    if ($field and $order) {
-        push(@{$self->{"SORT"}}, [ $field, $order ]);
+    if ($field) {
+        push(@{$self->{"ORDER"}}, [ $field, $order ]);
     }
 
-    return(@{$self->{"SORT"}});
+    return(@{$self->{"ORDER"}});
 }
 
 
