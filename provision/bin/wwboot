@@ -69,7 +69,7 @@ while (my $line = <DEPMOD>) {
     chomp $line;
     if ( $line =~ /^\s*-m\s+/ ) {
         $depmod_map_arg = "-m";
-        &lprint(NOTICE, "Will use the \"-m\" option to depmod to trigger map file generation\n");
+        &nprint("Will use the \"-m\" option to depmod to trigger map file generation\n");
     }
 }
 close DEPMOD;
@@ -85,27 +85,27 @@ if ($rpm) {
         }
         if ($kversion =~ /^([0-9_\.]+\-[a-zA-Z0-9_\..]+)$/) {
             my $kversion_safe = $1;
-            &lprint(DEBUG, "creating temporary directory at: $tmpdir\n");
+            &dprint("creating temporary directory at: $tmpdir\n");
             mkpath($tmpdir);
-            &lprint(INFO, "Extracting the kernel modules\n");
+            &iprint("Extracting the kernel modules\n");
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
             foreach my $module ($config->get("capabilities")) {
                 my $path = &wwpath("initramfsdir") . "/" . $module;
                 if (-d $path) {
-                    &lprint(INFO, "Including module: $module\n");
+                    &iprint("Including module: $module\n");
                     system("cd $path; cp -rap . $tmpdir/");
                 } else {
-                    &lprint(DEBUG, "Defined module not found: $module\n");
+                    &dprint("Defined module not found: $module\n");
                 }
             }
             my $tmpinitramfs = "/tftpboot/wwinitramfs-$kversion_safe";
             system("cp $wwinitramfs $tmpinitramfs");
             system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
-            &lprint(INFO, "Compressing the initramfs\n");
+            &iprint("Compressing the initramfs\n");
             system("gzip -f -9 $tmpinitramfs");
             system("rm -rf $tmpdir/*");
-            &lprint(INFO, "Extracting the kernel object\n");
+            &iprint("Extracting the kernel object\n");
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
             system("cp $tmpdir/boot/vmlinuz-* /tftpboot/");
             system("rm -rf $tmpdir");

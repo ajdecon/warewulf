@@ -78,7 +78,7 @@ wwinfo($)
     if (exists($info{"$var"})) {
         return($info{"$var"});
     } else {
-        &lprint(DEBUG, "Requested an unknown paramater\n");
+        &dprint("Requested an unknown paramater\n");
     }
 
     return();
@@ -93,7 +93,7 @@ wwpath($)
     if (exists($path{"$var"})) {
         return($path{"$var"});
     } else {
-        &lprint(DEBUG, "Requested an unknown paramater\n");
+        &dprint("Requested an unknown paramater\n");
     }
 
     return();

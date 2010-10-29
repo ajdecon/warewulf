@@ -47,10 +47,10 @@ if ($command eq "add") {
         if ($name =~ /^([a-zA-Z0-9\-_]+)$/) {
             $db->command("INSERT INTO nodes (name,cluster) VALUES (?,?)", $1, $cluster);
         } elsif ($name) {
-            &lprint(ERROR, "Illeagle characters for node name\n");
+            &eprint("Illegal characters for node name\n");
         }
     } else {
-        &lprint(ERROR, "Please supply a node name\n");
+        &eprint("Please supply a node name\n");
     }
 
 } elsif ($command eq "set") {

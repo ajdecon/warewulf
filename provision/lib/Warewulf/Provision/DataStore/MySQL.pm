@@ -44,14 +44,14 @@ new($$)
     my $user = $config->get("database user") || "root";
     my $password = $config->get("database password") || "";
 
-    &lprint(DEBUG, "DATABASE DRIVER:    $driver\n");
-    &lprint(DEBUG, "DATABASE NAME:      $database\n");
-    &lprint(DEBUG, "DATABASE SERVER:    $host\n");
-    &lprint(DEBUG, "DATABASE USER:      $user\n");
+    &dprint("DATABASE DRIVER:    $driver\n");
+    &dprint("DATABASE NAME:      $database\n");
+    &dprint("DATABASE SERVER:    $host\n");
+    &dprint("DATABASE USER:      $user\n");
 
     $self->{"DBH"} = DBI->connect("DBI:$driver:database=$database;host=$host", $user, $passwd);
     if ( $self->{"DBH"}) {
-        &lprint(NOTICE, "Successfully connected to database!\n");
+        &nprint("Successfully connected to database!\n");
     } else {
         die "Could not connect to DB: $!!\n";
     }
