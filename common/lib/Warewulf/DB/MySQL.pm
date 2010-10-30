@@ -69,25 +69,39 @@ query($$)
     my $sql;
 
     my $table = $query->table();
-    my @set = $query->set();
-    my @matches = $query->match();
-    my @orders = $query->order();
-    my @limits = $query->limit();
-    my @functions = $query->function();
+#    my @set = $query->set();
+#    my %inserts = $query->insert();
+#    my @matches = $query->match();
+#    my @orders = $query->order();
+#    my @limits = $query->limit();
+#    my @functions = $query->function();
     my $sql_query;
 
     if (! $table) {
         return undef;
     }
-    if (@set) {
+    if (ref($query) eq "Warewulf::DBQuery::Set") {
         $sql_query = "UPDATE $table SET ";
-        $sql_query .= join(", ", map { "$_->[0] = '". $self->{"DBH"}->quote($_->[1]) ."'" } @set);
-        if (@matches) {
+        $sql_query .= join(", ", map { "$_->[0] = ". $self->{"DBH"}->quote($_->[1]) } $query->set());
+        $sql_query .= " ";
+        if ($query->match()) {
             $sql_query .= "WHERE ";
-            $sql_query .= join(" AND ", map { "$table.$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } @matches);
+            $sql_query .= join(" AND ", map { "$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } $query->match());
             $sql_query .= " ";
         }
-    } else {
+
+    } elsif (ref($query) eq "Warewulf::DBQuery::Insert") {
+        my (@key, @val);
+        foreach my $s ($query->set()) {
+            push(@key, $s->[0]);
+            push(@val, $s->[1]);
+        }
+        $sql_query = "INSERT INTO $table (". join(",", @key) .") VALUES (". join(",", map { $self->{"DBH"}->quote($_) } @val) .")";
+#        print "$sql_query\n\n";
+#        return;
+#        $sql_query .= "INSERT INTO $table (" . sort(keys(%{$self->{"INSERT"}})) . ") ";
+#        $sql_query .= "VALUES (" . join(", ", map { $self->{"DBH"}->quote($self->{"INSERT"}{$_}) } sort(keys(%{$self->{"INSERT"}}))) . ")";
+    } elsif (ref($query) eq "Warewulf::DBQuery::Get") {
         if ($table eq "nodes") {
             $sql_query = "SELECT nodes.id AS id,
                           nodes.name AS name,
@@ -107,7 +121,8 @@ query($$)
                           LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id
                           LEFT JOIN ethernets ON nodes.id = ethernets.node_id
                           LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id
-                          LEFT JOIN groups ON nodes_groups.group_id = groups.id ";
+                          LEFT JOIN groups ON nodes_groups.group_id = groups.id
+                          GROUP BY $table.id ";
 
         } elsif ($table eq "clusters") {
             $sql_query = "SELECT clusters.id AS id,
@@ -116,7 +131,8 @@ query($$)
                           clusters.notes AS notes,
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM clusters
-                          LEFT JOIN nodes ON clusters.id = nodes.cluster_id ";
+                          LEFT JOIN nodes ON clusters.id = nodes.cluster_id
+                          GROUP BY $table.id ";
 
         } elsif ($table eq "racks") {
             $sql_query = "SELECT racks.id AS id,
@@ -125,7 +141,8 @@ query($$)
                           racks.notes AS notes,
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM racks
-                          LEFT JOIN nodes ON racks.id = nodes.rack_id ";
+                          LEFT JOIN nodes ON racks.id = nodes.rack_id
+                          GROUP BY $table.id ";
 
         } elsif ($table eq "groups") {
             $sql_query = "SELECT groups.id AS id,
@@ -135,7 +152,8 @@ query($$)
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM groups
                           LEFT JOIN nodes_groups ON nodes_groups.group_id = groups.id
-                          LEFT JOIN nodes ON nodes_groups.node_id = nodes.id ";
+                          LEFT JOIN nodes ON nodes_groups.node_id = nodes.id
+                          GROUP BY $table.id ";
 
         } elsif ($table eq "ethernets") {
             $sql_query = "SELECT ethernets.id AS id,
@@ -144,44 +162,45 @@ query($$)
                           ethernets.ipaddr AS ipaddr,
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM ethernets
-                          LEFT JOIN nodes ON ethernets.node_id = nodes.id ";
+                          LEFT JOIN nodes ON ethernets.node_id = nodes.id
+                          GROUP BY $table.id ";
+
 
         }
-
-        if (@matches) {
-            $sql_query .= "WHERE ";
-            $sql_query .= join(" AND ", map { "$_->[0] ". uc($_->[1]) . ' ' . $self->{"DBH"}->quote($_->[2]) } @matches);
+        if ($query->match()) {
+            $sql_query .= "HAVING ";
+            $sql_query .= join(" AND ", map { "$_->[0] ". uc($_->[1]) . ' ' . ($_->[2] eq "NULL" ? "NULL" : $self->{"DBH"}->quote($_->[2])) } $query->match());
             $sql_query .= " ";
         }
-
-        $sql_query .= "GROUP BY $table.id ";
-
-        if (@orders) {
+        if ($query->order()) {
             $sql_query .= "ORDER BY ";
-            $sql_query .= join(", ", map { (($_->[1]) ? ("$_->[0] " . uc($_->[1])) : ("$_->[0]")) } @orders);
+            $sql_query .= join(", ", map { (($_->[1]) ? ("$_->[0] " . uc($_->[1])) : ("$_->[0]")) } $query->order());
             $sql_query .= " ";
         }
-        if (@limits) {
+        if ($query->limit()) {
             $sql_query .= "LIMIT ";
-            $sql_query .= join(", ", map { (($_->[1]) ? ("$_->[0] OFFSET $_->[1]") : ($_->[0])) } @limits);
+            $sql_query .= join(", ", map { (($_->[1]) ? ("$_->[0] OFFSET $_->[1]") : ($_->[0])) } $query->limit());
             $sql_query .= " ";
         }
     }
+
+    &dprint("$sql_query\n");
 
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();
-    while (my $h = $sth->fetchrow_hashref()) {
-        if (@functions) {
-            foreach my $f (@functions) {
-                &$f($h);
+    if (ref($query) eq "Warewulf::DBQuery::Get") {
+        if ($query->function()) {
+            while (my $h = $sth->fetchrow_hashref()) {
+                foreach my $f ($query->function()) {
+                    &$f($h);
+                }
             }
+        } else {
+            return($sth->fetchall_arrayref({}))
         }
-#        foreach (keys %{$h}) {
-#            print "$_: $h->{$_}\n";
-#        }
-
     }
 
+    return();
 }
 
 
