@@ -87,12 +87,6 @@ query($$)
     my $sql;
 
     my $table = $query->table();
-#    my @set = $query->set();
-#    my %inserts = $query->insert();
-#    my @matches = $query->match();
-#    my @orders = $query->order();
-#    my @limits = $query->limit();
-#    my @functions = $query->function();
     my $sql_query;
 
     if (! $table) {
@@ -115,10 +109,6 @@ query($$)
             push(@val, $s->[1]);
         }
         $sql_query = "INSERT INTO $table (". join(",", @key) .") VALUES (". join(",", map { $self->{"DBH"}->quote($_) } @val) .")";
-#        print "$sql_query\n\n";
-#        return;
-#        $sql_query .= "INSERT INTO $table (" . sort(keys(%{$self->{"INSERT"}})) . ") ";
-#        $sql_query .= "VALUES (" . join(", ", map { $self->{"DBH"}->quote($self->{"INSERT"}{$_}) } sort(keys(%{$self->{"INSERT"}}))) . ")";
     } elsif (ref($query) eq "Warewulf::DBQuery::Get") {
         if ($table eq "nodes") {
             $sql_query = "SELECT nodes.id AS id,
@@ -130,6 +120,7 @@ query($$)
                           clusters.name AS cluster,
                           racks.name AS rack,
                           vnfs.name AS vnfs,
+                          GROUP_CONCAT(DISTINCT(masters.name)) AS master,
                           GROUP_CONCAT(DISTINCT(ethernets.hwaddr)) AS hwaddr,
                           GROUP_CONCAT(DISTINCT CONCAT(ethernets.device, ':', ethernets.ipaddr)) AS ipaddr,
                           GROUP_CONCAT(DISTINCT(groups.name)) AS groups
@@ -138,9 +129,11 @@ query($$)
                           LEFT JOIN racks ON nodes.rack_id = racks.id
                           LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id
                           LEFT JOIN ethernets ON nodes.id = ethernets.node_id
+                          LEFT JOIN nodes_masters ON nodes.id = nodes_masters.node_id
+                          LEFT JOIN masters ON nodes_masters.master_id = masters.id
                           LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id
                           LEFT JOIN groups ON nodes_groups.group_id = groups.id
-                          GROUP BY $table.id ";
+                          GROUP BY nodes.id ";
 
         } elsif ($table eq "clusters") {
             $sql_query = "SELECT clusters.id AS id,
@@ -150,7 +143,7 @@ query($$)
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM clusters
                           LEFT JOIN nodes ON clusters.id = nodes.cluster_id
-                          GROUP BY $table.id ";
+                          GROUP BY clusters.id ";
 
         } elsif ($table eq "racks") {
             $sql_query = "SELECT racks.id AS id,
@@ -160,7 +153,7 @@ query($$)
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM racks
                           LEFT JOIN nodes ON racks.id = nodes.rack_id
-                          GROUP BY $table.id ";
+                          GROUP BY racks.id ";
 
         } elsif ($table eq "groups") {
             $sql_query = "SELECT groups.id AS id,
@@ -171,7 +164,7 @@ query($$)
                           FROM groups
                           LEFT JOIN nodes_groups ON nodes_groups.group_id = groups.id
                           LEFT JOIN nodes ON nodes_groups.node_id = nodes.id
-                          GROUP BY $table.id ";
+                          GROUP BY groups.id ";
 
         } elsif ($table eq "ethernets") {
             $sql_query = "SELECT ethernets.id AS id,
@@ -181,8 +174,19 @@ query($$)
                           GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
                           FROM ethernets
                           LEFT JOIN nodes ON ethernets.node_id = nodes.id
-                          GROUP BY $table.id ";
+                          GROUP BY ethernets.id ";
 
+        } elsif ($table eq "masters") {
+            $sql_query = "SELECT masters.id AS id,
+                          masters.name AS name,
+                          masters.description AS description,
+                          masters.notes AS notes,
+                          masters.ipaddr AS ipaddr,
+                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
+                          FROM groups
+                          LEFT JOIN nodes_masters ON nodes_masters.master_id = masters.id
+                          LEFT JOIN nodes ON nodes_masters.node_id = nodes.id
+                          GROUP BY masters.id ";
 
         }
         if ($query->match()) {
@@ -202,7 +206,7 @@ query($$)
         }
     }
 
-    &dprint("$sql_query\n");
+    &dprint("SQL: $sql_query\n");
 
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();

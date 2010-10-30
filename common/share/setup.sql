@@ -5,37 +5,51 @@ DROP TABLE IF EXISTS module_node_group;
 DROP TABLE IF EXISTS ethernet;
 
 
+DROP TABLE IF EXISTS nodes_masters;
 DROP TABLE IF EXISTS nodes_groups;
 DROP TABLE IF EXISTS module_group;
 DROP TABLE IF EXISTS vnfs_module;
 DROP TABLE IF EXISTS groups;
-DROP TABLE IF EXISTS nodeids;
 DROP TABLE IF EXISTS modules;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS triggers;
 DROP TABLE IF EXISTS ethernets;
 DROP TABLE IF EXISTS nodes;
 DROP TABLE IF EXISTS clusters;
-DROP TABLE IF EXISTS rack;
+DROP TABLE IF EXISTS racks;
 DROP TABLE IF EXISTS vnfs;
+DROP TABLE IF EXISTS masters;
 
 
 /****************************************************************************/
 /* Create Base Tables */
 
-CREATE TABLE IF NOT EXISTS sessions
+CREATE TABLE sessions
 (
-    sid INT NOT NULL AUTO_INCREMENT UNIQUE,
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
     cookie varchar(64) NOT NULL UNIQUE,
     last_access BIGINT,
     ipaddr BIGINT,
     user_agent VARCHAR(256),
-    INDEX (sid,cookie),
-    PRIMARY KEY (sid)
+    INDEX (id,cookie),
+    PRIMARY KEY (id)
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS vnfs
+CREATE TABLE masters
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    name VARCHAR(256) NOT NULL,
+    create_time BIGINT,
+    update_time BIGINT,
+    lastcontact_time BIGINT,
+    description TEXT,
+    notes TEXT,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+
+
+CREATE TABLE vnfs
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -50,7 +64,7 @@ CREATE TABLE IF NOT EXISTS vnfs
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS modules
+CREATE TABLE modules
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -65,7 +79,7 @@ CREATE TABLE IF NOT EXISTS modules
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS groups
+CREATE TABLE groups
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -79,7 +93,7 @@ CREATE TABLE IF NOT EXISTS groups
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS clusters
+CREATE TABLE clusters
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -93,7 +107,7 @@ CREATE TABLE IF NOT EXISTS clusters
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS racks
+CREATE TABLE racks
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -107,7 +121,7 @@ CREATE TABLE IF NOT EXISTS racks
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS nodes
+CREATE TABLE nodes
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -128,7 +142,7 @@ CREATE TABLE IF NOT EXISTS nodes
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS ethernets
+CREATE TABLE ethernets
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     hwaddr VARCHAR(256),
@@ -142,7 +156,7 @@ CREATE TABLE IF NOT EXISTS ethernets
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS triggers
+CREATE TABLE triggers
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     name VARCHAR(256) NOT NULL,
@@ -156,7 +170,7 @@ CREATE TABLE IF NOT EXISTS triggers
 /****************************************************************************/
 /* Join groups follow */
 
-CREATE TABLE IF NOT EXISTS nodes_groups
+CREATE TABLE nodes_groups
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     node_id INT,
@@ -167,7 +181,18 @@ CREATE TABLE IF NOT EXISTS nodes_groups
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS module_group
+CREATE TABLE nodes_masters
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    node_id INT,
+    master_id INT,
+    FOREIGN KEY (node_id) REFERENCES nodes (id),
+    FOREIGN KEY (master_id) REFERENCES masters (id),
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+
+
+CREATE TABLE module_group
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     group_id INT,
@@ -178,7 +203,7 @@ CREATE TABLE IF NOT EXISTS module_group
 ) ENGINE=INNODB;
 
 
-CREATE TABLE IF NOT EXISTS vnfs_module
+CREATE TABLE vnfs_module
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     vnfs_id INT,

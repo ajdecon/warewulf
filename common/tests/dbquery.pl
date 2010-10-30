@@ -3,24 +3,31 @@
 
 use Warewulf::DB::MySQL;
 use Warewulf::DBQuery;
+use Warewulf::Logger;
 $db = Warewulf::DB::MySQL->new("localhost", "warewulf", "root", "");
 
+&set_log_level("DEBUG");
 
 sub worker(@) {
     my @array = @_;
 #    print "-------------------------------------\n";
     foreach my $h (@array) {
-        print "name: $h->{name}\n";
+        print "name: $h->{name}: ";
         foreach my $k ( keys %{$h}) {
-#            print "worker: $k: $h->{$k} \n";
+            print "$k=$h->{$k}, ";
         }
+        print "\n";
     }
 }
 
 $query = Warewulf::DBQuery->new("get");
 $query->table("nodes");
-$query->match("hwaddr", "IS", "NULL");
+#$query->match("hwaddr", "IS", "NULL");
+$query->match("cluster", "=", "nano");
+$query->order("cluster");
+$query->order("name");
 $query->function(\&worker);
+$db->query($query);
 
 #$query = Warewulf::DBQuery->new("set");
 #$query->table("nodes");
@@ -40,4 +47,3 @@ $query->function(\&worker);
 #$query->limit(10);
 
 
-$db->query($query);
