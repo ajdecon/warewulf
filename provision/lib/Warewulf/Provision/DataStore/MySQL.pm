@@ -86,7 +86,7 @@ get_nodes($$$)
     my $self = shift;
     my $where = shift || "";
     my @args = @_;
-    my @return;
+    m;y @return;
     my $nodeset = Warewulf::NodeSet->new();
 
     my $query = $self->{"DBH"}->prepare("SELECT

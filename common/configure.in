@@ -30,6 +30,7 @@ AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
    warewulf-common.spec
+   share/Makefile
    lib/Makefile
    lib/Warewulf/Include.pm
    lib/Warewulf/Makefile
