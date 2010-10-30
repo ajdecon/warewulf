@@ -142,4 +142,23 @@ limit($$$)
 }
 
 
+=item function($function_ref)
+
+Call function for each entry returned in the query
+
+=cut
+sub
+function($$)
+{
+    my $self = shift;
+    my $function_ref = shift;
+
+    if ($function_ref) {
+        push(@{$self->{"FUNCTIONS"}}, $function_ref);
+    }
+
+    return(@{$self->{"FUNCTIONS"}});
+}
+
+
 1;
