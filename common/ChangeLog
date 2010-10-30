@@ -6,3 +6,7 @@ Fri Oct 29 03:38:13 2010                        Michael Jennings (mej)
 
 Refactor Logger to offer convenience functions instead of requiring a flag.
 ----------------------------------------------------------------------
+Fri Oct 29 19:41:08 2010                        Michael Jennings (mej)
+
+Mostly cosmetic adjustments.
+----------------------------------------------------------------------
