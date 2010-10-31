@@ -18,7 +18,7 @@
 # $Id$
 #
 
-package Warewulf::Node;
+package Warewulf::Object;
 
 use Warewulf::Include;
 
@@ -30,16 +30,16 @@ our @EXPORT = ();
 
 =head1 NAME
 
-Warewulf::Node- Warewulf's node set object interface.
+Warewulf::Object - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Node;
+    use Warewulf::Object;
 
-    my $obj = Warewulf::Node->new();
+    my $obj = Warewulf::Object->new();
 
 
 =head1 METHODS
@@ -80,7 +80,7 @@ get($)
     my $self                = shift;
     my $key                 = shift;
 
-    return($self->{"$key"});
+    return($self->{"DATA"}{"$key"});
 }
 
 
@@ -96,11 +96,49 @@ set($$)
     my $key                 = shift;
     my $value               = shift;
 
-    $self->{"$key"} = $value;
+    $self->{"DATA"}{"$key"} = $value;
 
     return($value);
 }
 
+=item index(key name)
+
+Define which keys should be index when/if adding to an ObjectSet archive. This
+allows a fast return from the ObjectSet interface.
+
+If no key name is given, this will return the list of indexes itself.
+
+=cut
+sub
+index($$)
+{
+    my $self = shift;
+    my $key = shift;
+
+    if ($key) {
+        push(@{$self->{"INDEXES"}}, $key);
+    } else {
+        return(@{$self->{"INDEXES"}});
+    }
+
+    return();
+}
+
+
+=item add_hash($hash_obj)
+
+Add a hash object to this object
+
+=cut
+sub
+add_hash($$)
+{
+    my $self = shift;
+    my $hash_obj = shift;
+
+    @{$self->{"DATA"}}{keys %{$hash_obj}} = values %{$hash_obj};
+
+}
 
 
 =item *([value])
@@ -131,7 +169,7 @@ AUTOLOAD($)
 
 =head1 SEE ALSO
 
-Warewulf::NodeSet
+Warewulf:ObjectSet:
 
 =head1 COPYRIGHT
 

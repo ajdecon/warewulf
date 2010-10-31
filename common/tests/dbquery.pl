@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 
 
+use Warewulf::Object;
+use Warewulf::ObjectSet;
 use Warewulf::DB::MySQL;
 use Warewulf::DBQuery;
 use Warewulf::Logger;
@@ -23,11 +25,11 @@ sub worker(@) {
 $query = Warewulf::DBQuery->new("get");
 $query->table("nodes");
 #$query->match("hwaddr", "IS", "NULL");
-$query->match("cluster", "=", "nano");
+#$query->match("cluster", "=", "nano");
 $query->order("cluster");
 $query->order("name");
-$query->function(\&worker);
-$db->query($query);
+#$query->function(\&worker);
+#$db->query($query);
 
 #$query = Warewulf::DBQuery->new("set");
 #$query->table("nodes");
@@ -47,3 +49,10 @@ $db->query($query);
 #$query->limit(10);
 
 
+my $set = Warewulf::ObjectSet->new();
+#$set->index("name");
+$set->add_hashes($db->query($query));
+
+foreach my $o ($set->iterate()) {
+    print $o->get("name") ."\n";
+}

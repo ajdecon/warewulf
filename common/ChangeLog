@@ -14,3 +14,10 @@ Sat Oct 30 01:30:46 2010                        Michael Jennings (mej)
 
 Add copyrights to perl modules.
 ----------------------------------------------------------------------
+Sat Oct 30 17:29:40 2010                                           gmk
+
+Renamed the Node and NodeSet classes to be a more general Object and
+ObjectSet interface. Also added the ability to add to the Object and
+ObjectSet via a hash or array of hashes (respectively) as well as
+be able to find or iterate through the ObjectSet object.
+----------------------------------------------------------------------
