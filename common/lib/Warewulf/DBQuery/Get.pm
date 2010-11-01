@@ -45,8 +45,8 @@ can be overridden if requested.
 sub
 new($$)
 {
-    my $proto               = shift;
-    my $class               = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
     my $self;
 
     %{$self} = ();
@@ -133,7 +133,7 @@ limit($$$)
     my $end = shift;
 
     if ($start) {
-        push(@{$self->{"LIMIT"}}, [ $start, $end]);
+        push(@{$self->{"LIMIT"}}, [ $start, $end ]);
     }
 
     return(@{$self->{"LIMIT"}});

@@ -26,15 +26,15 @@ use DBI;
 
 =head1 NAME
 
-Warewulf::DBQuer::Sety - Database query object interface
+Warewulf::DBQuery::Set - Database query object interface
 
 =head1 ABOUT
 
-The Warewulf::DBQuer::Sety interface provides an abstract interface to the DB object
+The Warewulf::DBQuery::Set interface provides an abstract interface to the DB object
 
 =head1 SYNOPSIS
 
-    use Warewulf::DBQuer::Sety;
+    use Warewulf::DBQuery::Set;
 
 =item new(namespace)
 
@@ -45,8 +45,8 @@ can be overridden if requested.
 sub
 new($$)
 {
-    my $proto               = shift;
-    my $class               = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
     my $self;
 
     %{$self} = ();
@@ -112,7 +112,7 @@ set($$$)
     my $value = shift;
 
     if ($column and $value) {
-        push(@{$self->{"SET"}}, [ $column, $value]);
+        push(@{$self->{"SET"}}, [ $column, $value ]);
     }
 
     return(@{$self->{"SET"}});

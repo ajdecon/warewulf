@@ -31,7 +31,7 @@ our @EXPORT = ();
 
 =head1 NAME
 
-Warewulf::ObjectSet - Warewulf's object set object interface.
+Warewulf::ObjectSet - Warewulf's object set interface.
 
 =head1 ABOUT
 
@@ -85,8 +85,8 @@ add($$)
         push(@{$self->{"ARRAY"}}, $obj);
         push(@index, $self->index(), $obj->index());
         foreach my $key (keys %{{map ({ $_ => 1 } @index)}}) {
-            if(my $value = $obj->get($key)) {
-                push(@{$self->{"DATA"}{"$value"}}, $obj);
+            if (my $value = $obj->get($key)) {
+                push(@{$self->{"DATA"}{$value}}, $obj);
             }
         }
     }
@@ -114,8 +114,8 @@ find($$)
     my $val = shift;
     my @return;
 
-    if (exists($self->{"DATA"}{"$val"})) {
-        push(@return, @{$self->{"DATA"}{"$val"}});
+    if (exists($self->{"DATA"}{$val})) {
+        push(@return, @{$self->{"DATA"}{$val}});
     }
 
     if (@return) {

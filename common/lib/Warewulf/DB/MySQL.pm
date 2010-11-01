@@ -84,14 +84,13 @@ query($$)
 {
     my $self = shift;
     my $query = shift;
-    my $sql;
+    my ($table, $sql, $sql_query);
 
-    my $table = $query->table();
-    my $sql_query;
-
+    $table = $query->table();
     if (! $table) {
         return undef;
     }
+
     if (ref($query) eq "Warewulf::DBQuery::Set") {
         $sql_query = "UPDATE $table SET ";
         $sql_query .= join(", ", map { "$_->[0] = ". $self->{"DBH"}->quote($_->[1]) } $query->set());

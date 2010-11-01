@@ -45,8 +45,8 @@ can be overridden if requested.
 sub
 new($$)
 {
-    my $proto               = shift;
-    my $class               = ref($proto) || $proto;
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
     my $self;
 
     %{$self} = ();
@@ -88,8 +88,8 @@ set($$$)
     my $column = shift;
     my $value = shift;
 
-    if ($column and $value) {
-        push(@{$self->{"SET"}}, [ $column, $value]);
+    if ($column && $value) {
+        push(@{$self->{"SET"}}, [ $column, $value ]);
     }
 
     return(@{$self->{"SET"}});

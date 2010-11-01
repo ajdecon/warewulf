@@ -57,9 +57,9 @@ stores.
 sub
 new($$)
 {
-    my $proto               = shift;
-    my $class               = ref($proto) || $proto;
-    my $self                = ();
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $self = ();
 
     %{$self} = ();
 
@@ -77,10 +77,10 @@ Return the value of the key defined.
 sub
 get($)
 {
-    my $self                = shift;
-    my $key                 = shift;
+    my $self = shift;
+    my $key = shift;
 
-    return($self->{"DATA"}{"$key"});
+    return($self->{"DATA"}{$key});
 }
 
 
@@ -92,11 +92,11 @@ Set a key/value pair.
 sub
 set($$)
 {
-    my $self                = shift;
-    my $key                 = shift;
-    my $value               = shift;
+    my $self = shift;
+    my $key = shift;
+    my $value = shift;
 
-    $self->{"DATA"}{"$key"} = $value;
+    $self->{"DATA"}{$key} = $value;
 
     return($value);
 }

@@ -21,3 +21,7 @@ ObjectSet interface. Also added the ability to add to the Object and
 ObjectSet via a hash or array of hashes (respectively) as well as
 be able to find or iterate through the ObjectSet object.
 ----------------------------------------------------------------------
+Sun Oct 31 22:45:08 2010                        Michael Jennings (mej)
+
+Tidying as I peruse, putting together an action plan.
+----------------------------------------------------------------------
