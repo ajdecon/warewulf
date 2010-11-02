@@ -22,11 +22,7 @@ package Warewulf::Object;
 
 use Warewulf::Include;
 
-use Exporter;
-
-our @ISA = ('Exporter');
-
-our @EXPORT = ();
+our @ISA = ();
 
 =head1 NAME
 
@@ -61,11 +57,9 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    %{$self} = ();
-
+    $self = {};
     bless($self, $class);
-
-    return($self);
+    return $self;
 }
 
 
@@ -80,7 +74,7 @@ get($)
     my $self = shift;
     my $key = shift;
 
-    return($self->{"DATA"}{$key});
+    return $self->{"DATA"}{$key};
 }
 
 
@@ -96,34 +90,8 @@ set($$)
     my $key = shift;
     my $value = shift;
 
-    $self->{"DATA"}{$key} = $value;
-
-    return($value);
+    return ($self->{"DATA"}{$key} = $value);
 }
-
-=item index(key name)
-
-Define which keys should be index when/if adding to an ObjectSet archive. This
-allows a fast return from the ObjectSet interface.
-
-If no key name is given, this will return the list of indexes itself.
-
-=cut
-sub
-index($$)
-{
-    my $self = shift;
-    my $key = shift;
-
-    if ($key) {
-        push(@{$self->{"INDEXES"}}, $key);
-    } else {
-        return(@{$self->{"INDEXES"}});
-    }
-
-    return();
-}
-
 
 =item add_hash($hash_obj)
 
@@ -137,7 +105,6 @@ add_hash($$)
     my $hash_obj = shift;
 
     @{$self->{"DATA"}}{keys %{$hash_obj}} = values %{$hash_obj};
-
 }
 
 
@@ -151,17 +118,23 @@ you can do things like this:
 
 =cut
 sub
-AUTOLOAD($)
+AUTOLOAD
 {
-    my $self                = shift;
-    my $key                 = $AUTOLOAD;
-    my $value               = shift;
+    my $self = shift;
+    my $type = ref($self) || return undef;
+    my $key = $AUTOLOAD;
+    my $value = shift;
+
+    if ($key =~ /destroy/i) {
+        return;
+    }
+    $key =~ s/.*://;
 
     if ($value) {
         $self->set($key, $value);
     }
 
-    return($self->get($key));
+    return $self->get($key);
 }
 
 

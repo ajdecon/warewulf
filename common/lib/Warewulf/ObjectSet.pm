@@ -23,11 +23,7 @@ package Warewulf::ObjectSet;
 use Warewulf::Include;
 use Warewulf::Object;
 
-use Exporter;
-
-our @ISA = ('Exporter');
-
-our @EXPORT = ();
+our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
@@ -62,7 +58,7 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    %{$self} = ();
+    $self = $class->SUPER::new(@_);
 
     bless($self, $class);
 
@@ -82,71 +78,71 @@ add($$)
     my @index;
 
     if (defined($obj)) {
+        # Maintain sorted list of objects in set.
         push(@{$self->{"ARRAY"}}, $obj);
-        push(@index, $self->index(), $obj->index());
-        foreach my $key (keys %{{map ({ $_ => 1 } @index)}}) {
-            if (my $value = $obj->get($key)) {
-                push(@{$self->{"DATA"}{$value}}, $obj);
+
+        # Add object to all indexes.
+        foreach my $key ($self->index()) {
+            my $value = $obj->get($key);
+
+            if (defined($value)) {
+                push(@{$self->{"DATA"}{$key}{$value}}, $obj);
             }
         }
     }
-
-    return();
 }
 
 
-=item find($string)
+=item find($index, $string)
 
-Return the relevant object(s) by searching for the given indexed key criteria.
-This for this to work, the object set or the objects themselves would have to
-have defined an index field. Caution, due to how the indexing is done (hash
-references), this method will not return objects in the same order as they
-were added!
+Return the relevant object(s) by searching for the given indexed key
+criteria.  For this to work, the object set must have index fields
+defined.  Caution, due to how the indexing is done (hash references),
+this method will not return objects in the same order as they were
+added!
 
-The return value will be either a list or a scalar depending on how you
-request the data.
+The return value will be either a list or a scalar depending on how
+you request the data.
 
 =cut
 sub
-find($$)
+find($$$)
 {
-    my $self = shift;
-    my $val = shift;
+    my ($self, $index, $val) = @_;
     my @return;
 
-    if (exists($self->{"DATA"}{$val})) {
-        push(@return, @{$self->{"DATA"}{$val}});
+    if (!exists($self->{"DATA"}{$key})) {
+        return undef;
     }
-
-    if (@return) {
-        return(wantarray ? @return : $return[0]);
-    } else {
-        return();
+    if (!exists($self->{"DATA"}{$key}{$val})) {
+        return ();
     }
+    return ((wantarray()) ? (@{$self->{"DATA"}{$key}{$val}}) : ($self->{"DATA"}{$key}{$val}[0]));
 }
 
 
 
-=item iterate()
+=item get_list()
 
-Return an array of all node objects in this ObjectSet.
+Return an array of all objects in this ObjectSet.
 
 =cut
 sub
-iterate($)
+get_list($)
 {
     my $self = shift;
 
-    return(@{$self->{"ARRAY"}});
+    return (@{$self->{"ARRAY"}});
 }
 
 
 =item index(key name)
 
-Define which keys should be index when/if adding to an ObjectSet archive. This
-allows a fast return from the ObjectSet interface.
+Define which member variables should be indexed when adding to an
+ObjectSet archive. This allows a fast return from the ObjectSet
+interface.
 
-If no key name is given, this will return the list of indexes itself.
+Returns the current (possibly updated) list.
 
 =cut
 sub
@@ -155,16 +151,11 @@ index($$)
     my $self = shift;
     my $key = shift;
 
-    if ($key) {
+    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
         push(@{$self->{"INDEXES"}}, $key);
-    } else {
-        return(@{$self->{"INDEXES"}});
     }
-
-    return();
+    return (@{$self->{"INDEXES"}});
 }
-
-
 
 
 =item add_hashes($array_obj)
@@ -185,8 +176,6 @@ add_hashes($$)
     }
 
 }
-
-
 
 
 =back
