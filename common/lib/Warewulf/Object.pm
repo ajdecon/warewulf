@@ -56,9 +56,16 @@ new($$)
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = ();
+    my $hashref = shift;
 
     $self = {};
+
     bless($self, $class);
+
+    if ($hashref) {
+        $self->add_hash($hashref);
+    }
+
     return $self;
 }
 
@@ -93,6 +100,7 @@ set($$)
     return ($self->{"DATA"}{$key} = $value);
 }
 
+
 =item add_hash($hash_obj)
 
 Add a hash object to this object
@@ -102,9 +110,27 @@ sub
 add_hash($$)
 {
     my $self = shift;
-    my $hash_obj = shift;
+    my $hashref = shift;
 
-    @{$self->{"DATA"}}{keys %{$hash_obj}} = values %{$hash_obj};
+    #%{$self->{"DATA"}{keys %{$hash_obj}}} = values %{$hash_obj};
+    %{$self->{"DATA"}} = %{$hashref}
+}
+
+
+=item get_hash()
+
+Return a reference to a hash object representing all of the fields of this object
+
+=cut
+sub
+get_hash($)
+{
+    my $self = shift;
+    my $hashref;
+
+    %{$hashref} = %{$self->{"DATA"}};
+
+    return($hashref);
 }
 
 

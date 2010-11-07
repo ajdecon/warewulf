@@ -24,6 +24,8 @@ use Warewulf::Logger;
 use Warewulf::Config;
 use DBI;
 
+# Declare the singleton
+my $self;
 
 =head1 NAME
 
@@ -53,22 +55,25 @@ new($$)
     my $db_name = shift;
     my $db_user = shift;
     my $db_pass = shift;
-    my $self;
  
-    %{$self} = ();
-
-    &dprint("DATABASE NAME:      $db_name\n");
-    &dprint("DATABASE SERVER:    $db_server\n");
-    &dprint("DATABASE USER:      $db_user\n");
-
-    $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-    if ( $self->{"DBH"}) {
-        &nprint("Successfully connected to database!\n");
+    if ($self and exists($self->{"DBH"}) and $self->{"DBH"}) {
+        &dprint("DB Singleton exists, not going to initialize\n");
     } else {
-        die "Could not connect to DB: $!!\n";
-    }
+        %{$self} = ();
 
-    bless($self, $class);
+        &dprint("DATABASE NAME:      $db_name\n");
+        &dprint("DATABASE SERVER:    $db_server\n");
+        &dprint("DATABASE USER:      $db_user\n");
+
+        $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
+        if ( $self->{"DBH"}) {
+            &nprint("Successfully connected to database!\n");
+        } else {
+            die "Could not connect to DB: $!!\n";
+        }
+
+        bless($self, $class);
+    }
 
     return($self);
 }
@@ -91,7 +96,7 @@ query($$)
         return undef;
     }
 
-    if (ref($query) eq "Warewulf::DBQuery::Set") {
+    if ($query->action() eq "SET") {
         $sql_query = "UPDATE $table SET ";
         $sql_query .= join(", ", map { "$_->[0] = ". $self->{"DBH"}->quote($_->[1]) } $query->set());
         $sql_query .= " ";
@@ -101,91 +106,91 @@ query($$)
             $sql_query .= " ";
         }
 
-    } elsif (ref($query) eq "Warewulf::DBQuery::Insert") {
+    } elsif ($query->action() eq "INSERT") {
         my (@key, @val);
         foreach my $s ($query->set()) {
             push(@key, $s->[0]);
             push(@val, $s->[1]);
         }
         $sql_query = "INSERT INTO $table (". join(",", @key) .") VALUES (". join(",", map { $self->{"DBH"}->quote($_) } @val) .")";
-    } elsif (ref($query) eq "Warewulf::DBQuery::Get") {
+    } elsif ($query->action() eq "GET") {
         if ($table eq "nodes") {
-            $sql_query = "SELECT nodes.id AS id,
-                          nodes.name AS name,
-                          nodes.description AS description,
-                          nodes.notes AS notes,
-                          nodes.debug AS debug,
-                          nodes.active AS active,
-                          clusters.name AS cluster,
-                          racks.name AS rack,
-                          vnfs.name AS vnfs,
-                          GROUP_CONCAT(DISTINCT(masters.name)) AS master,
-                          GROUP_CONCAT(DISTINCT(ethernets.hwaddr)) AS hwaddr,
-                          GROUP_CONCAT(DISTINCT CONCAT(ethernets.device, ':', ethernets.ipaddr)) AS ipaddr,
-                          GROUP_CONCAT(DISTINCT(groups.name)) AS groups
-                          FROM nodes
-                          LEFT JOIN clusters ON nodes.cluster_id = clusters.id
-                          LEFT JOIN racks ON nodes.rack_id = racks.id
-                          LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id
-                          LEFT JOIN ethernets ON nodes.id = ethernets.node_id
-                          LEFT JOIN nodes_masters ON nodes.id = nodes_masters.node_id
-                          LEFT JOIN masters ON nodes_masters.master_id = masters.id
-                          LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id
-                          LEFT JOIN groups ON nodes_groups.group_id = groups.id
-                          GROUP BY nodes.id ";
+            $sql_query = "SELECT nodes.id AS id, ";
+            $sql_query .= "nodes.name AS name, ";
+            $sql_query .= "nodes.description AS description, ";
+            $sql_query .= "nodes.notes AS notes, ";
+            $sql_query .= "nodes.debug AS debug, ";
+            $sql_query .= "nodes.active AS active, ";
+            $sql_query .= "clusters.name AS cluster, ";
+            $sql_query .= "racks.name AS rack, ";
+            $sql_query .= "vnfs.name AS vnfs, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(masters.name)) AS master, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(ethernets.hwaddr)) AS hwaddr, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT CONCAT(ethernets.device, ':', ethernets.ipaddr)) AS ipaddr, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(groups.name)) AS groups ";
+            $sql_query .= "FROM nodes ";
+            $sql_query .= "LEFT JOIN clusters ON nodes.cluster_id = clusters.id ";
+            $sql_query .= "LEFT JOIN racks ON nodes.rack_id = racks.id ";
+            $sql_query .= "LEFT JOIN vnfs ON nodes.vnfs_id = vnfs.id ";
+            $sql_query .= "LEFT JOIN ethernets ON nodes.id = ethernets.node_id ";
+            $sql_query .= "LEFT JOIN nodes_masters ON nodes.id = nodes_masters.node_id ";
+            $sql_query .= "LEFT JOIN masters ON nodes_masters.master_id = masters.id ";
+            $sql_query .= "LEFT JOIN nodes_groups ON nodes.id = nodes_groups.node_id ";
+            $sql_query .= "LEFT JOIN groups ON nodes_groups.group_id = groups.id ";
+            $sql_query .= "GROUP BY nodes.id ";
 
         } elsif ($table eq "clusters") {
-            $sql_query = "SELECT clusters.id AS id,
-                          clusters.name AS name,
-                          clusters.description AS description,
-                          clusters.notes AS notes,
-                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
-                          FROM clusters
-                          LEFT JOIN nodes ON clusters.id = nodes.cluster_id
-                          GROUP BY clusters.id ";
+            $sql_query = "SELECT clusters.id AS id, ";
+            $sql_query .= "clusters.name AS name, ";
+            $sql_query .= "clusters.description AS description, ";
+            $sql_query .= "clusters.notes AS notes, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes ";
+            $sql_query .= "FROM clusters ";
+            $sql_query .= "LEFT JOIN nodes ON clusters.id = nodes.cluster_id ";
+            $sql_query .= "GROUP BY clusters.id ";
 
         } elsif ($table eq "racks") {
-            $sql_query = "SELECT racks.id AS id,
-                          racks.name AS name,
-                          racks.description AS description,
-                          racks.notes AS notes,
-                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
-                          FROM racks
-                          LEFT JOIN nodes ON racks.id = nodes.rack_id
-                          GROUP BY racks.id ";
+            $sql_query .= "SELECT racks.id AS id, ";
+            $sql_query .= "racks.name AS name, ";
+            $sql_query .= "racks.description AS description, ";
+            $sql_query .= "racks.notes AS notes, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes ";
+            $sql_query .= "FROM racks ";
+            $sql_query .= "LEFT JOIN nodes ON racks.id = nodes.rack_id ";
+            $sql_query .= "GROUP BY racks.id ";
 
         } elsif ($table eq "groups") {
-            $sql_query = "SELECT groups.id AS id,
-                          groups.name AS name,
-                          groups.description AS description,
-                          groups.notes AS notes,
-                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
-                          FROM groups
-                          LEFT JOIN nodes_groups ON nodes_groups.group_id = groups.id
-                          LEFT JOIN nodes ON nodes_groups.node_id = nodes.id
-                          GROUP BY groups.id ";
+            $sql_query = "SELECT groups.id AS id, ";
+            $sql_query .= "groups.name AS name, ";
+            $sql_query .= "groups.description AS description, ";
+            $sql_query .= "groups.notes AS notes, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes ";
+            $sql_query .= "FROM groups ";
+            $sql_query .= "LEFT JOIN nodes_groups ON nodes_groups.group_id = groups.id ";
+            $sql_query .= "LEFT JOIN nodes ON nodes_groups.node_id = nodes.id ";
+            $sql_query .= "GROUP BY groups.id ";
 
         } elsif ($table eq "ethernets") {
-            $sql_query = "SELECT ethernets.id AS id,
-                          ethernets.hwaddr AS hwaddr,
-                          ethernets.device AS device,
-                          ethernets.ipaddr AS ipaddr,
-                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
-                          FROM ethernets
-                          LEFT JOIN nodes ON ethernets.node_id = nodes.id
-                          GROUP BY ethernets.id ";
+            $sql_query = "SELECT ethernets.id AS id, ";
+            $sql_query .= "ethernets.hwaddr AS hwaddr, ";
+            $sql_query .= "ethernets.device AS device, ";
+            $sql_query .= "ethernets.ipaddr AS ipaddr, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes ";
+            $sql_query .= "FROM ethernets ";
+            $sql_query .= "LEFT JOIN nodes ON ethernets.node_id = nodes.id ";
+            $sql_query .= "GROUP BY ethernets.id ";
 
         } elsif ($table eq "masters") {
-            $sql_query = "SELECT masters.id AS id,
-                          masters.name AS name,
-                          masters.description AS description,
-                          masters.notes AS notes,
-                          masters.ipaddr AS ipaddr,
-                          GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes
-                          FROM groups
-                          LEFT JOIN nodes_masters ON nodes_masters.master_id = masters.id
-                          LEFT JOIN nodes ON nodes_masters.node_id = nodes.id
-                          GROUP BY masters.id ";
+            $sql_query = "SELECT masters.id AS id, ";
+            $sql_query .= "masters.name AS name, ";
+            $sql_query .= "masters.description AS description, ";
+            $sql_query .= "masters.notes AS notes, ";
+            $sql_query .= "masters.ipaddr AS ipaddr, ";
+            $sql_query .= "GROUP_CONCAT(DISTINCT(nodes.name)) AS nodes ";
+            $sql_query .= "FROM groups ";
+            $sql_query .= "LEFT JOIN nodes_masters ON nodes_masters.master_id = masters.id ";
+            $sql_query .= "LEFT JOIN nodes ON nodes_masters.node_id = nodes.id ";
+            $sql_query .= "GROUP BY masters.id ";
 
         }
         if ($query->match()) {
@@ -205,7 +210,7 @@ query($$)
         }
     }
 
-    &dprint("SQL: $sql_query\n");
+    &dprint("$sql_query\n");
 
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();

@@ -3,56 +3,48 @@
 
 use Warewulf::Object;
 use Warewulf::ObjectSet;
-use Warewulf::DB::MySQL;
+use Warewulf::DB;
 use Warewulf::DBQuery;
 use Warewulf::Logger;
-$db = Warewulf::DB::MySQL->new("localhost", "warewulf", "root", "");
 
 &set_log_level("DEBUG");
 
-sub worker(@) {
-    my @array = @_;
-#    print "-------------------------------------\n";
-    foreach my $h (@array) {
-        print "name: $h->{name}: ";
-        foreach my $k ( keys %{$h}) {
-            print "$k=$h->{$k}, ";
-        }
-        print "\n";
+
+my $action = shift(@ARGV);
+my $table = shift(@ARGV);
+
+if (! $action or ! $table) {
+    die("USAGE: $0 (get/set/insert) (table) [match options]\n");
+}
+
+
+my $query = Warewulf::DBQuery->new($action);
+$query->table($table);
+while(@ARGV) {
+    my $command = shift;
+    if ($command eq "match") {
+        my $column = shift(@ARGV);
+        my $operator = shift(@ARGV);
+        my $value = shift(@ARGV);
+        $query->match($column, $operator, $value);
+    } elsif ($command eq "set") {
+        my $column = shift(@ARGV);
+        my $value = shift(@ARGV);
+        $query->set($column, $value);
     }
 }
 
-$query = Warewulf::DBQuery->new("get");
-$query->table("nodes");
-#$query->match("hwaddr", "IS", "NULL");
-#$query->match("cluster", "=", "nano");
-$query->order("cluster");
-$query->order("name");
-#$query->function(\&worker);
-#$db->query($query);
+my $db = Warewulf::DB->new("localhost", "warewulf", "root", "");
+my $set = Warewulf::ObjectSet->new($db->query($query));
 
-#$query = Warewulf::DBQuery->new("set");
-#$query->table("nodes");
-#$query->match("name", "regexp", "n000[2-3]");
-#$query->set("create_time", "5555");
+foreach my $o ($set->get_list()) {
+    my @strings;
+    my $h = $o->get_hash();
 
-#$query = Warewulf::DBQuery->new("insert");
-#$query->table("nodes");
-#$query->set("name", "moooo");
-#$query->set("create_time", "9999");
-#
-
-
-#$query->set("create_time", "1234");
-#$query->match("name", "=", "compute-group1");
-#$query->order("id", "asc");
-#$query->limit(10);
-
-
-my $set = Warewulf::ObjectSet->new();
-#$set->index("name");
-$set->add_hashes($db->query($query));
-
-foreach my $o ($set->iterate()) {
-    print $o->get("name") ."\n";
+#    print $o->get("name") .": ";
+    foreach my $key (sort keys %{$h}) {
+            printf ("%s: %20s: %s\n", $o->get("name"), $key, $h->{"$key"});
+    }
+#    print join(", ", @strings) ."\n";
 }
+

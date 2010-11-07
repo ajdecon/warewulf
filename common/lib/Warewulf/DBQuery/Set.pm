@@ -56,6 +56,13 @@ new($$)
     return $self;
 }
 
+sub
+action($)
+{
+    return("SET");
+}
+
+
 
 =item table(table name)
 
@@ -111,8 +118,8 @@ set($$$)
     my $column = shift;
     my $value = shift;
 
-    if ($column and $value) {
-        push(@{$self->{"SET"}}, [ $column, $value ]);
+    if ($column) {
+        push(@{$self->{"SET"}}, [ $column, $value || "" ]);
     }
 
     return(@{$self->{"SET"}});

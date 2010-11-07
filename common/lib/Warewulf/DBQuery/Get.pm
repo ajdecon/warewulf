@@ -56,6 +56,12 @@ new($$)
     return $self;
 }
 
+sub
+action($)
+{
+    return("GET");
+}
+
 
 =item table(table name)
 

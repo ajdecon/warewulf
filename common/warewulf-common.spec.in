@@ -34,5 +34,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
 %perl_vendorlib/*
+%{_datadir}/*
 
 %changelog

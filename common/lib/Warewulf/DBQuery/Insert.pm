@@ -56,6 +56,12 @@ new($$)
     return $self;
 }
 
+sub
+action($)
+{
+    return("INSERT");
+}
+
 
 =item table(table name)
 

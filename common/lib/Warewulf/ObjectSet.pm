@@ -57,10 +57,15 @@ new($$)
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = ();
+    my $hashref = shift;
 
     $self = $class->SUPER::new(@_);
 
     bless($self, $class);
+
+    if ($hashref) {
+        $self->add_hashes($hashref);
+    }
 
     return($self);
 }
@@ -108,7 +113,7 @@ you request the data.
 sub
 find($$$)
 {
-    my ($self, $index, $val) = @_;
+    my ($self, $key, $val) = @_;
     my @return;
 
     if (!exists($self->{"DATA"}{$key})) {
@@ -152,7 +157,22 @@ index($$)
     my $key = shift;
 
     if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
+
         push(@{$self->{"INDEXES"}}, $key);
+
+#        if (exists($self->{"DATA"})) {
+            $self->{"DATA"} = ();
+            # Add object to all indexes.
+            foreach my $index (@{$self->{"INDEXES"}}) {
+                foreach my $obj (@{$self->{"ARRAY"}}) {
+                    my $value = $obj->get($index);
+
+                    if (defined($value)) {
+                        push(@{$self->{"DATA"}{$index}{$value}}, $obj);
+                    }
+                }
+            }
+#        }
     }
     return (@{$self->{"INDEXES"}});
 }
@@ -170,8 +190,7 @@ add_hashes($$)
     my $array_obj = shift;
 
     foreach my $h (@{$array_obj}) {
-        my $obj = Warewulf::Object->new();
-        $obj->add_hash($h);
+        my $obj = Warewulf::Object->new($h);
         $self->add($obj);
     }
 
