@@ -137,17 +137,16 @@ reread($)
     my @lines               = ();
     my %hash                = ();
 
-    $self->{"STREAM"}       = ();
-
     foreach my $file ( @{$self->{"FILE"}} ) {
         dprint("Looking for config file: $file\n");
         if ( -f $file ) {
+            nprint("Reading config file: $file\n");
             open(FILE, $file);
             while(my $line = <FILE>) {
-                push(@{$self->{"STREAM"}}, $line);
+                my ($key, $value) = split(/\s*=\s*/, $line, 2);
+                push(@{$self->{"DATA"}{"$key"}}, $value);
             }
             close FILE;
-            nprint("Reading config file: $file\n");
         } else {
             dprint("Config file not found: $file\n");
         }
@@ -172,44 +171,12 @@ get($$)
     my $string              = ();
 
     if ( $key ) {
-        my $cont;
-        foreach my $line ( @{ $self->{"STREAM"} } ) {
-            chomp $line;
-            $line =~ s/^\s*#.*$//;
-            $line =~ s/\s+$//;
-            next if ! $line;
-            if ( $line =~ /^\s*(.+?)\s*=\s*(.*?)(\\)$/ ) {
-                if ( $1 eq $key ) {
-                    if ( $string ) {
-                        $string .= ",";
-                    }
-                    $string .= $2;
-                    $cont = 1;
-                }
-            } elsif ( $line =~ /^\s*(.+?)\s*=\s*(.*)$/ ) {
-                if ( $1 eq $key ) {
-                    if ( $string ) {
-                        $string .= ",";
-                    }
-                    $string .= $2;
-                    $cont = ();
-                }
-            } elsif ( $cont ) {
-                if ( $line =~ /^(.*?)\\$/ ) {
-                    $string .= $1;
-                    $cont = 1;
-                } else {
-                    $string .= $line;
-                    $cont = ();
-                }
-            }
+        if (exists($self->{"DATA"}{"$key"})) {
+            push(@values, @{$self->{"DATA"}{"$key"}});
         }
     } else {
         return();
     }
-
-    my @f = &parse_line(',\s*', 0, $string);
-    push(@values, @f);
 
     if ( wantarray ) {
         return(@values);
