@@ -35,5 +35,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
 %perl_vendorlib/*
 %{_datadir}/*
+%{_sysconfdir}/*
 
 %changelog

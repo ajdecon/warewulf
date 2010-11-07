@@ -1,4 +1,4 @@
-SUBDIRS = lib share
+SUBDIRS = lib share etc
 
 MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
 DISTCLEANFILES = 
