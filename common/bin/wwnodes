@@ -5,7 +5,7 @@ use Warewulf::DBQuery;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::ObjectSet;
-use Warewulf::NodeSet;
+use Warewulf::Nodes;
 use Getopt::Long;
 
 &set_log_level("DEBUG");
@@ -39,7 +39,7 @@ if (@ARGV) {
     $argref = \@ARGV;
 }
 
-$node = Warewulf::NodeSet->new();
+$node = Warewulf::Nodes->new();
 if ($match_by eq "name") {
     $nodeSet = $node->getby_name($argref);
 } elsif ($match_by eq "nodename") {
@@ -54,6 +54,8 @@ if ($match_by eq "name") {
     $nodeSet = $node->getby_cluster($argref);
 } elsif ($match_by eq "rack") {
     $nodeSet = $node->getby_rack($argref);
+} elsif ($match_by eq "dbid") {
+    $nodeSet = $node->getby_dbid($argref);
 } else {
     &cprint("Could not match by: $match_by\n");
     exit 1;
