@@ -5,7 +5,7 @@ use Warewulf::DBQuery;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::ObjectSet;
-use Warewulf::Nodes;
+use Warewulf::NodeSetFactory;
 use Getopt::Long;
 
 &set_log_level("DEBUG");
