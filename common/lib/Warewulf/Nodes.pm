@@ -18,7 +18,7 @@
 # $Id: Node.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::NodeSet;
+package Warewulf::Nodes;
 
 use Warewulf::Include;
 use Warewulf::Object;
@@ -28,16 +28,16 @@ use Warewulf::ObjectSet;
 
 =head1 NAME
 
-Warewulf::NodeSet - Warewulf's NodeSet interface
+Warewulf::Nodes - Warewulf's Nodes interface
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::NodeSet;
+    use Warewulf::Nodes;
 
-    my $obj = Warewulf::NodeSet->new();
+    my $obj = Warewulf::Nodes->new();
 
 
 =head1 METHODS
@@ -83,8 +83,6 @@ getby_name(@)
             $query->match("name", "IN", $arg);
         } elsif ($arg) {
             $query->match("name", "=", $arg);
-        } else {
-            $query->match("name", "IS", "NULL");
         }
     }
 
@@ -115,12 +113,12 @@ getby_nodename(@)
 }
 
 
-=item getby_nodeid(@strings)
+=item getby_dbid(@strings)
 
 
 =cut
 sub
-getby_nodeid(@)
+getby_dbid(@)
 {
     my $self = shift;
     my $query = Warewulf::DBQuery->new("get");
@@ -172,7 +170,7 @@ getby_cluster(@)
     foreach my $arg (@_) {
         if (ref($arg) eq "ARRAY") {
             $query->match("cluster", "IN", $arg);
-        } else {
+        } elsif ($arg) {
             $query->match("cluster", "=", $arg);
         }
     }
