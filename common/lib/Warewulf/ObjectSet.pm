@@ -126,6 +126,49 @@ find($$$)
 }
 
 
+=item get_object($index)
+
+Return the single Object at the given array index
+
+=cut
+sub
+get_object($)
+{
+    my $self = shift;
+    my $index = shift;
+
+    if (exists($self->{"ARRAY"}[$index])) {
+        return ($self->{"ARRAY"}[$index]);
+    } else {
+        return;
+    }
+}
+
+=item get_list_entries($index)
+
+Return an array of list entries found in the current set.
+
+=cut
+sub
+get_list_entries($$)
+{
+    my $self = shift;
+    my $key = shift;
+    my @ret;
+
+    foreach my $obj (@{$self->{"ARRAY"}}) {
+        if (my $value = $obj->get($key)) {
+            push(@ret, $value);
+        }
+    }
+
+    if (@ret) {
+        return (@ret);
+    } else {
+        return;
+    }
+}
+
 
 =item get_list()
 
@@ -137,7 +180,11 @@ get_list($)
 {
     my $self = shift;
 
-    return (@{$self->{"ARRAY"}});
+    if (exists($self->{"ARRAY"})) {
+        return (@{$self->{"ARRAY"}});
+    } else {
+        return;
+    }
 }
 
 
@@ -174,7 +221,12 @@ index($$)
             }
 #        }
     }
-    return (@{$self->{"INDEXES"}});
+    
+    if (exists($self->{"INDEXES"})) {
+        return (@{$self->{"INDEXES"}});
+    } else {
+        return;
+    }
 }
 
 

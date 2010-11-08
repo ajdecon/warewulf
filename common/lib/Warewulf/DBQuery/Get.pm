@@ -78,7 +78,11 @@ table($)
         $self->{"TABLE"} = $table;
     }
 
-    return $self->{"TABLE"};
+    if (exists($self->{"TABLE"})) {
+        return $self->{"TABLE"};
+    } else {
+        return;
+    }
 }
 
 
@@ -101,7 +105,11 @@ match($$$$)
         push(@{$self->{"MATCHES"}}, [ $entry, $operator, $constraint ]);
     }
 
-    return(@{$self->{"MATCHES"}});
+    if (exists($self->{"MATCHES"})) {
+        return(@{$self->{"MATCHES"}});
+    } else {
+        return;
+    }
 }
 
 
@@ -121,7 +129,11 @@ order($$$)
         push(@{$self->{"ORDER"}}, [ $field, $order ]);
     }
 
-    return(@{$self->{"ORDER"}});
+    if (exists($self->{"ORDER"})) {
+        return(@{$self->{"ORDER"}});
+    } else {
+        return;
+    }
 }
 
 
@@ -142,7 +154,11 @@ limit($$$)
         push(@{$self->{"LIMIT"}}, [ $start, $end ]);
     }
 
-    return(@{$self->{"LIMIT"}});
+    if (exists($self->{"LIMIT"})) {
+        return(@{$self->{"LIMIT"}});
+    } else {
+        return;
+    }
 }
 
 
@@ -161,7 +177,11 @@ function($$)
         push(@{$self->{"FUNCTIONS"}}, $function_ref);
     }
 
-    return(@{$self->{"FUNCTIONS"}});
+    if (exists($self->{"FUNCTIONS"})) {
+        return(@{$self->{"FUNCTIONS"}});
+    } else {
+        return;
+    }
 }
 
 

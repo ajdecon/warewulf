@@ -79,7 +79,11 @@ table($)
         $self->{"TABLE"} = $table;
     }
 
-    return $self->{"TABLE"};
+    if (exists($self->{"TABLE"})) {
+        return $self->{"TABLE"};
+    } else {
+        return;
+    }
 }
 
 
@@ -98,11 +102,17 @@ match($$$$)
     my $operator = shift;
     my $constraint = shift;
 
+    print "constraint: $constraint\n";
+
     if ($entry and $operator and $constraint) {
         push(@{$self->{"MATCHES"}}, [ $entry, $operator, $constraint ]);
     }
 
-    return(@{$self->{"MATCHES"}});
+    if (exists($self->{"MATCHES"})) {
+        return(@{$self->{"MATCHES"}});
+    } else {
+        return;
+    }
 }
 
 
@@ -122,7 +132,11 @@ set($$$)
         push(@{$self->{"SET"}}, [ $column, $value || "" ]);
     }
 
-    return(@{$self->{"SET"}});
+    if (exists($self->{"SET"})) {
+        return(@{$self->{"SET"}});
+    } else {
+        return;
+    }
 }
 
 

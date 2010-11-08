@@ -1,0 +1,111 @@
+#!/usr/bin/perl -Tw
+
+use Warewulf::DB;
+use Warewulf::DBQuery;
+use Warewulf::Config;
+use Warewulf::Logger;
+use Warewulf::ObjectSet;
+use Warewulf::NodeSet;
+use Getopt::Long;
+
+&set_log_level("DEBUG");
+
+Getopt::Long::Configure ("bundling");
+
+my @set;
+my @print;
+my $match_by = "name";
+my $nodeSet;
+my @print_string;
+my $argref;
+
+my $db = Warewulf::DB->new();
+
+GetOptions(
+   'set=s'      => \@set,
+   'print=s'    => \@print,
+   'by=s'       => \$match_by,
+);
+
+if (! @print and ! @set) {
+    push(@print_strings, "name");
+} else {
+    foreach my $g (@print) {
+        push(@print_strings, split(",", $g));
+    }
+}
+
+if (@ARGV) {
+    $argref = \@ARGV;
+}
+
+$node = Warewulf::NodeSet->new();
+if ($match_by eq "name") {
+    $nodeSet = $node->getby_name($argref);
+} elsif ($match_by eq "nodename") {
+    $nodeSet = $node->getby_nodename($argref);
+} elsif ($match_by eq "nodeid") {
+    $nodeSet = $node->getby_nodeid($argref);
+} elsif ($match_by eq "vnfs") {
+    $nodeSet = $node->getby_vnfs($argref);
+} elsif ($match_by eq "groupname") {
+    $nodeSet = $node->getby_groupname($argref);
+} elsif ($match_by eq "cluster") {
+    $nodeSet = $node->getby_cluster($argref);
+} elsif ($match_by eq "rack") {
+    $nodeSet = $node->getby_rack($argref);
+} else {
+    &cprint("Could not match by: $match_by\n");
+    exit 1;
+}
+
+if (@set) {
+    foreach my $s (@set) {
+        my ($key, $val) = split("=", $s);
+        if ($key eq "vnfs") {
+            my $query = Warewulf::DBQuery->new("get");
+            $query->table("vnfs");
+            $query->match("name", "=", $val);
+            my $set = Warewulf::ObjectSet->new($db->query($query));
+            my $obj = $set->get_object(0);
+            if ($obj) {
+                my $ID = $obj->get("id");
+                my $query = Warewulf::DBQuery->new("set");
+                my @ids = $nodeSet->get_list_entries("id");
+
+                $query->table("nodes");
+                $query->set("vnfs_id", $vnfsID);
+                $query->match("id", "IN", \@ids);
+                $db->query($query);
+            } else {
+                &cprint("Unknown VNFS!\n");
+            }
+        } elsif ($key eq "cluster") {
+            my $query = Warewulf::DBQuery->new("get");
+            $query->table("cluster");
+            $query->match("name", "=", $val);
+            my $set = Warewulf::ObjectSet->new($db->query($query));
+            my $obj = $set->get_object(0);
+            if ($obj) {
+                my $ID = $obj->get("id");
+                my $query = Warewulf::DBQuery->new("set");
+                my @ids = $nodeSet->get_list_entries("id");
+
+                $query->table("nodes");
+                $query->set("vnfs_id", $vnfsID);
+                $query->match("id", "IN", \@ids);
+                $db->query($query);
+            } else {
+                &cprint("Unknown VNFS!\n");
+            }
+        }
+    }
+} elsif (@print_strings) {
+    foreach my $n ($nodeSet->get_list()) {
+        print join(", ", map { $n->get($_) || "(UNDEFINED)" } @print_strings) . "\n";
+    }
+}
+
+
+
+

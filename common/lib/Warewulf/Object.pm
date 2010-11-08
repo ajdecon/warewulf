@@ -81,7 +81,11 @@ get($)
     my $self = shift;
     my $key = shift;
 
-    return $self->{"DATA"}{$key};
+    if (exists($self->{"DATA"}{$key})) {
+        return $self->{"DATA"}{$key};
+    } else {
+        return;
+    }
 }
 
 
@@ -110,10 +114,13 @@ sub
 add_hash($$)
 {
     my $self = shift;
-    my $hashref = shift;
+    my $ref = shift;
 
-    #%{$self->{"DATA"}{keys %{$hash_obj}}} = values %{$hash_obj};
-    %{$self->{"DATA"}} = %{$hashref}
+    if (ref($ref) eq "HASH") {
+        %{$self->{"DATA"}} = %{$ref}
+    } elsif (ref($ref) eq "ARRAY") {
+        %{$self->{"DATA"}} = %{$ref}->[0];
+    }
 }
 
 

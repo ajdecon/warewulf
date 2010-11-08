@@ -140,9 +140,14 @@ reread($)
     foreach my $file ( @{$self->{"FILE"}} ) {
         dprint("Looking for config file: $file\n");
         if ( -f $file ) {
-            nprint("Reading config file: $file\n");
+            wprint("Reading config file: $file\n");
             open(FILE, $file);
             while(my $line = <FILE>) {
+                chomp($line);
+                $line =~ s/#.*//;
+                if (! $line) {
+                    next;
+                }
                 my ($key, $value) = split(/\s*=\s*/, $line, 2);
                 push(@{$self->{"DATA"}{"$key"}}, $value);
             }

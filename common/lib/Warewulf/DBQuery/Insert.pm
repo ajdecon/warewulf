@@ -78,7 +78,11 @@ table($)
         $self->{"TABLE"} = $table;
     }
 
-    return $self->{"TABLE"};
+    if (exists($self->{"TABLE"})) {
+        return $self->{"TABLE"};
+    } else {
+        return;
+    }
 }
 
 
@@ -98,7 +102,11 @@ set($$$)
         push(@{$self->{"SET"}}, [ $column, $value ]);
     }
 
-    return(@{$self->{"SET"}});
+    if (exists($self->{"SET"})) {
+        return(@{$self->{"SET"}});
+    } else {
+        return;
+    }
 }
 
 
