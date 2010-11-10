@@ -25,3 +25,8 @@ Sun Oct 31 22:45:08 2010                        Michael Jennings (mej)
 
 Tidying as I peruse, putting together an action plan.
 ----------------------------------------------------------------------
+Wed Nov 10 13:40:53 2010                        Michael Jennings (mej)
+
+Initial refactoring of existing Object parent class.  More methods to
+come, and need to do search-and-replace to fix breakage.
+----------------------------------------------------------------------

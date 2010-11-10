@@ -55,89 +55,101 @@ new($$)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $self = ();
-    my $hashref = shift;
-
-    $self = {};
+    my $self = {};
 
     bless($self, $class);
 
-    if ($hashref) {
-        $self->add_hash($hashref);
+    return $self->init(@_);
+}
+
+=item init(...)
+
+Initialize an object, possibly with a hash or hashref.
+
+=cut
+sub
+init(@)
+{
+    my $self = shift;
+
+    # Clear out existing data.
+    $self->{"DATA"} = {};
+
+    # Check for new initializer.
+    if (scalar(@_)) {
+        $self->set(@_);
     }
 
     return $self;
 }
 
-
 =item get(key)
 
-Return the value of the key defined.
+Return the value of the specified object member.
 
 =cut
 sub
 get($)
 {
-    my $self = shift;
-    my $key = shift;
+    my ($self, $key) = @_;
 
     if (exists($self->{"DATA"}{$key})) {
         return $self->{"DATA"}{$key};
     } else {
-        return;
+        return undef;
     }
 }
 
 
 =item set(key,value)
 
-Set a key/value pair.
+Set a member from a key/value pair.
 
 =cut
 sub
 set($$)
 {
     my $self = shift;
-    my $key = shift;
-    my $value = shift;
+    my %new_data;
 
-    return ($self->{"DATA"}{$key} = $value);
-}
-
-
-=item add_hash($hash_obj)
-
-Add a hash object to this object
-
-=cut
-sub
-add_hash($$)
-{
-    my $self = shift;
-    my $ref = shift;
-
-    if (ref($ref) eq "HASH") {
-        %{$self->{"DATA"}} = %{$ref}
-    } elsif (ref($ref) eq "ARRAY") {
-        %{$self->{"DATA"}} = %{$ref}->[0];
+    if (!scalar(@_)) {
+        return undef;
     }
+    if (scalar(@_) == 1) {
+        my $hashref = shift;
+
+        if (ref($hashref) eq "HASH") {
+            %new_data = %{$hashref};
+        } elsif ((ref($hashref) eq "ARRAY") && (scalar(@{$hashref}) % 2 == 0)) {
+            %new_data = @{$hashref};
+        } else {
+            return undef;
+        }
+    } else {
+        %new_data = @_;
+    }
+
+    foreach my $key (keys(%new_data)) {
+        $self->{"DATA"}{$key} = $new_data{$key};
+    }
+    return scalar(%new_data);
 }
 
 
-=item get_hash()
+=item serialize()
 
-Return a reference to a hash object representing all of the fields of this object
+Return a hash (or hashref) containing all member variables and their values.
 
 =cut
 sub
-get_hash($)
+serialize($)
 {
     my $self = shift;
     my $hashref;
 
     %{$hashref} = %{$self->{"DATA"}};
 
-    return($hashref);
+    return ((wantarray()) ? (%{$hashref}) : ($hashref));
 }
 
 
@@ -179,7 +191,22 @@ Warewulf:ObjectSet:
 
 =head1 COPYRIGHT
 
-Warewulf is copyright UC Regents
+Copyright (c) 2003-2010, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+The GNU GPL Document can be found at:
+http://www.gnu.org/copyleft/gpl.html
 
 =cut
 
