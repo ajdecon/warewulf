@@ -30,3 +30,7 @@ Wed Nov 10 13:40:53 2010                        Michael Jennings (mej)
 Initial refactoring of existing Object parent class.  More methods to
 come, and need to do search-and-replace to fix breakage.
 ----------------------------------------------------------------------
+Wed Nov 10 20:39:04 2010                        Michael Jennings (mej)
+
+A couple more template methods.
+----------------------------------------------------------------------

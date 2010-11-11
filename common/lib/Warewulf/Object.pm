@@ -26,7 +26,7 @@ our @ISA = ();
 
 =head1 NAME
 
-Warewulf::Object - Warewulf's general object instance object interface.
+Warewulf::Object - Warewulf's general object.
 
 =head1 ABOUT
 
@@ -41,17 +41,15 @@ Warewulf::Object - Warewulf's general object instance object interface.
 =head1 METHODS
 
 =over 12
-=cut
-
 
 =item new()
 
-The new constructor will create the object that references configuration the
-stores.
+Instantiate an object.
 
 =cut
+
 sub
-new($$)
+new($)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -64,9 +62,11 @@ new($$)
 
 =item init(...)
 
-Initialize an object, possibly with a hash or hashref.
+Initialize an object, possibly with a hash or hashref.  All data
+currently stored in the object will be cleared.
 
 =cut
+
 sub
 init(@)
 {
@@ -88,6 +88,7 @@ init(@)
 Return the value of the specified object member.
 
 =cut
+
 sub
 get($)
 {
@@ -101,11 +102,20 @@ get($)
 }
 
 
-=item set(key,value)
+=item set(key, value)
 
 Set a member from a key/value pair.
 
+=item set(key => value, key => value, [ ... ])
+
+Set member values based on a hash (or array).
+
+=item set(hashref)
+
+Set member values based on a hash reference.
+
 =cut
+
 sub
 set($$)
 {
@@ -141,8 +151,9 @@ set($$)
 Return a hash (or hashref) containing all member variables and their values.
 
 =cut
+
 sub
-serialize($)
+serialize()
 {
     my $self = shift;
     my $hashref;
@@ -152,6 +163,33 @@ serialize($)
     return ((wantarray()) ? (%{$hashref}) : ($hashref));
 }
 
+=item to_string()
+
+Return the canonical string representation of the object.
+
+=cut
+
+sub
+to_string()
+{
+    my $self = shift;
+
+    return "{ $self }";
+}
+
+=item debug_string()
+
+Return debugging output for the object's contents.
+
+=cut
+
+sub
+debug_string()
+{
+    my $self = shift;
+
+    return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{DATA}{$_}\"" } sort(keys(%{$self->{"DATA"}}))));
+}
 
 =item *([value])
 
@@ -162,6 +200,7 @@ you can do things like this:
    my $value = $store->anything_you_wish_to_use();
 
 =cut
+
 sub
 AUTOLOAD
 {
