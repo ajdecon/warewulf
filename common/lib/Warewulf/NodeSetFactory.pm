@@ -18,7 +18,7 @@
 # $Id: Node.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Nodes;
+package Warewulf::NodeSetFactory;
 
 use Warewulf::Include;
 use Warewulf::Object;
@@ -170,7 +170,7 @@ getby_cluster(@)
     foreach my $arg (@_) {
         if (ref($arg) eq "ARRAY") {
             $query->match("cluster", "IN", $arg);
-        } elsif ($arg) {
+        } else {
             $query->match("cluster", "=", $arg);
         }
     }

@@ -102,8 +102,6 @@ match($$$$)
     my $operator = shift;
     my $constraint = shift;
 
-    print "constraint: $constraint\n";
-
     if ($entry and $operator and $constraint) {
         push(@{$self->{"MATCHES"}}, [ $entry, $operator, $constraint ]);
     }
