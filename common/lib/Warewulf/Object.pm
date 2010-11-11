@@ -26,10 +26,8 @@ our @ISA = ();
 
 =head1 NAME
 
-Warewulf::Object - Warewulf's general object.
-
-=head1 ABOUT
-
+Warewulf::Object - Warewulf's generic object class and the ancestor of
+all other classes.
 
 =head1 SYNOPSIS
 
@@ -37,14 +35,30 @@ Warewulf::Object - Warewulf's general object.
 
     my $obj = Warewulf::Object->new();
 
+    $obj->set("name", "Bob");
+    $obj->set("type" => "person", "active" => 1);
+    $display = $obj->to_string();
+    $dbg = $obj->debug_string();
+    printf("%s is named %s\n", $display, $obj->name());
+
+    $data_store->persist($obj->serialize());
+
+=head1 DESCRIPTION
+
+C<Warewulf::Object> is the base class from which all other Warewulf
+objects are derived.  It provides a simple constructor, an
+initializer, get/set methods, string conversion, and a catch-all
+AUTOLOAD member function for turning arbitrary method calls into
+accessors.
 
 =head1 METHODS
 
-=over 12
+=over 4
 
 =item new()
 
-Instantiate an object.
+Instantiate an object.  Any initializer accepted by the C<set()>
+method may also be passed to C<new()>.
 
 =cut
 
@@ -62,8 +76,9 @@ new($)
 
 =item init(...)
 
-Initialize an object, possibly with a hash or hashref.  All data
-currently stored in the object will be cleared.
+Initialize an object.  All data currently stored in the object will be
+cleared.  Any initializer accepted by the C<set()> method may also be
+passed to C<init()>.
 
 =cut
 
@@ -83,9 +98,12 @@ init(@)
     return $self;
 }
 
-=item get(key)
+=item get(I<key>)
 
-Return the value of the specified object member.
+Return the value of the specified member variable I<key>.  Returns
+C<undef> if I<key> is not a member variable of the object.  No
+distinction is made between "member is not present" and "member is
+present but undefined."
 
 =cut
 
@@ -102,17 +120,15 @@ get($)
 }
 
 
-=item set(key, value)
+=item set(I<key>, I<value>)
 
-Set a member from a key/value pair.
+=item set(I<key> => I<value>, I<key> => I<value>, [ ... ])
 
-=item set(key => value, key => value, [ ... ])
+=item set(I<hashref>)
 
-Set member values based on a hash (or array).
-
-=item set(hashref)
-
-Set member values based on a hash reference.
+Set member variable(s) from a key/value pair, a hash, an array, or a
+hash/array reference.  Returns the last value set or C<undef> if
+invoked improperly.
 
 =cut
 
@@ -142,13 +158,14 @@ set($$)
     foreach my $key (keys(%new_data)) {
         $self->{"DATA"}{$key} = $new_data{$key};
     }
-    return scalar(%new_data);
 }
 
 
 =item serialize()
 
-Return a hash (or hashref) containing all member variables and their values.
+Return a hash (or hashref) containing all member variables and their
+values.  This is particularly useful for converting an object into its
+constituent components; e.g., to be stored in a database.
 
 =cut
 
@@ -165,7 +182,9 @@ serialize()
 
 =item to_string()
 
-Return the canonical string representation of the object.
+Return the canonical string representation of the object.  For a
+generic object, this is simply the type and pointer value.  Child
+classes should override this method intelligently.
 
 =cut
 
@@ -179,7 +198,10 @@ to_string()
 
 =item debug_string()
 
-Return debugging output for the object's contents.
+Return debugging output for the object's contents.  For a generic
+object, this is the type/pointer value and the member
+variables/values.  Child classes should override this method
+intelligently.
 
 =cut
 
@@ -191,13 +213,13 @@ debug_string()
     return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{DATA}{$_}\"" } sort(keys(%{$self->{"DATA"}}))));
 }
 
-=item *([value])
+=item I<key>([I<value>])
 
-Any methods will be automatically translated into a get/set command, so
-you can do things like this:
+Any methods not otherwise defined will be automatically translated
+into a get/set command, so you can do things like this:
 
-   $store->anything_you_wish_to_use->("the value should be here");
-   my $value = $store->anything_you_wish_to_use();
+  $obj->title("Set title to this string");
+  $name = $obj->name();
 
 =cut
 
@@ -221,12 +243,11 @@ AUTOLOAD
     return $self->get($key);
 }
 
-
 =back
 
 =head1 SEE ALSO
 
-Warewulf:ObjectSet:
+Warewulf::ObjectSet
 
 =head1 COPYRIGHT
 
