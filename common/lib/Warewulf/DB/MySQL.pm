@@ -20,34 +20,48 @@
 
 package Warewulf::DB::MySQL;
 
-use Warewulf::Logger;
 use Warewulf::Config;
+use Warewulf::DB;
+use Warewulf::Logger;
+use Warewulf::Object;
 use DBI;
 
+our @ISA = ('Warewulf::Object', 'Warewulf::DB');
+
 # Declare the singleton
-my $self;
+my $singleton;
 
 =head1 NAME
 
-Warewulf::DB::MySQL - Database interface to Warewulf
-
-=head1 ABOUT
-
-The Warewulf::DB::MySQL interface to access the MySQL DB type for Warewulf
+Warewulf::DB::MySQL - MySQL Database interface to Warewulf
 
 =head1 SYNOPSIS
 
     use Warewulf::DB::MySQL;
 
+    my $db = Warewulf::DB->new("mysql");
+
+=head1 DESCRIPTION
+
+C<Warewulf::DB::MySQL> provides the MySQL implementation of the
+C<Warewulf::DB> interface.  This interface abstracts out the
+underlying data store from the rest of the Warewulf applications and
+services.  No application code changes should be required to changes
+backend data stores.
+
+All C<Warewulf::DB> implementations are singletons, so there will only
+ever be a single connection to the data store backend.
+
 =cut
 
-=item new(server, databasename, username, password)
+=item new()
 
-Connect to the DB and create the object.
+Connect to the DB and create the object singleton.
 
 =cut
+
 sub
-new($$)
+new()
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -57,26 +71,26 @@ new($$)
     my $db_user = $config->get("database user");
     my $db_pass = $config->get("database password");
  
-    if ($self and exists($self->{"DBH"}) and $self->{"DBH"}) {
+    if ($singleton && exists($singleton->{"DBH"}) && $singleton->{"DBH"}) {
         &dprint("DB Singleton exists, not going to initialize\n");
     } else {
-        %{$self} = ();
+        %{$singleton} = ();
 
         &dprint("DATABASE NAME:      $db_name\n");
         &dprint("DATABASE SERVER:    $db_server\n");
         &dprint("DATABASE USER:      $db_user\n");
 
-        $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-        if ( $self->{"DBH"}) {
+        $singleton->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
+        if ( $singleton->{"DBH"}) {
             &nprint("Successfully connected to database!\n");
         } else {
             die "Could not connect to DB: $!!\n";
         }
 
-        bless($self, $class);
+        bless($singleton, $class);
     }
 
-    return($self);
+    return $singleton;
 }
 
 
@@ -91,7 +105,7 @@ getvalue(@)
     my $sql_query;
 
     
-    if ($table and $attributes and $value and @nodeids) {
+    if ($table && $attributes && $value && @nodeids) {
         $sql_query .= "SELECT ". join (", ", @{$attributes}) ." ";
         $sql_query .= "FROM $table ";
         $sql_query .= "WHERE ";
@@ -140,6 +154,7 @@ getvalue(@)
 Set VNFS name in the array of node ID's
 
 =cut
+
 sub
 set_vnfs_by_nodeid($@)
 {
@@ -162,6 +177,7 @@ set_vnfs_by_nodeid($@)
 Set cluster name in the array of node ID's
 
 =cut
+
 sub
 set_cluster_by_nodeid($@)
 {
@@ -184,6 +200,7 @@ set_cluster_by_nodeid($@)
 Set rack name in the array of node ID's
 
 =cut
+
 sub
 set_rack_by_nodeid($@)
 {
@@ -206,6 +223,7 @@ set_rack_by_nodeid($@)
 Set rack name in the array of node ID's
 
 =cut
+
 sub
 set_group_by_nodeid($@)
 {
@@ -228,6 +246,7 @@ set_group_by_nodeid($@)
 Set name in the array of node ID's
 
 =cut
+
 sub
 set_name_by_nodeid($@)
 {
@@ -275,6 +294,7 @@ set_name_by_nodeid($@)
 Take a query object and execute it.
 
 =cut
+
 sub
 query($$)
 {
