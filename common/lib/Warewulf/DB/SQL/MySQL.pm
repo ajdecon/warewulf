@@ -23,7 +23,10 @@ package Warewulf::DB::SQL::MySQL;
 use Warewulf::Config;
 use Warewulf::DB;
 use Warewulf::Logger;
+use Warewulf::Object;
+use Warewulf::ObjectSet;
 use DBI;
+use Storable qw(freeze thaw);
 
 # Declare the singleton
 my $singleton;
@@ -36,12 +39,41 @@ Warewulf::DB::MySQL - MySQL Database interface to Warewulf
 
     use Warewulf::DB::MySQL;
 
-    my $db = Warewulf::DB->new("mysql");
-    my %data = $db->get_serialized("node", "name", "n0000", "n0001");
-
 =head1 DESCRIPTION
 
+    This function should not be called directly unless you really know what
+    your doing. It is intended to be called from DB->SQL.
+
+    This interface creates a persistant singleton for the application runtime
+    which will maitnain a consistant database connection from the time that
+    the object is constructed.
+
 =cut
+
+sub
+serialize($)
+{
+    my $hashref = shift;
+
+    print "freezzing: ->". freeze($hashref) ."<-\n";
+
+    return(freeze($hashref));
+}
+
+sub
+unserialize($)
+{
+    my $serialized = shift;
+
+#    my %foo = %{ thaw($serialized) };
+#
+#    foreach (keys %foo) {
+#        print "$_: $foo{$_}\n";
+#    }
+
+    return(%{ thaw($serialized) });
+}
+
 
 =item new()
 
@@ -82,19 +114,19 @@ new()
     return $singleton;
 }
 
-=item get_serialized($type, $field, $val1, $val2, $val3);
+=item get_objects($type, $field, $val1, $val2, $val3);
 
-Get object(s) by type, field and index values
+Get an ObjectSet by type, field and index values
 
 =cut
 sub
-get_serialized($$$@)
+get_objects($$$@)
 {
     my $self = shift;
     my $type = shift;
     my $key = shift;
     my @strings = @_;
-    my %return;
+    my $objectSet = Warewulf::ObjectSet->new();
 
     my $sql_query;
 
@@ -107,19 +139,127 @@ get_serialized($$$@)
     $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($key) ." ";
     $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
 
-    print "$sql_query\n\n";
-
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();
 
     while (my $h = $sth->fetchrow_hashref()) {
-        my $id = $h->{"id"};
-        $return{$id} = $h->{"serialized"};
+        my $o = Warewulf::Object->new(unserialize($h->{"serialized"}));
+        $o->set("id", $h->{"id"});
+        $objectSet->add($o);
     }
 
-    return(%return);
+    return($objectSet);
 }
 
+=item persist($objectSet);
+
+Persist either by Object or ObjectSet.
+
+=cut
+sub
+persist($$)
+{
+    my $self = shift;
+    my $object = shift;
+
+    if (ref($object) eq "Warewulf::ObjectSet") {
+        foreach my $o ($object->get_list()) {
+            if (my $id = $o->get("id")) {
+                my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+                $sth->execute(&serialize(scalar($o->get_hash())), $id);
+            }
+        }
+
+    } elsif (ref($object) eq "Warewulf::Object") {
+        if (my $id = $object->get("id")) {
+            my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+            $sth->execute(&serialize(scalar($object->get_hash())), $id);
+        }
+    }
+
+    return();
+}
+
+=item add_lookup($entity, $type, $field, $value)
+
+
+
+=cut
+sub
+add_lookup($$$$)
+{
+    my $self = shift;
+    my $object = shift;
+    my $type = shift;
+    my $field = shift;
+    my $value = shift;
+
+    if (ref($object) eq "Warewulf::ObjectSet") {
+        foreach my $o ($object->get_list()) {
+            if (my $id = $o->get("id")) {
+                my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+                $sth->execute($type, $field, $value, $id);
+            } else {
+                warn "No ID found for object!\n";
+            }
+        }
+    } elsif (ref($object) eq "Warewulf::Object") {
+        if (my $id = $object->get("id")) {
+            my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+            $sth->execute($type, $field, $value, $id);
+        } else {
+            warn "No ID found for object!\n";
+        }
+    }
+
+    return();
+}
+
+
+=item create_entity();
+
+Create a new entity
+
+=cut
+sub
+new_object($)
+{
+    my $self = shift;
+    my $sth;
+    my $object = Warewulf::Object->new();
+
+    $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (serialized) VALUES ('')");
+    $sth->execute();
+
+    $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
+    $sth->execute();
+
+    $object->set("id", $sth->fetchrow_array());
+
+    return($object);
+}
+
+#print "creating new object\n";
+#my $db = Warewulf::DB::SQL::MySQL->new();
+#my $entity = $db->new_object();
+#
+#print "Setting some stuffs\n";
+#$entity->set("name", "gmk00");
+#$entity->set("moo", "cow");
+#
+#print "persisting\n";
+#$db->persist($entity);
+#
+#print "adding lookups\n";
+#$db->add_lookup($entity, "node", "name", "gmk00");
+#$db->add_lookup($entity, "node", "status", "READY");
+#
+#print "Getting stuffs\n";
+#
+#my $objectSet = $db->get_objects("node", "name", "gmk00");
+#foreach my $o ( $objectSet->get_list() ) {
+#    print "moo: ". $o->get("moo") ."\n";
+#}
 
 
 1;

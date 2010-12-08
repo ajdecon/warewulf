@@ -39,6 +39,28 @@ The Warewulf::DB interface simplies typically used DB calls.
 
     use Warewulf::DB;
 
+    print "creating new object\n";
+    my $db = Warewulf::DB::SQL::MySQL->new();
+    my $entity = $db->new_object();
+
+    print "Setting some stuffs\n";
+    $entity->set("name", "gmk00");
+
+    print "persisting\n";
+    $db->persist($entity);
+
+    print "adding lookups\n";
+    $db->add_lookup($entity, "node", "name", "gmk00");
+    $db->add_lookup($entity, "node", "status", "READY");
+
+    print "Getting stuffs\n";
+
+    my $objectSet = $db->get_objects("node", "name", "gmk00");
+    foreach my $o ( $objectSet->get_list() ) {
+        print "name: ". $o->get("name") ."\n";
+    }
+
+
 =item new()
 
 Create the object.

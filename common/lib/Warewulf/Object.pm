@@ -161,7 +161,7 @@ set($$)
 }
 
 
-=item serialize()
+=item get_hash()
 
 Return a hash (or hashref) containing all member variables and their
 values.  This is particularly useful for converting an object into its
@@ -170,7 +170,7 @@ constituent components; e.g., to be stored in a database.
 =cut
 
 sub
-serialize()
+get_hash()
 {
     my $self = shift;
     my $hashref;
