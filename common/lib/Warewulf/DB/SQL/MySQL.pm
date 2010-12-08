@@ -112,7 +112,7 @@ find_serialized($$$@)
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
     $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
-    $sql_query .= "AND lookup.key = ". $self->{"DBH"}->quote($type) ." ";
+    $sql_query .= "AND lookup.key = ". $self->{"DBH"}->quote($key) ." ";
     $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
 
     print "$sql_query\n\n";
