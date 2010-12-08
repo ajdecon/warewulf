@@ -111,9 +111,10 @@ sub
 get($)
 {
     my ($self, $key) = @_;
+    my $uc_key = uc($key);
 
-    if (exists($self->{"DATA"}{$key})) {
-        return $self->{"DATA"}{$key};
+    if (exists($self->{"DATA"}{$uc_key})) {
+        return $self->{"DATA"}{$uc_key};
     } else {
         return undef;
     }
@@ -156,7 +157,8 @@ set($$)
     }
 
     foreach my $key (keys(%new_data)) {
-        $self->{"DATA"}{$key} = $new_data{$key};
+        my $uc_key = uc($key);
+        $self->{"DATA"}{$uc_key} = $new_data{$key};
     }
 }
 
