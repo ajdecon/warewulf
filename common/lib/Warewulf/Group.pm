@@ -15,55 +15,72 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id$
+# $Id: Group.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::DB;
+package Warewulf::Group;
 
-use Warewulf::Util;
-use Warewulf::Logger;
-use Warewulf::Config;
-use Warewulf::DB::MySQL;
-use DBI;
+use Warewulf::Include;
+use Warewulf::Object;
 
+our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::DB - Database interface
+Warewulf::Group - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
-The Warewulf::DB interface simplies typically used DB calls.
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB;
+    use Warewulf::Group;
+
+    my $obj = Warewulf::Group->new();
+
+
+=head1 METHODS
+
+=over 12
+=cut
+
 
 =item new()
 
-Create the object.
+The new constructor will create the object that references configuration the
+stores.
 
 =cut
 sub
 new($$)
 {
     my $proto = shift;
-    my $config = Warewulf::Config->new();
-    my $db_engine = $config->get("database type") || "sql";
+    my $class = ref($proto) || $proto;
+    my $self = ();
 
-    if ($db_engine eq "sql") {
-        return(Warewulf::DB::SQL->new(@_));
-    } else {
-        &eprint("Could not load DB type: $db_engine\n");
-        exit 1;
-    }
+    $self = {};
 
-    return();
+    bless($self, $class);
+    return $self;
 }
 
 
 
 
 
-1;
 
+
+=back
+
+=head1 SEE ALSO
+
+Warewulf::GroupSet, Warewulf::Object
+
+=head1 COPYRIGHT
+
+Warewulf is copyright UC Regents
+
+=cut
+
+
+1;

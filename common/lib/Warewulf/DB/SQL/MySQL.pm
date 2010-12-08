@@ -15,18 +15,15 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id$
+# $Id: MySQL.pm 62 2010-11-11 16:01:03Z gmk $
 #
 
-package Warewulf::DB::MySQL;
+package Warewulf::DB::SQL::MySQL;
 
 use Warewulf::Config;
 use Warewulf::DB;
 use Warewulf::Logger;
-use Warewulf::Object;
 use DBI;
-
-our @ISA = ('Warewulf::Object', 'Warewulf::DB');
 
 # Declare the singleton
 my $singleton;
@@ -92,6 +89,68 @@ new()
 
     return $singleton;
 }
+
+=item find_serialized($type, $key, $val1, $val2, $val3);
+
+Get object(s) by type and index value
+
+=cut
+sub
+find_serialized($$$@)
+{
+    my $self = shift;
+    my $type = shift;
+    my $key = shift;
+    my @strings = @_;
+
+    my $sql_query;
+
+    $sql_query  = "SELECT ";
+    $sql_query .= "datastore.id AS id, ";
+    $sql_query .= "datastore.serialized AS serialized ";
+    $sql_query .= "FROM datastore ";
+    $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
+    $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
+    $sql_query .= "AND lookup.key = ". $self->{"DBH"}->quote($type) ." ";
+    $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+
+    print "$sql_query\n\n";
+
+    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth->execute();
+
+    while (my $h = $sth->fetchrow_hashref()) {
+        my $id = $h->{"id"};
+        $return{$id} = $h->{"serialized"};
+    }
+
+    return($sth->fetchall_arrayref());
+}
+
+
+
+my $obj = Warewulf::DB::SQL::MySQL->new();
+$obj->find_serialized("node", "name", "n0000", "n0001");
+
+
+
+exit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 =item query($query_object)

@@ -68,6 +68,22 @@ new($$)
 }
 
 
+=item getall()
+
+
+=cut
+sub
+getall(@)
+{
+    my $self = shift;
+    my $query = Warewulf::DBQuery->new("get");
+    $query->table("nodes");
+
+    return(Warewulf::ObjectSet->new($self->{"DB"}->query($query)));
+}
+
+
+
 =item getby_name(@strings)
 
 
@@ -81,7 +97,7 @@ getby_name(@)
     foreach my $arg (@_) {
         if (ref($arg) eq "ARRAY") {
             $query->match("name", "IN", $arg);
-        } elsif ($arg) {
+        } else {
             $query->match("name", "=", $arg);
         }
     }

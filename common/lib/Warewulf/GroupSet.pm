@@ -15,52 +15,72 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id$
+# $Id: GroupSet.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::DBQuery;
+package Warewulf::GroupSet;
 
-use Warewulf::Logger;
-use Warewulf::DBQuery::Get;
-use Warewulf::DBQuery::Set;
-use Warewulf::DBQuery::Insert;
-use DBI;
+use Warewulf::Include;
+use Warewulf::ObjectSet;
 
+our @ISA = ('Warewulf::ObjectSet');
 
 =head1 NAME
 
-Warewulf::DBQuery - Database query object interface
+Warewulf::GroupSet - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
-The Warewulf::DBQuery is a factory for the various DBQuery interfaces
 
 =head1 SYNOPSIS
 
-    use Warewulf::DBQuery;
+    use Warewulf::GroupSet;
 
-=item new(get/set/insert)
+    my $obj = Warewulf::GroupSet->new();
 
-This will return the appropriate object as defined by the given string
+
+=head1 METHODS
+
+=over 12
+=cut
+
+
+=item new()
+
+The new constructor will create the object that references configuration the
+stores.
 
 =cut
 sub
 new($$)
 {
     my $proto = shift;
-    my $type = shift;
+    my $class = ref($proto) || $proto;
+    my $self = ();
 
-    if (uc($type) eq "SET") {
-        return Warewulf::DBQuery::Set->new();
-    } elsif (uc($type) eq "GET") {
-        return Warewulf::DBQuery::Get->new();
-    } elsif (uc($type) eq "INSERT") {
-        return Warewulf::DBQuery::Insert->new();
-    }
+    $self = {};
 
-    return();
+    bless($self, $class);
+    return $self;
 }
 
+
+
+
+
+
+
+=back
+
+=head1 SEE ALSO
+
+Warewulf::Group, Warewulf::ObjectSet
+
+=head1 COPYRIGHT
+
+Warewulf is copyright UC Regents
+
+=cut
 
 
 1;

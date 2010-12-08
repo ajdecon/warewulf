@@ -15,29 +15,29 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id$
+# $Id: DB.pm 51 2010-11-07 03:16:29Z gmk $
 #
 
-package Warewulf::DB;
+package Warewulf::DB::SQL;
 
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use Warewulf::DB::MySQL;
+use Warewulf::DB::SQL::MySQL;
 use DBI;
 
 
 =head1 NAME
 
-Warewulf::DB - Database interface
+Warewulf::DB::SQL - Database interface
 
 =head1 ABOUT
 
-The Warewulf::DB interface simplies typically used DB calls.
+The Warewulf::DB::SQL interface simplies typically used DB calls.
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB;
+    use Warewulf::DB::SQL;
 
 =item new()
 
@@ -49,10 +49,10 @@ new($$)
 {
     my $proto = shift;
     my $config = Warewulf::Config->new();
-    my $db_engine = $config->get("database type") || "sql";
+    my $db_engine = $config->get("database driver") || "mysql";
 
-    if ($db_engine eq "sql") {
-        return(Warewulf::DB::SQL->new(@_));
+    if ($db_engine eq "mysql") {
+        return(Warewulf::DB::SQL::MySQL->new(@_));
     } else {
         &eprint("Could not load DB type: $db_engine\n");
         exit 1;
