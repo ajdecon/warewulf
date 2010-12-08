@@ -24,7 +24,8 @@ CREATE TABLE lookup
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     type VARCHAR(64),
-    string VARCHAR(64),
+    key VARCHAR(64),
+    value VARCHAR(64),
     parent_id INT,
     object_id INT,
     active BOOL,
