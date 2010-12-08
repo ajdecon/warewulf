@@ -102,6 +102,7 @@ find_serialized($$$@)
     my $type = shift;
     my $key = shift;
     my @strings = @_;
+    my %return;
 
     my $sql_query;
 
@@ -124,7 +125,7 @@ find_serialized($$$@)
         $return{$id} = $h->{"serialized"};
     }
 
-    return($sth->fetchall_arrayref());
+    return(%return);
 }
 
 
