@@ -55,8 +55,6 @@ serialize($)
 {
     my $hashref = shift;
 
-    print "freezzing: ->". freeze($hashref) ."<-\n";
-
     return(freeze($hashref));
 }
 
@@ -64,12 +62,6 @@ sub
 unserialize($)
 {
     my $serialized = shift;
-
-#    my %foo = %{ thaw($serialized) };
-#
-#    foreach (keys %foo) {
-#        print "$_: $foo{$_}\n";
-#    }
 
     return(%{ thaw($serialized) });
 }
@@ -200,7 +192,7 @@ add_lookup($$$$)
                 my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
                 $sth->execute($type, $field, $value, $id);
             } else {
-                warn "No ID found for object!\n";
+                &wprint("No ID found for object!\n");
             }
         }
     } elsif (ref($object) eq "Warewulf::Object") {
@@ -208,7 +200,7 @@ add_lookup($$$$)
             my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
             $sth->execute($type, $field, $value, $id);
         } else {
-            warn "No ID found for object!\n";
+            &wprint("No ID found for object!\n");
         }
     }
 
@@ -238,28 +230,6 @@ new_object($)
 
     return($object);
 }
-
-#print "creating new object\n";
-#my $db = Warewulf::DB::SQL::MySQL->new();
-#my $entity = $db->new_object();
-#
-#print "Setting some stuffs\n";
-#$entity->set("name", "gmk00");
-#$entity->set("moo", "cow");
-#
-#print "persisting\n";
-#$db->persist($entity);
-#
-#print "adding lookups\n";
-#$db->add_lookup($entity, "node", "name", "gmk00");
-#$db->add_lookup($entity, "node", "status", "READY");
-#
-#print "Getting stuffs\n";
-#
-#my $objectSet = $db->get_objects("node", "name", "gmk00");
-#foreach my $o ( $objectSet->get_list() ) {
-#    print "moo: ". $o->get("moo") ."\n";
-#}
 
 
 1;
