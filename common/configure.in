@@ -31,12 +31,13 @@ AC_SUBST(PERLBIN)
 AC_OUTPUT(Makefile
    warewulf-common.spec
    share/Makefile
+   bin/Makefile
    etc/Makefile
    lib/Makefile
    lib/Warewulf/Include.pm
    lib/Warewulf/Makefile
    lib/Warewulf/HTML/Makefile
    lib/Warewulf/DB/Makefile
-   lib/Warewulf/DBQuery/Makefile
+   lib/Warewulf/DB/SQL/Makefile
 )
 
