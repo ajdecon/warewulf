@@ -33,7 +33,9 @@ Warewulf::DB - Database interface
 
 =head1 ABOUT
 
-The Warewulf::DB interface simplies typically used DB calls.
+The Warewulf::DB interface simplies typically used DB calls and operates on
+Warewulf::Objects and Warewulf::ObjectSets for simplistically integrating
+with native Warewulf code.
 
 =head1 SYNOPSIS
 
@@ -83,6 +85,59 @@ new($$)
     return();
 }
 
+=item get_objects($type, $field, @sstrings_to_match)
+
+Return a Warewulf::ObjectSet that includes all of the matched Warewulf::Objects
+for the given criteria.
+
+=item new_object()
+
+Return a single Warewulf::Object. This is a necessary step if you wish for the
+objects that you are dealing with to be persisted because this will reserve a
+place in the DataStore for this empty Object.
+
+=item persist($entity)
+
+This will persist an ObjectSet or a single Object to the DataStore. By default
+certain fields if they exist within each Object will automatically create
+lookup entries if that is needed for the DataStore backend you are using.
+
+=item add_lookup($entity, $type, $field, $value)
+
+
+=item del_lookup($entity [, $type, $field, $value])
+
+This will delete lookup entities. The Object entitiy is required, but the
+other arguments are optional. If they are not passed, then they will not
+be used in the comparasion on if that lookup is deleted. Thus the more
+arguments you have (left to right), the finer granularity you can remove.
+
+=back
+
+=head1 SEE ALSO
+
+Warewulf::Object Warewulf::ObjectSet
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003-2010, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+The GNU GPL Document can be found at:
+http://www.gnu.org/copyleft/gpl.html
+
+=cut
 
 
 

@@ -47,6 +47,10 @@ Warewulf::DB::SQL::MySQL - MySQL Database interface to Warewulf
     This class creates a persistant singleton for the application runtime
     which will maintain a consistant database connection from the time that
     the object is constructed.
+    
+    Documentation for each function should be found in the top level
+    Warewulf::DB documentation. Any implementation specific documentation
+    can be found here.
 
 =cut
 
@@ -68,8 +72,6 @@ unserialize($)
 
 
 =item new()
-
-Connect to the DB and create the object singleton.
 
 =cut
 
@@ -108,8 +110,6 @@ new()
 
 =item get_objects($type, $field, $val1, $val2, $val3);
 
-Get an ObjectSet by type, field and index values
-
 =cut
 
 sub
@@ -146,8 +146,6 @@ get_objects($$$@)
 
 =item persist($objectSet);
 
-Persist either by Object or ObjectSet.
-
 =cut
 
 sub
@@ -179,8 +177,6 @@ persist($$)
 
 =item add_lookup($entity, $type, $field, $value)
 
-
-
 =cut
 
 sub
@@ -192,19 +188,78 @@ add_lookup($$$$)
     my $field = shift;
     my $value = shift;
 
-    if (ref($object) eq "Warewulf::ObjectSet") {
-        foreach my $o ($object->get_list()) {
-            if (my $id = $o->get("id")) {
+    if ($object and $type and $field and $value) {
+        # For lack of a better way of doing conditional inserts in MySQL right now.... Still researching ways of doing that
+        # but until then, lets just remove any duplicate entries first and then add the appropriate ones.
+        $self->del_lookup($object, $type, $field, $value);
+        if (ref($object) eq "Warewulf::ObjectSet") {
+            foreach my $o ($object->get_list()) {
+                if (my $id = $o->get("id")) {
+                    my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+                    $sth->execute($type, $field, $value, $id);
+                } else {
+                    &wprint("No ID found for object!\n");
+                }
+            }
+        } elsif (ref($object) eq "Warewulf::Object") {
+            if (my $id = $object->get("id")) {
                 my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
                 $sth->execute($type, $field, $value, $id);
             } else {
                 &wprint("No ID found for object!\n");
             }
         }
+    }
+
+    return();
+}
+
+=item del_lookup($entity [, $type, $field, $value])
+
+=cut
+
+sub
+del_lookup($$$$)
+{
+    my $self = shift;
+    my $object = shift;
+    my $type = shift;
+    my $field = shift;
+    my $value = shift;
+
+    if (ref($object) eq "Warewulf::ObjectSet") {
+        foreach my $o ($object->get_list()) {
+            my $id = $o->get("id");
+            if ($id and $type and $field and $value) {
+                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
+                $sth->execute($type, $field, $value, $id);
+            } elsif ($id and $type and $field) {
+                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND object_id = ?");
+                $sth->execute($type, $field, $id);
+            } elsif ($id and $type) {
+                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND object_id = ?");
+                $sth->execute($type, $id);
+            } elsif ($id) {
+                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
+                $sth->execute($id);
+            } else {
+                &wprint("No ID found for object!\n");
+            }
+        }
     } elsif (ref($object) eq "Warewulf::Object") {
-        if (my $id = $object->get("id")) {
-            my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+        my $id = $object->get("id");
+        if ($id and $type and $field and $value) {
+            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
             $sth->execute($type, $field, $value, $id);
+        } elsif ($id and $type and $field) {
+            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND object_id = ?");
+            $sth->execute($type, $field, $id);
+        } elsif ($id and $type) {
+            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND object_id = ?");
+            $sth->execute($type, $id);
+        } elsif ($id) {
+            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
+            $sth->execute($id);
         } else {
             &wprint("No ID found for object!\n");
         }
@@ -236,6 +291,34 @@ new_object($)
 
     return($object);
 }
+
+
+=back
+
+=head1 SEE ALSO
+
+Warewulf::ObjectSet Warewulf::DB
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003-2010, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+The GNU GPL Document can be found at:
+http://www.gnu.org/copyleft/gpl.html
+
+=cut
 
 
 1;
