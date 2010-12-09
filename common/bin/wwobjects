@@ -1,0 +1,42 @@
+#!/usr/bin/perl -Tw
+
+use Warewulf::DB;
+use Warewulf::Config;
+use Warewulf::Logger;
+use Getopt::Long;
+
+&set_log_level("DEBUG");
+
+Getopt::Long::Configure ("bundling");
+
+my $db = Warewulf::DB->new();
+my $opt_new;
+my @opt_get;
+my @opt_set;
+my @opt_ref;
+my $opt_lookup = "name";
+
+GetOptions(
+    'n|new'         => \&opt_new,
+    'r|ref=s'       => \@opt_ref,
+    'g|get=s'       => \@opt_get,
+    's|set=s'       => \@opt_set,
+    'l|lookup=s'    => \$opt_lookup,
+);
+
+if (! @opt_get) {
+    push(@opt_get, "id", "name");
+}
+
+my $type = shift(@ARGV);
+
+
+$objectSet = $db->get_objects($type, $opt_lookup, @ARGV);
+
+if ($objectSet) {
+
+    foreach my $o ($objectSet->get_list()) {
+        print join(": ", map { $o->get($_) || "" } @opt_get) ."\n";
+    }
+
+}
