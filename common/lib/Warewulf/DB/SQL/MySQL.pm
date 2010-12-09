@@ -41,11 +41,11 @@ Warewulf::DB::MySQL - MySQL Database interface to Warewulf
 
 =head1 DESCRIPTION
 
-    This function should not be called directly unless you really know what
-    your doing. It is intended to be called from DB->SQL.
+    This class should not be instantiated directly.  It is intended to be
+    treated as an opaque implementation of the DB::SQL interface.
 
-    This interface creates a persistant singleton for the application runtime
-    which will maitnain a consistant database connection from the time that
+    This class creates a persistant singleton for the application runtime
+    which will maintain a consistant database connection from the time that
     the object is constructed.
 
 =cut
@@ -53,7 +53,7 @@ Warewulf::DB::MySQL - MySQL Database interface to Warewulf
 sub
 serialize($)
 {
-    my $hashref = shift;
+    my ($self, $hashref) = @_;
 
     return(freeze($hashref));
 }
@@ -61,7 +61,7 @@ serialize($)
 sub
 unserialize($)
 {
-    my $serialized = shift;
+    my ($self, $serialized) = @_;
 
     return(%{ thaw($serialized) });
 }
@@ -135,7 +135,7 @@ get_objects($$$@)
     $sth->execute();
 
     while (my $h = $sth->fetchrow_hashref()) {
-        my $o = Warewulf::Object->new(unserialize($h->{"serialized"}));
+        my $o = Warewulf::Object->new($self->unserialize($h->{"serialized"}));
         $o->set("id", $h->{"id"});
         $objectSet->add($o);
     }
@@ -158,14 +158,14 @@ persist($$)
         foreach my $o ($object->get_list()) {
             if (my $id = $o->get("id")) {
                 my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-                $sth->execute(&serialize(scalar($o->get_hash())), $id);
+                $sth->execute($self->serialize(scalar($o->get_hash())), $id);
             }
         }
 
     } elsif (ref($object) eq "Warewulf::Object") {
         if (my $id = $object->get("id")) {
             my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-            $sth->execute(&serialize(scalar($object->get_hash())), $id);
+            $sth->execute($self->serialize(scalar($object->get_hash())), $id);
         }
     }
 
