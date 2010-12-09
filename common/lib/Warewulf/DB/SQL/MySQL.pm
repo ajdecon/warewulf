@@ -119,7 +119,14 @@ get_objects($$$@)
     my $type = shift;
     my $key = shift;
     my @strings = @_;
-    my $objectSet = Warewulf::ObjectSet->new();
+    my $objectSet;
+
+    if (! $type) {
+        eprint("Not sure how to get an object without a type\n");
+        return;
+    }
+
+    $objectSet = Warewulf::ObjectSet->new();
 
     my $sql_query;
 
@@ -129,8 +136,12 @@ get_objects($$$@)
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
     $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
-    $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($key) ." ";
-    $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+    if ($key and @strings) {
+        $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($key) ." ";
+        $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+    }
+
+    dprint("$sql_query\n\n");
 
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();
@@ -171,6 +182,11 @@ persist($$)
 
             $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
             $sth->execute($self->serialize(scalar($o->get_hash())), $id);
+
+            if ( $o->get("type") and $o->get("name") ) {
+                $self->del_lookup($o, $o->get("type"), "name");
+                $self->add_lookup($o, $o->get("type"), "name", $o->get("name"));
+            }
         }
     }
 }

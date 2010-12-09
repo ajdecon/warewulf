@@ -23,7 +23,7 @@ package Warewulf::DB;
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use Warewulf::DB::MySQL;
+use Warewulf::DB::SQL;
 use DBI;
 
 
