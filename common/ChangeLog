@@ -46,3 +46,7 @@ Wed Dec  8 16:04:27 2010                        Michael Jennings (mej)
 
 Make serialize() and unserialize() proper methods.
 ----------------------------------------------------------------------
+Wed Dec  8 18:02:54 2010                        Michael Jennings (mej)
+
+Minor cleanups.
+----------------------------------------------------------------------
