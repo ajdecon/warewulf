@@ -1,4 +1,0 @@
-Wed Dec  8 16:04:27 2010                        Michael Jennings (mej)
-
-Make serialize() and unserialize() proper methods.
-----------------------------------------------------------------------

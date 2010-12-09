@@ -42,3 +42,7 @@ Thu Nov 11 00:27:41 2010                        Michael Jennings (mej)
 
 More touchups and documentation.
 ----------------------------------------------------------------------
+Wed Dec  8 16:04:27 2010                        Michael Jennings (mej)
+
+Make serialize() and unserialize() proper methods.
+----------------------------------------------------------------------
