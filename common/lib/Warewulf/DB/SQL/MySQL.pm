@@ -33,16 +33,16 @@ my $singleton;
 
 =head1 NAME
 
-Warewulf::DB::MySQL - MySQL Database interface to Warewulf
+Warewulf::DB::SQL::MySQL - MySQL Database interface to Warewulf
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB::MySQL;
+    use Warewulf::DB::SQL::MySQL;
 
 =head1 DESCRIPTION
 
     This class should not be instantiated directly.  It is intended to be
-    treated as an opaque implementation of the DB::SQL interface.
+    treated as an opaque implementation of the DB interface.
 
     This class creates a persistant singleton for the application runtime
     which will maintain a consistant database connection from the time that
@@ -111,6 +111,7 @@ new()
 Get an ObjectSet by type, field and index values
 
 =cut
+
 sub
 get_objects($$$@)
 {
@@ -148,28 +149,32 @@ get_objects($$$@)
 Persist either by Object or ObjectSet.
 
 =cut
+
 sub
 persist($$)
 {
-    my $self = shift;
-    my $object = shift;
+    my ($self, $object) = @_;
+    my @objlist;
 
     if (ref($object) eq "Warewulf::ObjectSet") {
-        foreach my $o ($object->get_list()) {
-            if (my $id = $o->get("id")) {
-                my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-                $sth->execute($self->serialize(scalar($o->get_hash())), $id);
-            }
-        }
-
+        @objlist = $object->get_list();
     } elsif (ref($object) eq "Warewulf::Object") {
-        if (my $id = $object->get("id")) {
-            my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-            $sth->execute($self->serialize(scalar($object->get_hash())), $id);
+        @objlist = ($object);
+    } else {
+        &eprint("Invalid parameter to persist():  $object\n");
+        return undef;
+    }
+    foreach my $o (@objlist) {
+        my $id;
+
+        $id = $o->get("id");
+        if ($id) {
+            my $sth;
+
+            $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+            $sth->execute($self->serialize(scalar($o->get_hash())), $id);
         }
     }
-
-    return();
 }
 
 =item add_lookup($entity, $type, $field, $value)
@@ -177,6 +182,7 @@ persist($$)
 
 
 =cut
+
 sub
 add_lookup($$$$)
 {
