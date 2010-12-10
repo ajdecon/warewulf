@@ -15,10 +15,10 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id: Vnfs.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: Cluster.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Vnfs;
+package Warewulf::Object::Cluster;
 
 use Warewulf::Include;
 use Warewulf::Object;
@@ -27,16 +27,16 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Vnfs - Warewulf's general object instance object interface.
+Warewulf::Object::Cluster - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Vnfs;
+    use Warewulf::Object::Cluster;
 
-    my $obj = Warewulf::Vnfs->new();
+    my $obj = Warewulf::Object::Cluster->new();
 
 
 =head1 METHODS
@@ -65,6 +65,34 @@ new($$)
 }
 
 
+=item lookups()
+
+Return an array of strings that should be used to create lookup references for
+this object (if they exist).
+
+=cut
+sub
+lookups($)
+{
+    my $self = shift;
+
+    return(["name", "id"]);
+}
+
+
+=item type()
+
+Return a string that defines this object type as it will be stored in the
+datastore.
+
+=cut
+sub
+type($)
+{
+    my $self = shift;
+
+    return("cluster");
+}
 
 
 
@@ -74,7 +102,7 @@ new($$)
 
 =head1 SEE ALSO
 
-Warewulf::VnfsSet, Warewulf::Object
+Warewulf::Object
 
 =head1 COPYRIGHT
 

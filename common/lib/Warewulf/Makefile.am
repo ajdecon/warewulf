@@ -1,4 +1,4 @@
-SUBDIRS =  HTML DB DBQuery
+SUBDIRS =  HTML DB Object
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 

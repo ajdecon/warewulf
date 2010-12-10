@@ -15,10 +15,10 @@
 # The GNU GPL Document can be found at:
 # http://www.gnu.org/copyleft/gpl.html
 #
-# $Id: Node.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: Rack.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Node;
+package Warewulf::Object::Rack;
 
 use Warewulf::Include;
 use Warewulf::Object;
@@ -27,16 +27,16 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Node - Warewulf's general object instance object interface.
+Warewulf::Object::Rack - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Node;
+    use Warewulf::Object::Rack;
 
-    my $obj = Warewulf::Node->new();
+    my $obj = Warewulf::Object::Rack->new();
 
 
 =head1 METHODS
@@ -65,6 +65,35 @@ new($$)
 }
 
 
+=item lookups()
+
+Return an array of strings that should be used to create lookup references for
+this object (if they exist).
+
+=cut
+sub
+lookups($)
+{
+    my $self = shift;
+
+    return(["name", "id"]);
+}
+
+
+=item type()
+
+Return a string that defines this object type as it will be stored in the
+datastore.
+
+=cut
+sub
+type($)
+{
+    my $self = shift;
+
+    return("rack");
+}
+
 
 
 
@@ -74,7 +103,7 @@ new($$)
 
 =head1 SEE ALSO
 
-Warewulf::NodeSet, Warewulf::Object
+Warewulf::Object
 
 =head1 COPYRIGHT
 
