@@ -2,6 +2,7 @@
 /* Drop Existing Tables */
 
 DROP TABLE IF EXISTS lookup;
+DROP TABLE IF EXISTS object_join;
 DROP TABLE IF EXISTS datastore;
 
 
@@ -25,15 +26,27 @@ CREATE TABLE lookup
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     type VARCHAR(64),
     field VARCHAR(64),
-    value VARCHAR(64),
     object_id INT,
+    value VARCHAR(64),
     FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
+    UNIQUE KEY (type, field, object_id),
     PRIMARY KEY (id)
 ) ENGINE=INNODB;
 
 
+CREATE TABLE object_join
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    object_id INT,
+    parent_id INT,
+    FOREIGN KEY (object_id) REFERENCES datastore (id),
+    FOREIGN KEY (parent_id) REFERENCES datastore (id),
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
 
+
+/*
 
 INSERT INTO datastore (serialized) VALUES ("serialized data for a group object named: group1");
 INSERT INTO datastore (serialized) VALUES ("serialized data for a group object named: interactive");
@@ -65,9 +78,4 @@ INSERT INTO lookup (type, field, value, object_id) VALUES ("node",      "group",
 INSERT INTO lookup (type, field, value, object_id) VALUES ("node",      "group",    "io",           "8");
 INSERT INTO lookup (type, field, value, object_id) VALUES ("node",      "rack",     "rack2",        "8");
 
-
-
-
-
-
-
+*/

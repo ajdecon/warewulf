@@ -61,7 +61,8 @@ new($$)
     $self = {};
 
     bless($self, $class);
-    return $self;
+
+    return $self->init(@_);
 }
 
 
@@ -76,7 +77,7 @@ lookups($)
 {
     my $self = shift;
 
-    return(["name", "id", "hwaddr", "ipaddr", "master"]);
+    return(qw(name id hwaddr ipaddr));
 }
 
 

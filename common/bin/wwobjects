@@ -3,6 +3,7 @@
 use Warewulf::DB;
 use Warewulf::Config;
 use Warewulf::Logger;
+use Warewulf::ObjectFactory;
 use Getopt::Long;
 
 &set_log_level("DEBUG");
@@ -14,29 +15,93 @@ my $opt_new;
 my @opt_get;
 my @opt_set;
 my @opt_ref;
-my $opt_lookup = "name";
+my $opt_parent;
+my $opt_child;
+my $opt_field = "name";
 
 GetOptions(
-    'n|new'         => \&opt_new,
+    'n|new'         => \$opt_new,
     'r|ref=s'       => \@opt_ref,
     'g|get=s'       => \@opt_get,
     's|set=s'       => \@opt_set,
-    'l|lookup=s'    => \$opt_lookup,
+    'f|field=s'     => \$opt_field,
+    'p|parent'      => \$opt_parent,
+    'c|child'       => \$opt_child,
 );
 
 if (! @opt_get) {
-    push(@opt_get, "id", "name");
+    push(@opt_get, "type", "name");
+} else {
+    @opt_get = split(",", join(",", @opt_get));
 }
 
 my $type = shift(@ARGV);
 
+if ($opt_new) {
 
-$objectSet = $db->get_objects($type, $opt_lookup, @ARGV);
+    foreach my $string (@ARGV) {
+        my $obj;
+        $obj = Warewulf::ObjectFactory->new($type);
 
-if ($objectSet) {
+        $obj->set($opt_field, $string);
+        foreach my $setstring (@opt_set) {
+            my ($key, $val) = split(/=/, $setstring);
+            $obj->set($key, $val);
+        }
 
-    foreach my $o ($objectSet->get_list()) {
-        print join(": ", map { $o->get($_) || "" } @opt_get) ."\n";
+        $db->persist($obj);
     }
 
+} elsif (@opt_set) {
+    my $objectSet = $db->get_objects($type, $opt_field, @ARGV);
+
+    if ($objectSet) {
+        foreach my $obj ($objectSet->get_list()) {
+            print "Updating Object\n";
+            foreach my $setstring (@opt_set) {
+                my ($key, $val) = split(/=/, $setstring);
+                $obj->set($key, $val);
+            }
+        }
+        $db->persist($objectSet);
+
+    }
+
+} elsif (@opt_ref) {
+    my $objectSet = $db->get_objects($type, $opt_field, @ARGV);
+
+    if ($objectSet) {
+        foreach my $obj ($objectSet->get_list()) {
+            foreach my $ref (@opt_ref) {
+                my ($reftype, $refkey) = split(".", $ref, 1);
+            }
+        }
+    }
+} elsif ($opt_parent) {
+    my $objectSet = $db->get_objects_byparent($type, $opt_field, @ARGV);
+
+    if ($objectSet) {
+        foreach my $o ($objectSet->get_list()) {
+            print join(": ", map { $o->get($_) || "" } @opt_get) ."\n";
+        }
+    }
+} elsif ($opt_child) {
+    my $objectSet = $db->get_objects_bychild($type, $opt_field, @ARGV);
+
+    if ($objectSet) {
+        foreach my $o ($objectSet->get_list()) {
+            print join(": ", map { $o->get($_) || "" } @opt_get) ."\n";
+        }
+    }
+
+} else {
+    my $objectSet = $db->get_objects($type, $opt_field, @ARGV);
+
+    if ($objectSet) {
+
+        foreach my $o ($objectSet->get_list()) {
+            print join(": ", map { $o->get($_) || "" } @opt_get) ."\n";
+        }
+
+    }
 }

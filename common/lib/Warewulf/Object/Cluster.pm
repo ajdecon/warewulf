@@ -61,22 +61,8 @@ new($$)
     $self = {};
 
     bless($self, $class);
-    return $self;
-}
 
-
-=item lookups()
-
-Return an array of strings that should be used to create lookup references for
-this object (if they exist).
-
-=cut
-sub
-lookups($)
-{
-    my $self = shift;
-
-    return(["name", "id"]);
+    return $self->init(@_);
 }
 
 

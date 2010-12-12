@@ -90,6 +90,8 @@ init(@)
     # Clear out existing data.
     $self->{"DATA"} = {};
 
+    $self->set("type", $self->type());
+
     # Check for new initializer.
     if (scalar(@_)) {
         $self->set(@_);
@@ -244,6 +246,21 @@ AUTOLOAD
 
     return $self->get($key);
 }
+
+=item lookups()
+
+Return an array of strings that should be used to create lookup references for
+this object (if they exist).
+
+=cut
+sub
+lookups($)
+{
+    my $self = shift;
+
+    return(qw(name id));
+}
+
 
 =back
 

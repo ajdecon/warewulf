@@ -24,6 +24,7 @@ use Warewulf::Config;
 use Warewulf::DB;
 use Warewulf::Logger;
 use Warewulf::Object;
+use Warewulf::ObjectFactory;
 use Warewulf::ObjectSet;
 use DBI;
 use Storable qw(freeze thaw);
@@ -117,7 +118,7 @@ get_objects($$$@)
 {
     my $self = shift;
     my $type = shift;
-    my $key = shift;
+    my $field = shift;
     my @strings = @_;
     my $objectSet;
 
@@ -136,10 +137,11 @@ get_objects($$$@)
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
     $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
-    if ($key and @strings) {
-        $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($key) ." ";
+    if ($field and @strings) {
+        $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($field) ." ";
         $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
     }
+    $sql_query .= "GROUP BY datastore.id";
 
     dprint("$sql_query\n\n");
 
@@ -147,13 +149,17 @@ get_objects($$$@)
     $sth->execute();
 
     while (my $h = $sth->fetchrow_hashref()) {
-        my $o = Warewulf::Object->new($self->unserialize($h->{"serialized"}));
-        $o->set("id", $h->{"id"});
+        my $id = $h->{"id"};
+        dprint("Adding to ObjectSet object ID: $id\n");
+        my $o = Warewulf::ObjectFactory->new($type, $self->unserialize($h->{"serialized"}));
+        $o->set("id", $id);
         $objectSet->add($o);
     }
 
     return($objectSet);
 }
+
+
 
 =item persist($objectSet);
 
@@ -167,26 +173,42 @@ persist($$)
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
-    } elsif (ref($object) eq "Warewulf::Object") {
+    } elsif (ref($object) =~ /^Warewulf::Object::/) {
         @objlist = ($object);
     } else {
         &eprint("Invalid parameter to persist():  $object\n");
         return undef;
     }
     foreach my $o (@objlist) {
-        my $id;
+        my $id = $o->get("id");
 
-        $id = $o->get("id");
-        if ($id) {
+        if (! $id) {
             my $sth;
+            dprint("Inserting a new object into the datastore\n");
+            $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (serialized) VALUES ('')");
+            $sth->execute();
+            $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
+            $sth->execute();
+            $id = $sth->fetchrow_array();
+            $o->set("id", $id);
+        }
 
-            $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-            $sth->execute($self->serialize(scalar($o->get_hash())), $id);
+        dprint("Updating datastore ID = $id\n");
+        $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+        $sth->execute($self->serialize(scalar($o->get_hash())), $id);
 
-            if ( $o->get("type") and $o->get("name") ) {
-                $self->del_lookup($o, $o->get("type"), "name");
-                $self->add_lookup($o, $o->get("type"), "name", $o->get("name"));
+        if (my $type = $o->type() and $o->can("lookups")) {
+            foreach my $l ($o->lookups) {
+                dprint("Adding lookup entrie for: $l\n");
+                my $value = $o->get($l);
+
+                if ($value) {
+                    $self->del_lookup($o, $type, $l);
+                    $self->add_lookup($o, $type, $l, $value);
+                }
             }
+        } else {
+            dprint("Not adding lookup entries\n");
         }
     }
 }
@@ -204,22 +226,22 @@ add_lookup($$$$)
     my $field = shift;
     my $value = shift;
 
+    dprint("Hello from add_lookup()\n");
     if ($object and $type and $field and $value) {
-        # For lack of a better way of doing conditional inserts in MySQL right now.... Still researching ways of doing that
-        # but until then, lets just remove any duplicate entries first and then add the appropriate ones.
-        $self->del_lookup($object, $type, $field, $value);
         if (ref($object) eq "Warewulf::ObjectSet") {
             foreach my $o ($object->get_list()) {
                 if (my $id = $o->get("id")) {
-                    my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+                    dprint("Adding a lookup entry for: $type and $field and $value and $id\n");
+                    my $sth = $self->{"DBH"}->prepare("REPLACE INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
                     $sth->execute($type, $field, $value, $id);
                 } else {
                     &wprint("No ID found for object!\n");
                 }
             }
-        } elsif (ref($object) eq "Warewulf::Object") {
+        } elsif (ref($object) =~ /^Warewulf::Object::/) {
             if (my $id = $object->get("id")) {
-                my $sth = $self->{"DBH"}->prepare("INSERT INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
+                dprint("Adding a lookup entry for: $type and $field and $value and $id\n");
+                my $sth = $self->{"DBH"}->prepare("REPLACE INTO lookup (type, field, value, object_id) VALUES (?,?,?,?)");
                 $sth->execute($type, $field, $value, $id);
             } else {
                 &wprint("No ID found for object!\n");
@@ -230,7 +252,7 @@ add_lookup($$$$)
     return();
 }
 
-=item del_lookup($entity [, $type, $field, $value])
+=item del_lookup($entity [$type, $field, $value])
 
 =cut
 
@@ -262,7 +284,7 @@ del_lookup($$$$)
                 &wprint("No ID found for object!\n");
             }
         }
-    } elsif (ref($object) eq "Warewulf::Object") {
+    } elsif (ref($object) =~ /^Warewulf::Object::/) {
         my $id = $object->get("id");
         if ($id and $type and $field and $value) {
             my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
@@ -284,6 +306,116 @@ del_lookup($$$$)
     return();
 }
 
+=item get_objects_byparent($gettype, $bytype, $field, $value)
+
+=cut
+sub
+get_objects_byparent($$$$$)
+{
+    my $self = shift;
+#    my $gettype = shift;
+    my $type = shift;
+    my $field = shift;
+    my @strings = @_;
+    my $objectSet;
+
+    if (! @strings) {
+        eprint("get_nodes_by_attribute() requires 3 arguments!\n");
+        return;
+    }
+
+    $objectSet = Warewulf::ObjectSet->new();
+
+    my $sql_query;
+
+    $sql_query  = "SELECT ";
+    $sql_query .= "datastore.id AS id, ";
+    $sql_query .= "datastore.serialized AS serialized, ";
+    $sql_query .= "l.type AS type ";
+    $sql_query .= "FROM lookup ";
+    $sql_query .= "LEFT JOIN object_join ON object_join.parent_id = lookup.object_id ";
+    $sql_query .= "LEFT JOIN datastore ON object_join.object_id = datastore.id ";
+    $sql_query .= "LEFT JOIN lookup AS l ON l.object_id = datastore.id ";
+    $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
+#    $sql_query .= "AND l.type = ". $self->{"DBH"}->quote($gettype) ." ";
+    $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($field) ." ";
+    $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+    $sql_query .= "GROUP BY datastore.id";
+
+    dprint("$sql_query\n\n");
+
+    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth->execute();
+
+    while (my $h = $sth->fetchrow_hashref()) {
+        my $id = $h->{"id"};
+        my $t = $h->{"type"};
+        dprint("Adding to ObjectSet object ID: $id, $t\n");
+        my $o = Warewulf::ObjectFactory->new($t, $self->unserialize($h->{"serialized"}));
+        $o->set("id", $id);
+        $objectSet->add($o);
+    }
+
+    return($objectSet);
+}
+
+
+=item get_objects_bychild($gettype, $bytype, $field, $value)
+
+=cut
+sub
+get_objects_bychild($$$$$)
+{
+    my $self = shift;
+#    my $gettype = shift;
+    my $type = shift;
+    my $field = shift;
+    my @strings = @_;
+    my $objectSet;
+
+    if (! @strings) {
+        eprint("get_nodes_by_attribute() requires 3 arguments!\n");
+        return;
+    }
+
+    $objectSet = Warewulf::ObjectSet->new();
+
+    my $sql_query;
+
+    $sql_query  = "SELECT ";
+    $sql_query .= "datastore.id AS id, ";
+    $sql_query .= "datastore.serialized AS serialized, ";
+    $sql_query .= "l.type AS type ";
+    $sql_query .= "FROM lookup ";
+    $sql_query .= "LEFT JOIN object_join ON object_join.object_id = lookup.object_id ";
+    $sql_query .= "LEFT JOIN datastore ON object_join.parent_id = datastore.id ";
+    $sql_query .= "LEFT JOIN lookup AS l ON l.object_id = datastore.id ";
+    $sql_query .= "WHERE lookup.type = ". $self->{"DBH"}->quote($type) ." ";
+#    $sql_query .= "AND l.type = ". $self->{"DBH"}->quote($gettype) ." ";
+    $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote($field) ." ";
+    $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+    $sql_query .= "GROUP BY datastore.id";
+
+    dprint("$sql_query\n\n");
+
+    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth->execute();
+
+    while (my $h = $sth->fetchrow_hashref()) {
+        my $id = $h->{"id"};
+        my $t = $h->{"type"};
+        if ($id and $t) {
+            dprint("Adding to ObjectSet object ID: $id, $t\n");
+            my $o = Warewulf::ObjectFactory->new($t, $self->unserialize($h->{"serialized"}));
+            $o->set("id", $id);
+            $objectSet->add($o);
+        }
+    }
+
+    return($objectSet);
+}
+
+
 
 =item create_entity();
 
@@ -295,6 +427,11 @@ new_object($)
 {
     my $self = shift;
     my $sth;
+
+    wprint("DB->new_object() is deprecated...\n");
+    return;
+
+
     my $object = Warewulf::Object->new();
 
     $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (serialized) VALUES ('')");
