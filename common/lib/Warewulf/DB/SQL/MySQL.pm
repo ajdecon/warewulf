@@ -306,11 +306,11 @@ del_lookup($$$$)
     return();
 }
 
-=item get_objects_byparent($gettype, $bytype, $field, $value)
+=item get_objects_bychild($gettype, $bytype, $field, $value)
 
 =cut
 sub
-get_objects_byparent($$$$$)
+get_objects_bychild($$$$$)
 {
     my $self = shift;
 #    my $gettype = shift;
@@ -360,11 +360,11 @@ get_objects_byparent($$$$$)
 }
 
 
-=item get_objects_bychild($gettype, $bytype, $field, $value)
+=item get_objects_byparent($gettype, $bytype, $field, $value)
 
 =cut
 sub
-get_objects_bychild($$$$$)
+get_objects_byparent($$$$$)
 {
     my $self = shift;
 #    my $gettype = shift;
