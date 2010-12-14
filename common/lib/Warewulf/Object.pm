@@ -90,7 +90,9 @@ init(@)
     # Clear out existing data.
     $self->{"DATA"} = {};
 
-    $self->set("type", $self->type());
+    if ($self->type()) {
+        $self->set("type", $self->type());
+    }
 
     # Check for new initializer.
     if (scalar(@_)) {
@@ -160,7 +162,11 @@ set($$)
 
     foreach my $key (keys(%new_data)) {
         my $uc_key = uc($key);
-        $self->{"DATA"}{$uc_key} = $new_data{$key};
+        if (! exists($new_data{$key}) or $new_data{$key} eq "") {
+            delete($self->{"DATA"}{$uc_key});
+        } else {
+            $self->{"DATA"}{$uc_key} = $new_data{$key};
+        }
     }
 }
 
