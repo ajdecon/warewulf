@@ -349,11 +349,13 @@ get_objects_bychild($$$$$)
 
     while (my $h = $sth->fetchrow_hashref()) {
         my $id = $h->{"id"};
-        my $t = $h->{"type"};
-        dprint("Adding to ObjectSet object ID: $id, $t\n");
-        my $o = Warewulf::ObjectFactory->new($t, $self->unserialize($h->{"serialized"}));
-        $o->set("id", $id);
-        $objectSet->add($o);
+        if ($id ) {
+            my $t = $h->{"type"};
+            dprint("Adding to ObjectSet object ID: $id, $t\n");
+            my $o = Warewulf::ObjectFactory->new($t, $self->unserialize($h->{"serialized"}));
+            $o->set("id", $id);
+            $objectSet->add($o);
+        }
     }
 
     return($objectSet);
