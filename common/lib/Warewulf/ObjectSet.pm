@@ -56,16 +56,18 @@ new($$)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $self = ();
+    my $self = {};
     my $hashref = shift;
 
-    $self = $class->SUPER::new(@_);
+#   Should really know what kind of objects they are and not add a generic
+#   Object without knowing better...
+#    $self = $class->SUPER::new(@_);
 
     bless($self, $class);
 
-    if ($hashref) {
-        $self->add_hashes($hashref);
-    }
+#    if ($hashref) {
+#        $self->add_hashes($hashref);
+#    }
 
     return($self);
 }
@@ -236,7 +238,7 @@ Add an array of hashes to this object set
 
 =cut
 sub
-add_hashes($$)
+add_hashes1($$)
 {
     my $self = shift;
     my $array_obj = shift;
