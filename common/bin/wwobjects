@@ -14,6 +14,7 @@ my $db = Warewulf::DB->new();
 my $opt_new;
 my @opt_get;
 my @opt_set;
+my @opt_add;
 my @opt_del;
 my $opt_type;
 my $opt_lookup = "name";
@@ -22,6 +23,7 @@ GetOptions(
     'n|new'         => \$opt_new,
     'g|get=s'       => \@opt_get,
     's|set=s'       => \@opt_set,
+    'a|add=s'       => \@opt_add,
     'd|del=s'       => \@opt_del,
     'f|lookup=s'    => \$opt_lookup,
 );
@@ -67,6 +69,16 @@ if ($opt_new) {
                 foreach my $setstring (@opt_set) {
                     my ($key, $val) = split(/=/, $setstring);
                     $obj->set($key, $val);
+                }
+            }
+            $db->persist($objectSet);
+
+        } elsif (@opt_add) {
+
+            foreach my $obj ($objectSet->get_list()) {
+                foreach my $setstring (@opt_add) {
+                    my ($key, $val) = split(/=/, $setstring);
+                    $obj->add($key, $val);
                 }
             }
             $db->persist($objectSet);
