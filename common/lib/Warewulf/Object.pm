@@ -215,8 +215,7 @@ add()
         if (ref($self->{$key}) eq "ARRAY") {
             push @{$self->{$key}}, @vals;
         } else {
-            unshift @vals, $self->{$key};
-            @{$self->{$key}} = @vals;
+            $self->{$key} = [ $self->{$key}, @vals ];
         }
     } else {
         @{$self->{$key}} = @vals;

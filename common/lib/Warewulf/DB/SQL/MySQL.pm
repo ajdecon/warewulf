@@ -68,7 +68,7 @@ unserialize($)
 {
     my ($self, $serialized) = @_;
 
-    return(%{ thaw($serialized) });
+    return(thaw($serialized));
 }
 
 
@@ -137,7 +137,7 @@ get_objects($$$@)
     $sql_query .= "datastore.serialized AS serialized ";
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
-    $sql_query .= "WHERE datastore.type = ". $self->{"DBH"}->quote(uc($type)) ." ";
+    $sql_query .= "WHERE datastore.type = ". $self->{"DBH"}->quote($type) ." ";
     if ($field and @strings) {
         $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote(uc($field)) ." ";
         $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
@@ -154,10 +154,6 @@ get_objects($$$@)
         my $type = $h->{"type"};
 #        dprint("Adding to ObjectSet object ID: $id\n");
         my $o = Warewulf::ObjectFactory->new($type, $self->unserialize($h->{"serialized"}));
-my %f = $self->unserialize($h->{"serialized"});
-foreach (keys %f) {
-    print "MOO: $_: $f{$_}\n";
-}
         $o->set("id", $id);
         $o->set("type", $type);
         $objectSet->add($o);
@@ -193,7 +189,7 @@ persist($$)
             my $sth;
             dprint("Inserting a new object into the datastore\n");
             $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
-            $sth->execute(uc($o->type()));
+            $sth->execute($o->type());
             $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
             $sth->execute();
             $id = $sth->fetchrow_array();

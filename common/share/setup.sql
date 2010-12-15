@@ -2,7 +2,6 @@
 /* Drop Existing Tables */
 
 DROP TABLE IF EXISTS lookup;
-DROP TABLE IF EXISTS object_join;
 DROP TABLE IF EXISTS datastore;
 
 
@@ -13,6 +12,7 @@ DROP TABLE IF EXISTS datastore;
 CREATE TABLE datastore
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    type VARCHAR(64),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     serialized LONGBLOB,
     data LONGBLOB,
@@ -24,24 +24,12 @@ CREATE TABLE datastore
 CREATE TABLE lookup
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
-    type VARCHAR(64),
-    field VARCHAR(64),
     object_id INT,
+    field VARCHAR(64),
     value VARCHAR(64),
     FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
-    UNIQUE KEY (type, field, object_id),
-    PRIMARY KEY (id)
-) ENGINE=INNODB;
-
-
-CREATE TABLE object_join
-(
-    id INT NOT NULL AUTO_INCREMENT UNIQUE,
-    object_id INT,
-    parent_id INT,
-    FOREIGN KEY (object_id) REFERENCES datastore (id),
-    FOREIGN KEY (parent_id) REFERENCES datastore (id),
+    UNIQUE KEY (object_id, field, value),
     PRIMARY KEY (id)
 ) ENGINE=INNODB;
 

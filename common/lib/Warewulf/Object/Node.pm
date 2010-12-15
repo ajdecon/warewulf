@@ -76,7 +76,7 @@ type($)
 {
     my $self = shift;
 
-    return("NODE");
+    return("node");
 }
 
 

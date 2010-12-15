@@ -77,7 +77,7 @@ type($)
 {
     my $self = shift;
 
-    return("VNFS");
+    return("vnfs");
 }
 
 
