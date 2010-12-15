@@ -58,3 +58,8 @@ Tue Dec 14 22:27:26 2010                        Michael Jennings (mej)
 
 Working on fixing ObjectSet initialization with object hashes.
 ----------------------------------------------------------------------
+Tue Dec 14 22:51:50 2010                        Michael Jennings (mej)
+
+add() and del() forceably use arrays now.  set("foo", undef) or
+del("foo") will delete a member entirely.
+----------------------------------------------------------------------

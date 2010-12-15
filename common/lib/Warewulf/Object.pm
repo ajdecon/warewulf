@@ -181,9 +181,15 @@ set($$)
         # We still can't set anything if we have no values.
         return undef;
     } elsif (scalar(@vals) == 1) {
-        # Just one value.  Set the member directly.
-        $self->{$key} = $vals[0];
-        return $vals[0];
+        if (!defined($vals[0])) {
+            # Undef.  Remove member.
+            delete $self->{$key};
+            return undef;
+        } else {
+            # Just one value.  Set the member directly.
+            $self->{$key} = $vals[0];
+            return $vals[0];
+        }
     } else {
         # Multiple values.  Populate an array(ref).
         @{$self->{$key}} = @vals;
@@ -213,9 +219,55 @@ add()
             @{$self->{$key}} = @vals;
         }
     } else {
-        $self->set($key, @vals);
+        @{$self->{$key}} = @vals;
     }
-    return $self->{$key};
+    return @{$self->{$key}};
+}
+
+=item del(I<key>, [ I<value>, ... ])
+
+Delete one or more items from an array member.  If no values are passed,
+delete the member entirely.  Returns the new list of values.
+
+=cut
+
+sub
+del()
+{
+    my $self = shift;
+    my $key = shift;
+    my @vals = @_;
+
+    if (!defined($key)) {
+        # Bad/missing key is an error.
+        return undef;
+    }
+    $key = uc($key);
+
+    if (!exists($self->{$key})) {
+        # Nothing there to begin with.
+        return undef;
+    } elsif (!ref($self->{$key}) || (ref($self->{$key}) ne "ARRAY")) {
+        # Anything with which add() or del() is used must be an array.
+        @{$self->{$key}} = ($self->{$key});
+    }
+
+    if (!scalar(@vals)) {
+        # Delete the key entirely.
+        delete $self->{$key};
+        return ();
+    }
+
+    # Remove each element in @vals from the array.
+    for (my $i = 0; $i < scalar(@{$self->{$key}}); $i++) {
+        if (scalar(grep { $self->{$key}[$i] eq $_ } @vals)) {
+            # The current value matches and must be removed.
+            splice @{$self->{$key}}, $i, 1;
+            $i--;
+        }
+    }
+
+    return @{$self->{$key}};
 }
 
 =item get_hash()
