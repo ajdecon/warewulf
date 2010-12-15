@@ -50,3 +50,7 @@ Wed Dec  8 18:02:54 2010                        Michael Jennings (mej)
 
 Minor cleanups.
 ----------------------------------------------------------------------
+Tue Dec 14 20:37:29 2010                        Michael Jennings (mej)
+
+Support get/set for array-based (multi-value) members.
+----------------------------------------------------------------------

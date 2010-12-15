@@ -87,13 +87,6 @@ init(@)
 {
     my $self = shift;
 
-    # Clear out existing data.
-    $self->{"DATA"} = {};
-
-    if ($self->type()) {
-        $self->set("type", $self->type());
-    }
-
     # Check for new initializer.
     if (scalar(@_)) {
         $self->set(@_);
@@ -115,19 +108,25 @@ sub
 get($)
 {
     my ($self, $key) = @_;
-    my $uc_key = uc($key);
 
-    if (exists($self->{"DATA"}{$uc_key})) {
-        return $self->{"DATA"}{$uc_key};
+    $key = uc($key);
+    if (exists($self->{$key})) {
+        if (ref($self->{$key})) {
+            return ((wantarray()) ? (@{$self->{$key}}) : ($self->{$key}));
+        } else {
+            return $self->{$key};
+        }
     } else {
         return undef;
     }
 }
 
 
-=item set(I<key>, I<value>)
+=item set(I<key>, I<value>, ...)
 
-=item set(I<key> => I<value>, I<key> => I<value>, [ ... ])
+=item set(I<key>, I<arrayref>)
+
+=item set(I<arrayref>)
 
 =item set(I<hashref>)
 
@@ -141,35 +140,83 @@ sub
 set($$)
 {
     my $self = shift;
-    my %new_data;
+    my $key = shift;
+    my @vals = @_;
 
-    if (!scalar(@_)) {
+    # If we don't even have a key, we have nothing to do.
+    if (!defined($key)) {
         return undef;
     }
-    if (scalar(@_) == 1) {
-        my $hashref = shift;
 
-        if (ref($hashref) eq "HASH") {
-            %new_data = %{$hashref};
-        } elsif ((ref($hashref) eq "ARRAY") && (scalar(@{$hashref}) % 2 == 0)) {
-            %new_data = @{$hashref};
-        } else {
-            return undef;
-        }
+    # If the key is a reference, move it to @vals.  Otherwise, uppercase it.
+    if (ref($key)) {
+        @vals = ($key);
+        $key = undef;
     } else {
-        %new_data = @_;
+        $key = uc($key);
     }
 
-    foreach my $key (keys(%new_data)) {
-        my $uc_key = uc($key);
-        if (! exists($new_data{$key}) or $new_data{$key} eq "") {
-            delete($self->{"DATA"}{$uc_key});
+    # If we only got 1 value, it better be a reference.
+    if ((scalar(@vals) == 1) && (ref($vals[0]))) {
+        my $hashref = $vals[0];
+
+        if (ref($hashref) eq "HASH") {
+            # Hashref.  Repopulate our data from scratch and return.
+            %{$self} = %{$hashref};
+            return $hashref;
+        } elsif (ref($hashref) eq "ARRAY") {
+            # Arrayref.  Dereference it and process as normal.
+            @vals = @{$hashref};
+            if (!defined($key)) {
+                # Key was in the referenced array.
+                $key = uc(shift @vals);
+            }
         } else {
-            $self->{"DATA"}{$uc_key} = $new_data{$key};
+            # Any other type of reference is a no-no.
+            return undef;
         }
+    }
+
+    if (!scalar(@vals)) {
+        # We still can't set anything if we have no values.
+        return undef;
+    } elsif (scalar(@vals) == 1) {
+        # Just one value.  Set the member directly.
+        $self->{$key} = $vals[0];
+        return $vals[0];
+    } else {
+        # Multiple values.  Populate an array(ref).
+        @{$self->{$key}} = @vals;
+        return @vals;
     }
 }
 
+=item add(I<key>, I<value>, ...)
+
+Add an item to an existing member.  Convert to array if needed.
+
+=cut
+
+sub
+add()
+{
+    my $self = shift;
+    my $key = shift;
+    my @vals = @_;
+
+    $key = uc($key);
+    if (exists($self->{$key})) {
+        if (ref($self->{$key}) eq "ARRAY") {
+            push @{$self->{$key}}, @vals;
+        } else {
+            unshift @vals, $self->{$key};
+            @{$self->{$key}} = @vals;
+        }
+    } else {
+        $self->set($key, @vals);
+    }
+    return $self->{$key};
+}
 
 =item get_hash()
 
@@ -185,7 +232,7 @@ get_hash()
     my $self = shift;
     my $hashref;
 
-    %{$hashref} = %{$self->{"DATA"}};
+    %{$hashref} = %{$self};
 
     return ((wantarray()) ? (%{$hashref}) : ($hashref));
 }
@@ -220,7 +267,7 @@ debug_string()
 {
     my $self = shift;
 
-    return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{DATA}{$_}\"" } sort(keys(%{$self->{"DATA"}}))));
+    return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{DATA}{$_}\"" } sort(keys(%{$self}))));
 }
 
 =item I<key>([I<value>])
@@ -239,18 +286,17 @@ AUTOLOAD
     my $self = shift;
     my $type = ref($self) || return undef;
     my $key = $AUTOLOAD;
-    my $value = shift;
 
     if ($key =~ /destroy/i) {
         return;
     }
     $key =~ s/.*://;
 
-    if ($value) {
-        $self->set($key, $value);
+    if (scalar(@_)) {
+        return $self->set($key, @_);
+    } else {
+        return $self->get($key);
     }
-
-    return $self->get($key);
 }
 
 =item lookups()
@@ -262,9 +308,7 @@ this object (if they exist).
 sub
 lookups($)
 {
-    my $self = shift;
-
-    return(qw(name id));
+    return ();
 }
 
 
