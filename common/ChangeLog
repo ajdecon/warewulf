@@ -63,3 +63,9 @@ Tue Dec 14 22:51:50 2010                        Michael Jennings (mej)
 add() and del() forceably use arrays now.  set("foo", undef) or
 del("foo") will delete a member entirely.
 ----------------------------------------------------------------------
+Wed Dec 15 00:42:11 2010                        Michael Jennings (mej)
+
+Make sure array elements are unique when doing add().
+
+Delete key if del() removes last array element.
+----------------------------------------------------------------------

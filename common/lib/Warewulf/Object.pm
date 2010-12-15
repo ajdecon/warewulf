@@ -212,13 +212,16 @@ add()
 
     $key = uc($key);
     if (exists($self->{$key})) {
-        if (ref($self->{$key}) eq "ARRAY") {
-            push @{$self->{$key}}, @vals;
-        } else {
-            $self->{$key} = [ $self->{$key}, @vals ];
+        if (ref($self->{$key}) ne "ARRAY") {
+            $self->{$key} = [ $self->{$key} ];
         }
     } else {
-        @{$self->{$key}} = @vals;
+        $self->{$key} = [];
+    }
+    foreach my $newval (@vals) {
+        if (!scalar(grep { $_ eq $newval } @{$self->{$key}})) {
+            push @{$self->{$key}}, $newval;
+        }
     }
     return @{$self->{$key}};
 }
@@ -266,6 +269,11 @@ del()
         }
     }
 
+    # If the array is now empty, remove the key.
+    if (!scalar(@{$self->{$key}})) {
+        delete $self->{$key};
+        return ();
+    }
     return @{$self->{$key}};
 }
 
