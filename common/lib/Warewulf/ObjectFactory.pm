@@ -56,7 +56,7 @@ sub
 new($$)
 {
     my $proto = shift;
-    my $type = shift;
+    my $type = lc(shift);
 
     if ($type eq "cluster") {
         return(Warewulf::Object::Cluster->new(@_));

@@ -22,6 +22,7 @@ package Warewulf::ObjectSet;
 
 use Warewulf::Include;
 use Warewulf::Object;
+use Warewulf::ObjectFactory;
 
 our @ISA = ('Warewulf::Object');
 
@@ -57,17 +58,14 @@ new($$)
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = {};
-    my $hashref = shift;
+    my $arrayref = shift;
 
-#   Should really know what kind of objects they are and not add a generic
-#   Object without knowing better...
-#    $self = $class->SUPER::new(@_);
-
+    $self = $class->SUPER::new();
     bless($self, $class);
 
-#    if ($hashref) {
-#        $self->add_hashes($hashref);
-#    }
+    if ($arrayref) {
+        $self->add_hashes($arrayref);
+    }
 
     return($self);
 }
@@ -238,14 +236,22 @@ Add an array of hashes to this object set
 
 =cut
 sub
-add_hashes1($$)
+add_hashes($$)
 {
     my $self = shift;
     my $array_obj = shift;
 
     foreach my $h (@{$array_obj}) {
-        my $obj = Warewulf::Object->new($h);
-        $self->add($obj);
+        my $obj;
+
+        if (ref($h) eq "HASH") {
+            if (exists($h->{"TYPE"})) {
+                $obj = Warewulf::ObjectFactory->new($h->{"TYPE"}, $h);
+            } else {
+                $obj = Warewulf::Object->new($h);
+            }
+            $self->add($obj);
+        }
     }
 
 }

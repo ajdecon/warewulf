@@ -58,8 +58,7 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    $self = {};
-
+    $self = SUPER::new();
     bless($self, $class);
 
     return $self->init(@_);

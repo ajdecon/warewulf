@@ -54,3 +54,7 @@ Tue Dec 14 20:37:29 2010                        Michael Jennings (mej)
 
 Support get/set for array-based (multi-value) members.
 ----------------------------------------------------------------------
+Tue Dec 14 22:27:26 2010                        Michael Jennings (mej)
+
+Working on fixing ObjectSet initialization with object hashes.
+----------------------------------------------------------------------

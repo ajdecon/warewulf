@@ -267,7 +267,7 @@ debug_string()
 {
     my $self = shift;
 
-    return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{DATA}{$_}\"" } sort(keys(%{$self}))));
+    return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{$_}\"" } sort(keys(%{$self}))));
 }
 
 =item I<key>([I<value>])
