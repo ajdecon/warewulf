@@ -77,10 +77,17 @@ type($)
 {
     my $self = shift;
 
-    return("vnfs");
+    return("VNFS");
 }
 
 
+sub
+lookups($)
+{
+    my $self = shift;
+
+    return(qw(name id));
+}
 
 
 

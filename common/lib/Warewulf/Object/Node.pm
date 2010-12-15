@@ -58,7 +58,7 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    $self = SUPER::new();
+    $self = $class->SUPER::new();
     bless($self, $class);
 
     return $self->init(@_);
@@ -76,10 +76,17 @@ type($)
 {
     my $self = shift;
 
-    return("node");
+    return("NODE");
 }
 
 
+sub
+lookups($)
+{
+    my $self = shift;
+
+    return(qw(NAME GROUP ID HWADDR VNFS STATUS));
+}
 
 
 

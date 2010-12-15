@@ -23,11 +23,7 @@ package Warewulf::ObjectFactory;
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use Warewulf::Object::Cluster;
-use Warewulf::Object::Ethernet;
-use Warewulf::Object::Group;
 use Warewulf::Object::Node;
-use Warewulf::Object::Rack;
 use Warewulf::Object::Vnfs;
 use DBI;
 
@@ -56,19 +52,11 @@ sub
 new($$)
 {
     my $proto = shift;
-    my $type = lc(shift);
+    my $type = uc(shift);
 
-    if ($type eq "cluster") {
-        return(Warewulf::Object::Cluster->new(@_));
-    } elsif ($type eq "ethernet") {
-        return(Warewulf::Object::Ethernet->new(@_));
-    } elsif ($type eq "group") {
-        return(Warewulf::Object::Group->new(@_));
-    } elsif ($type eq "node") {
+    if ($type eq "NODE") {
         return(Warewulf::Object::Node->new(@_));
-    } elsif ($type eq "rack") {
-        return(Warewulf::Object::Rack->new(@_));
-    } elsif ($type eq "vnfs") {
+    } elsif ($type eq "VNFS") {
         return(Warewulf::Object::Vnfs->new(@_));
     } else {
         &eprint("Unknown object Type: $type\n");
