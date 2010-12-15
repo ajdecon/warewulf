@@ -12,7 +12,7 @@ Getopt::Long::Configure ("bundling");
 
 my $db = Warewulf::DB->new();
 my $opt_new;
-my @opt_get;
+my @opt_print;
 my @opt_set;
 my @opt_add;
 my @opt_del;
@@ -21,17 +21,17 @@ my $opt_lookup = "name";
 
 GetOptions(
     'n|new'         => \$opt_new,
-    'g|get=s'       => \@opt_get,
+    'p|print=s'     => \@opt_print,
     's|set=s'       => \@opt_set,
     'a|add=s'       => \@opt_add,
     'd|del=s'       => \@opt_del,
-    'f|lookup=s'    => \$opt_lookup,
+    'l|lookup=s'    => \$opt_lookup,
 );
 
-if (! @opt_get) {
-    push(@opt_get, "type", "id", "name");
+if (! @opt_print) {
+    push(@opt_print, "type", "id", "name");
 } else {
-    @opt_get = split(",", join(",", @opt_get));
+    @opt_print = split(",", join(",", @opt_print));
 }
 
 $opt_type = shift(@ARGV);
@@ -68,7 +68,7 @@ if ($opt_new) {
             foreach my $obj ($objectSet->get_list()) {
                 foreach my $setstring (@opt_set) {
                     my ($key, $val) = split(/=/, $setstring);
-                    $obj->set($key, $val);
+                    $obj->set($key, split(",", $val));
                 }
             }
             $db->persist($objectSet);
@@ -78,7 +78,7 @@ if ($opt_new) {
             foreach my $obj ($objectSet->get_list()) {
                 foreach my $setstring (@opt_add) {
                     my ($key, $val) = split(/=/, $setstring);
-                    $obj->add($key, $val);
+                    $obj->add($key, split(",", $val));
                 }
             }
             $db->persist($objectSet);
@@ -101,14 +101,26 @@ if ($opt_new) {
 
             foreach my $o ($objectSet->get_list()) {
                 my @values;
-                foreach my $g (@opt_get) {
-                    if(ref($o->get($g)) =~ /^ARRAY/) {
-                        push(@values, join(",", $o->get($g)));
-                    } else {
-                        push(@values, $o->get($g) || "(undef)");
+                if (@opt_print and $opt_print[0] eq "all") {
+                    my %hash = $o->get_hash();
+                    my $id = $o->get("id");
+                    foreach my $h (keys %hash) {
+                        if(ref($hash{$h}) =~ /^ARRAY/) {
+                            print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
+                        } else {
+                            print "$id: $h=$hash{$h}\n";
+                        }
                     }
+                } else {
+                    foreach my $g (@opt_print) {
+                        if(ref($o->get($g)) =~ /^ARRAY/) {
+                            push(@values, join(",", $o->get($g)));
+                        } else {
+                            push(@values, $o->get($g) || "(undef)");
+                        }
+                    }
+                    print join(": ", @values) ."\n";
                 }
-                print join(": ", @values) ."\n";
             }
         }
     }
