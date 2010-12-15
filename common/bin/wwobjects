@@ -84,7 +84,15 @@ if ($opt_new) {
         } else {
 
             foreach my $o ($objectSet->get_list()) {
-                print join(": ", map { scalar($o->get($_)) || "undefined" } @opt_get) ."\n";
+                my @values;
+                foreach my $g (@opt_get) {
+                    if(ref($o->get($g)) =~ /^ARRAY/) {
+                        push(@values, join(",", $o->get($g)));
+                    } else {
+                        push(@values, $o->get($g));
+                    }
+                }
+                print join(": ", @values) ."\n";
             }
 
         }
