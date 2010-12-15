@@ -69,3 +69,7 @@ Make sure array elements are unique when doing add().
 
 Delete key if del() removes last array element.
 ----------------------------------------------------------------------
+Wed Dec 15 00:47:09 2010                        Michael Jennings (mej)
+
+set() for an array now deletes and add()s.
+----------------------------------------------------------------------

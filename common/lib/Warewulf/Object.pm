@@ -192,8 +192,8 @@ set($$)
         }
     } else {
         # Multiple values.  Populate an array(ref).
-        @{$self->{$key}} = @vals;
-        return @vals;
+        delete $self->{$key};
+        return $self->add($key, @vals);
     }
 }
 
