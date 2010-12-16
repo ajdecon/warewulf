@@ -73,3 +73,7 @@ Wed Dec 15 00:47:09 2010                        Michael Jennings (mej)
 
 set() for an array now deletes and add()s.
 ----------------------------------------------------------------------
+Thu Dec 16 11:10:26 2010                        Michael Jennings (mej)
+
+Use list address for configure.in.
+----------------------------------------------------------------------

@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(warewulf-common, 0.0.1, gmk@lbl.gov)
+AC_INIT(warewulf-common, 0.0.1, warewulf@lbl.gov)
 AC_CONFIG_SRCDIR([.])
 AM_CONFIG_HEADER([config.h])
 
