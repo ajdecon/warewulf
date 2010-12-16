@@ -6,7 +6,7 @@ use Warewulf::Logger;
 use Warewulf::ObjectFactory;
 use Getopt::Long;
 
-&set_log_level("DEBUG");
+#&set_log_level("DEBUG");
 
 Getopt::Long::Configure ("bundling");
 
@@ -116,7 +116,7 @@ if ($opt_new) {
                         if(ref($o->get($g)) =~ /^ARRAY/) {
                             push(@values, join(",", $o->get($g)));
                         } else {
-                            push(@values, $o->get($g) || "(undef)");
+                            push(@values, $o->get($g) || "[undef]");
                         }
                     }
                     print join(": ", @values) ."\n";

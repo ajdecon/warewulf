@@ -206,9 +206,9 @@ persist($$)
         if ($o->can("lookups")) {
             foreach my $l ($o->lookups) {
                 foreach my $value ($o->get($l)) {
-                    dprint("Adding lookup entrie for: $l:$value\n");
+                    #dprint("Adding lookup entrie for: $l:$value\n");
                     my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES (?,?,?)");
-                    $sth->execute(uc($l), $value || "undefined", $id);
+                    $sth->execute(uc($l), $value || "[undef]", $id);
                 }
             }
         } else {
