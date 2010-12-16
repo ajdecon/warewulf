@@ -77,3 +77,9 @@ Thu Dec 16 11:10:26 2010                        Michael Jennings (mej)
 
 Use list address for configure.in.
 ----------------------------------------------------------------------
+Thu Dec 16 12:59:25 2010                        Michael Jennings (mej)
+
+Convert ModuleLoader to on-demand, class-based operation.  This is one
+possibility of multiple ones we're considering...just want it in the
+SVN history for potential future reference.
+----------------------------------------------------------------------

@@ -29,33 +29,6 @@ use File::Basename;
 my %modules;
 
 BEGIN {
-    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
-    foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
-        dprint("Module load file: $file\n");
-        eval "require '$file'";
-        my $name;
-        my $tmp;
-        my $keyword;
-        $name = "Warewulf::Module::". basename($file);
-        $name =~ s/\.pm$//;
-        $tmp = eval "$name->new()";;
-        if ($tmp) {
-            if ($tmp->can("keyword")) {
-                $keyword = $tmp->keyword();
-                if (!$keyword) {
-                    eprint("Module load error: Could not identify module Keyword\n");
-                } elsif (exists($modules{"$keyword"})) {
-                    eprint("Module load error: Keyword '$keyword' can not be reloaded\n");
-                } else {
-                    $modules{"$keyword"} = $tmp;
-                }
-            } else {
-                eprint("Module load error: Could not obtain keyword from module\n");
-            }
-        } else {
-            dprint("Module load error: Could not invoke $name->new()\n");
-        }
-    }
 }
 
 =head1 NAME
@@ -91,6 +64,40 @@ new($$)
     return();
 }
 
+=item load(<class>)
+
+Load all modules of a specified class from the module tree (by
+default, /usr/libexec/warewulf/modules/<class>/).
+
+=cut
+
+sub
+load($)
+{
+    my ($self, $class) = @_;
+    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
+
+    if (!exists($self->{"MODULES"}{$class})) {
+        foreach my $file (glob("$libexec/$class/*.pm"), glob("$ENV{WWMODPATH}/$class/*.pm")) {
+            my ($name, $tmp, $keyword);
+
+            dprint("Module load file: $file\n");
+            eval "require '$file'";
+
+            $name = "Warewulf::Module::". basename($file);
+            $name =~ s/\.pm$//;
+
+            $tmp = eval "$name->new()";
+            if ($tmp) {
+                push @{$self->{"MODULES"}{$class}}, $tmp;
+            } else {
+                dprint("Module load error: Could not invoke $name->new()\n");
+            }
+        }
+    }
+    
+    return @{$self->{"MODULES"}{$class}};
+}
 
 =back
 
