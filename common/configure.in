@@ -39,5 +39,6 @@ AC_OUTPUT(Makefile
    lib/Warewulf/HTML/Makefile
    lib/Warewulf/DB/Makefile
    lib/Warewulf/DB/SQL/Makefile
+   lib/Warewulf/Object/Makefile
 )
 
