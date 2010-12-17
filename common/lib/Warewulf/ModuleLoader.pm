@@ -49,36 +49,20 @@ Warewulf::ModuleLoader - Database interface
 Create the object.
 
 =cut
+
 sub
-new($$)
+new($)
 {
     my $proto = shift;
-    my $keyword = shift;
-
-    if (exists($modules{$keyword})) {
-        return($modules{"$keyword"});
-    } else {
-        eprint("Module keyword '$keyword' is not available\n");
-    }
-
-    return();
-}
-
-=item load(<class>)
-
-Load all modules of a specified class from the module tree (by
-default, /usr/libexec/warewulf/modules/<class>/).
-
-=cut
-
-sub
-load($)
-{
-    my ($self, $class) = @_;
+    my $class = ref($proto) || $proto;
     my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
+    my $self = {};
 
-    if (!exists($self->{"MODULES"}{$class})) {
-        foreach my $file (glob("$libexec/$class/*.pm"), glob("$ENV{WWMODPATH}/$class/*.pm")) {
+    bless($self, $class);
+
+
+    if (!exists($self->{"MODULES"})) {
+        foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
             my ($name, $tmp, $keyword);
 
             dprint("Module load file: $file\n");
@@ -89,15 +73,51 @@ load($)
 
             $tmp = eval "$name->new()";
             if ($tmp) {
-                push @{$self->{"MODULES"}{$class}}, $tmp;
+                push @{$self->{"MODULES"}}, $tmp;
             } else {
                 dprint("Module load error: Could not invoke $name->new()\n");
             }
         }
     }
-    
-    return @{$self->{"MODULES"}{$class}};
+
+    return($self);
 }
+
+=item list($type, $key)
+
+
+=cut
+sub
+list($$)
+{
+    my $self = shift;
+    my $type = shift;
+    my $key = shift;
+    my @ret;
+
+    if ($type and $key)
+        foreach my $obj (@{$self->{"MODULES"}}) {
+            if ($obj->type($type) and $obj->key($key)) {
+                push(@ret, $obj);
+            }
+        }
+    } elsif ($type) {
+        foreach my $obj (@{$self->{"MODULES"}}) {
+            if ($obj->type($type)) {
+                push(@ret, $obj);
+            }
+        }
+    } else {
+        foreach my $obj (@{$self->{"MODULES"}}) {
+            push(@ret, $obj);
+        }
+    }
+
+    return(@ret);
+}
+
+
+
 
 =back
 
