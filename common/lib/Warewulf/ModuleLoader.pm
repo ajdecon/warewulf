@@ -41,6 +41,7 @@ my %modules;
 sub
 wwmod_init()
 {
+    %modules = ();
     my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
 
     if (!exists($self->{"MODULES"})) {
@@ -63,7 +64,11 @@ wwmod_register($$$)
 
     dprint("Module register: TYPE=$type, TRIGGER=$trigger, FUNC=$func\n");
 
-    push(@{$modules{$type}{$trigger}}, $package->$func);
+    if ($func) {
+        push(@{$modules{$type}{$trigger}}, $package->$func);
+    } else {
+        push(@{$modules{$type}{$trigger}}, $package->new());
+    }
 }
 
 
@@ -75,12 +80,22 @@ wwmod_run($$@)
     my $method = shift;
     my @args = @_;
 
-    if (exists($modules{$type}) and exists($modules{$type}{$trigger})) {
-        dprint("Module run: TYPE=$type, TRIGGER=$trigger, METHOD=$method, ARGS=@args\n");
-        foreach my $f (@{$modules{$type}{$trigger}}) {
-            $f->$method(@args);
-        }
+    foreach my $f (&wwmod_list($type, $trigger)) {
+        $f->$method(@args);
     }
+}
+
+sub
+wwmod_list($$)
+{
+    my $type = shift;
+    my $trigger = shift;
+
+    if (exists($modules{$type}) and exists($modules{$type}{$trigger})) {
+        return@{$modules{$type}{$trigger}});
+    }
+
+    return();
 }
 
 
