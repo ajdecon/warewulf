@@ -25,11 +25,64 @@ use Warewulf::Logger;
 use Warewulf::Config;
 use Warewulf::Include;
 use File::Basename;
+use Exporter;
+
+
+our @ISA = ('Exporter');
+
+our @EXPORT = qw(
+    &wwmod_register
+    &wwmod_run
+    &wwmod_init
+);
 
 my %modules;
 
-BEGIN {
+sub
+wwmod_init()
+{
+    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
+
+    if (!exists($self->{"MODULES"})) {
+        foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
+            my ($name, $tmp, $keyword);
+            dprint("Module load file: $file\n");
+
+            eval "require '$file'";
+        }
+    }
 }
+
+sub
+wwmod_register($$$)
+{
+    my $type = shift;
+    my $trigger = shift;
+    my $func = shift;
+    my ($package, $filename, $line) = caller;
+
+    dprint("Module register: TYPE=$type, TRIGGER=$trigger, FUNC=$func\n");
+
+    push(@{$modules{$type}{$trigger}}, $package->$func);
+}
+
+
+sub
+wwmod_run($$@)
+{
+    my $type = shift;
+    my $trigger = shift;
+    my $method = shift;
+    my @args = @_;
+
+    if (exists($modules{$type}) and exists($modules{$type}{$trigger})) {
+        dprint("Module run: TYPE=$type, TRIGGER=$trigger, METHOD=$method, ARGS=@args\n");
+        foreach my $f (@{$modules{$type}{$trigger}}) {
+            $f->$method(@args);
+        }
+    }
+}
+
 
 =head1 NAME
 
@@ -95,27 +148,27 @@ list($$)
     my $key = shift;
     my @ret;
 
-    if ($type and $key)
+    if ($type and $key) {
+        dprint("Module list: looking for type and key\n");
         foreach my $obj (@{$self->{"MODULES"}}) {
             if ($obj->type($type) and $obj->key($key)) {
                 push(@ret, $obj);
             }
         }
     } elsif ($type) {
+        dprint("Module list: looking for type\n");
         foreach my $obj (@{$self->{"MODULES"}}) {
             if ($obj->type($type)) {
                 push(@ret, $obj);
             }
         }
     } else {
-        foreach my $obj (@{$self->{"MODULES"}}) {
-            push(@ret, $obj);
-        }
+        dprint("Returning all modules\n");
+        @ret = @{$self->{"MODULES"}};
     }
 
     return(@ret);
 }
-
 
 
 

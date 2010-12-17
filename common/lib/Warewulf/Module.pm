@@ -23,7 +23,6 @@ package Warewulf::Module;
 use Warewulf::Include;
 use Warewulf::Logger;
 
-our @ISA = ();
 
 =head1 NAME
 
@@ -58,6 +57,22 @@ keyword()
     return(lc($keyword));
 }
 
+sub
+key($)
+{
+    my $self = shift;
+
+    return();
+}
+
+sub
+type($)
+{
+    my $self = shift;
+
+    return();
+}
+
 =item usage()
 
 Define the command line usage of this module interface.
@@ -70,6 +85,14 @@ usage()
     dprint("Module method undefined: ". ref($self) ."->usage()\n");
 }
 
+
+sub
+foo()
+{
+    my $self = shift;
+    print ref($self) ."->foo()\n";
+
+}
 
 
 1;
