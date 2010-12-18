@@ -2,7 +2,7 @@ Name: warewulf-common
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: 1
-License: GPL
+License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 BuildRoot: /var/tmp/%{name}-buildroot
@@ -32,7 +32,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %perl_vendorlib/*
 %{_bindir}/*
 %{_datadir}/*

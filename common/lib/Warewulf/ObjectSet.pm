@@ -1,19 +1,9 @@
-# Copyright (c) 2003-2010, The Regents of the University of California,
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
-# This program is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation; either version 2 of the License, or (at your
-# option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-# for more details.
-#
-# The GNU GPL Document can be found at:
-# http://www.gnu.org/copyleft/gpl.html
 #
 # $Id$
 #
@@ -257,15 +247,17 @@ add_hashes($$)
 }
 
 
-=back
-
 =head1 SEE ALSO
 
-Warewulf::Object
+Warewulf::Object, Warewulf::ObjectFactory
 
 =head1 COPYRIGHT
 
-Warewulf is copyright UC Regents
+Copyright (c) 2001-2003 Gregory M. Kurtzer
+
+Copyright (c) 2003-2011, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
 
