@@ -1,4 +1,4 @@
-SUBDIRS =  HTML DB Object
+SUBDIRS =  HTML DB Object Module
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 

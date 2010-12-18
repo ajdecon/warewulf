@@ -18,19 +18,22 @@
 # $Id: Module.pm 99 2010-12-15 08:47:10Z mej $
 #
 
-package Warewulf::Module;
+package Warewulf::Module::Cli;
 
 use Warewulf::Include;
 use Warewulf::Logger;
+use Warewulf::Module;
+
+our @ISA = ('Warewulf::Module');
 
 
 =head1 NAME
 
-Warewulf::Module - 
+Warewulf::Module::Cli - 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Module;
+    use Warewulf::Module::Cli;
 
 =head1 DESCRIPTION
 
@@ -40,31 +43,20 @@ Warewulf::Module -
 
 =over 4
 
-=item keyword()
+=item usage()
 
-Defines this module's keyword. By default this will be the lowercase
-name of the module suffix (e.g. Warewulf::Module::Foo will return the
-keyword or 'foo').
+Define the command line usage of this module interface.
 
 =cut
-sub
-keyword()
-{
-    my $self = shift;
-    my $keyword = ref($self);
-    $keyword =~ s/^.+:://;
+sub usage() { };
 
-    return(lc($keyword));
-}
 
-=item init()
+=item call()
 
-Initialization when this module gets called
+What happens when this module gets called
 
 =cut
-sub init() { };
-
-
+sub call() {};
 
 
 1;

@@ -25,78 +25,80 @@ use Warewulf::Logger;
 use Warewulf::Config;
 use Warewulf::Include;
 use File::Basename;
-use Exporter;
 
 
-our @ISA = ('Exporter');
-
-our @EXPORT = qw(
-    &wwmod_register
-    &wwmod_run
-    &wwmod_init
-);
-
-my %modules;
-
-sub
-wwmod_init()
-{
-    %modules = ();
-    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
-
-    if (!exists($self->{"MODULES"})) {
-        foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
-            my ($name, $tmp, $keyword);
-            dprint("Module load file: $file\n");
-
-            eval "require '$file'";
-        }
-    }
-}
-
-sub
-wwmod_register($$$)
-{
-    my $type = shift;
-    my $trigger = shift;
-    my $func = shift;
-    my ($package, $filename, $line) = caller;
-
-    dprint("Module register: TYPE=$type, TRIGGER=$trigger, FUNC=$func\n");
-
-    if ($func) {
-        push(@{$modules{$type}{$trigger}}, $package->$func);
-    } else {
-        push(@{$modules{$type}{$trigger}}, $package->new());
-    }
-}
-
-
-sub
-wwmod_run($$@)
-{
-    my $type = shift;
-    my $trigger = shift;
-    my $method = shift;
-    my @args = @_;
-
-    foreach my $f (&wwmod_list($type, $trigger)) {
-        $f->$method(@args);
-    }
-}
-
-sub
-wwmod_list($$)
-{
-    my $type = shift;
-    my $trigger = shift;
-
-    if (exists($modules{$type}) and exists($modules{$type}{$trigger})) {
-        return@{$modules{$type}{$trigger}});
-    }
-
-    return();
-}
+#use Exporter;
+#
+#
+#our @ISA = ('Exporter');
+#
+#our @EXPORT = qw(
+#    &wwmod_register
+#    &wwmod_run
+#    &wwmod_init
+#);
+#
+#my %modules;
+#
+##sub
+#wwmod_init()
+#{
+#    %modules = ();
+#    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
+#
+#    if (!exists($self->{"MODULES"})) {
+#        foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
+#            my ($name, $tmp, $keyword);
+#            dprint("Module load file: $file\n");
+#
+#            eval "require '$file'";
+#        }
+#    }
+#}
+#
+#sub
+#wwmod_register($$$)
+#{
+#    my $type = shift;
+#    my $trigger = shift;
+#    my $func = shift;
+#    my ($package, $filename, $line) = caller;
+#
+#    dprint("Module register: TYPE=$type, TRIGGER=$trigger, FUNC=$func\n");
+#
+#    if ($func) {
+#        push(@{$modules{$type}{$trigger}}, $package->$func);
+#    } else {
+#        push(@{$modules{$type}{$trigger}}, $package->new());
+#    }
+#}
+#
+#
+#sub
+#wwmod_run($$@)
+#{
+#    my $type = shift;
+#    my $trigger = shift;
+#    my $method = shift;
+#    my @args = @_;
+#
+#    foreach my $f (&wwmod_list($type, $trigger)) {
+#        $f->$method(@args);
+#    }
+#}
+#
+#sub
+#wwmod_list($$)
+#{
+#    my $type = shift;
+#    my $trigger = shift;
+#
+#    if (exists($modules{$type}) and exists($modules{$type}{$trigger})) {
+#        return@{$modules{$type}{$trigger}});
+#    }
+#
+#    return();
+#}
 
 
 =head1 NAME
@@ -122,26 +124,28 @@ sub
 new($)
 {
     my $proto = shift;
+    my $type = shift;
     my $class = ref($proto) || $proto;
     my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
     my $self = {};
 
     bless($self, $class);
 
-
     if (!exists($self->{"MODULES"})) {
-        foreach my $file (glob("$libexec/*.pm"), glob("$ENV{WWMODPATH}/*.pm")) {
+        foreach my $file (glob("$libexec/$type/*.pm"), glob("$ENV{WWMODPATH}/$type/*.pm")) {
             my ($name, $tmp, $keyword);
 
             dprint("Module load file: $file\n");
             eval "require '$file'";
 
-            $name = "Warewulf::Module::". basename($file);
+            $name = "Warewulf::Module::". $type ."::". basename($file);
             $name =~ s/\.pm$//;
+
 
             $tmp = eval "$name->new()";
             if ($tmp) {
-                push @{$self->{"MODULES"}}, $tmp;
+                push(@{$self->{"MODULES"}}, $tmp);
+                dprint("Module load success: Added module $name\n");
             } else {
                 dprint("Module load error: Could not invoke $name->new()\n");
             }
@@ -151,7 +155,7 @@ new($)
     return($self);
 }
 
-=item list($type, $key)
+=item list($keyword)
 
 
 =cut
@@ -159,21 +163,14 @@ sub
 list($$)
 {
     my $self = shift;
-    my $type = shift;
-    my $key = shift;
+    my $keyword = shift;
     my @ret;
 
-    if ($type and $key) {
-        dprint("Module list: looking for type and key\n");
+    if ($keyword) {
+        dprint("Module list: looking for keyword: $keyword\n");
         foreach my $obj (@{$self->{"MODULES"}}) {
-            if ($obj->type($type) and $obj->key($key)) {
-                push(@ret, $obj);
-            }
-        }
-    } elsif ($type) {
-        dprint("Module list: looking for type\n");
-        foreach my $obj (@{$self->{"MODULES"}}) {
-            if ($obj->type($type)) {
+            if ($obj->keyword() eq $keyword) {
+                dprint("Found object: $obj\n");
                 push(@ret, $obj);
             }
         }

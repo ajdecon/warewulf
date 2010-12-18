@@ -18,19 +18,22 @@
 # $Id: Module.pm 99 2010-12-15 08:47:10Z mej $
 #
 
-package Warewulf::Module;
+package Warewulf::Module::Trigger;
 
 use Warewulf::Include;
 use Warewulf::Logger;
+use Warewulf::Module;
+
+our @ISA = ('Warewulf::Module');
 
 
 =head1 NAME
 
-Warewulf::Module - 
+Warewulf::Module::Trigger - 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Module;
+    use Warewulf::Module::Trigger;
 
 =head1 DESCRIPTION
 
@@ -40,30 +43,30 @@ Warewulf::Module -
 
 =over 4
 
-=item keyword()
+=item object_add($obj)
 
-Defines this module's keyword. By default this will be the lowercase
-name of the module suffix (e.g. Warewulf::Module::Foo will return the
-keyword or 'foo').
+What happens when an object is added to the database
 
 =cut
-sub
-keyword()
-{
-    my $self = shift;
-    my $keyword = ref($self);
-    $keyword =~ s/^.+:://;
+sub object_add() {};
 
-    return(lc($keyword));
-}
 
-=item init()
 
-Initialization when this module gets called
+=item object_del($obj)
+
+What happens when an object is deleted from the database
 
 =cut
-sub init() { };
+sub object_del() {};
 
+
+
+=item object_persist($obj/$objSet)
+
+What happens when an object is persisted to the datastore
+
+=cut
+sub object_persist() {};
 
 
 
