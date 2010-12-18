@@ -153,7 +153,6 @@ get_objects($$$@)
 }
 
 
-
 =item persist($objectSet);
 
 =cut
@@ -203,6 +202,41 @@ persist($$)
             }
         } else {
             dprint("Not adding lookup entries\n");
+        }
+    }
+}
+
+
+
+
+=item del_object($objectSet);
+
+=cut
+
+sub
+del_object($$)
+{
+    my ($self, $object) = @_;
+    my @objlist;
+
+    if (ref($object) eq "Warewulf::ObjectSet") {
+        @objlist = $object->get_list();
+    } elsif (ref($object) =~ /^Warewulf::Object::/) {
+        @objlist = ($object);
+    } else {
+        &eprint("Invalid parameter to persist():  $object\n");
+        return undef;
+    }
+    foreach my $o (@objlist) {
+        my $id = $o->get("id");
+
+        if ($id) {
+            my $sth;
+            dprint("Deleting object from the datastore: ID=$id\n");
+            $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
+            $sth->execute($id);
+            $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
+            $sth->execute($id);
         }
     }
 }

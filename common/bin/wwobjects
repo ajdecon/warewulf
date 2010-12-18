@@ -26,6 +26,7 @@ my @opt_set;
 my @opt_add;
 my @opt_del;
 my $opt_type;
+my $opt_obj_delete;
 my $opt_lookup = "name";
 
 GetOptions(
@@ -35,6 +36,7 @@ GetOptions(
     'a|add=s'       => \@opt_add,
     'd|del=s'       => \@opt_del,
     'l|lookup=s'    => \$opt_lookup,
+    'DELETE'        => \$opt_obj_delete,
 );
 
 if (! @opt_print) {
@@ -105,6 +107,10 @@ if ($opt_new) {
                 }
             }
             $db->persist($objectSet);
+
+        } elsif ($opt_obj_delete) {
+
+            $db->del_object($objectSet);
 
         } else {
 
