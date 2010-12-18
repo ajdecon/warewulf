@@ -179,7 +179,7 @@ get($$)
         return($values[0]);
     }
 }
-ck
+
 
 =head1 SEE ALSO
 
