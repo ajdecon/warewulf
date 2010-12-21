@@ -32,21 +32,31 @@ Warewulf::Module -
 
 =over 4
 
-=item keyword()
+=item keyword($test)
 
-Defines this module's keyword. By default this will be the lowercase
-name of the module suffix (e.g. Warewulf::Module::Foo will return the
-keyword or 'foo').
+Tests for the module applicability based on keyword. If the passed in
+keyword is good for that module, then this will return true. By default
+a keyword is the lowercase name of the module's suffix (e.g.
+Warewulf::Module::Foo will be true for a test of "foo".
+
+Each module can redefine this method such that it can be true for any
+number of passed in keywords. In the end, the module itself needs to
+know its features and abilities.
 
 =cut
 sub
 keyword()
 {
     my $self = shift;
+    my $test = shift;
     my $keyword = ref($self);
     $keyword =~ s/^.+:://;
 
-    return(lc($keyword));
+    if (lc($keyword) eq lc($test)) {
+        return(1);
+    }
+
+    return();
 }
 
 =item init()
