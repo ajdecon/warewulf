@@ -42,28 +42,30 @@ new($)
     my $proto = shift;
     my $type = shift;
     my $class = ref($proto) || $proto;
-    my $libexec = &wwpath("libexecdir") ."/warewulf/modules";
     my $self = {};
 
     bless($self, $class);
 
     if (!exists($self->{"MODULES"})) {
-        foreach my $file (glob("$libexec/$type/*.pm"), glob("$ENV{WWMODPATH}/$type/*.pm")) {
-            my ($name, $tmp, $keyword);
+        foreach my $path (@INC, $ENV{WWMODPATH}) {
+            dprint("Module load path: $path\n");
+            foreach my $file (glob("$path/Warewulf/Module/$type/*.pm")) {
+                my ($name, $tmp, $keyword);
 
-            dprint("Module load file: $file\n");
-            eval "require '$file'";
+                dprint("Module load file: $file\n");
+                eval "require '$file'";
 
-            $name = "Warewulf::Module::". $type ."::". basename($file);
-            $name =~ s/\.pm$//;
+                $name = "Warewulf::Module::". $type ."::". basename($file);
+                $name =~ s/\.pm$//;
 
 
-            $tmp = eval "$name->new()";
-            if ($tmp) {
-                push(@{$self->{"MODULES"}}, $tmp);
-                dprint("Module load success: Added module $name\n");
-            } else {
-                dprint("Module load error: Could not invoke $name->new()\n");
+                $tmp = eval "$name->new()";
+                if ($tmp) {
+                    push(@{$self->{"MODULES"}}, $tmp);
+                    dprint("Module load success: Added module $name\n");
+                } else {
+                    dprint("Module load error: Could not invoke $name->new()\n");
+                }
             }
         }
     }
