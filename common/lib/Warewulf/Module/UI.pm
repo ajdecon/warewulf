@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Module.pm 99 2010-12-15 08:47:10Z mej $
+# $Id: UI.pm 99 2010-12-15 08:47:10Z mej $
 #
 
-package Warewulf::Module::Cli;
+package Warewulf::Module::UI;
 
 use Warewulf::Include;
 use Warewulf::Logger;
@@ -19,11 +19,11 @@ our @ISA = ('Warewulf::Module');
 
 =head1 NAME
 
-Warewulf::Module::Cli - 
+Warewulf::Module::UI - 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Module::Cli;
+    use Warewulf::Module::UI;
 
 =head1 DESCRIPTION
 
@@ -41,12 +41,12 @@ Define the command line usage of this module interface.
 sub usage() { };
 
 
-=item call()
+=item command()
 
-What happens when this module gets called
+What happens when this module gets called by a command
 
 =cut
-sub call() {};
+sub command() {};
 
 
 

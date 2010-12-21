@@ -13,6 +13,8 @@ package Warewulf::Module;
 use Warewulf::Include;
 use Warewulf::Logger;
 
+our @ISA = ('Object');
+
 
 =head1 NAME
 
@@ -54,6 +56,25 @@ Initialization when this module gets called
 =cut
 sub init() { };
 
+
+=item datastore()
+
+Pass the datastore module into the Module object and be able to retrieve it
+easily.
+
+=cut
+sub
+datastore()
+{
+    my $self = shift;
+    my $datastore = shift;
+
+    if ($datastore) {
+        $self->set("datastore", $datastore);
+    }
+
+    return($datastore);
+}
 
 
 =head1 SEE ALSO
