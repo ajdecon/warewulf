@@ -4,8 +4,8 @@ all: initramfs.cpio
 
 top_srcdir = @top_srcdir@
 
-BUSYBOX_VERSION = 1.17.3
-BUSYBOX_SOURCE = busybox-$(BUSYBOX_VERSION).tar.bz2
+BUSYBOX_VERSION = 1.18.1
+BUSYBOX_SOURCE = $(top_srcdir)/3rd_party/GPL/busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_DIR = busybox-$(BUSYBOX_VERSION)
 BUSYBOX_PATCHES = 
 
@@ -15,17 +15,17 @@ busybox:
 		mkdir -p _work/ ;\
 		tar xjf $(BUSYBOX_SOURCE) -C _work/ ;\
 		for i in $(BUSYBOX_PATCHES); do \
-			(cd _work/$(BUSYBOX_DIR); patch -p1 < ../../$${i} || exit 1) \
+			(cd _work/busybox-$(BUSYBOX_VERSION); patch -p1 < ../../$${i} || exit 1) \
 		done ;\
-		cp busybox.config _work/$(BUSYBOX_DIR)/.config ;\
+		cp busybox.config _work/busybox-$(BUSYBOX_VERSION)/.config ;\
 	fi
-	@ if [ ! -f "_work/$(BUSYBOX_DIR)/" ]; then \
+	@ if [ ! -f "_work/busybox-$(BUSYBOX_VERSION)/" ]; then \
 		echo "Building initramfs core" ;\
-		make -C _work/$(BUSYBOX_DIR) busybox ;\
+		make -C _work/busybox-$(BUSYBOX_VERSION) busybox ;\
 	fi
-	@ if [ ! -d "_work/$(BUSYBOX_DIR)/_install" ]; then \
+	@ if [ ! -d "_work/busybox-$(BUSYBOX_VERSION)/_install" ]; then \
 		echo "Installing initramfs core" ;\
-		make -C _work/$(BUSYBOX_DIR) install ;\
+		make -C _work/busybox-$(BUSYBOX_VERSION) install ;\
 	fi
 
 
@@ -39,7 +39,7 @@ rootfs: busybox
 	mkdir rootfs/var
 	mkdir rootfs/tmp
 	mkdir rootfs/usr
-	cp -a _work/$(BUSYBOX_DIR)/_install/* rootfs/
+	cp -a _work/busybox-$(BUSYBOX_VERSION)/_install/* rootfs/
 	cp -L --parents /lib*/ld-linux* rootfs/
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	rm -f rootfs/linuxrc
@@ -63,5 +63,5 @@ clean:
 
 
 
-EXTRA_DIST = $(BUSYBOX_SOURCE) *.config init devs.cpio functions dhcp-script detect
+EXTRA_DIST = *.config init devs.cpio functions dhcp-script detect
 

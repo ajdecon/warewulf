@@ -3,21 +3,20 @@ all: unionfs
 top_srcdir = @top_srcdir@
 
 UNIONFS_VERSION = 0.24
-UNIONFS_SOURCE = unionfs-fuse-$(UNIONFS_VERSION).tar.bz2
-UNIONFS_DIR = unionfs-fuse-$(UNIONFS_VERSION)
+UNIONFS_SOURCE = $(top_srcdir)/3rd_party/BSD/unionfs-fuse-$(UNIONFS_VERSION).tar.bz2
 
 unionfs:
-	@ if [ ! -d "_work/unionfs-fuse/$(UNIONFS_DIR)" ]; then \
+	@ if [ ! -d "_work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)" ]; then \
 	    echo "Preparing to build unionfs-fuse" ;\
 	    mkdir -p _work/unionfs-fuse;\
 	    tar xjf $(UNIONFS_SOURCE) -C _work/unionfs-fuse/ ;\
 	fi
-	@ if [ ! -f "_work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs" ]; then \
+	@ if [ ! -f "_work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)/src/unionfs" ]; then \
 	    echo "Building unionfs-fuse" ;\
-	    make -C _work/unionfs-fuse/$(UNIONFS_DIR) ;\
+	    make -C _work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION) ;\
 	fi
 	@ if [ ! -f "unionfs" ]; then \
-	    cp -a _work/unionfs-fuse/$(UNIONFS_DIR)/src/unionfs unionfs ;\
+	    cp -a _work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)/src/unionfs unionfs ;\
 	fi
 
 install:
@@ -27,7 +26,4 @@ install:
 clean:
 	rm -rf _work
 	rm -f unionfs
-
-
-EXTRA_DIST = $(UNIONFS_SOURCE)
 

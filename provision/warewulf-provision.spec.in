@@ -1,8 +1,10 @@
+%define debug_package %{nil}
+
 Name: warewulf-provision
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: 1
-License: GPL
+License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 BuildRoot: /var/tmp/%{name}-buildroot
@@ -15,6 +17,20 @@ utilization and maintaince of clusters or groups of computers.
 
 This is the main package which includes the main daemon and
 supporting libs.
+
+%package gpl_sources
+Summary: This package contains the GPL sources used in Warewulf
+Group: Development/System
+
+%description gpl_sources
+Warewulf is distributed with some third-party software as a convenience to
+our users.  While Warewulf itself is licensed under a DOE license (a
+derivative of the BSD license), the third-party software may have different
+licensing terms, including the GNU General Public License (GPL).
+
+In order to be 100% compatible with the GPL this package makes available
+the included GPL software.
+
 
 %prep
 %setup
@@ -32,7 +48,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
-/*
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
+/etc/httpd/conf.d/warewulf-httpd.conf
+/etc/warewulf/wwboot.conf
+/usr/bin/wwboot
+
+/usr/lib/perl5/vendor_perl/5.8.8/Warewulf/Provision/Include.pm
+/usr/libexec/warewulf/*
+/var/warewulf/*
+
+%files gpl_sources
+%defattr(-,root,root)
+%{_prefix}/src/warewulf/3rd_party/GPL
 
 %changelog
