@@ -10,7 +10,6 @@
 
 package Warewulf::ObjectSet;
 
-use Warewulf::Include;
 use Warewulf::Object;
 use Warewulf::ObjectFactory;
 

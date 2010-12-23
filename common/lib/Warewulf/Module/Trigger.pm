@@ -10,7 +10,6 @@
 
 package Warewulf::Module::Trigger;
 
-use Warewulf::Include;
 use Warewulf::Logger;
 use Warewulf::Module;
 

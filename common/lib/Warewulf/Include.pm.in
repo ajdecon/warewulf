@@ -3,13 +3,12 @@ package Warewulf::Include;
 
 use Exporter;
 use File::Basename;
-use vars qw($VERSION %path %info);
+use vars qw($VERSION %wwconfig);
 
 our @ISA = ("Exporter");
 
 our @EXPORT = qw(
-    &wwinfo
-    &wwpath
+    &wwconfig
 );
 
 $VERSION = "@VERSION@";
@@ -29,75 +28,48 @@ values.
 
     use Warewulf::Include;
 
-    foreach my $key ( keys %Warewulf::Include::info) {
-        print "$key: $Warewulf::Include::info{$key}\n";
-    }
-    foreach my $key ( keys %Warewulf::Include::path) {
-        print "$key: $Warewulf::Include::path{$key}\n";
+    foreach my $key ( keys %Warewulf::Include::wwconfig) {
+        print "$key: $Warewulf::Include::wwconfig{$key}\n";
     }
 
-=head1 INFO
+=head1 CONFIGURATION:
 
     PROGNAME
-    BASE_VERSION
     VERSION
-    BUILD
-    PREFIX
-
-=head1 PATH
-
     PREFIX
     STATEDIR
     SYSCONFDIR
     LIBDIR
     DATADIR
+    PERLMODDIR
 
 =cut
 
 my $prefix = "@prefix@";
 my $exec_prefix = "@exec_prefix@";
 
-
-$info{"PROGNAME"}                        = basename($0);
-$info{"VERSION"}                         = $VERSION;
-
-$path{"PREFIX"}                          = "@prefix@";
-$path{"STATEDIR"}                        = "@localstatedir@";
-$path{"SYSCONFDIR"}                      = "@sysconfdir@";
-$path{"LIBDIR"}                          = "@libdir@";
-$path{"DATADIR"}                         = "@datadir@";
-$path{"LIBEXECDIR"}                      = "@libexecdir@";
+$wwconfig{"PROGNAME"}                        = basename($0);
+$wwconfig{"VERSION"}                         = $VERSION;
+$wwconfig{"PREFIX"}                          = "@prefix@";
+$wwconfig{"STATEDIR"}                        = "@localstatedir@";
+$wwconfig{"SYSCONFDIR"}                      = "@sysconfdir@";
+$wwconfig{"LIBDIR"}                          = "@libdir@";
+$wwconfig{"DATADIR"}                         = "@datadir@";
+$wwconfig{"LIBEXECDIR"}                      = "@libexecdir@";
+$wwconfig{"PERLMODDIR"}                      = "@PERL_VENDORLIB@";
 
 
 sub
-wwinfo($)
+wwconfig($)
 {
     my $var = uc(shift);
 
-    if (exists($info{"$var"})) {
-        return($info{"$var"});
-    } else {
-        &dprint("Requested an unknown paramater\n");
+    if (exists($wwconfig{"$var"})) {
+        return($wwconfig{"$var"});
     }
 
     return();
 }
-
-
-sub
-wwpath($)
-{
-    my $var = uc(shift);
-
-    if (exists($path{"$var"})) {
-        return($path{"$var"});
-    } else {
-        &dprint("Requested an unknown paramater\n");
-    }
-
-    return();
-}
-
 
 =head1 SEE ALSO
 

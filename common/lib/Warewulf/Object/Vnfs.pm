@@ -10,7 +10,6 @@
 
 package Warewulf::Object::Vnfs;
 
-use Warewulf::Include;
 use Warewulf::Object;
 
 our @ISA = ('Warewulf::Object');

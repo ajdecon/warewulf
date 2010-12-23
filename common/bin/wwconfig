@@ -1,0 +1,67 @@
+#!/usr/bin/perl -Tw
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+use Warewulf::Include;
+use Getopt::Long;
+
+Getopt::Long::Configure ("bundling");
+
+my $opt_help;
+my $opt_shell;
+my $opt_all;
+
+GetOptions(
+    'h|help'        => \$opt_help,
+    's|shell'       => \$opt_shell,
+    'a|all'         => \$opt_all,
+);
+
+if ($opt_help) {
+    print "USAGE: $0 [options] [paramaters]\n";
+    print "\n";
+    print "   Options:\n";
+    print "      -h, --help     Show this help summary\n";
+    print "      -s, --shell    Print output in a bourne shell compatible format\n";
+    print "\n";
+    print "   Paramaters:\n";
+    print "\n";
+    print "      VERSION        Program version\n";
+    print "      PREFIX         The prefix this was built with\n";
+    print "      DATADIR        The data directory this was built with\n";
+    print "      LIBDIR         The lib directory this was built with\n";
+    print "      LIBEXECDIR     The libexec directory this was built with\n";
+    print "      PERLMODDIR     The Perl module directory this was built with\n";
+    print "      STATEDIR       The local state directory this was built with\n";
+    print "      SYSCONFDIR     The system configuration directory this was built with\n";
+    print "\n";
+
+    exit;
+}
+
+if ($opt_all) {
+    foreach my $key ( keys %Warewulf::Include::wwconfig) {
+        if ($opt_shell) {
+            print "$key=\"$Warewulf::Include::wwconfig{$key}\"\n";
+            print "export $key\n";
+        } else {
+            print "$key: $Warewulf::Include::wwconfig{$key}\n";
+        }
+    }
+} elsif (@ARGV) {
+    foreach my $key (@ARGV) {
+        if ($opt_shell) {
+            print $key. "=\"". &wwconfig($key) ."\"\n";
+            print "export ". $key ."\n";
+        } else {
+            print &wwconfig($key) ."\n";
+        }
+    }
+
+}
+

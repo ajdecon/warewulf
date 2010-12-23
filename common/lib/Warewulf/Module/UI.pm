@@ -10,7 +10,6 @@
 
 package Warewulf::Module::UI;
 
-use Warewulf::Include;
 use Warewulf::Logger;
 use Warewulf::Module;
 
@@ -41,13 +40,20 @@ Define the command line usage of this module interface.
 sub usage() { };
 
 
+=item help()
+
+Show the help options for this module
+
+=cut
+sub help() {};
+
+
 =item command()
 
 What happens when this module gets called by a command
 
 =cut
 sub command() {};
-
 
 
 =head1 SEE ALSO

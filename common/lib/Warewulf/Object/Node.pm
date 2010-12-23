@@ -10,7 +10,6 @@
 
 package Warewulf::Object::Node;
 
-use Warewulf::Include;
 use Warewulf::Object;
 
 our @ISA = ('Warewulf::Object');

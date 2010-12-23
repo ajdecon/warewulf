@@ -25,9 +25,6 @@ fi
 AC_MSG_RESULT($PERL_VENDORLIB)
 AC_SUBST(PERL_VENDORLIB)
 
-
-AC_SUBST(PERLBIN)
-
 AC_OUTPUT(Makefile
    warewulf-common.spec
    share/Makefile

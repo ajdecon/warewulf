@@ -10,8 +10,6 @@
 
 package Warewulf::Object;
 
-use Warewulf::Include;
-
 our @ISA = ();
 
 =head1 NAME

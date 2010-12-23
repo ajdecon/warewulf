@@ -10,7 +10,6 @@
 
 package Warewulf::Module;
 
-use Warewulf::Include;
 use Warewulf::Logger;
 
 our @ISA = ('Object');

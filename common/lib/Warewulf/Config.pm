@@ -91,8 +91,8 @@ new($$)
     my @files               = @_;
     my $class               = ref($proto) || $proto;
     my $self                = ();
-    my $main_config         = $Warewulf::Include::path{"SYSCONFDIR"} . "/warewulf/main.conf";
-    my $progname_config     = $Warewulf::Include::path{"SYSCONFDIR"} . "/warewulf/" . $Warewulf::Include::info{"PROGNAME"} . ".conf";
+    my $main_config         = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/main.conf";
+    my $progname_config     = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/" . $Warewulf::Include::wwconfig{"PROGNAME"} . ".conf";
 
     %{$self} = ();
 
