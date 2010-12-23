@@ -19,9 +19,21 @@ unionfs:
 	    cp -a _work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)/src/unionfs unionfs ;\
 	fi
 
-install:
-	install -d -m 755 $(DESTDIR)$(initramfsdir)/statelite/sbin/
-	install -m 755 unionfs $(DESTDIR)$(initramfsdir)/statelite/sbin/
+
+rootfs: unionfs
+	rm -rf rootfs
+	mkdir rootfs
+	mkdir rootfs/sbin
+	cp -a unionfs rootfs/sbin/
+	find rootfs -type f -perm -o+x -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
+	find rootfs -type f -perm -o+x -print | xargs strip -g
+
+statelite.cpio: rootfs
+	cd rootfs/; find . | cpio -o -H newc -F ../statelite.cpio
+
+install: statelite.cpio
+	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/
+	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/statelite.cpio
 
 clean:
 	rm -rf _work

@@ -42,6 +42,7 @@ rootfs: busybox
 	cp -a _work/busybox-$(BUSYBOX_VERSION)/_install/* rootfs/
 	cp -L --parents /lib*/ld-linux* rootfs/
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
+	find rootfs -type f -perm -o+x -print | xargs strip -g
 	rm -f rootfs/linuxrc
 	install -m 755 init rootfs/init
 	install -m 755 functions rootfs/etc/functions
@@ -52,9 +53,9 @@ initramfs.cpio: rootfs
 	cp devs.cpio initramfs.cpio
 	cd rootfs/; find . | cpio -o -H newc -A -F ../initramfs.cpio
 
-install: install-recursive
-	install -d -m 755 $(DESTDIR)/$(localstatedir)/warewulf/
-	install -m 644 initramfs.cpio $(DESTDIR)/$(localstatedir)/warewulf/initramfs.cpio
+install: install-recursive initramfs.cpio
+	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/
+	install -m 644 initramfs.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs.cpio
 
 clean:
 	rm -rf _work

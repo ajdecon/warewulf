@@ -53,7 +53,7 @@ rm -rf $RPM_BUILD_ROOT
 /etc/warewulf/wwboot.conf
 /usr/bin/wwboot
 
-/usr/lib/perl5/vendor_perl/5.8.8/Warewulf/Provision/Include.pm
+#/usr/lib/perl5/vendor_perl/5.8.8/Warewulf/Provision/Include.pm
 /usr/libexec/warewulf/*
 /var/warewulf/*
 

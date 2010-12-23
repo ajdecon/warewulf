@@ -8,7 +8,6 @@
 #
 
 
-
 use Warewulf::Provision::Include;
 use Warewulf::Config;
 use Warewulf::Logger;
@@ -38,11 +37,11 @@ GetOptions(
 );
 
 if ($debug) {
-    set_log_level(DEBUG);
+    set_log_level("DEBUG");
 } elsif ($verbose) {
-    set_log_level(NOTICE);
+    set_log_level("WARNINGS");
 } else {
-    set_log_level(INFO);
+    set_log_level("INFO");
 }
 
 my $config = Warewulf::Config->new();

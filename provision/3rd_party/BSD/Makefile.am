@@ -1,0 +1,3 @@
+EXTRA_DIST = union*
+
+MAINTAINERCLEANFILES = Makefile.in
