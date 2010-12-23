@@ -46,8 +46,9 @@ if ($opt_help) {
 
 if ($opt_all) {
     foreach my $key ( keys %Warewulf::Include::wwconfig) {
+        $key = uc($key);
         if ($opt_shell) {
-            print "$key=\"$Warewulf::Include::wwconfig{$key}\"\n";
+            print "WAREWULF_$key=\"$Warewulf::Include::wwconfig{$key}\"\n";
             print "export $key\n";
         } else {
             print "$key: $Warewulf::Include::wwconfig{$key}\n";
@@ -55,9 +56,10 @@ if ($opt_all) {
     }
 } elsif (@ARGV) {
     foreach my $key (@ARGV) {
+        $key = uc($key);
         if ($opt_shell) {
-            print $key. "=\"". &wwconfig($key) ."\"\n";
-            print "export ". $key ."\n";
+            print "WAREWULF_$key=\"". &wwconfig($key) ."\"\n";
+            print "export $key\n";
         } else {
             print &wwconfig($key) ."\n";
         }
