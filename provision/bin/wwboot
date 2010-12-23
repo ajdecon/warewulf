@@ -8,7 +8,7 @@
 #
 
 
-use Warewulf::Provision::Include;
+use Warewulf::Include;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Util;
@@ -24,7 +24,7 @@ my $kversion;
 my $depmod_map_arg = "";
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-my $wwinitramfs = &wwpath("statedir") ."/warewulf/initramfs.cpio";
+my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
 
 %ENV = ();
 $ENV{"PATH"} = "/bin:/usr/bin";
@@ -47,8 +47,8 @@ if ($debug) {
 my $config = Warewulf::Config->new();
 my $modules = join(" ", $config->get("drivers"));
 
-if (! -f $wwinitramfs) {
-    die "Could not locate the Warewulf CPIO archive at: $wwinitramfs!\n";
+if (! -f "$initramfsdir/initramfs.cpio") {
+    die "Could not locate the Warewulf CPIO archive at: $initramfsdir/initramfs.cpio!\n";
 }
 
 # Check for depmod option for map files

@@ -32,8 +32,8 @@ statelite.cpio: rootfs
 	cd rootfs/; find . | cpio -o -H newc -F ../statelite.cpio
 
 install: statelite.cpio
-	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/
-	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/statelite.cpio
+	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
+	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/statelite.cpio
 
 clean:
 	rm -rf _work
