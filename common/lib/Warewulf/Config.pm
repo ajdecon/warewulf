@@ -130,7 +130,7 @@ reread($)
     foreach my $file ( @{$self->{"FILE"}} ) {
         dprint("Looking for config file: $file\n");
         if ( -f $file ) {
-            wprint("Reading config file: $file\n");
+            iprint("Found and reading config file: $file\n");
             open(FILE, $file);
             while(my $line = <FILE>) {
                 chomp($line);
