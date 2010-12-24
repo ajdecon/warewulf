@@ -49,8 +49,8 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
+%config /etc/warewulf/*
 /etc/httpd/conf.d/warewulf-httpd.conf
-/etc/warewulf/wwboot.conf
 /usr/bin/wwboot
 
 #/usr/lib/perl5/vendor_perl/5.8.8/Warewulf/Provision/Include.pm
