@@ -24,7 +24,7 @@ dmesg -n 1 >/dev/null 2>&1
 
 clear
 
-msg_blue "Welcome to Warewulf!\n"
+msg_blue "Now Booting Warewulf...\n"
 echo
 
 if [ -n "$WWNODE" ]; then
@@ -49,20 +49,21 @@ echo
 
 ifup() {
     DEVICE=$1
+    RETVAL=1
     if [ -n "$WWIP" -a -n "$WWNETMASK" ]; then
         if ifconfig $DEVICE up >/dev/null 2>&1; then
             msg_white  "Configuring $DEVICE: "
-            msg_gray "$WWIP/$WWNETMASK\n"
             ifconfig $DEVICE $WWIP netmask $WWNETMASK up
             RETVAL=$?
+            msg_gray "$WWIP/$WWNETMASK\n"
         fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
             msg_white "Configuring $DEVICE: "
-            msg_gray "DHCP\n"
             sleep 2
             udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script >/dev/null
             RETVAL=$?
+            msg_gray "DHCP\n"
         fi
     fi
     return $RETVAL
@@ -71,11 +72,17 @@ ifup() {
 
 if [ -n "$WWDEV" ]; then
     for i in $WWDEV; do
-        ifup $i
+        if ifup $i; then
+            echo "$i" > /tmp/wwdev
+            break
+        fi
     done
 else
     for i in eth0 eth1 eth2 eth3 eth4; do
-        ifup $i
+        if ifup $i; then
+            echo "$i" > /tmp/wwdev
+            break
+        fi
     done
 fi
 
@@ -88,13 +95,18 @@ for i in /etc/warewulf/init/*; do
 done
 
 
+msg_white "Probing for HW Address: "
+NETDEV=`cat /tmp/wwdev`
+HWADDR=`cat /sys/class/net/$NETDEV/address 2>/dev/null`
+msg_gray "$HWADDR\n"
+
 
 msg_white "Connecting to Warewulf master: "
 msg_gray "$WWCGI\n"
 echo "-------------------------------------------------------------------------------"
 
 while true; do
-    wget -q -O - $WWCGI 2>/dev/null | /bin/sh
+    wget -q -O - "$WWCGI?type=node&action=boot&hwaddr=$HWADDR" 2>/dev/null | /bin/sh
     sleep 5
 done
 

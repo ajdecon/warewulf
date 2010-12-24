@@ -48,7 +48,7 @@ if [ -z "$WWPORT" ]; then
 fi
 
 if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
-   WWCGI="http://$WWMASTER:$WWPORT/"
+   WWCGI="http://$WWMASTER:$WWPORT"
 fi
 
 
