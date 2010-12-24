@@ -15,7 +15,7 @@ use Warewulf::Logger;
 use Warewulf::ObjectFactory;
 use Getopt::Long;
 
-#&set_log_level("DEBUG");
+&set_log_level("NOTICE");
 
 Getopt::Long::Configure ("bundling");
 
@@ -64,7 +64,7 @@ if ($opt_new) {
             $db->persist($obj);
         }
     } else {
-        eprint("You must provide a type of object to add\n");
+        &eprint("You must provide a type of object to add\n");
     }
 
 } else {
@@ -114,28 +114,34 @@ if ($opt_new) {
 
         } else {
 
-            foreach my $o ($objectSet->get_list()) {
-                my @values;
-                if (@opt_print and $opt_print[0] eq "all") {
-                    my %hash = $o->get_hash();
-                    my $id = $o->get("id");
-                    foreach my $h (keys %hash) {
-                        if(ref($hash{$h}) =~ /^ARRAY/) {
-                            print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
-                        } else {
-                            print "$id: $h=$hash{$h}\n";
+            my @objList = $objectSet->get_list();
+
+            if (@objList) {
+                foreach my $o ($objectSet->get_list()) {
+                    my @values;
+                    if (@opt_print and $opt_print[0] eq "all") {
+                        my %hash = $o->get_hash();
+                        my $id = $o->get("id");
+                        foreach my $h (keys %hash) {
+                            if(ref($hash{$h}) =~ /^ARRAY/) {
+                                print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
+                            } else {
+                                print "$id: $h=$hash{$h}\n";
+                            }
                         }
-                    }
-                } else {
-                    foreach my $g (@opt_print) {
-                        if(ref($o->get($g)) =~ /^ARRAY/) {
-                            push(@values, join(",", $o->get($g)));
-                        } else {
-                            push(@values, $o->get($g) || "[undef]");
+                    } else {
+                        foreach my $g (@opt_print) {
+                            if(ref($o->get($g)) =~ /^ARRAY/) {
+                                push(@values, join(",", $o->get($g)));
+                            } else {
+                                push(@values, $o->get($g) || "[undef]");
+                            }
                         }
+                        print join(": ", @values) ."\n";
                     }
-                    print join(": ", @values) ."\n";
                 }
+            } else {
+                &nprint("No objects found.\n");
             }
         }
     }
