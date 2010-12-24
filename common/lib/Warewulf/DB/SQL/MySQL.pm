@@ -88,7 +88,7 @@ new()
 
         $singleton->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
         if ( $singleton->{"DBH"}) {
-            &nprint("Successfully connected to database!\n");
+            &iprint("Successfully connected to database!\n");
         } else {
             die "Could not connect to DB: $!!\n";
         }
