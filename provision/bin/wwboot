@@ -21,10 +21,12 @@ my $debug;
 my $verbose;
 my $rpm;
 my $kversion;
+my $modules;
 my $depmod_map_arg = "";
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
 my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
+my $initramfsdefault = "base";
 
 %ENV = ();
 $ENV{"PATH"} = "/bin:/usr/bin";
@@ -39,16 +41,32 @@ GetOptions(
 if ($debug) {
     set_log_level("DEBUG");
 } elsif ($verbose) {
-    set_log_level("WARNINGS");
-} else {
     set_log_level("INFO");
+} else {
+    set_log_level("NOTICE");
 }
 
 my $config = Warewulf::Config->new();
-my $modules = join(" ", $config->get("drivers"));
+my $tftpboot = $config->get("tftpdir") || "/tftpboot";
 
-if (! -f "$initramfsdir/initramfs.cpio") {
-    die "Could not locate the Warewulf CPIO archive at: $initramfsdir/initramfs.cpio!\n";
+
+if ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+    $tftpboot = $1;
+}
+
+if (! -d $tftpboot) {
+    mkpath($tftpboot);
+}
+
+
+foreach my $m ($config->get("drivers")) {
+    if ($m =~ /^([a-zA-Z0-9\/\*_\-]+)/) {
+        $modules .= "$1 ";
+    }
+}
+
+if (! -f "$initramfsdir/$initramfsdefault") {
+    die "Could not locate the Warewulf CPIO archive at: $initramfsdir/$initramfsdefault!\n";
 }
 
 # Check for depmod option for map files
@@ -75,30 +93,42 @@ if ($rpm) {
             my $kversion_safe = $1;
             &dprint("creating temporary directory at: $tmpdir\n");
             mkpath($tmpdir);
-            &iprint("Extracting the kernel modules\n");
+            &nprint("Extracting the kernel modules\n");
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
-
-### FIXME: "Capabilities" need to be package up... possibly in CPIO, not left in a dir
-### FIXME: structure for RPM to require dependencies for.
             foreach my $module ($config->get("capabilities")) {
-                my $path = &wwpath("initramfsdir") . "/" . $module;
-                if (-d $path) {
-                    &iprint("Including module: $module\n");
-                    system("cd $path; cp -rap . $tmpdir/");
-                } else {
-                    &dprint("Defined module not found: $module\n");
+                if ($module =~ /^([a-zA-Z0-9\.\_]+)$/) {
+                    $module = $1;
+                    my $file = "$initramfsdir/$module";
+                    if (-f $file) {
+                        &nprint("Including module: $module\n");
+                        system("cd $tmpdir; cpio -i -u --quiet < $file");
+                    } else {
+                        &dprint("Defined module not found: $module\n");
+                    }
                 }
             }
-            my $tmpinitramfs = "/tftpboot/wwinitramfs-$kversion_safe";
-            system("cp $wwinitramfs $tmpinitramfs");
+            my $tmpinitramfs = "$tftpboot/wwinitramfs-$kversion_safe";
+            system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
+            &nprint("Finding and cleaning duplicate files\n");
+            open(LIST, "cpio -it --quiet < $tmpinitramfs |");
+            while(my $file = <LIST>) {
+                chomp($file);
+                if (-f "$tmpdir/$file") {
+                    dprint "Removing redundant file: $file\n";
+                    if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
+                        unlink("$tmpdir/$1");
+                    }
+                }
+            }
+            close LIST;
             system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
-            &iprint("Compressing the initramfs\n");
+            &nprint("Compressing the initramfs\n");
             system("gzip -f -9 $tmpinitramfs");
             system("rm -rf $tmpdir/*");
-            &iprint("Extracting the kernel object\n");
+            &nprint("Extracting the kernel object\n");
             system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
-            system("cp $tmpdir/boot/vmlinuz-* /tftpboot/");
+            system("cp $tmpdir/boot/vmlinuz-* $tftpboot/");
             system("rm -rf $tmpdir");
         }
     }

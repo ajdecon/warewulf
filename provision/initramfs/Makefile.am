@@ -55,7 +55,7 @@ initramfs.cpio: rootfs
 
 install: install-recursive initramfs.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 initramfs.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/initramfs.cpio
+	install -m 644 initramfs.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/base
 
 clean:
 	rm -rf _work
