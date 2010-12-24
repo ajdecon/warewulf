@@ -15,6 +15,7 @@ use Warewulf::Logger;
 use Warewulf::Config;
 use Warewulf::Object::Node;
 use Warewulf::Object::Vnfs;
+use Warewulf::Object::Ethernet;
 use DBI;
 
 =head1 NAME
@@ -48,6 +49,8 @@ new($$)
         return(Warewulf::Object::Node->new(@_));
     } elsif ($type eq "VNFS") {
         return(Warewulf::Object::Vnfs->new(@_));
+    } elsif ($type eq "ETHERNET") {
+        return(Warewulf::Object::Ethernet->new(@_));
     } else {
         &eprint("Unknown object Type: $type\n");
         exit 1;
