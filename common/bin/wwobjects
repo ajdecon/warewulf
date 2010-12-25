@@ -14,6 +14,7 @@ use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::ObjectFactory;
 use Getopt::Long;
+use File::Basename;
 
 &set_log_level("NOTICE");
 
@@ -27,7 +28,9 @@ my @opt_add;
 my @opt_del;
 my $opt_type;
 my $opt_obj_delete;
+my $opt_help;
 my $opt_lookup = "name";
+my $progname = basename($0);
 
 GetOptions(
     'n|new'         => \$opt_new,
@@ -37,15 +40,41 @@ GetOptions(
     'd|del=s'       => \@opt_del,
     'l|lookup=s'    => \$opt_lookup,
     'DELETE'        => \$opt_obj_delete,
+    'h|help'        => \$opt_help,
 );
 
 if (! @opt_print) {
-    push(@opt_print, "type", "id", "name");
+    push(@opt_print, "name");
 } else {
     @opt_print = split(",", join(",", @opt_print));
 }
 
-$opt_type = shift(@ARGV);
+if ($progname eq "wwobjects") {
+    $opt_type = shift(@ARGV);
+    if ($opt_help) {
+        print "USAGE: $0 [options] object_type [criteria...]\n\n";
+    }
+} else {
+    if ($progname =~ /^ww(.+?)s?$/) {
+        $opt_type = $1;
+    }
+    if ($opt_help) {
+        print "USAGE: $0 [options] [criteria...]\n\n";
+    }
+}
+if ($opt_help) {
+    print "   -l, --lookup      Value to lookup or create object by (DEF: name)\n";
+    print "   -n, --new         Create a new object\n";
+    print "   -p, --print       Print datastore fields for each object found\n";
+    print "   -s, --set         Set datastore fields for each object (multiple allowed)\n";
+    print "   -a, --add         Add/append datastore fields for each object (multiple allowed)\n";
+    print "   -d, --del         Delete datastore fields for each object (multiple allowed)\n";
+    print "       --DELETE      Delete found objects from the datastore completly\n";
+    print "\n";
+    exit;
+}
+
+
 
 if ($opt_new) {
 
@@ -72,11 +101,13 @@ if ($opt_new) {
 
     $objectSet = $db->get_objects($opt_type, $opt_lookup, @ARGV);
     
-    if ($objectSet) {
+    my @objList = $objectSet->get_list();
+
+    if (@objList) {
 
         if (@opt_set) {
 
-            foreach my $obj ($objectSet->get_list()) {
+            foreach my $obj (@objList) {
                 foreach my $setstring (@opt_set) {
                     my ($key, $val) = split(/=/, $setstring);
                     $obj->set($key, split(",", $val));
@@ -86,7 +117,7 @@ if ($opt_new) {
 
         } elsif (@opt_add) {
 
-            foreach my $obj ($objectSet->get_list()) {
+            foreach my $obj (@objList) {
                 foreach my $setstring (@opt_add) {
                     my ($key, $val) = split(/=/, $setstring);
                     $obj->add($key, split(",", $val));
@@ -96,7 +127,7 @@ if ($opt_new) {
 
         } elsif (@opt_del) {
 
-            foreach my $obj ($objectSet->get_list()) {
+            foreach my $obj (@objList) {
                 foreach my $setstring (@opt_del) {
                     my ($key, $val) = split(/=/, $setstring);
                     if ($val) {
@@ -114,35 +145,31 @@ if ($opt_new) {
 
         } else {
 
-            my @objList = $objectSet->get_list();
-
-            if (@objList) {
-                foreach my $o ($objectSet->get_list()) {
-                    my @values;
-                    if (@opt_print and $opt_print[0] eq "all") {
-                        my %hash = $o->get_hash();
-                        my $id = $o->get("id");
-                        foreach my $h (keys %hash) {
-                            if(ref($hash{$h}) =~ /^ARRAY/) {
-                                print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
-                            } else {
-                                print "$id: $h=$hash{$h}\n";
-                            }
+            foreach my $o ($objectSet->get_list()) {
+                my @values;
+                if (@opt_print and $opt_print[0] eq "all") {
+                    my %hash = $o->get_hash();
+                    my $id = $o->get("id");
+                    foreach my $h (keys %hash) {
+                        if(ref($hash{$h}) =~ /^ARRAY/) {
+                            print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
+                        } else {
+                            print "$id: $h=$hash{$h}\n";
                         }
-                    } else {
-                        foreach my $g (@opt_print) {
-                            if(ref($o->get($g)) =~ /^ARRAY/) {
-                                push(@values, join(",", $o->get($g)));
-                            } else {
-                                push(@values, $o->get($g) || "[undef]");
-                            }
-                        }
-                        print join(": ", @values) ."\n";
                     }
+                } else {
+                    foreach my $g (@opt_print) {
+                        if(ref($o->get($g)) =~ /^ARRAY/) {
+                            push(@values, join(",", $o->get($g)));
+                        } else {
+                            push(@values, $o->get($g) || "[undef]");
+                        }
+                    }
+                    print join(": ", @values) ."\n";
                 }
-            } else {
-                &nprint("No objects found.\n");
             }
         }
+    } else {
+        &nprint("No objects found.\n");
     }
 }
