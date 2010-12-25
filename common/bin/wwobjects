@@ -75,6 +75,11 @@ if ($opt_help) {
 }
 
 
+if (!$opt_type) {
+    eprint("Want type of object do you want?\n");
+    exit;
+}
+
 
 if ($opt_new) {
 
