@@ -205,6 +205,7 @@ persist($$)
             dprint("Not adding lookup entries\n");
         }
     }
+    return(scalar(@objlist));
 }
 
 
@@ -240,6 +241,8 @@ del_object($$)
             $sth->execute($id);
         }
     }
+
+    return(scalar(@objlist));
 }
 
 =item add_lookup($entity, $type, $field, $value)
