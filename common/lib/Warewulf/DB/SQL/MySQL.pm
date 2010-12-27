@@ -82,18 +82,22 @@ new()
     } else {
         %{$singleton} = ();
 
-        &dprint("DATABASE NAME:      $db_name\n");
-        &dprint("DATABASE SERVER:    $db_server\n");
-        &dprint("DATABASE USER:      $db_user\n");
+        if ($db_name and $db_server and $db_user) {
+            &dprint("DATABASE NAME:      $db_name\n");
+            &dprint("DATABASE SERVER:    $db_server\n");
+            &dprint("DATABASE USER:      $db_user\n");
 
-        $singleton->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-        if ( $singleton->{"DBH"}) {
-            &iprint("Successfully connected to database!\n");
+            $singleton->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
+            if ( $singleton->{"DBH"}) {
+                &iprint("Successfully connected to database!\n");
+            } else {
+                die "Could not connect to DB: $!!\n";
+            }
+
+            bless($singleton, $class);
         } else {
-            die "Could not connect to DB: $!!\n";
+            &eprint("Undefined credentials for database\n");
         }
-
-        bless($singleton, $class);
     }
 
     return $singleton;

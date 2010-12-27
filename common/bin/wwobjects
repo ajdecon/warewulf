@@ -76,7 +76,7 @@ if ($opt_help) {
 
 
 if (!$opt_type) {
-    eprint("Want type of object do you want?\n");
+    eprint("What type of object do you want?\n");
     exit;
 }
 
@@ -118,7 +118,9 @@ if ($opt_new) {
                     $obj->set($key, split(",", $val));
                 }
             }
-            $db->persist($objectSet);
+            my $count = $db->persist($objectSet);
+
+            print "Updated $count objects\n";
 
         } elsif (@opt_add) {
 
@@ -128,7 +130,9 @@ if ($opt_new) {
                     $obj->add($key, split(",", $val));
                 }
             }
-            $db->persist($objectSet);
+            my $count = $db->persist($objectSet);
+
+            print "Updated $count objects\n";
 
         } elsif (@opt_del) {
 
@@ -142,11 +146,15 @@ if ($opt_new) {
                     }
                 }
             }
-            $db->persist($objectSet);
+            my $count = $db->persist($objectSet);
+
+            print "Updated $count objects\n";
 
         } elsif ($opt_obj_delete) {
 
-            $db->del_object($objectSet);
+            my $count = $db->del_object($objectSet);
+
+            print "Deleted $count objects\n";
 
         } else {
 

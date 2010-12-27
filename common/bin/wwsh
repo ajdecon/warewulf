@@ -1,0 +1,86 @@
+#!/usr/bin/perl -Tw
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+
+use Warewulf::DB;
+use Warewulf::Config;
+use Warewulf::Logger;
+use Warewulf::ModuleLoader;
+use Getopt::Long;
+use Text::ParseWords;
+
+&set_log_level("NOTICE");
+
+Getopt::Long::Configure ("bundling", "pass_through");
+
+my $db = Warewulf::DB->new();
+
+GetOptions(
+);
+
+
+my $modules = Warewulf::ModuleLoader->new("Cli");
+
+foreach my $module ($modules->list()) {
+    $module->datastore($db);
+}
+
+
+sub
+run_cmd()
+{
+    my ($keyword, @ARGS) = &quotewords('\s+', 0, @_);
+    my $run_modules = 0;
+
+    if ($keyword) {
+        foreach my $module ($modules->list($keyword)) {
+            if ($module->can("exec")) {
+                $run_modules++;
+                $module->exec($keyword, @ARGS);
+            } else {
+                &iprint("Warewulf module '$keyword' does not support exec()\n");
+            }
+        }
+    }
+    &dprint("Command executed by $run_modules modules\n");
+}
+
+if ( @ARGV) {
+    &run_cmd(@ARGV);
+} elsif ( -t STDIN && -t STDOUT ) {
+    while(1) {
+        print("Warewulf> ");
+        my $line = <STDIN>;
+        if (!$line) {
+            last;
+        }
+        chomp($line);
+        &run_cmd($line);
+    }
+
+    print "\n";
+} else {
+    warn "Running noninteractively\n";
+    while(my $line = <STDIN>) {
+        chomp($line);
+        &run_cmd($line);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+

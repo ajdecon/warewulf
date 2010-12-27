@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: UI.pm 99 2010-12-15 08:47:10Z mej $
+# $Id: Cli.pm 99 2010-12-15 08:47:10Z mej $
 #
 
-package Warewulf::Module::UI;
+package Warewulf::Module::Cli;
 
 use Warewulf::Logger;
 use Warewulf::Module;
@@ -18,11 +18,11 @@ our @ISA = ('Warewulf::Module');
 
 =head1 NAME
 
-Warewulf::Module::UI - 
+Warewulf::Module::Cli - 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Module::UI;
+    use Warewulf::Module::Cli;
 
 =head1 DESCRIPTION
 
@@ -53,7 +53,7 @@ sub help() {};
 What happens when this module gets called by a command
 
 =cut
-sub command() {};
+sub exec() {};
 
 
 =head1 SEE ALSO

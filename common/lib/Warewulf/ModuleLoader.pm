@@ -45,26 +45,47 @@ new($)
 
     bless($self, $class);
 
+    if (exists($ENV{"WWMODPATH"})) {
+        if ($ENV{"WWMODPATH"} =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+            push(@INC, $1);
+            &dprint("WWMODPATH: Adding $1 to \@INC\n");
+        } else {
+            &eprint("WWMODPATH is tainted!\n");
+        }
+    }
+
     if (!exists($self->{"MODULES"})) {
-        foreach my $path (@INC, $ENV{WWMODPATH}) {
-            dprint("Module load path: $path\n");
-            foreach my $file (glob("$path/Warewulf/Module/$type/*.pm")) {
-                my ($name, $tmp, $keyword);
+        foreach my $path (@INC) {
+            if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
+                &dprint("Module load path: $path\n");
+                foreach my $file (glob("$path/Warewulf/Module/$type/*.pm")) {
+                    if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+                        my $file_clean = $1;
+                        my ($name, $tmp, $keyword);
 
-                dprint("Module load file: $file\n");
-                eval "require '$file'";
+                        &dprint("Module load file: $file_clean\n");
+                        eval "require '$file_clean'";
+                        if ($@) {
+                            &wprint("Caught error on module load: $@\n");
+                        }
 
-                $name = "Warewulf::Module::". $type ."::". basename($file);
-                $name =~ s/\.pm$//;
+                        $name = "Warewulf::Module::". $type ."::". basename($file_clean);
+                        $name =~ s/\.pm$//;
 
 
-                $tmp = eval "$name->new()";
-                if ($tmp) {
-                    push(@{$self->{"MODULES"}}, $tmp);
-                    dprint("Module load success: Added module $name\n");
-                } else {
-                    dprint("Module load error: Could not invoke $name->new()\n");
+                        $tmp = eval "$name->new()";
+                        if ($tmp) {
+                            push(@{$self->{"MODULES"}}, $tmp);
+                            &dprint("Module load success: Added module $name\n");
+                        } else {
+                            &dprint("Module load error: Could not invoke $name->new(): $@\n");
+                        }
+                    } else {
+                        &wprint("Module has invalid characters '$file'\n");
+                    }
                 }
+            } else {
+                &eprint("\@INC path '$path' is invalid!\n");
             }
         }
     }
@@ -84,16 +105,20 @@ list($$)
     my @ret;
 
     if ($keyword) {
-        dprint("Module list: looking for keyword: $keyword\n");
-        foreach my $obj (@{$self->{"MODULES"}}) {
-            if ($obj->keyword($keyword)) {
-                dprint("Found object: $obj\n");
-                push(@ret, $obj);
+        &dprint("Module list: looking for keyword: $keyword\n");
+        if (exists($self->{"MODULES"})) {
+            foreach my $obj (@{$self->{"MODULES"}}) {
+                if ($obj->keyword($keyword)) {
+                    &dprint("Found object: $obj\n");
+                    push(@ret, $obj);
+                }
             }
         }
     } else {
-        dprint("Returning all modules\n");
-        @ret = @{$self->{"MODULES"}};
+        &dprint("Returning all modules\n");
+        if (exists($self->{"MODULES"})) {
+            @ret = @{$self->{"MODULES"}};
+        }
     }
 
     return(@ret);

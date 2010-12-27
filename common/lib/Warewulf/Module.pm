@@ -10,9 +10,10 @@
 
 package Warewulf::Module;
 
+use Warewulf::Object;
 use Warewulf::Logger;
 
-our @ISA = ('Object');
+our @ISA = ('Warewulf::Object');
 
 
 =head1 NAME
@@ -79,10 +80,11 @@ datastore()
     my $datastore = shift;
 
     if ($datastore) {
-        $self->set("datastore", $datastore);
+        &dprint("Setting datastore for: ". ref($self) .": $datastore\n");
+        $self->{"datastore"} = $datastore;
     }
 
-    return($datastore);
+    return($self->{"datastore"});
 }
 
 
