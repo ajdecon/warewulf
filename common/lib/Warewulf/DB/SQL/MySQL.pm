@@ -193,13 +193,14 @@ persist($$)
         $sth->execute($id);
 
         if ($o->can("lookups")) {
+            my @add_lookups;
             foreach my $l ($o->lookups) {
                 foreach my $value ($o->get($l)) {
-                    #dprint("Adding lookup entrie for: $l:$value\n");
-                    my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES (?,?,?)");
-                    $sth->execute(uc($l), $value || "[undef]", $id);
+                    push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "[undef]") .",". $self->{"DBH"}->quote($id) .")");
                 }
             }
+            my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
+            $sth->execute();
         } else {
             dprint("Not adding lookup entries\n");
         }
