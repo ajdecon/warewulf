@@ -25,9 +25,110 @@ new()
     return $self;
 }
 
+sub
+keyword() {
+    my $self = shift;
+    my $keyword = shift;
+
+    if ($keyword =~ /^(node|vnfs)$/) {
+        return(1);
+    }
+    return();
+}
+
 
 sub
 exec()
+{
+    my $self = shift;
+    my $keyword = shift;
+    my $opt_type;
+    my @opt_print;
+    my @opt_set;
+    my $opt_lookup = "name";
+    my $db = $self->datastore();
+
+    @ARGV = @_;
+
+    GetOptions(
+        'l|lookup=s'    => \$opt_lookup,
+        'p|print=s'     => \@opt_print,
+        's|set=s'       => \@opt_set,
+    );
+
+    $opt_action = shift(@ARGV);
+
+    if (! $db) {
+        &eprint("Database object not avaialble!\n");
+    }
+
+    if (! @opt_print) {
+        push(@opt_print, "name");
+    } else {
+        @opt_print = split(",", join(",", @opt_print));
+    }
+
+    if ($keyword =~ /^(node|vnfs)$/) {
+
+        if ($opt_action eq "new" or $opt_action eq "add") {
+
+            foreach my $string (@ARGV) {
+                my $obj;
+                &dprint("Adding new '$opt_type' object\n");
+                $obj = Warewulf::ObjectFactory->new($opt_type);
+
+                $obj->set($opt_lookup, $string);
+                foreach my $setstring (@opt_set) {
+                    my ($key, $val) = split(/=/, $setstring);
+                    &dprint("Setting $key=$val\n");
+                    $obj->set($key, $val);
+                }
+
+                $db->persist($obj);
+            }
+        } else {
+            my $objectSet;
+
+            $objectSet = $db->get_objects($keyword, $opt_lookup, @ARGV);
+
+            my @objList = $objectSet->get_list();
+
+            if ($opt_action eq "pr" or $opt_action eq "print") {
+
+                foreach my $o (@objList) {
+                    my @values;
+                    if (@opt_print and $opt_print[0] eq "all") {
+                        my %hash = $o->get_hash();
+                        my $id = $o->get("id");
+                        foreach my $h (keys %hash) {
+                            if(ref($hash{$h}) =~ /^ARRAY/) {
+                                print "$id: $h=". join(",", @{$hash{$h}}) ."\n";
+                            } else {
+                                print "$id: $h=$hash{$h}\n";
+                            }
+                        }
+                    } else {
+                        foreach my $g (@opt_print) {
+                            if(ref($o->get($g)) =~ /^ARRAY/) {
+                                push(@values, join(",", $o->get($g)));
+                            } else {
+                                push(@values, $o->get($g) || "[undef]");
+                            }
+                        }
+                        print join(": ", @values) ."\n";
+                    }
+                }
+
+            }
+        }
+    }
+
+    return;
+}
+
+
+sub
+exec1()
 {
     my $self = shift;
     my $keyword = shift;
