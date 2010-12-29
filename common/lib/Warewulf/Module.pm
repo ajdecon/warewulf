@@ -49,14 +49,28 @@ keyword()
 {
     my $self = shift;
     my $test = shift;
-    my $keyword = ref($self);
-    $keyword =~ s/^.+:://;
 
-    if (lc($keyword) eq lc($test)) {
+    if ($self->keywords() eq lc($test)) {
         return(1);
     }
 
     return();
+}
+
+=item keywords()
+
+Prints the keywords that this module will respond for. This is useful for
+tab completion among other wwsh features.
+
+=cut
+sub
+keywords()
+{
+    my $self = shift;
+    my $keyword = ref($self);
+    $keyword =~ s/^.+:://;
+
+    return(lc($keyword));
 }
 
 =item init()

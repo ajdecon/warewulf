@@ -14,13 +14,23 @@ use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::ModuleLoader;
 use Getopt::Long;
-use Text::ParseWords;
+use Term::ReadLine;
+use File::Path;
 
-&set_log_level("NOTICE");
+&set_log_level("DEBUG");
 
 Getopt::Long::Configure ("bundling", "pass_through");
 
 my $db = Warewulf::DB->new();
+my @keywords;
+
+
+if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
+    my $home = $1;
+    if (! -d "$home/.wwsh") {
+        mkpath("$home/.wwsh");
+    }
+}
 
 GetOptions(
 );
@@ -30,49 +40,159 @@ my $modules = Warewulf::ModuleLoader->new("Cli");
 
 foreach my $module ($modules->list()) {
     $module->datastore($db);
+    push(@keywords, $module->keywords());
 }
 
+# Make sure all keywords are unique
+my %keyword_hash = map { $_, 1 } @keywords;
+@keywords = sort keys %keyword_hash;
 
 sub
 run_cmd()
 {
-    my ($keyword, @ARGS) = &quotewords('\s+', 0, @_);
-    my $run_modules = 0;
+    my $command = shift;
+    if ($command) {
+        my ($keyword, @ARGS) = split(/\s+/, $command);
+        my $run_modules = 0;
 
-    if ($keyword) {
-        foreach my $module ($modules->list($keyword)) {
-            if ($module->can("exec")) {
-                $run_modules++;
-                $module->exec($keyword, @ARGS);
+        &dprint("Running: $keyword: @ARGS\n");
+
+        if ($keyword) {
+            foreach my $module ($modules->list($keyword)) {
+                if ($module->can("exec")) {
+                    $run_modules++;
+                    $module->exec($keyword, @ARGS);
+                } else {
+                    &iprint("Warewulf module '$keyword' does not support exec()\n");
+                }
+            }
+        }
+        &dprint("Command executed by $run_modules modules\n");
+    }
+}
+
+
+# Will deal with this later....
+sub
+completion_function()
+{
+    my ($text, $line, $start) = @_;
+
+    if ($start == 0) {
+        return(@keywords);
+    }
+
+}
+
+
+if ( @ARGV) {
+    if(-x $ARGV[0]) {
+        open(FILE, $ARGV[0]);
+        while(my $line = <FILE>) {
+            chomp($line);
+            &run_cmd($line);
+        }
+        close FILE;
+    } else {
+        &run_cmd(join(" ", @ARGV));
+    }
+} elsif ( -t STDIN && -t STDOUT ) {
+    my $term = Term::ReadLine->new("WarewulfConsole");
+    my $attribs = $term->Attribs;
+    my $prompt = "Warewulf> ";
+    my %set;
+
+    $term->ornaments(0);
+    $term->MinLine(undef);
+
+    $attribs->{completion_function} = \&completion_function;
+    $term->ReadHistory("$ENV{HOME}/.wwsh/history");
+
+    while ( defined ($_ = $term->readline((exists($set{"CMD"}) ? "Warewulf > $set{CMD}: " : "Warewulf> "))) ) {
+        chomp;
+        if ($_ =~ /^([^=^ ]+)=(.+)$/) {
+            my $key = uc($1);
+            my $val = $2;
+            if ($key and $val) {
+                $set{"$key"} = $val;
+                &dprint("WWSH SET: $key = $val\n");
             } else {
-                &iprint("Warewulf module '$keyword' does not support exec()\n");
+                &eprint("Both key and value must be defined\n");
+            }
+        } elsif ($_ =~ /^unset (.+)$/) {
+            my $key = uc($1);
+            if (exists($set{"$key"})) {
+                delete($set{"$key"});
+            }
+        } elsif ($_ eq "..") {
+            if (exists($set{"CMD"})) {
+                delete($set{"CMD"});
+            }
+        } else {
+            my $key;
+            if ($_) {
+                ($key) = split(/\s+/, $_, 0);
+                if (! exists($keyword_hash{"$key"}) and exists($set{"CMD"})) {
+                    $_ = join(" ", $set{"CMD"}, $_);
+                }
+            } elsif (exists($set{"CMD"})) {
+                $_ = $set{"CMD"};
+            }
+
+            if ($_) {
+                ($key) = split(/\s+/, $_, 0);
+                $term->AddHistory($_);
+                if (exists($keyword_hash{"$key"})) {
+                    &run_cmd($_);
+                } else {
+                    &eprint("Unknown command\n");
+                }
+            }
+        }
+
+        next;
+        if ($_) {
+            my ($key) = split(/\s+/, $_, 0);
+            if ($_ =~ /([^=]+)=(.+)$/) {
+                my $key = uc($1);
+                my $val = $2;
+                if ($key and $val) {
+                    $set{"$key"} = $val;
+                    &dprint("WWSH SET: $key = $val\n");
+                } else {
+                    &eprint("Both key and value must be defined\n");
+                }
+            } elsif ($_ =~ /^unset (.+)$/) {
+                my $key = uc($1);
+                if (exists($set{"$key"})) {
+                    delete($set{"$key"});
+                }
+            } elsif ($_ eq "..") {
+                if (exists($set{"CMD"})) {
+                    delete($set{"CMD"});
+                }
+            } elsif (exists($keyword_hash{"$key"})) {
+                &run_cmd($_);
+                $term->AddHistory($_);
+#            } elsif (exists($set{"CMD"})) {
+#                &run_cmd("$set{CMD} $_");
+#                $term->AddHistory("$set{CMD} $_");
+            } else {
+                &eprint("Unknown command\n");
             }
         }
     }
-    &dprint("Command executed by $run_modules modules\n");
-}
 
-if ( @ARGV) {
-    &run_cmd(@ARGV);
-} elsif ( -t STDIN && -t STDOUT ) {
-    while(1) {
-        print("Warewulf> ");
-        my $line = <STDIN>;
-        if (!$line) {
-            last;
-        }
-        chomp($line);
-        &run_cmd($line);
-    }
+    $term->StifleHistory(1000);
+    $term->WriteHistory("$ENV{HOME}/.wwsh/history");
 
     print "\n";
 } else {
-    warn "Running noninteractively\n";
+    &iprint("Running noninteractively\n");
     while(my $line = <STDIN>) {
         chomp($line);
         &run_cmd($line);
     }
-
 }
 
 

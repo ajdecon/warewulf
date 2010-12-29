@@ -42,6 +42,7 @@ new($)
     my $type = shift;
     my $class = ref($proto) || $proto;
     my $self = {};
+    my %loaded;
 
     bless($self, $class);
 
@@ -63,22 +64,27 @@ new($)
                         my $file_clean = $1;
                         my ($name, $tmp, $keyword);
 
-                        &dprint("Module load file: $file_clean\n");
-                        eval "require '$file_clean'";
-                        if ($@) {
-                            &wprint("Caught error on module load: $@\n");
-                        }
-
                         $name = "Warewulf::Module::". $type ."::". basename($file_clean);
                         $name =~ s/\.pm$//;
 
+                        if (! exists($loaded{"$name"})) {
+                            &dprint("Module load file: $file_clean\n");
+                            eval "require '$file_clean'";
+                            if ($@) {
+                                &wprint("Caught error on module load: $@\n");
+                            }
 
-                        $tmp = eval "$name->new()";
-                        if ($tmp) {
-                            push(@{$self->{"MODULES"}}, $tmp);
-                            &dprint("Module load success: Added module $name\n");
+
+                            $tmp = eval "$name->new()";
+                            if ($tmp) {
+                                push(@{$self->{"MODULES"}}, $tmp);
+                                &dprint("Module load success: Added module $name\n");
+                                $loaded{"$name"} = $file;
+                            } else {
+                                &dprint("Module load error: Could not invoke $name->new(): $@\n");
+                            }
                         } else {
-                            &dprint("Module load error: Could not invoke $name->new(): $@\n");
+                            &iprint("Module $name ($loaded{$name}) already loaded\n");
                         }
                     } else {
                         &wprint("Module has invalid characters '$file'\n");
