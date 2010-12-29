@@ -17,6 +17,27 @@ use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
 
+
+
+######################################################################
+# Initilization
+
+my $modules = Warewulf::ModuleLoader->new("Cli");
+my $db = Warewulf::DB->new();
+my @keywords;
+
+foreach my $module ($modules->list()) {
+    $module->datastore($db);
+    push(@keywords, $module->keywords());
+}
+
+# Make sure all keywords are unique
+my %keyword_hash = map { $_, 1 } @keywords;
+@keywords = sort keys %keyword_hash;
+
+######################################################################
+# Functions
+
 sub
 run_cmd()
 {
@@ -54,12 +75,12 @@ completion_function()
 
 }
 
+######################################################################
+# Do stuff here
+
 &set_log_level("DEBUG");
 
 Getopt::Long::Configure ("bundling", "pass_through");
-
-my $db = Warewulf::DB->new();
-my @keywords;
 
 
 if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
@@ -73,28 +94,16 @@ GetOptions(
 );
 
 
-my $modules = Warewulf::ModuleLoader->new("Cli");
-
-foreach my $module ($modules->list()) {
-    $module->datastore($db);
-    push(@keywords, $module->keywords());
-}
-
-# Make sure all keywords are unique
-my %keyword_hash = map { $_, 1 } @keywords;
-@keywords = sort keys %keyword_hash;
 
 if ( -t STDIN && -t STDOUT ) {
     my $term = Term::ReadLine->new("WarewulfConsole");
     my $attribs = $term->Attribs;
-    my $prompt = "Warewulf> ";
     my %set;
 
     $term->ornaments(0);
     $term->MinLine(undef);
-
-    $attribs->{completion_function} = \&completion_function;
     $term->ReadHistory("$ENV{HOME}/.wwsh/history");
+    $attribs->{completion_function} = \&completion_function;
 
     while ( defined ($_ = $term->readline((exists($set{"CMD"}) ? "Warewulf > $set{CMD}: " : "Warewulf> "))) ) {
         chomp;
@@ -135,38 +144,6 @@ if ( -t STDIN && -t STDOUT ) {
                 } else {
                     &eprint("Unknown command\n");
                 }
-            }
-        }
-
-        next;
-        if ($_) {
-            my ($key) = split(/\s+/, $_, 0);
-            if ($_ =~ /([^=]+)=(.+)$/) {
-                my $key = uc($1);
-                my $val = $2;
-                if ($key and $val) {
-                    $set{"$key"} = $val;
-                    &dprint("WWSH SET: $key = $val\n");
-                } else {
-                    &eprint("Both key and value must be defined\n");
-                }
-            } elsif ($_ =~ /^unset (.+)$/) {
-                my $key = uc($1);
-                if (exists($set{"$key"})) {
-                    delete($set{"$key"});
-                }
-            } elsif ($_ eq "..") {
-                if (exists($set{"CMD"})) {
-                    delete($set{"CMD"});
-                }
-            } elsif (exists($keyword_hash{"$key"})) {
-                &run_cmd($_);
-                $term->AddHistory($_);
-#            } elsif (exists($set{"CMD"})) {
-#                &run_cmd("$set{CMD} $_");
-#                $term->AddHistory("$set{CMD} $_");
-            } else {
-                &eprint("Unknown command\n");
             }
         }
     }
