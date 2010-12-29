@@ -17,36 +17,6 @@ use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
 
-&set_log_level("DEBUG");
-
-Getopt::Long::Configure ("bundling", "pass_through");
-
-my $db = Warewulf::DB->new();
-my @keywords;
-
-
-if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
-    my $home = $1;
-    if (! -d "$home/.wwsh") {
-        mkpath("$home/.wwsh");
-    }
-}
-
-GetOptions(
-);
-
-
-my $modules = Warewulf::ModuleLoader->new("Cli");
-
-foreach my $module ($modules->list()) {
-    $module->datastore($db);
-    push(@keywords, $module->keywords());
-}
-
-# Make sure all keywords are unique
-my %keyword_hash = map { $_, 1 } @keywords;
-@keywords = sort keys %keyword_hash;
-
 sub
 run_cmd()
 {
@@ -84,19 +54,37 @@ completion_function()
 
 }
 
+&set_log_level("DEBUG");
 
-if ( @ARGV) {
-    if(-x $ARGV[0]) {
-        open(FILE, $ARGV[0]);
-        while(my $line = <FILE>) {
-            chomp($line);
-            &run_cmd($line);
-        }
-        close FILE;
-    } else {
-        &run_cmd(join(" ", @ARGV));
+Getopt::Long::Configure ("bundling", "pass_through");
+
+my $db = Warewulf::DB->new();
+my @keywords;
+
+
+if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
+    my $home = $1;
+    if (! -d "$home/.wwsh") {
+        mkpath("$home/.wwsh");
     }
-} elsif ( -t STDIN && -t STDOUT ) {
+}
+
+GetOptions(
+);
+
+
+my $modules = Warewulf::ModuleLoader->new("Cli");
+
+foreach my $module ($modules->list()) {
+    $module->datastore($db);
+    push(@keywords, $module->keywords());
+}
+
+# Make sure all keywords are unique
+my %keyword_hash = map { $_, 1 } @keywords;
+@keywords = sort keys %keyword_hash;
+
+if ( -t STDIN && -t STDOUT ) {
     my $term = Term::ReadLine->new("WarewulfConsole");
     my $attribs = $term->Attribs;
     my $prompt = "Warewulf> ";
@@ -188,9 +176,11 @@ if ( @ARGV) {
 
     print "\n";
 } else {
-    &iprint("Running noninteractively\n");
-    while(my $line = <STDIN>) {
-        chomp($line);
+    &iprint("Running non-interactively\n");
+    while (<>) {
+        my $line;
+
+        chomp($line = $_);
         &run_cmd($line);
     }
 }
