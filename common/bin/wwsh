@@ -24,19 +24,21 @@ my %keyword_hash;
 sub
 run_cmd()
 {
-    my $command = shift;
+    my ($command, @ARGS) = @_;
 
     if ($command) {
-        my ($keyword, @ARGS) = split(/\s+/, $command);
+        my ($keyword, @arg) = split(/\s+/, $command, 2);
         my $run_modules = 0;
 
-        &dprint("Running: $keyword: @ARGS\n");
+        push(@arg, @ARGS);
+
+        &dprint("Running: $keyword: ". join("|", @ARGS) ."\n");
 
         if ($keyword) {
             foreach my $module ($modules->list($keyword)) {
                 if ($module->can("exec")) {
                     $run_modules++;
-                    $module->exec($keyword, @ARGS);
+                    $module->exec($keyword, @arg);
                 } else {
                     &iprint("Warewulf module '$keyword' does not support exec()\n");
                 }
@@ -73,7 +75,7 @@ foreach my $module ($modules->list()) {
 %keyword_hash = map { $_, 1 } @keywords;
 @keywords = sort keys %keyword_hash;
 
-&set_log_level("DEBUG");
+&set_log_level("NOTICE");
 
 Getopt::Long::Configure ("bundling", "pass_through");
 
@@ -85,12 +87,33 @@ if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
     }
 }
 
+my $opt_debug;
+my $opt_verbose;
+
 GetOptions(
+    'd|debug'       => \$opt_debug,
+    'v|verbose'     => \$opt_verbose,
 );
 
 
+if ($opt_debug) {
+    &set_log_level("DEBUG");
+} elsif ($opt_verbose) {
+    &set_log_level("INFO");
+}
 
-if ( -t STDIN && -t STDOUT ) {
+
+if (exists($ARGV[0]) and -x $ARGV[0]) {
+    &iprint("Running non-interactively from directly passed argument\n");
+    open(INPUT, $ARGV[0]);
+    while(my $line = <INPUT>) {
+        chomp($line);
+
+        &run_cmd($line);
+    }
+} elsif (@ARGV) {
+    &run_cmd(@ARGV);
+} elsif ( -t STDIN && -t STDOUT ) {
     my $term = Term::ReadLine->new("WarewulfConsole");
     my $attribs = $term->Attribs;
     my %set;
@@ -156,13 +179,5 @@ if ( -t STDIN && -t STDOUT ) {
         &run_cmd($line);
     }
 }
-
-
-
-
-
-
-
-
 
 

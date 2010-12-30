@@ -50,16 +50,17 @@ exec()
     my $self = shift;
     my $opt_type = shift;
     my $opt_new;
-    my @opt_print;
     my @opt_set;
     my @opt_add;
     my @opt_del;
     my $opt_obj_delete;
     my $opt_help;
     my $opt_lookup = "name";
+    my @opt_print;
     my $db = $self->datastore();
 
-    @ARGV = @_;
+    @ARGV = &quotewords('\s+', 1, shift);
+    push(@ARGV, @_);
 
     GetOptions(
         'n|new'         => \$opt_new,
@@ -108,7 +109,7 @@ exec()
     } else {
         my $objectSet;
 
-        $objectSet = $db->get_objects($opt_type, $opt_lookup, &quotewords('\s+', 0, @ARGV));
+        $objectSet = $db->get_objects($opt_type, $opt_lookup, &quotewords('\s+', 1, @ARGV));
 
         my @objList = $objectSet->get_list();
 
@@ -116,32 +117,34 @@ exec()
 
             if (@opt_set) {
 
-                foreach my $obj (@objList) {
                     foreach my $setstring (@opt_set) {
 
-                        my $key;
-                        my $val;
-                        ($key, $val) = &quotewords('\+=', 0, $setstring);
-                        if ($key and $val) {
+                    if ($setstring =~ /^(.+?)\s*\+=\s*(.+)$/) {
+                        my $key = $1;
+                        my $val = $2;
+                        foreach my $obj (@objList) {
                             &dprint("Set: adding $val to $key\n");
                             $obj->add($key, split(",", $val));
-                        } else {
-                            ($key, $val) = &quotewords('\-=', 0, $setstring);
-                            if ($key and $val) {
-                                &dprint("Set: deleting $val from $key\n");
-                                $obj->del($key, split(",", $val));
-                            } else {
-                                ($key, $val) = &quotewords('=', 0, $setstring);
-                                if ($key and $val) {
-                                    &dprint("Set: setting $key to $val\n");
-                                    $obj->set($key, split(",", $val));
-                                } elsif ($key) {
-                                    $obj->del($key);
-                                } else {
-                                    &eprint("What do you want me to do?\n");
-                                }
-                            }
                         }
+                        push(@opt_print, $key);
+                    } elsif ($setstring =~ /^(.+?)\s*\-=\s*(.+)$/) {
+                        my $key = $1;
+                        my $val = $2;
+                        foreach my $obj (@objList) {
+                            &dprint("Set: deleting $val from $key\n");
+                            $obj->del($key, split(",", $val));
+                        }
+                        push(@opt_print, $key);
+                    } elsif ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
+                        my $key = $1;
+                        my $val = $2;
+                        foreach my $obj (@objList) {
+                            &dprint("Set: setting $key to $val\n");
+                            $obj->set($key, split(",", $val));
+                        }
+                        push(@opt_print, $key);
+                    } else {
+                        &eprint("Invalid syntax on set command\n");
                     }
                 }
                 my $count = $db->persist($objectSet);
@@ -185,8 +188,13 @@ exec()
 
                 print "Deleted $count objects\n";
 
-            } else {
+            }
 
+            if (@opt_print) {
+
+                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne "all") {
+                    printf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
+                }
                 foreach my $o ($objectSet->get_list()) {
                     my @values;
                     if (@opt_print and $opt_print[0] eq "all") {
@@ -194,9 +202,11 @@ exec()
                         my $id = $o->get("id");
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
-                                print "$id: $h=\"". join(",", @{$hash{$h}}) ."\"\n";
+#                                print "$id: $h=\"". join(",", @{$hash{$h}}) ."\"\n";
+                                printf("%8s: %-10s = %s\n", $id, $h, join(",", @{$hash{$h}}));
                             } else {
-                                print "$id: $h=\"$hash{$h}\"\n";
+#                                print "$id: $h=\"$hash{$h}\"\n";
+                                printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
                             }
                         }
                     } else {
@@ -207,7 +217,7 @@ exec()
                                 push(@values, $o->get($g) || "[undef]");
                             }
                         }
-                        print join(", ", @values) ."\n";
+                        printf("%-20s " x (scalar @values) ."\n", @values);
                     }
                 }
             }
