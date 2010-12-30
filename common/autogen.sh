@@ -3,8 +3,8 @@
 set -x
 libtoolize -f -c
 aclocal
-autoheader
 autoconf
+autoheader
 automake -ca -Wno-portability
 
 if [ -z "$NO_CONFIGURE" ]; then

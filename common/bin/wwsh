@@ -17,31 +17,15 @@ use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
 
-
-
-######################################################################
-# Initilization
-
-my $modules = Warewulf::ModuleLoader->new("Cli");
-my $db = Warewulf::DB->new();
+my ($modules, $db);
 my @keywords;
-
-foreach my $module ($modules->list()) {
-    $module->datastore($db);
-    push(@keywords, $module->keywords());
-}
-
-# Make sure all keywords are unique
-my %keyword_hash = map { $_, 1 } @keywords;
-@keywords = sort keys %keyword_hash;
-
-######################################################################
-# Functions
+my %keyword_hash;
 
 sub
 run_cmd()
 {
     my $command = shift;
+
     if ($command) {
         my ($keyword, @ARGS) = split(/\s+/, $command);
         my $run_modules = 0;
@@ -76,7 +60,18 @@ completion_function()
 }
 
 ######################################################################
-# Do stuff here
+
+$modules = Warewulf::ModuleLoader->new("Cli");
+$db = Warewulf::DB->new();
+
+foreach my $module ($modules->list()) {
+    $module->datastore($db);
+    push(@keywords, $module->keywords());
+}
+
+# Make sure all keywords are unique
+%keyword_hash = map { $_, 1 } @keywords;
+@keywords = sort keys %keyword_hash;
 
 &set_log_level("DEBUG");
 

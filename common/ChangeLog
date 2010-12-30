@@ -87,3 +87,7 @@ Wed Dec 29 02:13:32 2010                        Michael Jennings (mej)
 
 Use magic filehandle syntax <> if stdin isn't a tty.
 ----------------------------------------------------------------------
+Wed Dec 29 19:39:49 2010                        Michael Jennings (mej)
+
+Rearrange.  Tested, works fine.
+----------------------------------------------------------------------
