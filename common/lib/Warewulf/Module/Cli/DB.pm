@@ -59,7 +59,10 @@ exec()
     my @opt_print;
     my $db = $self->datastore();
 
-    @ARGV = &quotewords('\s+', 1, shift);
+    if (my $first_string = shift) {
+        # Sometimes all arguments are passed as a single scalar
+        @ARGV = &quotewords('\s+', 1, $first_string);
+    }
     push(@ARGV, @_);
 
     GetOptions(
