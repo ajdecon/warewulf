@@ -84,7 +84,20 @@ exec()
         &eprint("Error on opt_type=$opt_type\n");
     }
 
-    if (! @opt_print) {
+    if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
+        my %modifiers;
+        my @mod_print;
+        @opt_print = ("name");
+        foreach my $setstring (@opt_set, @opt_add, @opt_del) {
+            if ($setstring =~ /^(.+?)\s*([\+\-=]+)\s*(.+)$/) {
+                if (!exists($modifiers{"$1"})) {
+                    push(@mod_print, $1);
+                    $modifiers{"$1"} = 1;
+                }
+            }
+        }
+        push(@opt_print, @mod_print);
+    } elsif (scalar(@opt_print) == 0) {
         push(@opt_print, "name");
     } else {
         @opt_print = split(",", join(",", @opt_print));
@@ -117,82 +130,6 @@ exec()
         my @objList = $objectSet->get_list();
 
         if (@objList) {
-
-            if (@opt_set) {
-
-                    foreach my $setstring (@opt_set) {
-
-                    if ($setstring =~ /^(.+?)\s*\+=\s*(.+)$/) {
-                        my $key = $1;
-                        my $val = $2;
-                        foreach my $obj (@objList) {
-                            &dprint("Set: adding $val to $key\n");
-                            $obj->add($key, split(",", $val));
-                        }
-                        push(@opt_print, $key);
-                    } elsif ($setstring =~ /^(.+?)\s*\-=\s*(.+)$/) {
-                        my $key = $1;
-                        my $val = $2;
-                        foreach my $obj (@objList) {
-                            &dprint("Set: deleting $val from $key\n");
-                            $obj->del($key, split(",", $val));
-                        }
-                        push(@opt_print, $key);
-                    } elsif ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
-                        my $key = $1;
-                        my $val = $2;
-                        foreach my $obj (@objList) {
-                            &dprint("Set: setting $key to $val\n");
-                            $obj->set($key, split(",", $val));
-                        }
-                        push(@opt_print, $key);
-                    } else {
-                        &eprint("Invalid syntax on set command\n");
-                    }
-                }
-                my $count = $db->persist($objectSet);
-
-                print "Updated $count objects\n";
-
-            } elsif (@opt_add) {
-
-                foreach my $obj (@objList) {
-                    foreach my $setstring (@opt_add) {
-                        my ($key, $val) = &quotewords('=', 0, $setstring);
-                        &dprint("Set: adding $val to $key\n");
-                        $obj->add($key, split(",", $val));
-                    }
-                }
-                my $count = $db->persist($objectSet);
-
-                print "Updated $count objects\n";
-
-            } elsif (@opt_del) {
-
-                foreach my $obj (@objList) {
-                    foreach my $setstring (@opt_del) {
-                        my ($key, $val) = &quotewords('=', 0, $setstring);
-                        if ($val) {
-                            &dprint("Set: deleting $val from $key\n");
-                            $obj->del($key, $val);
-                        } else {
-                            &dprint("Set: deleting $key\n");
-                            $obj->del($key);
-                        }
-                    }
-                }
-                my $count = $db->persist($objectSet);
-
-                print "Updated $count objects\n";
-
-            } elsif ($opt_obj_delete) {
-
-                my $count = $db->del_object($objectSet);
-
-                print "Deleted $count objects\n";
-
-            }
-
             if (@opt_print) {
 
                 if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne "all") {
@@ -205,17 +142,15 @@ exec()
                         my $id = $o->get("id");
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
-#                                print "$id: $h=\"". join(",", @{$hash{$h}}) ."\"\n";
-                                printf("%8s: %-10s = %s\n", $id, $h, join(",", @{$hash{$h}}));
+                                printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
                             } else {
-#                                print "$id: $h=\"$hash{$h}\"\n";
                                 printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
                             }
                         }
                     } else {
                         foreach my $g (@opt_print) {
                             if(ref($o->get($g)) =~ /^ARRAY/) {
-                                push(@values, join(",", $o->get($g)));
+                                push(@values, join(",", sort $o->get($g)));
                             } else {
                                 push(@values, $o->get($g) || "[undef]");
                             }
@@ -224,10 +159,138 @@ exec()
                     }
                 }
             }
+
+            if ($opt_obj_delete) {
+
+                my $count = $db->del_object($objectSet);
+
+                print "Deleted $count objects\n";
+
+            } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
+
+                my $persist_bool;
+
+                print("\nAre you sure you wish to make the following changes:\n\n");
+                foreach my $setstring (@opt_set) {
+                    if ($setstring =~ /^(.+?)\s*([\+\-=]+)\s*(.+)$/) {
+                        my $set = $1;
+                        my $oper = $2;
+                        my $vals = $3;
+                        foreach my $val (split(",", $vals)) {
+                            if ($oper eq "+=") {
+                                push(@opt_add, "$set=$val");
+                            } elsif ($oper eq "-=") {
+                                push(@opt_del, "$set=$val");
+                            } elsif ($oper eq "=") {
+                                printf(" set: %10s = %s\n", $set, $val);
+                            }
+                        }
+                    }
+                }
+                foreach my $setstring (@opt_add) {
+                   if ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
+                       printf(" add: %10s %2s %s\n", $1, "=", $2);
+                    }
+                }
+                foreach my $setstring (@opt_del) {
+                   if ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
+                       printf(" del: %10s %2s %s\n", $1, "=", $2);
+                    }
+                }
+
+                print("\nyes/no> ");
+                chomp (my $yesno = <STDIN>);
+
+                if (! $yesno or $yesno ne "yes") {
+                    return();
+                }
+
+                if (@opt_set) {
+
+                    foreach my $setstring (@opt_set) {
+                        if ($setstring =~ /^(.+?)\s*\+=\s*(.+)$/) {
+                            my $key = $1;
+                            my $val = $2;
+                            foreach my $obj (@objList) {
+                                &dprint("Set: adding $val to $key\n");
+                                $obj->add($key, split(",", $val));
+                                $persist_bool = 1;
+                            }
+                            push(@opt_print, $key);
+                        } elsif ($setstring =~ /^(.+?)\s*\-=\s*(.+)$/) {
+                            my $key = $1;
+                            my $val = $2;
+                            foreach my $obj (@objList) {
+                                &dprint("Set: deleting $val from $key\n");
+                                $obj->del($key, split(",", $val));
+                                $persist_bool = 1;
+                            }
+                            push(@opt_print, $key);
+                        } elsif ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
+                            my $key = $1;
+                            my $val = $2;
+                            foreach my $obj (@objList) {
+                                &dprint("Set: setting $key to $val\n");
+                                $obj->set($key, split(",", $val));
+                                $persist_bool = 1;
+                            }
+                            push(@opt_print, $key);
+                        } else {
+                            &eprint("Invalid syntax on set command\n");
+                        }
+                    }
+
+                    $persist_bool = 1;
+
+                }
+                if (@opt_add) {
+
+                    foreach my $obj (@objList) {
+                        foreach my $setstring (@opt_add) {
+                            my ($key, $val) = &quotewords('=', 0, $setstring);
+                            &dprint("Set: adding $val to $key\n");
+                            $obj->add($key, split(",", $val));
+                            $persist_bool = 1;
+                        }
+                    }
+
+                    $persist_bool = 1;
+
+                }
+                if (@opt_del) {
+
+                    foreach my $obj (@objList) {
+                        foreach my $setstring (@opt_del) {
+                            my ($key, $val) = &quotewords('=', 0, $setstring);
+                            if ($val) {
+                                &dprint("Set: deleting $val from $key\n");
+                                $obj->del($key, $val);
+                                $persist_bool = 1;
+                            } else {
+                                &dprint("Set: deleting $key\n");
+                                $obj->del($key);
+                                $persist_bool = 1;
+                            }
+                        }
+                    }
+
+                }
+
+                if ($persist_bool) {
+                    my $count = $db->persist($objectSet);
+
+                    print "Updated $count objects\n";
+                }
+
+            }
+
         } else {
             &nprint("No objects found.\n");
         }
     }
+
+    # We are done with ARGV, and it was internally modified, so lets reset
+    @ARGV = ();
 
 }
 
