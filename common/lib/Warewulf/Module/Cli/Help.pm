@@ -41,8 +41,8 @@ exec()
         if (exists($keywords{"$target"})) {
             foreach my $module_name (sort keys %{$keywords{"$target"}}) {
                 if (exists($keywords{"$target"}{"$module_name"})) {
-                    print "   $module_name\n";
-                    print $keywords{"$target"}{"$module_name"};
+                    &iprint("   $module_name\n");
+                    &nprint($keywords{"$target"}{"$module_name"});
                 }
             }
         }
@@ -56,11 +56,11 @@ exec()
         print $summary;
 
         foreach my $key (sort keys %keywords) {
-            print "$key\n";
+            print "   $key\n";
             foreach my $module_name (sort keys %{$keywords{"$key"}}) {
                 if (exists($keywords{"$key"}{"$module_name"})) {
-                    print "   $module_name\n";
-                    print $keywords{"$key"}{"$module_name"};
+                    &iprint("     $module_name\n");
+                    &nprint($keywords{"$key"}{"$module_name"});
                 }
             }
         }
