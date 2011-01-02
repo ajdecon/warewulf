@@ -5,12 +5,13 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Cli.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: Term.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Cli;
+package Warewulf::Term;
 
 use Warewulf::Object;
+use Warewulf::Logger;
 use File::Basename;
 use File::Path;
 use Term::ReadLine;
@@ -20,16 +21,16 @@ my $singleton;
 
 =head1 NAME
 
-Warewulf::Cli - Warewulf's general object instance object interface.
+Warewulf::Term - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Cli;
+    use Warewulf::Term;
 
-    my $obj = Warewulf::Cli->new();
+    my $obj = Warewulf::Term->new();
 
 
 =head1 METHODS
@@ -53,9 +54,12 @@ new($$)
     if (! $singleton) {
         $singleton = {};
         $singleton->{"TERM"} = Term::ReadLine->new("Warewulf");
+        $singleton->{"ATTRIBS"} = $singleton->{"TERM"}->Attribs;
 
         $singleton->{"TERM"}->ornaments(0);
         $singleton->{"TERM"}->MinLine(undef);
+
+        $singleton->{"ATTRIBS"}->{completion_function} = \&auto_complete;
 
         bless($singleton, $class);
     }
@@ -97,7 +101,11 @@ sub
 history_save()
 {
     my ($self, $file) = @_;
-    my $dir = dirname($file);
+    my $dir;
+    
+    if ($file) {
+        $dir = dirname($file);
+    }
 
     if (exists($self->{"TERM"})) {
         $self->{"TERM"}->StifleHistory(1000);
@@ -133,26 +141,6 @@ history_add($)
     return($set);
 }
 
-
-=item complete($keyword, $funcref)
-
-Pass a keyword and a function reference to be called on tab completion
-
-=cut
-sub
-complete()
-{
-    my ($self, $keyword, $func) = @_;
-    my $attribs = $self->{"TERM"}->Attribs;
-
-    $attribs->{completion_function} = \&auto_complete;
-
-    if ($keyword) {
-        push(@{$self->{"COMPLETE"}{"$keyword"}}, $func || undef);
-    }
-}
-
-
 =item auto_complete()
 
 auto_complete internal static function
@@ -165,11 +153,14 @@ auto_complete()
     my $self = $singleton;
     my @ret;
 
-    if ($line =~ /^\s*([^ ]+)\s+/) {
+
+    if (exists($self->{"ARRAY"})) {
+        push(@ret, @{$self->{"ARRAY"}});
+    } elsif ($line =~ /^\s*([^ ]+)\s+/) {
         my $keyword = $1;
         if (exists($self->{"COMPLETE"}{"$keyword"})) {
             foreach my $ref (@{$self->{"COMPLETE"}{"$keyword"}}) {
-                push(@ret, &$ref("$keyword"));
+                push(@ret, $ref->complete("$line"));
             }
         }
     } elsif (exists($self->{"COMPLETE"})) {
@@ -180,6 +171,25 @@ auto_complete()
 
     return(@ret);
 }
+
+
+=item complete($keyword, $objecthandler)
+
+Pass a keyword and an object handler to be called on tab completion
+
+=cut
+sub
+complete()
+{
+    my ($self, $keyword, $object) = @_;
+
+    &dprint("Adding keyword '$keyword' to complete\n");
+
+    if ($keyword and $object) {
+        push(@{$self->{"COMPLETE"}{"$keyword"}}, $object);
+    }
+}
+
 
 
 =item interactive()
@@ -209,20 +219,26 @@ the first entry will be considered the default.
 sub
 get_input($)
 {
-    my ($self, $prompt, $completions) = @_;
+    my ($self, $prompt, @completions) = @_;
     my $attribs = $self->{"TERM"}->Attribs;
     my $ret;
 
-    $attribs->{completion_entry_function} = $attribs->{list_completion_function};
-    $attribs->{completion_word} = $completions;
 
+    if (@completions) {
+        @{$self->{"ARRAY"}} = @completions;
+    }
     $ret = $self->{"TERM"}->readline($prompt);
+    if (@completions) {
+        delete($self->{"ARRAY"});
+    }
 
-    $attribs->{completion_entry_function} = undef;
-    $attribs->{completion_word} = undef;
+    if (! $ret and exists($completions[0])) {
+        $ret = $completions[0];
+    }
 
-    if (! $ret and exists($completions->[0])) {
-        $ret = $completions->[0];
+    if ($ret) {
+        $ret =~ s/^\s+//;
+        $ret =~ s/\s+$//;
     }
 
     return($ret);
@@ -230,7 +246,7 @@ get_input($)
 
 
 ## Initial tests
-#my $obj = Warewulf::Cli->new();
+#my $obj = Warewulf::Term->new();
 #
 #$obj->history_add("Hello World");
 #my $out = $obj->get_input("Hello World: ", ["yes", "no", "hello"]);

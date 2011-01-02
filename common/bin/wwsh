@@ -9,15 +9,16 @@
 
 
 
+use Warewulf::Logger;
+use Warewulf::Term;
 use Warewulf::DB;
 use Warewulf::Config;
-use Warewulf::Logger;
 use Warewulf::ModuleLoader;
 use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
 
-my ($modules, $db);
+my ($modules, $db, $term);
 my @keywords;
 my %keyword_hash;
 
@@ -49,26 +50,34 @@ run_cmd()
 }
 
 
-# Will deal with this later....
-sub
-completion_function()
-{
-    my ($text, $line, $start) = @_;
+######################################################################
 
-    if ($start == 0) {
-        return(@keywords);
-    }
+my $opt_debug;
+my $opt_verbose;
 
+GetOptions(
+    'd|debug'       => \$opt_debug,
+    'v|verbose'     => \$opt_verbose,
+);
+
+
+if ($opt_debug) {
+    &set_log_level("DEBUG");
+} elsif ($opt_verbose) {
+    &set_log_level("INFO");
 }
 
-######################################################################
 
 $modules = Warewulf::ModuleLoader->new("Cli");
 $db = Warewulf::DB->new();
+$term = Warewulf::Term->new();
 
 foreach my $module ($modules->list()) {
-    $module->datastore($db);
-    push(@keywords, $module->keywords());
+    my @keys = $module->keywords();
+    push(@keywords, @keys);
+    foreach my $key (@keys) {
+        $term->complete($key, $module);
+    }
 }
 
 # Make sure all keywords are unique
@@ -87,22 +96,6 @@ if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
     }
 }
 
-my $opt_debug;
-my $opt_verbose;
-
-GetOptions(
-    'd|debug'       => \$opt_debug,
-    'v|verbose'     => \$opt_verbose,
-);
-
-
-if ($opt_debug) {
-    &set_log_level("DEBUG");
-} elsif ($opt_verbose) {
-    &set_log_level("INFO");
-}
-
-
 if (exists($ARGV[0]) and -x $ARGV[0]) {
     &iprint("Running non-interactively from directly passed argument\n");
     open(INPUT, $ARGV[0]);
@@ -113,17 +106,10 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
     }
 } elsif (@ARGV) {
     &run_cmd(@ARGV);
-} elsif ( -t STDIN && -t STDOUT ) {
-    my $term = Term::ReadLine->new("WarewulfConsole");
-    my $attribs = $term->Attribs;
-    my %set;
+} elsif ($term->interactive()) {
+    $term->history_load("$ENV{HOME}/.wwsh/history");
 
-    $term->ornaments(0);
-    $term->MinLine(undef);
-    $term->ReadHistory("$ENV{HOME}/.wwsh/history");
-    $attribs->{completion_function} = \&completion_function;
-
-    while ( defined ($_ = $term->readline((exists($set{"CMD"}) ? "Warewulf > $set{CMD}: " : "Warewulf> "))) ) {
+    while ( defined ($_ = $term->get_input((exists($set{"CMD"}) ? "Warewulf > $set{CMD}: " : "Warewulf> ")))) {
         chomp;
         if ($_ =~ /^([^=^ ]+)=(.+)$/) {
             my $key = uc($1);
@@ -156,7 +142,7 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
 
             if ($_) {
                 ($key) = split(/\s+/, $_, 0);
-                $term->AddHistory($_);
+                $term->history_add($_);
                 if (exists($keyword_hash{"$key"})) {
                     &run_cmd($_);
                 } else {
@@ -166,9 +152,7 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
         }
     }
 
-    $term->StifleHistory(1000);
-    $term->WriteHistory("$ENV{HOME}/.wwsh/history");
-
+    $term->history_save();
     print "\n";
 } else {
     &iprint("Running non-interactively\n");

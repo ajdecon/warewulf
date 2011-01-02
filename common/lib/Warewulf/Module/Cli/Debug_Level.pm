@@ -33,5 +33,33 @@ exec()
 }
 
 
+sub
+complete()
+{
+    my ($self, $keyword) = @_;
+
+    if ($keyword =~ /^debug_level /) {
+        return("notice", "info", "debug");
+    }
+
+}
+
+sub
+help()
+{
+    my ($self) = @_;
+    my $output;
+
+    $output .= "        This will set the default debugging/logging level for this shell. Valid\n";
+    $output .= "        options include:\n";
+    $output .= "\n";
+    $output .= "            notice:     Only show normal usage messages\n";
+    $output .= "            info:       Display increased verbosity\n";
+    $output .= "            debug:      Debugging output\n";
+    $output .= "\n";
+
+    return($output);
+}
+
 
 1;

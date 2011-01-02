@@ -81,27 +81,6 @@ Initialization when this module gets called
 sub init() { };
 
 
-=item datastore()
-
-Pass the datastore module into the Module object and be able to retrieve it
-easily.
-
-=cut
-sub
-datastore()
-{
-    my $self = shift;
-    my $datastore = shift;
-
-    if ($datastore) {
-        &dprint("Setting datastore for: ". ref($self) .": $datastore\n");
-        $self->{"datastore"} = $datastore;
-    }
-
-    return($self->{"datastore"});
-}
-
-
 =head1 SEE ALSO
 
 Warewulf::Module::Cli, Warewulf::Module::Trigger

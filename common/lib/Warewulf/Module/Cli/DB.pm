@@ -6,6 +6,8 @@ package Warewulf::Module::Cli::DB;
 
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
+use Warewulf::Term;
+use Warewulf::DB;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -43,6 +45,61 @@ keywords()
     return(qw(node vnfs));
 }
 
+sub
+complete()
+{
+    my ($self, $text) = @_;
+    my $opt_lookup = "name";
+    my $db = $self->datastore();
+    my $opt_type;
+    my $opt_null;
+    my @ret;
+
+    foreach (&quotewords('\s+', 0, $text)) {
+        if ($_) {
+            push(@ARGV, $_);
+        }
+    }
+
+    GetOptions(
+        'l|lookup=s'    => \$opt_lookup,
+        'n|new'         => \$opt_null,
+        'p|print=s'     => \@opt_null,
+        's|set=s'       => \@opt_null,
+        'a|add=s'       => \@opt_null,
+        'd|del=s'       => \@opt_null,
+        'DELETE'        => \$opt_null,
+        'h|help'        => \$opt_null,
+    );
+
+    if ($text =~ /^node /) {
+        $opt_type = "node";
+    } elsif ($text =~ /^vnfs /) {
+        $opt_type = "vnfs";
+    }
+
+    if ($opt_type and $opt_lookup) {
+        my $objectSet = $db->get_objects($opt_type);
+
+        my @objList = $objectSet->get_list();
+
+        foreach my $o (@objList) {
+            my $string = $o->get($opt_lookup);
+            if ($string) {
+                if (ref($string) =~ /^ARRAY/) {
+                    push(@ret, @{$string});
+                } else {
+                    push(@ret, $string);
+                }
+            }
+        }
+    }
+
+    @ARGV = ();
+
+    return(@ret);
+}
+
 
 sub
 exec()
@@ -57,7 +114,8 @@ exec()
     my $opt_help;
     my $opt_lookup = "name";
     my @opt_print;
-    my $db = $self->datastore();
+    my $db = Warewulf::DB->new();
+    my $term = Warewulf::Term->new();
 
     if (my $first_string = shift) {
         # Sometimes all arguments are passed as a single scalar
@@ -89,7 +147,7 @@ exec()
         my @mod_print;
         @opt_print = ("name");
         foreach my $setstring (@opt_set, @opt_add, @opt_del) {
-            if ($setstring =~ /^(.+?)\s*([\+\-=]+)\s*(.+)$/) {
+            if ($setstring =~ /^([^=]+)/) {
                 if (!exists($modifiers{"$1"})) {
                     push(@mod_print, $1);
                     $modifiers{"$1"} = 1;
@@ -170,107 +228,89 @@ exec()
 
                 my $persist_bool;
 
-                print("\nAre you sure you wish to make the following changes:\n\n");
+                if (scalar(@objList) eq 1) {
+                    print("\nAre you sure you wish to make the following changes to 1 node?\n\n");
+                } else {
+                    print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
+                }
                 foreach my $setstring (@opt_set) {
-                    if ($setstring =~ /^(.+?)\s*([\+\-=]+)\s*(.+)$/) {
-                        my $set = $1;
-                        my $oper = $2;
-                        my $vals = $3;
-                        foreach my $val (split(",", $vals)) {
-                            if ($oper eq "+=") {
-                                push(@opt_add, "$set=$val");
-                            } elsif ($oper eq "-=") {
-                                push(@opt_del, "$set=$val");
-                            } elsif ($oper eq "=") {
-                                printf(" set: %10s = %s\n", $set, $val);
-                            }
-                        }
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    foreach my $val (&quotewords(',', 0, $vals)) {
+                        printf(" set: %15s = %s\n", $key, $val);
                     }
                 }
                 foreach my $setstring (@opt_add) {
-                   if ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
-                       printf(" add: %10s %2s %s\n", $1, "=", $2);
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    foreach my $val (&quotewords(',', 0, $vals)) {
+                        printf(" add: %15s = %s\n", $key, $val);
                     }
                 }
                 foreach my $setstring (@opt_del) {
-                   if ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
-                       printf(" del: %10s %2s %s\n", $1, "=", $2);
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    if ($vals) {
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            printf(" delete: %12s = %s\n", $key, $val);
+                        }
+                    } else {
+                        printf(" undefine: %10s = [ALL]\n", $key);
                     }
                 }
 
-                print("\nyes/no> ");
-                chomp (my $yesno = <STDIN>);
+                my $yesno;
+                do {
+                    $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                } while (! $yesno);
 
-                if (! $yesno or $yesno ne "yes") {
+                if ($yesno ne "y" and $yesno ne "yes" ) {
+                    print "No update was performed\n";
                     return();
                 }
 
                 if (@opt_set) {
 
                     foreach my $setstring (@opt_set) {
-                        if ($setstring =~ /^(.+?)\s*\+=\s*(.+)$/) {
-                            my $key = $1;
-                            my $val = $2;
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            &dprint("Set: setting $key to $val\n");
                             foreach my $obj (@objList) {
-                                &dprint("Set: adding $val to $key\n");
-                                $obj->add($key, split(",", $val));
-                                $persist_bool = 1;
-                            }
-                            push(@opt_print, $key);
-                        } elsif ($setstring =~ /^(.+?)\s*\-=\s*(.+)$/) {
-                            my $key = $1;
-                            my $val = $2;
-                            foreach my $obj (@objList) {
-                                &dprint("Set: deleting $val from $key\n");
-                                $obj->del($key, split(",", $val));
-                                $persist_bool = 1;
-                            }
-                            push(@opt_print, $key);
-                        } elsif ($setstring =~ /^(.+?)\s*=\s*(.+)$/) {
-                            my $key = $1;
-                            my $val = $2;
-                            foreach my $obj (@objList) {
-                                &dprint("Set: setting $key to $val\n");
                                 $obj->set($key, split(",", $val));
-                                $persist_bool = 1;
                             }
-                            push(@opt_print, $key);
-                        } else {
-                            &eprint("Invalid syntax on set command\n");
+                            $persist_bool = 1;
                         }
                     }
-
-                    $persist_bool = 1;
-
                 }
                 if (@opt_add) {
 
-                    foreach my $obj (@objList) {
-                        foreach my $setstring (@opt_add) {
-                            my ($key, $val) = &quotewords('=', 0, $setstring);
-                            &dprint("Set: adding $val to $key\n");
-                            $obj->add($key, split(",", $val));
+                    foreach my $setstring (@opt_add) {
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            &dprint("Set: adding $key to $val\n");
+                            foreach my $obj (@objList) {
+                                $obj->add($key, split(",", $val));
+                            }
                             $persist_bool = 1;
                         }
                     }
 
-                    $persist_bool = 1;
-
                 }
                 if (@opt_del) {
 
-                    foreach my $obj (@objList) {
-                        foreach my $setstring (@opt_del) {
-                            my ($key, $val) = &quotewords('=', 0, $setstring);
-                            if ($val) {
+                    foreach my $setstring (@opt_del) {
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        if ($key and $vals) {
+                            foreach my $val (&quotewords(',', 0, $vals)) {
                                 &dprint("Set: deleting $val from $key\n");
-                                $obj->del($key, $val);
-                                $persist_bool = 1;
-                            } else {
-                                &dprint("Set: deleting $key\n");
-                                $obj->del($key);
+                                foreach my $obj (@objList) {
+                                    $obj->del($key, split(",", $val));
+                                }
                                 $persist_bool = 1;
                             }
+                        } elsif ($key) {
+                            &dprint("Set: deleting $key\n");
+                            foreach my $obj (@objList) {
+                                $obj->del($key);
+                            }
+                            $persist_bool = 1;
                         }
                     }
 

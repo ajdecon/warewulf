@@ -74,7 +74,6 @@ new($)
                                 &wprint("Caught error on module load: $@\n");
                             }
 
-
                             $tmp = eval "$name->new()";
                             if ($tmp) {
                                 push(@{$self->{"MODULES"}}, $tmp);

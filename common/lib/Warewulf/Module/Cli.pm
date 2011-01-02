@@ -56,6 +56,14 @@ What happens when this module gets called by a command
 sub exec() {};
 
 
+=item complete()
+
+What to do when this module gets called for autocompletion
+
+=cut
+sub complete() {};
+
+
 =head1 SEE ALSO
 
 Warewulf, Warewulf::Module
