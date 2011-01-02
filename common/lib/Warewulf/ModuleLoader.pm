@@ -79,10 +79,10 @@ new($)
                                 &dprint("Module load success: Added module $name\n");
                                 $loaded{"$name"} = $file;
                             } else {
-                                &dprint("Module load error: Could not invoke $name->new(): $@\n");
+                                &wprint("Module load error: Could not invoke $name->new(): $@\n");
                             }
                         } else {
-                            &iprint("Module $name ($loaded{$name}) already loaded\n");
+                            &dprint("Module $name ($loaded{$name}) already loaded\n");
                         }
                     } else {
                         &wprint("Module has invalid characters '$file'\n");
