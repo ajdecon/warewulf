@@ -33,7 +33,7 @@ keyword() {
     my $self = shift;
     my $keyword = shift;
 
-    if ($keyword =~ /^(node|vnfs)$/) {
+    if ($keyword =~ /^(node|vnfs|search)$/) {
         return(1);
     }
     return();
@@ -42,7 +42,7 @@ keyword() {
 sub
 keywords()
 {
-    return(qw(node vnfs));
+    return(qw(node vnfs search));
 }
 
 sub
@@ -53,9 +53,36 @@ help()
 
     if ($keyword eq "node") {
         $output .= "        Hello nodes...\n";
+        $output .= "           Usage options:\n";
+        $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
+        $output .= "            -n, --new              Create a new object with the given name.\n";
+        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
+        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
+        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
+        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
+        $output .= "                --DELETE           Delete an entire object\n";
     } elsif ($keyword eq "vnfs") {
         $output .= "        Hello vnfs...\n";
+        $output .= "           Usage options:\n";
+        $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
+        $output .= "            -n, --new              Create a new object with the given name.\n";
+        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
+        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
+        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
+        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
+        $output .= "                --DELETE           Delete an entire object\n";
+    } elsif ($keyword eq "search") {
+        $output .= "        The search option will find all datastore entries in the lookup table.\n";
+        $output .= "           Usage options:\n";
+        $output .= "            -t, --type             Limit the return of objects to this type\n";
+        $output .= "            -l, --lookup           Lookup objects using a given string type (default: all)\n";
+        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
+        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
+        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
+        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
+        $output .= "                --DELETE           Delete an entire object\n";
     }
+
 
     return($output);
 }
@@ -64,8 +91,8 @@ sub
 complete()
 {
     my ($self, $text) = @_;
-    my $opt_lookup = "name";
-    my $db = $self->datastore();
+    my $opt_lookup;
+    my $db = Warewulf::DB->new();
     my $opt_type;
     my $opt_null;
     my @ret;
@@ -85,15 +112,26 @@ complete()
         'd|del=s'       => \@opt_null,
         'DELETE'        => \$opt_null,
         'h|help'        => \$opt_null,
+        't|type=s'      => \$opt_type,
     );
 
     if ($text =~ /^node /) {
+        if (! $opt_lookup) {
+            push(@opt_lookup, "name");
+        }
         $opt_type = "node";
     } elsif ($text =~ /^vnfs /) {
+        if (! $opt_lookup) {
+            push(@opt_lookup, "name");
+        }
         $opt_type = "vnfs";
+    } elsif ($text =~ /^search /) {
+        return($db->get_lookups($opt_type, $opt_lookup));
+    } else {
+        return;
     }
 
-    if ($opt_type and $opt_lookup) {
+    if ($opt_lookup) {
         my $objectSet = $db->get_objects($opt_type);
 
         my @objList = $objectSet->get_list();
@@ -120,11 +158,12 @@ sub
 exec()
 {
     my $self = shift;
-    my $opt_type = shift;
+    my $keyword = shift;
     my $db = Warewulf::DB->new();
     my $term = Warewulf::Term->new();
-    my $opt_lookup = "name";
+    my $opt_lookup;
     my $opt_new;
+    my $opt_type;
     my @opt_set;
     my @opt_add;
     my @opt_del;
@@ -145,14 +184,11 @@ exec()
         'l|lookup=s'    => \$opt_lookup,
         'DELETE'        => \$opt_obj_delete,
         'h|help'        => \$opt_help,
+        't|type=s'      => \$opt_type,
     );
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
-    }
-
-    if (! $opt_type) {
-        &eprint("Error on opt_type=$opt_type\n");
     }
 
     if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
@@ -171,26 +207,37 @@ exec()
             push(@opt_print, @mod_print);
         }
     } elsif (scalar(@opt_print) == 0) {
-        push(@opt_print, "name");
+        if ($keyword eq "search") {
+            push(@opt_print, "name", "type");
+        } else {
+            if (!$opt_lookup) {
+                push(@opt_lookup, "name");
+            }
+            push(@opt_print, "name");
+        }
     } else {
         @opt_print = split(",", join(",", @opt_print));
     }
 
     if ($opt_new) {
 
-        if ($opt_type) {
+        if ($keyword) {
+            if ($keyword eq "search") {
 
-            foreach my $string (@ARGV) {
-                my $obj;
-                $obj = Warewulf::ObjectFactory->new($opt_type);
+                foreach my $string (@ARGV) {
+                    my $obj;
+                    $obj = Warewulf::ObjectFactory->new($keyword);
+    
+                    $obj->set($opt_lookup, $string);
+                    foreach my $setstring (@opt_set) {
+                        my ($key, $val) = split(/=/, $setstring);
+                        $obj->set($key, $val);
+                    }
 
-                $obj->set($opt_lookup, $string);
-                foreach my $setstring (@opt_set) {
-                    my ($key, $val) = split(/=/, $setstring);
-                    $obj->set($key, $val);
+                    $db->persist($obj);
                 }
-
-                $db->persist($obj);
+            } else {
+                &eprint("Invalid usage\n");
             }
         } else {
             &eprint("You must provide a type of object to add\n");
@@ -198,19 +245,23 @@ exec()
     } else {
         my $objectSet;
 
-        $objectSet = $db->get_objects($opt_type, $opt_lookup, &quotewords('\s+', 1, @ARGV));
+        if ($keyword eq "search") {
+            $objectSet = $db->get_objects($opt_type, undef, &quotewords('\s+', 1, @ARGV));
+        } else {
+            $objectSet = $db->get_objects($keyword, $opt_lookup, &quotewords('\s+', 1, @ARGV));
+        }
 
         my @objList = $objectSet->get_list();
 
         if (@objList) {
             if (@opt_print) {
 
-                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne "[all]") {
+                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
                     &nprintf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
                 }
                 foreach my $o ($objectSet->get_list()) {
                     my @values;
-                    if (@opt_print and $opt_print[0] eq "[all]") {
+                    if (@opt_print and $opt_print[0] eq ":all") {
                         my %hash = $o->get_hash();
                         my $id = $o->get("id");
                         my $name = $o->get("name");
