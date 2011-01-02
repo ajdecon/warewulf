@@ -115,15 +115,21 @@ get_objects($$$@)
     my $field = shift;
     my @strings = @_;
     my $objectSet;
-
-    if (! $type) {
-        eprint("Not sure how to get an object without a type\n");
-        return;
-    }
+    my @query_opts;
 
     $objectSet = Warewulf::ObjectSet->new();
 
     my $sql_query;
+
+    if ($type) {
+        push(@query_opts, "datastore.type = ". $self->{"DBH"}->quote($type));
+    }
+    if ($field) {
+        push(@query_opts, "lookup.field = ". $self->{"DBH"}->quote(uc($field)));
+    }
+    if (@strings) {
+        push(@query_opts, "lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings). ")");
+    }
 
     $sql_query  = "SELECT ";
     $sql_query .= "datastore.id AS id, ";
@@ -131,10 +137,8 @@ get_objects($$$@)
     $sql_query .= "datastore.serialized AS serialized ";
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
-    $sql_query .= "WHERE datastore.type = ". $self->{"DBH"}->quote($type) ." ";
-    if ($field and @strings) {
-        $sql_query .= "AND lookup.field = ". $self->{"DBH"}->quote(uc($field)) ." ";
-        $sql_query .= "AND lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings) .") ";
+    if (@query_opts) {
+        $sql_query .= "WHERE ". join(" AND ", @query_opts) ." ";
     }
     $sql_query .= "GROUP BY datastore.id";
 
@@ -154,6 +158,57 @@ get_objects($$$@)
     }
 
     return($objectSet);
+}
+
+
+
+=item get_lookups($type, $field, $val1, $val2, $val3);
+
+=cut
+
+sub
+get_lookups($$$@)
+{
+    my $self = shift;
+    my $type = shift;
+    my $field = shift;
+    my @strings = @_;
+    my @query_opts;
+    my @ret;
+
+    my $sql_query;
+
+    if ($type) {
+        push(@query_opts, "datastore.type = ". $self->{"DBH"}->quote($type));
+    }
+    if ($field) {
+        push(@query_opts, "lookup.field = ". $self->{"DBH"}->quote(uc($field)));
+    }
+    if (@strings) {
+        push(@query_opts, "lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings). ")");
+    }
+
+    $sql_query  = "SELECT ";
+    $sql_query .= "lookup.value AS value ";
+    $sql_query .= "FROM lookup ";
+    $sql_query .= "LEFT JOIN datastore ON lookup.object_id = datastore.id ";
+    if (@query_opts) {
+        $sql_query .= "WHERE ". join(" AND ", @query_opts) ." ";
+    }
+    $sql_query .= "GROUP BY lookup.value";
+
+    dprint("$sql_query\n\n");
+
+    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth->execute();
+
+    while (my $h = $sth->fetchrow_hashref()) {
+        if (exists($h->{"value"})) {
+            push(@ret, $h->{"value"});
+        }
+    }
+
+    return(@ret);
 }
 
 
