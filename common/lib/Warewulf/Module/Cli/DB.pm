@@ -117,12 +117,12 @@ complete()
 
     if ($text =~ /^node /) {
         if (! $opt_lookup) {
-            push(@opt_lookup, "name");
+            $opt_lookup = "name";
         }
         $opt_type = "node";
     } elsif ($text =~ /^vnfs /) {
         if (! $opt_lookup) {
-            push(@opt_lookup, "name");
+            $opt_lookup = "name";
         }
         $opt_type = "vnfs";
     } elsif ($text =~ /^search /) {
