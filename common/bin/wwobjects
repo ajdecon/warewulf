@@ -15,10 +15,7 @@ use Warewulf::Logger;
 use Warewulf::ObjectFactory;
 use Getopt::Long;
 use File::Basename;
-
-&set_log_level("NOTICE");
-
-Getopt::Long::Configure ("bundling");
+use Data::Dumper;
 
 my $db = Warewulf::DB->new();
 my $opt_new;
@@ -31,6 +28,10 @@ my $opt_obj_delete;
 my $opt_help;
 my $opt_lookup = "name";
 my $progname = basename($0);
+
+&set_log_level("NOTICE");
+
+Getopt::Long::Configure ("bundling");
 
 GetOptions(
     'n|new'         => \$opt_new,
@@ -63,13 +64,13 @@ if ($progname eq "wwobjects") {
     }
 }
 if ($opt_help) {
-    print "   -l, --lookup      Value to lookup or create object by (DEF: name)\n";
-    print "   -n, --new         Create a new object\n";
-    print "   -p, --print       Print datastore fields for each object found\n";
-    print "   -s, --set         Set datastore fields for each object (multiple allowed)\n";
-    print "   -a, --add         Add/append datastore fields for each object (multiple allowed)\n";
-    print "   -d, --del         Delete datastore fields for each object (multiple allowed)\n";
-    print "       --DELETE      Delete found objects from the datastore completly\n";
+    print "   -l, --lookup <field>     Create/query by <field> (default:  name)\n";
+    print "   -n, --new                Create a new object\n";
+    print "   -p, --print <field>      List of fields to print (multiple allowed)\n";
+    print "   -s, --set <field>=<val>  Set fields for objects (multiple allowed)\n";
+    print "   -a, --add <field>=<val>  Add/append fields for objects (multiple allowed)\n";
+    print "   -d, --del <field>        Delete fields for objects (multiple allowed)\n";
+    print "       --DELETE             Delete matching objects completely\n";
     print "\n";
     exit;
 }
