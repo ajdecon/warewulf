@@ -84,33 +84,27 @@ order:
 (assumg that warewulf was built with --sysconfdir=/etc/)
 
 =cut
+
+my %file_data;
+
+
 sub
 new($$)
 {
-    my $proto               = shift;
-    my @files               = @_;
-    my $class               = ref($proto) || $proto;
-    my $self                = ();
-    my $main_config         = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/main.conf";
-    my $progname_config     = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/" . $Warewulf::Include::wwconfig{"PROGNAME"} . ".conf";
+    my ($proto, @files) = @_;
+    my $class = ref($proto) || $proto;
+    my $self = {};
 
-    %{$self} = ();
+    &dprint("Creating new object\n");
 
-    # Load up default configuration files
-    if ( ! grep($_ eq $main_config, @{$self->{"FILE"}}) ) {
-        push(@{$self->{"FILE"}}, $main_config);
-    }
-    if ( ! grep($_ eq $progname_config, @{$self->{"FILE"}}) ) {
-        push(@{$self->{"FILE"}}, $progname_config);
-    }
-
-    if ( @files ) {
-        push(@{$self->{"FILE"}}, @files);
+    foreach my $file (@files) {
+        my $path = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/" . $file;
+        $self->{"FILES"}{"$file"} = $path;
     }
 
     bless($self, $class);
 
-    $self->reread();
+    $self->read();
 
     return($self);
 }
@@ -121,29 +115,32 @@ This will cause the configuration files to be reread.
 
 =cut
 sub
-reread($)
+read($)
 {
-    my $self                = shift;
-    my @lines               = ();
-    my %hash                = ();
+    my ($self) = @_;
 
-    foreach my $file ( @{$self->{"FILE"}} ) {
-        dprint("Looking for config file: $file\n");
-        if ( -f $file ) {
-            iprint("Found and reading config file: $file\n");
-            open(FILE, $file);
-            while(my $line = <FILE>) {
-                chomp($line);
-                $line =~ s/#.*//;
-                if (! $line) {
-                    next;
-                }
-                my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                push(@{$self->{"DATA"}{"$key"}}, $value);
-            }
-            close FILE;
+    foreach my $file (keys %{$self->{"FILES"}}) {
+        my $path = $self->{"FILES"}{"$file"};
+        if (exists($file_data{"$path"})) {
+            &dprint("Using cached copy of file: $path\n");
         } else {
-            dprint("Config file not found: $file\n");
+            &iprint("Reading in file: $path\n");
+            if (-f $path) {
+                open(FILE, $path);
+                while(my $line = <FILE>) {
+                    chomp($line);
+                    $line =~ s/#.*//;
+                    if (! $line) {
+                        next;
+                    }
+                    my ($key, $value) = split(/\s*=\s*/, $line, 2);
+                    push(@{$file_data{"$path"}{"$key"}}, $value);
+                }
+                close FILE;
+            }
+        }
+        foreach my $key (keys %{$file_data{"$path"}}) {
+            push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$path"}{"$key"}});
         }
     }
 

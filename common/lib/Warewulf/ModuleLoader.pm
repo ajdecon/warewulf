@@ -12,7 +12,6 @@ package Warewulf::ModuleLoader;
 
 use Warewulf::Util;
 use Warewulf::Logger;
-use Warewulf::Config;
 use File::Basename;
 
 

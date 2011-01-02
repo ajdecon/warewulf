@@ -12,7 +12,6 @@ package Warewulf::ObjectFactory;
 
 use Warewulf::Util;
 use Warewulf::Logger;
-use Warewulf::Config;
 use Warewulf::Object::Node;
 use Warewulf::Object::Vnfs;
 use DBI;

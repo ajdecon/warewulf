@@ -17,10 +17,12 @@ use Warewulf::ModuleLoader;
 use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
+use Text::ParseWords;
 
 my ($modules, $db, $term);
 my @keywords;
 my %keyword_hash;
+my $retval = 0;
 
 sub
 run_cmd()
@@ -33,13 +35,13 @@ run_cmd()
 
         push(@arg, @ARGS);
 
-        &dprint("Running: $keyword: ". join("|", @ARGS) ."\n");
-
         if ($keyword) {
             foreach my $module ($modules->list($keyword)) {
                 if ($module->can("exec")) {
                     $run_modules++;
-                    $module->exec($keyword, @arg);
+                    if (! $module->exec($keyword, @arg) ) {
+                        $retval++;
+                    }
                 } else {
                     &iprint("Warewulf module '$keyword' does not support exec()\n");
                 }
@@ -54,23 +56,32 @@ run_cmd()
 
 my $opt_debug;
 my $opt_verbose;
+my $opt_quiet;
+$term = Warewulf::Term->new();
+
+Getopt::Long::Configure ("bundling", "pass_through");
 
 GetOptions(
     'd|debug'       => \$opt_debug,
     'v|verbose'     => \$opt_verbose,
+    'q|quiet'       => \$opt_quiet,
 );
 
+
+&set_log_level("NOTICE");
 
 if ($opt_debug) {
     &set_log_level("DEBUG");
 } elsif ($opt_verbose) {
     &set_log_level("INFO");
+} elsif ($opt_quiet) {
+    $term->interactive(0);
+    &set_log_level("WARNING");
 }
-
 
 $modules = Warewulf::ModuleLoader->new("Cli");
 $db = Warewulf::DB->new();
-$term = Warewulf::Term->new();
+
 
 foreach my $module ($modules->list()) {
     my @keys = $module->keywords();
@@ -84,10 +95,6 @@ foreach my $module ($modules->list()) {
 %keyword_hash = map { $_, 1 } @keywords;
 @keywords = sort keys %keyword_hash;
 
-&set_log_level("NOTICE");
-
-Getopt::Long::Configure ("bundling", "pass_through");
-
 
 if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
     my $home = $1;
@@ -96,15 +103,17 @@ if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
     }
 }
 
-if (exists($ARGV[0]) and -x $ARGV[0]) {
-    &iprint("Running non-interactively from directly passed argument\n");
+if (exists($ARGV[0]) and -f $ARGV[0]) {
+    &iprint("Running non-interactively from file\n");
+    $term->interactive(0);
     open(INPUT, $ARGV[0]);
     while(my $line = <INPUT>) {
         chomp($line);
 
-        &run_cmd($line);
+        &run_cmd(&quotewords('\s+', 1, $line));
     }
 } elsif (@ARGV) {
+    &iprint("Running non-interactively from directly passed argument\n");
     &run_cmd(@ARGV);
 } elsif ($term->interactive()) {
     $term->history_load("$ENV{HOME}/.wwsh/history");
@@ -144,7 +153,7 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
                 ($key) = split(/\s+/, $_, 0);
                 $term->history_add($_);
                 if (exists($keyword_hash{"$key"})) {
-                    &run_cmd($_);
+                    &run_cmd(&quotewords('\s+', 1, $_));
                 } else {
                     &eprint("Unknown command\n");
                 }
@@ -156,6 +165,7 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
     print "\n";
 } else {
     &iprint("Running non-interactively\n");
+    $term->interactive(0);
     while (<>) {
         my $line;
 
@@ -165,3 +175,4 @@ if (exists($ARGV[0]) and -x $ARGV[0]) {
 }
 
 
+exit($retval);

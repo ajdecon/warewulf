@@ -62,7 +62,7 @@ sub
 new($$)
 {
     my $proto = shift;
-    my $config = Warewulf::Config->new();
+    my $config = Warewulf::Config->new("database.conf");
     my $db_engine = $config->get("database type") || "sql";
 
     if ($db_engine eq "sql") {

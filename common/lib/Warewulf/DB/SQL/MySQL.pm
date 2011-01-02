@@ -71,7 +71,7 @@ new()
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $config = Warewulf::Config->new();
+    my $config = Warewulf::Config->new("database.conf");
     my $db_server = $config->get("database server");
     my $db_name = $config->get("database name");
     my $db_user = $config->get("database user");

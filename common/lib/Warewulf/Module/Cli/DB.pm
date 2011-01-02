@@ -46,6 +46,21 @@ keywords()
 }
 
 sub
+help()
+{
+    my ($self, $keyword) = @_;
+    my $output;
+
+    if ($keyword eq "node") {
+        $output .= "        Hello nodes...\n";
+    } elsif ($keyword eq "vnfs") {
+        $output .= "        Hello vnfs...\n";
+    }
+
+    return($output);
+}
+
+sub
 complete()
 {
     my ($self, $text) = @_;
@@ -106,21 +121,19 @@ exec()
 {
     my $self = shift;
     my $opt_type = shift;
+    my $db = Warewulf::DB->new();
+    my $term = Warewulf::Term->new();
+    my $opt_lookup = "name";
     my $opt_new;
     my @opt_set;
     my @opt_add;
     my @opt_del;
     my $opt_obj_delete;
     my $opt_help;
-    my $opt_lookup = "name";
     my @opt_print;
-    my $db = Warewulf::DB->new();
-    my $term = Warewulf::Term->new();
+    my $return_count;
 
-    if (my $first_string = shift) {
-        # Sometimes all arguments are passed as a single scalar
-        @ARGV = &quotewords('\s+', 1, $first_string);
-    }
+    @ARGV = ();
     push(@ARGV, @_);
 
     GetOptions(
@@ -143,18 +156,20 @@ exec()
     }
 
     if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-        my %modifiers;
-        my @mod_print;
-        @opt_print = ("name");
-        foreach my $setstring (@opt_set, @opt_add, @opt_del) {
-            if ($setstring =~ /^([^=]+)/) {
-                if (!exists($modifiers{"$1"})) {
-                    push(@mod_print, $1);
-                    $modifiers{"$1"} = 1;
+        if ($term->interactive()) {
+            my %modifiers;
+            my @mod_print;
+            @opt_print = ("name");
+            foreach my $setstring (@opt_set, @opt_add, @opt_del) {
+                if ($setstring =~ /^([^=]+)/) {
+                    if (!exists($modifiers{"$1"})) {
+                        push(@mod_print, $1);
+                        $modifiers{"$1"} = 1;
+                    }
                 }
             }
+            push(@opt_print, @mod_print);
         }
-        push(@opt_print, @mod_print);
     } elsif (scalar(@opt_print) == 0) {
         push(@opt_print, "name");
     } else {
@@ -190,19 +205,21 @@ exec()
         if (@objList) {
             if (@opt_print) {
 
-                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne "all") {
-                    printf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
+                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne "[all]") {
+                    &nprintf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
                 }
                 foreach my $o ($objectSet->get_list()) {
                     my @values;
-                    if (@opt_print and $opt_print[0] eq "all") {
+                    if (@opt_print and $opt_print[0] eq "[all]") {
                         my %hash = $o->get_hash();
                         my $id = $o->get("id");
+                        my $name = $o->get("name");
+                        &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
-                                printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
+                                &nprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
                             } else {
-                                printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                &nprintf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
                             }
                         }
                     } else {
@@ -213,57 +230,59 @@ exec()
                                 push(@values, $o->get($g) || "[undef]");
                             }
                         }
-                        printf("%-20s " x (scalar @values) ."\n", @values);
+                        &nprintf("%-20s " x (scalar @values) ."\n", @values);
                     }
                 }
             }
 
             if ($opt_obj_delete) {
 
-                my $count = $db->del_object($objectSet);
+                $return_count = $db->del_object($objectSet);
 
-                print "Deleted $count objects\n";
+                &iprint("Deleted $return_count objects\n");
 
             } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 
                 my $persist_bool;
-
-                if (scalar(@objList) eq 1) {
-                    print("\nAre you sure you wish to make the following changes to 1 node?\n\n");
-                } else {
-                    print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
-                }
-                foreach my $setstring (@opt_set) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, $vals)) {
-                        printf(" set: %15s = %s\n", $key, $val);
-                    }
-                }
-                foreach my $setstring (@opt_add) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, $vals)) {
-                        printf(" add: %15s = %s\n", $key, $val);
-                    }
-                }
-                foreach my $setstring (@opt_del) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    if ($vals) {
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            printf(" delete: %12s = %s\n", $key, $val);
-                        }
-                    } else {
-                        printf(" undefine: %10s = [ALL]\n", $key);
-                    }
-                }
-
                 my $yesno;
-                do {
-                    $yesno = $term->get_input("Yes/No> ", "no", "yes");
-                } while (! $yesno);
 
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    print "No update was performed\n";
-                    return();
+                if ($term->interactive()) {
+                    if (scalar(@objList) eq 1) {
+                        print("\nAre you sure you wish to make the following changes to 1 node?\n\n");
+                    } else {
+                        print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
+                    }
+                    foreach my $setstring (@opt_set) {
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            printf(" set: %15s = %s\n", $key, $val);
+                        }
+                    }
+                    foreach my $setstring (@opt_add) {
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            printf(" add: %15s = %s\n", $key, $val);
+                        }
+                    }
+                    foreach my $setstring (@opt_del) {
+                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                        if ($vals) {
+                            foreach my $val (&quotewords(',', 0, $vals)) {
+                                printf(" delete: %12s = %s\n", $key, $val);
+                            }
+                        } else {
+                            printf(" undefine: %10s = [ALL]\n", $key);
+                        }
+                    }
+
+                    do {
+                        $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    } while (! $yesno);
+
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        print "No update was performed\n";
+                        return();
+                    }
                 }
 
                 if (@opt_set) {
@@ -317,21 +336,22 @@ exec()
                 }
 
                 if ($persist_bool) {
-                    my $count = $db->persist($objectSet);
+                    $return_count = $db->persist($objectSet);
 
-                    print "Updated $count objects\n";
+                    &iprint("Updated $return_count objects\n");
                 }
 
             }
 
         } else {
-            &nprint("No objects found.\n");
+            &wprint("No objects found.\n");
         }
     }
 
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();
 
+    return($return_count);
 }
 
 

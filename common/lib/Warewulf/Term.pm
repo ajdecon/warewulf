@@ -61,6 +61,12 @@ new($$)
 
         $singleton->{"ATTRIBS"}->{completion_function} = \&auto_complete;
 
+        if ( -t STDIN && -t STDOUT ) {
+            $singleton->{"INTERACTIVE"} = "1";
+        } else {
+            $singleton->{"INTERACTIVE"} = undef;
+        }
+
         bless($singleton, $class);
     }
 
@@ -192,21 +198,27 @@ complete()
 
 
 
-=item interactive()
+=item interactive($is_interactive)
 
-Test to see if the terminal is interactive.
+Test to see if the terminal is interactive. If you pass a "1" or "0" to it you
+can override the default behavior and make it so that it will return true or
+false for subsequent calls (respectively).
 
 =cut
 sub
 interactive($)
 {
-    my ($self) = @_;
+    my ($self, $interactive) = @_;
 
-    if ( -t STDIN && -t STDOUT ) {
-        return(1);
-    } else {
-        return();
+    if (defined($interactive)) {
+        if ($interactive eq "1") {
+            $self->{"INTERACTIVE"} = 1;
+        } elsif ($interactive eq "0") {
+            $self->{"INTERACTIVE"} = undef;
+        }
     }
+
+    return($self->{"INTERACTIVE"});
 }
 
 
@@ -223,22 +235,26 @@ get_input($)
     my $attribs = $self->{"TERM"}->Attribs;
     my $ret;
 
+    if ($self->interactive) {
 
-    if (@completions) {
-        @{$self->{"ARRAY"}} = @completions;
-    }
-    $ret = $self->{"TERM"}->readline($prompt);
-    if (@completions) {
-        delete($self->{"ARRAY"});
-    }
+        if (@completions) {
+            @{$self->{"ARRAY"}} = @completions;
+        }
+        $ret = $self->{"TERM"}->readline($prompt);
+        if (@completions) {
+            delete($self->{"ARRAY"});
+        }
 
-    if (! $ret and exists($completions[0])) {
+        if (! $ret and exists($completions[0])) {
+            $ret = $completions[0];
+        }
+
+        if ($ret) {
+            $ret =~ s/^\s+//;
+            $ret =~ s/\s+$//;
+        }
+    } else {
         $ret = $completions[0];
-    }
-
-    if ($ret) {
-        $ret =~ s/^\s+//;
-        $ret =~ s/\s+$//;
     }
 
     return($ret);
