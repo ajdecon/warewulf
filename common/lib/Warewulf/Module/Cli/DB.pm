@@ -161,7 +161,7 @@ exec()
     my $keyword = shift;
     my $db = Warewulf::DB->new();
     my $term = Warewulf::Term->new();
-    my $opt_lookup;
+    my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
     my @opt_set;
@@ -210,9 +210,6 @@ exec()
         if ($keyword eq "search") {
             push(@opt_print, "name", "type");
         } else {
-            if (!$opt_lookup) {
-                push(@opt_lookup, "name");
-            }
             push(@opt_print, "name");
         }
     } else {
@@ -222,7 +219,7 @@ exec()
     if ($opt_new) {
 
         if ($keyword) {
-            if ($keyword eq "search") {
+            if ($keyword ne "search") {
 
                 foreach my $string (@ARGV) {
                     my $obj;
@@ -288,6 +285,15 @@ exec()
 
             if ($opt_obj_delete) {
 
+                if ($term->interactive()) {
+                    print("\nAre you sure you wish to make the delete the above objects?\n\n");
+                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        print "No update performed\n";
+                        return();
+                    }
+                }
+
                 $return_count = $db->del_object($objectSet);
 
                 &iprint("Deleted $return_count objects\n");
@@ -331,7 +337,7 @@ exec()
                     } while (! $yesno);
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update was performed\n";
+                        print "No update performed\n";
                         return();
                     }
                 }
