@@ -62,9 +62,9 @@ $term = Warewulf::Term->new();
 Getopt::Long::Configure ("bundling", "pass_through");
 
 GetOptions(
-    'd|debug'       => \$opt_debug,
-    'v|verbose'     => \$opt_verbose,
-    'q|quiet'       => \$opt_quiet,
+    'debug'         => \$opt_debug,
+    'verbose'       => \$opt_verbose,
+    'quiet'         => \$opt_quiet,
 );
 
 
