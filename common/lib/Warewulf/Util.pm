@@ -18,7 +18,13 @@ use File::Basename;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = ('&rand_string', '&croak', '&progname', '&expand_bracket');
+our @EXPORT = qw(
+    &rand_string
+    &croak
+    &progname
+    &expand_bracket
+    &uid_test
+);
 
 =head1 NAME
 
@@ -127,6 +133,25 @@ expand_bracket(@)
     }
 
     return(@ret);
+}
+
+
+=item uid_test($uid)
+
+Test to see if the current uid meets the passed uid: e.g. &uid_test(0) will
+test for the root user (which is always UID zero on a Unix system).
+
+=cut
+sub
+uid_test()
+{
+    my ($uid) = @_;
+
+    if (defined($uid)) {
+        return($> == $uid || $< == $uid);
+    }
+
+    return;
 }
 
 
