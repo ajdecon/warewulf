@@ -126,17 +126,22 @@ read($)
         } else {
             &iprint("Reading in file: $path\n");
             if (-f $path) {
-                open(FILE, $path);
-                while(my $line = <FILE>) {
-                    chomp($line);
-                    $line =~ s/#.*//;
-                    if (! $line) {
-                        next;
+                if (open(FILE, $path)) {
+                    while(my $line = <FILE>) {
+                        chomp($line);
+                        $line =~ s/#.*//;
+                        if (! $line) {
+                            next;
+                        }
+                        my ($key, $value) = split(/\s*=\s*/, $line, 2);
+                        push(@{$file_data{"$path"}{"$key"}}, $value);
                     }
-                    my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                    push(@{$file_data{"$path"}{"$key"}}, $value);
+                    close FILE;
+                } else {
+                    &eprint("Could not open configuration file: $path ($!)\n");
                 }
-                close FILE;
+            } else [
+                &eprint("Configuration file not found: $path\n");
             }
         }
         foreach my $key (keys %{$file_data{"$path"}}) {
