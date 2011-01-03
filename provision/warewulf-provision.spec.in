@@ -50,12 +50,11 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %config /etc/warewulf/*
-/etc/httpd/conf.d/warewulf-httpd.conf
-/usr/bin/wwboot
-
-#/usr/lib/perl5/vendor_perl/5.8.8/Warewulf/Provision/Include.pm
-/usr/libexec/warewulf/*
-/var/warewulf/*
+%{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
+%{_bindir}/wwboot
+%{perl_vendorlib}/Warewulf/*
+%{_libexecdir}/warewulf/*
+%{_localstatedir}/warewulf/*
 
 %files gpl_sources
 %defattr(-,root,root)

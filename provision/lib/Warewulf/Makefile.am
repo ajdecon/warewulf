@@ -1,6 +1,6 @@
-SUBDIRS = Provision
+SUBDIRS = Provision Module
 
-perlmodsdir = ${PERL_VENDORLIB}
+perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 
 dist_perlmods_SCRIPTS = 
 

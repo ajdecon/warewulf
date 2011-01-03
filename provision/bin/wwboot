@@ -46,7 +46,7 @@ if ($debug) {
     set_log_level("NOTICE");
 }
 
-my $config = Warewulf::Config->new();
+my $config = Warewulf::Config->new("wwboot.conf");
 my $tftpboot = $config->get("tftpdir") || "/tftpboot";
 
 
