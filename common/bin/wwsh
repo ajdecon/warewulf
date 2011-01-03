@@ -24,6 +24,8 @@ my @keywords;
 my %keyword_hash;
 my $retval = 0;
 
+$ENV{"PATH"} = "/bin:/usr/bin";
+
 sub
 run_cmd()
 {
