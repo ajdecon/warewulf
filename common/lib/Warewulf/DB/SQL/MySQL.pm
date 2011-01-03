@@ -96,7 +96,8 @@ new()
 
             bless($singleton, $class);
         } else {
-            &eprint("Undefined credentials for database\n");
+            &dprint("Undefined credentials for database\n");
+            return();
         }
     }
 

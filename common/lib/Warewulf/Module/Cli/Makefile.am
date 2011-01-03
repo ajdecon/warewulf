@@ -2,6 +2,6 @@
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf/Module/Cli
 
-dist_perlmods_SCRIPTS = DB.pm Debug_Level.pm
+dist_perlmods_SCRIPTS = DB.pm Debug_Level.pm Help.pm
 
 MAINTAINERCLEANFILES = Makefile.in

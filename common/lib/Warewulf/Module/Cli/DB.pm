@@ -1,3 +1,10 @@
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
 
 
 
@@ -23,6 +30,8 @@ new()
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = {};
+
+    $self->{"DB"} = Warewulf::DB->new();
 
     bless($self, $class);
 
@@ -93,10 +102,14 @@ complete()
 {
     my ($self, $text) = @_;
     my $opt_lookup;
-    my $db = Warewulf::DB->new();
+    my $db = $self->{"DB"};
     my $opt_type;
     my $opt_null;
     my @ret;
+
+    if (! $db) {
+        return();
+    }
 
     foreach (&quotewords('\s+', 0, $text)) {
         if ($_) {
@@ -107,10 +120,10 @@ complete()
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
         'n|new'         => \$opt_null,
-        'p|print=s'     => \@opt_null,
-        's|set=s'       => \@opt_null,
-        'a|add=s'       => \@opt_null,
-        'd|del=s'       => \@opt_null,
+        'p|print=s'     => \$opt_null,
+        's|set=s'       => \$opt_null,
+        'a|add=s'       => \$opt_null,
+        'd|del=s'       => \$opt_null,
         'DELETE'        => \$opt_null,
         'h|help'        => \$opt_null,
         't|type=s'      => \$opt_type,
@@ -160,7 +173,7 @@ exec()
 {
     my $self = shift;
     my $keyword = shift;
-    my $db = Warewulf::DB->new();
+    my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
     my $opt_lookup = "name";
     my $opt_new;
@@ -190,6 +203,7 @@ exec()
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
+        return();
     }
 
     if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
