@@ -150,7 +150,6 @@ get_objects($$$@)
     while (my $h = $sth->fetchrow_hashref()) {
         my $id = $h->{"id"};
         my $type = $h->{"type"};
-#        dprint("Adding to ObjectSet object ID: $id\n");
         my $o = Warewulf::ObjectFactory->new($type, $self->unserialize($h->{"serialized"}));
         $o->set("id", $id);
         $o->set("type", $type);
@@ -160,6 +159,55 @@ get_objects($$$@)
     return($objectSet);
 }
 
+
+=item get_data($db_id);
+
+=cut
+
+sub
+get_data($)
+{
+    my $self = shift;
+    my $db_id = shift;
+
+    my $sql_query;
+
+    $sql_query  = "SELECT ";
+    $sql_query .= "datastore.data AS data ";
+    $sql_query .= "FROM datastore ";
+    $sql_query .= "WHERE datastore.id = ". $self->{"DBH"}->quote($db_id);
+
+    dprint("$sql_query\n\n");
+
+    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth->execute();
+
+    my $h = $sth->fetchrow_hashref();
+
+    return(exists($h->{"data"}) ? $h->{"data"} : undef);
+}
+
+
+=item set_data($db_id, $data);
+
+=cut
+
+sub
+set_data($)
+{
+    my $self = shift;
+    my $db_id = shift;
+    my $data = shift;
+
+    my $sql_query;
+
+    if ($id) {
+        my $sth = $self->{"DBH"}->prepare("UPDATE datastore (data) VALUE (?) WHERE id = ?");
+        return($sth->execute());
+    }
+
+    return();
+}
 
 
 =item get_lookups($type, $field, $val1, $val2, $val3);
@@ -187,6 +235,7 @@ get_lookups($$$@)
     if (@strings) {
         push(@query_opts, "lookup.value IN (". join(",", map { $self->{"DBH"}->quote($_) } @strings). ")");
     }
+    push(@query_opts, "lookup.field != 'ID'");
 
     $sql_query  = "SELECT ";
     $sql_query .= "lookup.value AS value ";
