@@ -10,7 +10,7 @@
 
 package Warewulf::Util;
 
-use Warewulf::Debug;
+#use Warewulf::Debug;
 use Warewulf::Logger;
 
 use Exporter;
@@ -18,7 +18,7 @@ use File::Basename;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = ('&rand_string', '&croak', '&progname');
+our @EXPORT = ('&rand_string', '&croak', '&progname', '&expand_bracket');
 
 =head1 NAME
 
@@ -93,6 +93,41 @@ progname()
     return(basename($0));
 }
 
+
+=item expand_bracket($range1, $range2)
+
+Input a string that contains a bracket range (e.g. [0-20]) and return a list
+that has that expanded into a full array. For example, n00[0-19] will return
+an array of 20 entries.
+
+=cut
+sub
+expand_bracket(@)
+{
+    my @ranges = @_;
+    my @ret;
+
+    foreach my $range (@ranges) {
+        if ($range =~ /^(.*?)\[([0-9]+)\-([0-9]+)\](.*?)$/) {
+            my $prefix = $1;
+            my $start = $2;
+            my $end = $3;
+            my $suffix = $4;
+
+            if ($end > $start) {
+                my $len = length($end);
+                for(my $i=$start; $i<=$end; $i++) {
+                    push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
+                }
+            }
+        } else {
+            push(@ret, $range);
+        }
+
+    }
+
+    return(@ret);
+}
 
 
 =head1 SEE ALSO

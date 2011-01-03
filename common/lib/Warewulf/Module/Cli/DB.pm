@@ -8,6 +8,7 @@ use Warewulf::Logger;
 use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DB;
+use Warewulf::Util;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -243,9 +244,9 @@ exec()
         my $objectSet;
 
         if ($keyword eq "search") {
-            $objectSet = $db->get_objects($opt_type, undef, &quotewords('\s+', 1, @ARGV));
+            $objectSet = $db->get_objects($opt_type, undef, &expand_bracket(&quotewords('\s+', 1, @ARGV)));
         } else {
-            $objectSet = $db->get_objects($keyword, $opt_lookup, &quotewords('\s+', 1, @ARGV));
+            $objectSet = $db->get_objects($keyword, $opt_lookup, &expand_bracket(&quotewords('\s+', 1, @ARGV)));
         }
 
         my @objList = $objectSet->get_list();
