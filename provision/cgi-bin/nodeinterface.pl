@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
 use CGI;
-use Warewulf::DB;
+use Warewulf::DataStore;
 use Warewulf::ObjectFactory;
 
 my $q = CGI->new();
-my $db = Warewulf::DB->new();
+my $db = Warewulf::DataStore->new();
 
 print $q->header();
 
