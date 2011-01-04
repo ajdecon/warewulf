@@ -3,13 +3,11 @@ package Warewulf::Include;
 
 use Exporter;
 use File::Basename;
-use vars qw($VERSION %wwconfig);
+use vars ('$VERSION', '%wwconfig');
 
 our @ISA = ("Exporter");
 
-our @EXPORT = qw(
-    &wwconfig
-);
+our @EXPORT = ('&wwconfig');
 
 $VERSION = "@VERSION@";
 

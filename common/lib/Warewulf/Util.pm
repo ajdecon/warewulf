@@ -18,12 +18,12 @@ use File::Basename;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = qw(
-    &rand_string
-    &croak
-    &progname
-    &expand_bracket
-    &uid_test
+our @EXPORT = (
+    '&rand_string'
+    '&croak'
+    '&progname'
+    '&expand_bracket'
+    '&uid_test'
 );
 
 =head1 NAME
@@ -148,7 +148,7 @@ uid_test()
     my ($uid) = @_;
 
     if (defined($uid)) {
-        return($> == $uid || $< == $uid);
+        return($> == $uid);
     }
 
     return;

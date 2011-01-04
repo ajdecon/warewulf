@@ -74,7 +74,7 @@ lookups($)
 {
     my $self = shift;
 
-    return(qw(NAME CLUSTER GROUP ID HWADDR VNFS STATUS));
+    return("NAME", "CLUSTER", "GROUP", "ID", "HWADDR", "VNFS", "STATUS");
 }
 
 
