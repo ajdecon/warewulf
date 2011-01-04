@@ -97,10 +97,7 @@ new($$)
 
     &dprint("Creating new object\n");
 
-    foreach my $file (@files) {
-        my $path = $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf/" . $file;
-        $self->{"FILES"}{"$file"} = $path;
-    }
+    @{$self->{"FILES"}} = @files;
 
     bless($self, $class);
 
@@ -118,34 +115,56 @@ sub
 read($)
 {
     my ($self) = @_;
+    my @basepaths = (
+        (getpwuid $>)[7] . . "/.warewulf",
+        $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf"
+    );
 
-    foreach my $file (keys %{$self->{"FILES"}}) {
-        my $path = $self->{"FILES"}{"$file"};
-        if (exists($file_data{"$path"})) {
-            &dprint("Using cached copy of file: $path\n");
-        } else {
-            &iprint("Reading in file: $path\n");
-            if (-f $path) {
-                if (open(FILE, $path)) {
-                    while(my $line = <FILE>) {
-                        chomp($line);
-                        $line =~ s/#.*//;
-                        if (! $line) {
-                            next;
-                        }
-                        my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                        push(@{$file_data{"$path"}{"$key"}}, $value);
-                    }
-                    close FILE;
-                } else {
-                    &eprint("Could not open configuration file: $path ($!)\n");
+    foreach my $file (@{$self->{"FILES"}}) {
+        my $path;
+
+        foreach my $basepath (@basepaths) {
+            if ($basepath =~ /^([a-zA-Z0-9\/_\-\.]+)$/) {
+                my $sanepath = $1;
+
+                &dprint("Checking for configuration file $file\n");
+                if (-f "$sanepath/$file") {
+                    &dprint("Found configuration file: $sanepath/$file\n");
+                    $path = "$sanepath/$file";
+                    last;
                 }
-            } else {
-                &eprint("Configuration file not found: $path\n");
             }
         }
-        foreach my $key (keys %{$file_data{"$path"}}) {
-            push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$path"}{"$key"}});
+
+        if ($path) {
+            if (exists($file_data{"$path"})) {
+                &dprint("Using cached copy of file: $path\n");
+            } else {
+                &iprint("Reading in file: $path\n");
+                if (-f $path) {
+                    if (open(FILE, $path)) {
+                        while(my $line = <FILE>) {
+                            chomp($line);
+                            $line =~ s/#.*//;
+                            if (! $line) {
+                                next;
+                            }
+                            my ($key, $value) = split(/\s*=\s*/, $line, 2);
+                            push(@{$file_data{"$path"}{"$key"}}, $value);
+                        }
+                        close FILE;
+                    } else {
+                        &eprint("Could not open configuration file: $path ($!)\n");
+                    }
+                } else {
+                    &eprint("Configuration file not found: $path\n");
+                }
+            }
+            foreach my $key (keys %{$file_data{"$path"}}) {
+                push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$path"}{"$key"}});
+            }
+        } else {
+            &eprint("Could not find configuration file: $file\n");
         }
     }
 
