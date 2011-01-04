@@ -112,7 +112,7 @@ list($$)
         &dprint("Module list: looking for keyword: $keyword\n");
         if (exists($self->{"MODULES"})) {
             foreach my $obj (@{$self->{"MODULES"}}) {
-                if ($obj->keyword($keyword)) {
+                if ($obj->keyword() eq $keyword) {
                     &dprint("Found object: $obj\n");
                     push(@ret, $obj);
                 }

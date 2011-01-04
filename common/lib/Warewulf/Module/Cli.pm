@@ -45,7 +45,8 @@ sub usage() { };
 Show the help options for this module
 
 =cut
-sub help() {};
+# Leave this undefined...
+#sub help() {};
 
 
 =item command()

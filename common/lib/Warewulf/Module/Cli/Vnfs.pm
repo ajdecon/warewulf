@@ -9,7 +9,7 @@
 
 
 
-package Warewulf::Module::Cli::DB;
+package Warewulf::Module::Cli::Vnfs;
 
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
@@ -23,6 +23,7 @@ our @ISA = ('Warewulf::Module::Cli');
 
 Getopt::Long::Configure ("bundling");
 
+my $entity_type = "vnfs";
 
 sub
 new()
@@ -31,29 +32,21 @@ new()
     my $class = ref($proto) || $proto;
     my $self = {};
 
-    $self->{"DB"} = Warewulf::DataStore->new();
-
     bless($self, $class);
+
+    $self->init();
 
     return $self;
 }
 
 sub
-keyword() {
-    my $self = shift;
-    my $keyword = shift;
-
-    if ($keyword =~ /^(node|vnfs|search)$/) {
-        return(1);
-    }
-    return();
-}
-
-sub
-keywords()
+init()
 {
-    return(qw(node vnfs search));
+    my ($self) = @_;
+
+    $self->{"DB"} = Warewulf::DataStore->new();
 }
+
 
 sub
 help()
@@ -61,38 +54,15 @@ help()
     my ($self, $keyword) = @_;
     my $output;
 
-    if ($keyword eq "node") {
-        $output .= "        Hello nodes...\n";
-        $output .= "           Usage options:\n";
-        $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-        $output .= "            -n, --new              Create a new object with the given name.\n";
-        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
-        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
-        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
-        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
-        $output .= "                --DELETE           Delete an entire object\n";
-    } elsif ($keyword eq "vnfs") {
-        $output .= "        Hello vnfs...\n";
-        $output .= "           Usage options:\n";
-        $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-        $output .= "            -n, --new              Create a new object with the given name.\n";
-        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
-        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
-        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
-        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
-        $output .= "                --DELETE           Delete an entire object\n";
-    } elsif ($keyword eq "search") {
-        $output .= "        The search option will find all datastore entries in the lookup table.\n";
-        $output .= "           Usage options:\n";
-        $output .= "            -t, --type             Limit the return of objects to this type\n";
-        $output .= "            -l, --lookup           Lookup objects using a given string type (default: all)\n";
-        $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
-        $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
-        $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
-        $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
-        $output .= "                --DELETE           Delete an entire object\n";
-    }
-
+    $output .= "        Hello vnfs...\n";
+    $output .= "           Usage options:\n";
+    $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
+    $output .= "            -n, --new              Create a new object with the given name.\n";
+    $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
+    $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
+    $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
+    $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
+    $output .= "                --DELETE           Delete an entire object\n";
 
     return($output);
 }
@@ -101,9 +71,8 @@ sub
 complete()
 {
     my ($self, $text) = @_;
-    my $opt_lookup;
+    my $opt_lookup = "name";
     my $db = $self->{"DB"};
-    my $opt_type;
     my $opt_null;
     my @ret;
 
@@ -126,27 +95,10 @@ complete()
         'd|del=s'       => \$opt_null,
         'DELETE'        => \$opt_null,
         'h|help'        => \$opt_null,
-        't|type=s'      => \$opt_type,
     );
 
-    if ($text =~ /^node /) {
-        if (! $opt_lookup) {
-            $opt_lookup = "name";
-        }
-        $opt_type = "node";
-    } elsif ($text =~ /^vnfs /) {
-        if (! $opt_lookup) {
-            $opt_lookup = "name";
-        }
-        $opt_type = "vnfs";
-    } elsif ($text =~ /^search /) {
-        return($db->get_lookups($opt_type, $opt_lookup));
-    } else {
-        return;
-    }
-
     if ($opt_lookup) {
-        my $objectSet = $db->get_objects($opt_type);
+        my $objectSet = $db->get_objects($entity_type);
 
         my @objList = $objectSet->get_list();
 
@@ -172,7 +124,6 @@ sub
 exec()
 {
     my $self = shift;
-    my $keyword = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
     my $opt_lookup = "name";
@@ -221,47 +172,29 @@ exec()
             }
             push(@opt_print, @mod_print);
         }
-    } elsif (scalar(@opt_print) == 0) {
-        if ($keyword eq "search") {
-            push(@opt_print, "name", "type");
-        } else {
-            push(@opt_print, "name");
-        }
-    } else {
+    } elsif (scalar(@opt_print) > 0) {
         @opt_print = split(",", join(",", @opt_print));
+    } else {
+        @opt_print = ("name");
     }
 
     if ($opt_new) {
+        foreach my $string (@ARGV) {
+            my $obj;
+            $obj = Warewulf::ObjectFactory->new($entity_type);
 
-        if ($keyword) {
-            if ($keyword ne "search") {
-
-                foreach my $string (@ARGV) {
-                    my $obj;
-                    $obj = Warewulf::ObjectFactory->new($keyword);
-    
-                    $obj->set($opt_lookup, $string);
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $val) = split(/=/, $setstring);
-                        $obj->set($key, $val);
-                    }
-
-                    $db->persist($obj);
-                }
-            } else {
-                &eprint("Invalid usage\n");
+            $obj->set($opt_lookup, $string);
+            foreach my $setstring (@opt_set) {
+                my ($key, $val) = split(/=/, $setstring);
+                $obj->set($key, $val);
             }
-        } else {
-            &eprint("You must provide a type of object to add\n");
+
+            $db->persist($obj);
         }
     } else {
         my $objectSet;
 
-        if ($keyword eq "search") {
-            $objectSet = $db->get_objects($opt_type, undef, &expand_bracket(&quotewords('\s+', 1, @ARGV)));
-        } else {
-            $objectSet = $db->get_objects($keyword, $opt_lookup, &expand_bracket(&quotewords('\s+', 1, @ARGV)));
-        }
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
 
         my @objList = $objectSet->get_list();
 
@@ -301,7 +234,7 @@ exec()
             if ($opt_obj_delete) {
 
                 if ($term->interactive()) {
-                    print("\nAre you sure you wish to make the delete the above objects?\n\n");
+                    print("\nAre you sure you wish to delete the above objects?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "No update performed\n";
@@ -316,7 +249,6 @@ exec()
             } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 
                 my $persist_bool;
-                my $yesno;
 
                 if ($term->interactive()) {
                     if (scalar(@objList) eq 1) {
@@ -347,9 +279,7 @@ exec()
                         }
                     }
 
-                    do {
-                        $yesno = $term->get_input("Yes/No> ", "no", "yes");
-                    } while (! $yesno);
+                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "No update performed\n";

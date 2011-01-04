@@ -30,7 +30,6 @@ sub
 exec()
 {
     my $self = shift;
-    my $keyword = shift;
     my $debug_level = uc(shift);
 
     if ($debug_level) {
@@ -43,12 +42,9 @@ exec()
 sub
 complete()
 {
-    my ($self, $keyword) = @_;
+    my ($self) = @_;
 
-    if ($keyword =~ /^debug_level /) {
-        return("notice", "info", "debug");
-    }
-
+    return("notice", "info", "debug");
 }
 
 sub

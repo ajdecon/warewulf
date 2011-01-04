@@ -32,39 +32,13 @@ Warewulf::Module -
 
 =over 4
 
-=item keyword($test)
+=item keyword()
 
-Tests for the module applicability based on keyword. If the passed in
-keyword is good for that module, then this will return true. By default
-a keyword is the lowercase name of the module's suffix (e.g.
-Warewulf::Module::Foo will be true for a test of "foo".
-
-Each module can redefine this method such that it can be true for any
-number of passed in keywords. In the end, the module itself needs to
-know its features and abilities.
+Prints the keyword that this module will respond for.
 
 =cut
 sub
 keyword()
-{
-    my $self = shift;
-    my $test = shift;
-
-    if ($self->keywords() eq lc($test)) {
-        return(1);
-    }
-
-    return();
-}
-
-=item keywords()
-
-Prints the keywords that this module will respond for. This is useful for
-tab completion among other wwsh features.
-
-=cut
-sub
-keywords()
 {
     my $self = shift;
     my $keyword = ref($self);

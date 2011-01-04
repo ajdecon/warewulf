@@ -41,7 +41,7 @@ run_cmd()
             foreach my $module ($modules->list($keyword)) {
                 if ($module->can("exec")) {
                     $run_modules++;
-                    if (! $module->exec($keyword, @arg) ) {
+                    if (! $module->exec(@arg) ) {
                         $retval++;
                     }
                 } else {
@@ -86,11 +86,8 @@ $db = Warewulf::DataStore->new();
 
 
 foreach my $module ($modules->list()) {
-    my @keys = $module->keywords();
-    push(@keywords, @keys);
-    foreach my $key (@keys) {
-        $term->complete($key, $module);
-    }
+    push(@keywords, $module->keyword());
+    $term->complete($module->keyword(), $module);
 }
 
 # Make sure all keywords are unique
