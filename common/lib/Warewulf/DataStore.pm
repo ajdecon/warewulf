@@ -8,31 +8,31 @@
 # $Id$
 #
 
-package Warewulf::DB;
+package Warewulf::DataStore;
 
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use Warewulf::DB::SQL;
+use Warewulf::DataStore::SQL;
 use DBI;
 
 
 =head1 NAME
 
-Warewulf::DB - Database interface
+Warewulf::DataStore - Database interface
 
 =head1 ABOUT
 
-The Warewulf::DB interface simplies typically used DB calls and operates on
+The Warewulf::DataStore interface simplies typically used DB calls and operates on
 Warewulf::Objects and Warewulf::ObjectSets for simplistically integrating
 with native Warewulf code.
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB;
+    use Warewulf::DataStore;
 
     print "creating new object\n";
-    my $db = Warewulf::DB::SQL::MySQL->new();
+    my $db = Warewulf::DataStore::SQL::MySQL->new();
     my $entity = $db->new_object();
 
     print "Setting some stuffs\n";
@@ -66,7 +66,7 @@ new($$)
     my $db_engine = $config->get("database type") || "sql";
 
     if ($db_engine eq "sql") {
-        return(Warewulf::DB::SQL->new(@_));
+        return(Warewulf::DataStore::SQL->new(@_));
     } else {
         &eprint("Could not load DB type: $db_engine\n");
         exit 1;

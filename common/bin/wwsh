@@ -11,7 +11,7 @@
 
 use Warewulf::Logger;
 use Warewulf::Term;
-use Warewulf::DB;
+use Warewulf::DataStore;
 use Warewulf::Config;
 use Warewulf::ModuleLoader;
 use Getopt::Long;
@@ -82,7 +82,7 @@ if ($opt_debug) {
 }
 
 $modules = Warewulf::ModuleLoader->new("Cli");
-$db = Warewulf::DB->new();
+$db = Warewulf::DataStore->new();
 
 
 foreach my $module ($modules->list()) {

@@ -363,7 +363,7 @@ lookups($)
 
 =head1 SEE ALSO
 
-Warewulf::ObjectSet, Warewulf::Object::Node, Warewulf::Object::Vnfs
+Warewulf::ObjectSet, Warewulf::Node, Warewulf::Vnfs
 
 =head1 COPYRIGHT
 

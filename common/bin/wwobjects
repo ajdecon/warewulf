@@ -9,7 +9,7 @@
 
 
 
-use Warewulf::DB;
+use Warewulf::DataStore;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::ObjectFactory;
@@ -17,7 +17,7 @@ use Getopt::Long;
 use File::Basename;
 use Data::Dumper;
 
-my $db = Warewulf::DB->new();
+my $db = Warewulf::DataStore->new();
 my $opt_new;
 my @opt_print;
 my @opt_set;

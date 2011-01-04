@@ -8,10 +8,9 @@
 # $Id: MySQL.pm 62 2010-11-11 16:01:03Z gmk $
 #
 
-package Warewulf::DB::SQL::MySQL;
+package Warewulf::DataStore::SQL::MySQL;
 
 use Warewulf::Config;
-use Warewulf::DB;
 use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::ObjectFactory;
@@ -24,11 +23,11 @@ my $singleton;
 
 =head1 NAME
 
-Warewulf::DB::SQL::MySQL - MySQL Database interface to Warewulf
+Warewulf::DataStore::SQL::MySQL - MySQL Database interface to Warewulf
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB::SQL::MySQL;
+    use Warewulf::DataStore::SQL::MySQL;
 
 =head1 DESCRIPTION
 
@@ -40,7 +39,7 @@ Warewulf::DB::SQL::MySQL - MySQL Database interface to Warewulf
     the object is constructed.
     
     Documentation for each function should be found in the top level
-    Warewulf::DB documentation. Any implementation specific documentation
+    Warewulf::DataStore documentation. Any implementation specific documentation
     can be found here.
 
 =cut
@@ -274,7 +273,7 @@ persist($$)
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
-    } elsif (ref($object) =~ /^Warewulf::Object::/) {
+    } elsif (ref($object) =~ /^Warewulf::/) {
         @objlist = ($object);
     } else {
         &eprint("Invalid parameter to persist():  $object\n");
@@ -332,7 +331,7 @@ del_object($$)
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
-    } elsif (ref($object) =~ /^Warewulf::Object::/) {
+    } elsif (ref($object) =~ /^Warewulf::/) {
         @objlist = ($object);
     } else {
         &eprint("Invalid parameter to persist():  $object\n");
@@ -378,7 +377,7 @@ add_lookup($$$$)
                     &wprint("No ID found for object!\n");
                 }
             }
-        } elsif (ref($object) =~ /^Warewulf::Object::/) {
+        } elsif (ref($object) =~ /^Warewulf::/) {
             if (my $id = $object->get("id")) {
                 dprint("Adding a lookup entry for: $field and $value and $id\n");
                 my $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
@@ -424,7 +423,7 @@ del_lookup($$$$)
                 &wprint("No ID found for object!\n");
             }
         }
-    } elsif (ref($object) =~ /^Warewulf::Object::/) {
+    } elsif (ref($object) =~ /^Warewulf::/) {
         my $id = $object->get("id");
         if ($id and $type and $field and $value) {
             my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
@@ -480,7 +479,7 @@ new_object($)
 
 =head1 SEE ALSO
 
-Warewulf::ObjectSet Warewulf::DB
+Warewulf::ObjectSet Warewulf::DataStore
 
 =head1 COPYRIGHT
 

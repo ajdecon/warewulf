@@ -1,4 +1,4 @@
-perlmodsdir = ${PERL_VENDORLIB}/Warewulf/DB/SQL
+perlmodsdir = ${PERL_VENDORLIB}/Warewulf/DataStore/SQL
 
 dist_perlmods_SCRIPTS = MySQL.pm
 

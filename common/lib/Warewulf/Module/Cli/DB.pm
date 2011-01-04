@@ -14,7 +14,7 @@ package Warewulf::Module::Cli::DB;
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
 use Warewulf::Term;
-use Warewulf::DB;
+use Warewulf::DataStore;
 use Warewulf::Util;
 use Getopt::Long;
 use Text::ParseWords;
@@ -31,7 +31,7 @@ new()
     my $class = ref($proto) || $proto;
     my $self = {};
 
-    $self->{"DB"} = Warewulf::DB->new();
+    $self->{"DB"} = Warewulf::DataStore->new();
 
     bless($self, $class);
 

@@ -12,19 +12,16 @@ package Warewulf::ObjectFactory;
 
 use Warewulf::Util;
 use Warewulf::Logger;
-use Warewulf::Object::Node;
-use Warewulf::Object::Vnfs;
+use Warewulf::Node;
+use Warewulf::Vnfs;
 use DBI;
 
 =head1 NAME
 
-Warewulf::DB - Database interface
+Warewulf::ObjectFactory - 
 
 =head1 ABOUT
 
-The Warewulf::DB interface simplies typically used DB calls and operates on
-Warewulf::Objects and Warewulf::ObjectSets for simplistically integrating
-with native Warewulf code.
 
 =head1 SYNOPSIS
 
@@ -44,9 +41,9 @@ new($$)
     my $type = uc(shift);
 
     if ($type eq "NODE") {
-        return(Warewulf::Object::Node->new(@_));
+        return(Warewulf::Node->new(@_));
     } elsif ($type eq "VNFS") {
-        return(Warewulf::Object::Vnfs->new(@_));
+        return(Warewulf::Vnfs->new(@_));
     } else {
         &eprint("Unknown object Type: $type\n");
         exit 1;

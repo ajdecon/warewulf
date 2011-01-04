@@ -8,7 +8,7 @@
 # $Id: Vnfs.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Object::Vnfs;
+package Warewulf::Vnfs;
 
 use Warewulf::Object;
 
@@ -16,16 +16,16 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Object::Vnfs - Warewulf's general object instance object interface.
+Warewulf::Vnfs - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Object::Vnfs;
+    use Warewulf::Vnfs;
 
-    my $obj = Warewulf::Object::Vnfs->new();
+    my $obj = Warewulf::Vnfs->new();
 
 
 =head1 METHODS

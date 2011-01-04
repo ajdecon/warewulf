@@ -140,7 +140,7 @@ read($)
                 } else {
                     &eprint("Could not open configuration file: $path ($!)\n");
                 }
-            } else [
+            } else {
                 &eprint("Configuration file not found: $path\n");
             }
         }

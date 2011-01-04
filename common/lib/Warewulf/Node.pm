@@ -8,7 +8,7 @@
 # $Id: Node.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Object::Node;
+package Warewulf::Node;
 
 use Warewulf::Object;
 
@@ -16,16 +16,16 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Object::Node - Warewulf's general object instance object interface.
+Warewulf::Node - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Object::Node;
+    use Warewulf::Node;
 
-    my $obj = Warewulf::Object::Node->new();
+    my $obj = Warewulf::Node->new();
 
 
 =head1 METHODS

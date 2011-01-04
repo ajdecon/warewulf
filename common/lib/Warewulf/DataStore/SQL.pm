@@ -8,26 +8,26 @@
 # $Id: SQL.pm 51 2010-11-07 03:16:29Z gmk $
 #
 
-package Warewulf::DB::SQL;
+package Warewulf::DataStore::SQL;
 
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use Warewulf::DB::SQL::MySQL;
+use Warewulf::DataStore::SQL::MySQL;
 use DBI;
 
 
 =head1 NAME
 
-Warewulf::DB::SQL - Database interface
+Warewulf::DataStore::SQL - Database interface
 
 =head1 ABOUT
 
-The Warewulf::DB::SQL interface simplies typically used DB calls.
+The Warewulf::DataStore::SQL interface simplies typically used DB calls.
 
 =head1 SYNOPSIS
 
-    use Warewulf::DB::SQL;
+    use Warewulf::DataStore::SQL;
 
 =item new()
 
@@ -42,7 +42,7 @@ new($$)
     my $db_engine = $config->get("database driver") || "mysql";
 
     if ($db_engine eq "mysql") {
-        return(Warewulf::DB::SQL::MySQL->new(@_));
+        return(Warewulf::DataStore::SQL::MySQL->new(@_));
     } else {
         &eprint("Could not load DB type: $db_engine\n");
         exit 1;
@@ -55,7 +55,7 @@ new($$)
 
 =head1 SEE ALSO
 
-Warewulf::DB
+Warewulf::DataStore
 
 =head1 COPYRIGHT
 
