@@ -116,7 +116,7 @@ read($)
 {
     my ($self) = @_;
     my @basepaths = (
-        (getpwuid $>)[7] . . "/.warewulf",
+        (getpwuid $>)[7] . "/.warewulf",
         $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf"
     );
 

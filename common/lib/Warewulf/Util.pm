@@ -19,11 +19,11 @@ use File::Basename;
 our @ISA = ('Exporter');
 
 our @EXPORT = (
-    '&rand_string'
-    '&croak'
-    '&progname'
-    '&expand_bracket'
-    '&uid_test'
+    '&rand_string',
+    '&croak',
+    '&progname',
+    '&expand_bracket',
+    '&uid_test',
 );
 
 =head1 NAME
