@@ -14,6 +14,7 @@ use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Node;
 use Warewulf::Vnfs;
+use Warewulf::Script;
 use DBI;
 
 =head1 NAME
@@ -44,6 +45,8 @@ new($$)
         return(Warewulf::Node->new(@_));
     } elsif ($type eq "VNFS") {
         return(Warewulf::Vnfs->new(@_));
+    } elsif ($type eq "SCRIPT") {
+        return(Warewulf::Script->new(@_));
     } else {
         &eprint("Unknown object Type: $type\n");
         exit 1;

@@ -149,7 +149,7 @@ exec()
     } elsif (scalar(@opt_print) > 0) {
         @opt_print = split(",", join(",", @opt_print));
     } else {
-        @opt_print = ("name");
+        @opt_print = ("name", "type");
     }
 
     my $objectSet;

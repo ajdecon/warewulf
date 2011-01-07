@@ -199,11 +199,9 @@ set_data($)
     my $db_id = shift;
     my $data = shift;
 
-    my $sql_query;
-
-    if ($id) {
-        my $sth = $self->{"DBH"}->prepare("UPDATE datastore (data) VALUE (?) WHERE id = ?");
-        return($sth->execute());
+    if ($db_id) {
+        my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET data = ? WHERE id = ?");
+        $sth->execute($data, $db_id) or die $self->{"DBH"}->errstr;
     }
 
     return();
