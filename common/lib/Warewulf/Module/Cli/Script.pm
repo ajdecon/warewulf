@@ -19,6 +19,7 @@ use Warewulf::Util;
 use Warewulf::Script;
 use Getopt::Long;
 use File::Basename;
+use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -59,6 +60,8 @@ help()
     $output .= "           Usage options:\n";
     $output .= "            -i, --import           Import a script into this object\n";
     $output .= "            -e, --export           Export a script to the file system\n";
+    $output .= "            -p, --program          Filter script through a program\n";
+    $output .= "            -s, --show             Show the contents of the script data\n";
     $output .= "                --DELETE           Delete an entire object\n";
 
     return($output);
@@ -81,6 +84,8 @@ exec()
     my $term = Warewulf::Term->new();
     my $opt_import;
     my $opt_export;
+    my $opt_show;
+    my $opt_program;
     my $opt_obj_delete;
 
     @ARGV = ();
@@ -89,6 +94,8 @@ exec()
     GetOptions(
         'i|import=s'    => \$opt_import,
         'e|export=s'    => \$opt_export,
+        'p|program=s'   => \$opt_program,
+        's|show'        => \$opt_show,
         'DELETE'        => \$opt_obj_delete,
     );
 
@@ -101,6 +108,7 @@ exec()
         my $path = $1;
         if (-f $path) {
             my $name = basename($path);
+            my $digest = digest_file_hex($path, "MD5");
             $objectSet = $db->get_objects($entity_type, "name", $name);
             my @objList = $objectSet->get_list();
             if (scalar(@objList) == 1) {
@@ -113,6 +121,7 @@ exec()
                     }
                 }
                 my $obj = $objList[0];
+                $obj->set("checksum", $digest);
                 my $script;
                 open(SCRIPT, $path);
                 $script = <SCRIPT>;
@@ -126,12 +135,14 @@ exec()
                 }
                 close SCRIPT;
                 $db->set_data($obj->get("id"), $script);
+                $db->persist($obj);
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new Script Object\n");
                 my $script;
                 my $obj = Warewulf::Script->new();
                 $obj->set("name", $name);
+                $obj->set("checksum", digest_file_hex($path, "MD5"));
                 &dprint("Persisting new Script Object\n");
                 $db->persist($obj);
                 open(SCRIPT, $path);
@@ -151,6 +162,70 @@ exec()
                 print "Import into one object at a time please!\n";
             }
         }
+    } elsif ($opt_program) {
+        my $program;
+        if ($opt_program =~ /^(\/.+)$/) {
+            $program = $1;
+        } else {
+            foreach my $path (split(":", $ENV{"PATH"})) {
+                if (-f "$path/$opt_program") {
+                    $program = "$path/$opt_program";
+                    last;
+                }
+            }
+        }
+        if ($program and -x $program) {
+            $objectSet = $db->get_objects($entity_type, "name", $ARGV[0]);
+            my @objList = $objectSet->get_list();
+            if (scalar(@objList) > 1) {
+                &eprint("Only specify one object to operate on at a time\n");
+                return();
+            } elsif (scalar(@objList) == 0) {
+                my $obj = Warewulf::Script->new();
+                $obj->set("name", $ARGV[0]);
+                $db->persist($obj);
+                push(@objList, $obj);
+            }
+            my $rand = &rand_string("16");
+            my $tmpfile = "/tmp/wwsh.$rand";
+            my $obj = $objList[0];
+            my $digest1;
+            my $digest2;
+            open(TMPFILE, "> $tmpfile");
+            print TMPFILE $db->get_data($obj->get("id"));
+            close TMPFILE;
+            $digest1 = $obj->get("checksum") || "";
+            system("$program $tmpfile");
+            $digest2 = digest_file_hex($tmpfile, "MD5");
+            if ($digest1 ne $digest2) {
+                &nprint("Updated datastore\n");
+
+                my $script;
+                open(SCRIPT, $tmpfile);
+                $script = <SCRIPT>;
+                if (! $script) {
+                    &eprint("Script has no content!\n");
+                    close SCRIPT;
+                    return();
+                } elsif ($script ne "#!/bin/sh\n") {
+                    &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
+                    close SCRIPT;
+                    return();
+                }
+                while(my $line = <SCRIPT>) {
+                    $script .= $line;
+                }
+                close SCRIPT;
+                $obj->set("checksum", $digest2);
+                $db->set_data($obj->get("id"), $script);
+                $db->persist($obj);
+            } else {
+                &nprint("Not updating datastore\n");
+            }
+        } else {
+            &eprint("Command '$opt_program' is not an executable program\n");
+        }
+
     } elsif ($opt_export) {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
@@ -193,7 +268,16 @@ exec()
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         foreach my $obj (@objList) {
-            print $obj->get("name") ."\n";
+            if ($opt_show) {
+                my $data = $db->get_data($obj->get("id"));
+                if ($data) {
+                    my $name = $obj->get("name");
+                    &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+                    print "$data";
+                }
+            } else {
+                print $obj->get("name") ."\n";
+            }
         }
 
 

@@ -9,7 +9,7 @@
 
 
 
-package Warewulf::Module::Cli::Search;
+package Warewulf::Module::Cli::Object;
 
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
@@ -53,7 +53,7 @@ help()
     my ($self, $keyword) = @_;
     my $output;
 
-    $output .= "        The search option will find all datastore entries in the lookup table.\n";
+    $output .= "        The object command will generically manipulate all datastore entries in the lookup table.\n";
     $output .= "           Usage options:\n";
     $output .= "            -t, --type             Limit the return of objects to this type\n";
     $output .= "            -l, --lookup           Lookup objects using a given string type (default: all)\n";
