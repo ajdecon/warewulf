@@ -108,7 +108,12 @@ exec()
     if ($opt_import and $opt_import =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
         my $path = $1;
         if (-f $path) {
-            my $name = basename($path);
+            my $name;
+            if (exists($ARGV[0])) {
+                $name = $ARGV[0];
+            } else {
+                $name = basename($path);
+            }
             my $digest = digest_file_hex($path, "MD5");
             $objectSet = $db->get_objects($entity_type, "name", $name);
             my @objList = $objectSet->get_list();
