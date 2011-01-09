@@ -19,6 +19,7 @@ use Warewulf::Util;
 use Warewulf::Script;
 use Getopt::Long;
 use File::Basename;
+use Text::ParseWords;
 use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
@@ -163,18 +164,7 @@ exec()
             }
         }
     } elsif ($opt_program) {
-        my $program;
-        if ($opt_program =~ /^(\/.+)$/) {
-            $program = $1;
-        } else {
-            foreach my $path (split(":", $ENV{"PATH"})) {
-                if (-f "$path/$opt_program") {
-                    $program = "$path/$opt_program";
-                    last;
-                }
-            }
-        }
-        if ($program and -x $program) {
+        if ($opt_program) {
             $objectSet = $db->get_objects($entity_type, "name", $ARGV[0]);
             my @objList = $objectSet->get_list();
             if (scalar(@objList) > 1) {
@@ -195,35 +185,39 @@ exec()
             print TMPFILE $db->get_data($obj->get("id"));
             close TMPFILE;
             $digest1 = $obj->get("checksum") || "";
-            system("$program $tmpfile");
-            $digest2 = digest_file_hex($tmpfile, "MD5");
-            if ($digest1 ne $digest2) {
-                &nprint("Updated datastore\n");
+            $opt_program =~ s/^"(.+?)"$/$1/;
+            if (system("$opt_program $tmpfile") == 0) {
+                $digest2 = digest_file_hex($tmpfile, "MD5");
+                if ($digest1 ne $digest2) {
+                    &nprint("Updated datastore\n");
 
-                my $script;
-                open(SCRIPT, $tmpfile);
-                $script = <SCRIPT>;
-                if (! $script) {
-                    &eprint("Script has no content!\n");
+                    my $script;
+                    open(SCRIPT, $tmpfile);
+                    $script = <SCRIPT>;
+                    if (! $script) {
+                        &eprint("Script has no content!\n");
+                        close SCRIPT;
+                        return();
+                    } elsif ($script ne "#!/bin/sh\n") {
+                        &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
+                        close SCRIPT;
+                        return();
+                    }
+                    while(my $line = <SCRIPT>) {
+                        $script .= $line;
+                    }
                     close SCRIPT;
-                    return();
-                } elsif ($script ne "#!/bin/sh\n") {
-                    &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
-                    close SCRIPT;
-                    return();
+                    $obj->set("checksum", $digest2);
+                    $db->set_data($obj->get("id"), $script);
+                    $db->persist($obj);
+                } else {
+                    &nprint("Not updating datastore\n");
                 }
-                while(my $line = <SCRIPT>) {
-                    $script .= $line;
-                }
-                close SCRIPT;
-                $obj->set("checksum", $digest2);
-                $db->set_data($obj->get("id"), $script);
-                $db->persist($obj);
             } else {
-                &nprint("Not updating datastore\n");
+                &eprint("Command errored out, not updating datastore\n");
             }
         } else {
-            &eprint("Command '$opt_program' is not an executable program\n");
+            &eprint("Command is undefined\n");
         }
 
     } elsif ($opt_export) {
