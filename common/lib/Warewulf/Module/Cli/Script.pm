@@ -167,6 +167,8 @@ exec()
             } else {
                 print "Import into one object at a time please!\n";
             }
+        } else {
+            &eprint("Could not import '$path' (file not found)\n");
         }
     } elsif ($opt_program) {
         if ($opt_program) {

@@ -70,7 +70,7 @@ sub
 complete()
 {
     my ($self, $text) = @_;
-    my $opt_lookup;
+    my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my $opt_type;
     my @ret;
@@ -78,6 +78,8 @@ complete()
     if (! $db) {
         return();
     }
+
+    @ARGV = ();
 
     foreach (&quotewords('\s+', 0, $text)) {
         if ($_) {
@@ -87,8 +89,10 @@ complete()
 
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
-        't|type'        => \$opt_type,
+        't|type=s'      => \$opt_type,
     );
+
+    @ARGV = ();
 
     return($db->get_lookups($opt_type, $opt_lookup));
 }
@@ -154,7 +158,7 @@ exec()
 
     my $objectSet;
 
-    $objectSet = $db->get_objects($opt_type, undef, &expand_bracket(@ARGV));
+    $objectSet = $db->get_objects($opt_type, $opt_lookup, &expand_bracket(@ARGV));
 
     my @objList = $objectSet->get_list();
 
