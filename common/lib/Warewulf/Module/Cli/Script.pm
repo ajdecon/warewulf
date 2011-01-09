@@ -78,6 +78,28 @@ complete()
 }
 
 sub
+get_lang()
+{
+    my $data = shift;
+
+    my ($interpreter) = split(/\n/, $data);
+
+    if ($interpreter =~ /^#!\/.+\/perl\s*/) {
+        return("perl");
+    } elsif ($interpreter =~ /^#!\/.+\/sh\s*/) {
+        return("shell");
+    } elsif ($interpreter =~ /^#!\/.+\/bash\s*/) {
+        return("bash");
+    } elsif ($interpreter =~ /^#!\/.+\/python\s*/) {
+        return("python");
+    } elsif ($interpreter =~ /^#!\/.+\/t?csh\s*/) {
+        return("csh");
+    }
+
+    return();
+}
+
+sub
 exec()
 {
     my $self = shift;
@@ -119,7 +141,7 @@ exec()
             my @objList = $objectSet->get_list();
             if (scalar(@objList) == 1) {
                 if ($term->interactive()) {
-                    print("Are you sure you wish to overwrite '$name'?\n\n");
+                    print("Are you sure you wish to overwrite the Warewulf script '$name'?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "No import performed\n";
@@ -130,18 +152,14 @@ exec()
                 $obj->set("checksum", $digest);
                 my $script;
                 open(SCRIPT, $path);
-                $script = <SCRIPT>;
-                if ($script ne "#!/bin/sh\n") {
-                    &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
-                    close SCRIPT;
-                    return();
-                }
                 while(my $line = <SCRIPT>) {
                     $script .= $line;
                 }
                 close SCRIPT;
-                $db->set_data($obj->get("id"), $script);
+                $obj->set("lang", &get_lang($script));
+                $obj->set("size", length($script));
                 $db->persist($obj);
+                $db->set_data($obj->get("id"), $script);
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new Script Object\n");
@@ -150,18 +168,14 @@ exec()
                 $obj->set("name", $name);
                 $obj->set("checksum", digest_file_hex($path, "MD5"));
                 &dprint("Persisting new Script Object\n");
-                $db->persist($obj);
                 open(SCRIPT, $path);
-                $script = <SCRIPT>;
-                if ($script ne "#!/bin/sh\n") {
-                    &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
-                    close SCRIPT;
-                    return();
-                }
                 while(my $line = <SCRIPT>) {
                     $script .= $line;
                 }
                 close SCRIPT;
+                $obj->set("lang", &get_lang($script));
+                $obj->set("size", length($script));
+                $db->persist($obj);
                 $db->set_data($obj->get("id"), $script);
                 print "Imported $name into a new object\n";
             } else {
@@ -200,28 +214,20 @@ exec()
 
                     my $script;
                     open(SCRIPT, $tmpfile);
-                    $script = <SCRIPT>;
-                    if (! $script) {
-                        &eprint("Script has no content!\n");
-                        close SCRIPT;
-                        return();
-                    } elsif ($script ne "#!/bin/sh\n") {
-                        &eprint("Only Borne shell scripts are allowed as scripts! ($script)\n");
-                        close SCRIPT;
-                        return();
-                    }
                     while(my $line = <SCRIPT>) {
                         $script .= $line;
                     }
                     close SCRIPT;
                     $obj->set("checksum", $digest2);
+                    $obj->set("lang", &get_lang($script));
+                    $obj->set("size", length($script));
                     $db->set_data($obj->get("id"), $script);
                     $db->persist($obj);
                 } else {
                     &nprint("Not updating datastore\n");
                 }
             } else {
-                &eprint("Command errored out, not updating datastore\n");
+                &iprint("Command errored out, not updating datastore\n");
             }
         } else {
             &eprint("Command is undefined\n");
@@ -265,22 +271,46 @@ exec()
                 &eprint("Can only export 1 script into a file, perhaps export to a directory?\n");
             }
         }
-    } else {
+    } elsif ($opt_show) {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         foreach my $obj (@objList) {
-            if ($opt_show) {
-                my $data = $db->get_data($obj->get("id"));
-                if ($data) {
-                    my $name = $obj->get("name");
-                    &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                    print "$data";
-                }
-            } else {
-                print $obj->get("name") ."\n";
+            my $data = $db->get_data($obj->get("id"));
+            if ($data) {
+                my $name = $obj->get("name");
+                &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+                print "$data";
             }
         }
 
+    } else {
+        $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
+        my @objList = $objectSet->get_list();
+        print "Language     #Nodes    Size(K)  Script Name\n";
+        foreach my $obj (@objList) {
+            my @nodeObjects = $db->get_objects("node", "script", $obj->get("name"))->get_list();
+            printf("%-14s %4s %9.1f   %s\n",
+                $obj->get("lang") || "unknwon",
+                scalar(@nodeObjects),
+                $obj->get("size") ? $obj->get("size")/1024 : "0",
+                $obj->get("name") || "[undef]");
+        }
+
+        if ($opt_obj_delete) {
+
+            if ($term->interactive()) {
+                print("\nAre you sure you wish to make the delete the above scripts?\n\n");
+                my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                if ($yesno ne "y" and $yesno ne "yes" ) {
+                    print "No update performed\n";
+                    return();
+                }
+            }
+
+            my $return_count = $db->del_object($objectSet);
+
+            &nprint("Deleted $return_count objects\n");
+        }
 
     }
 

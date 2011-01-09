@@ -208,7 +208,7 @@ exec()
 
             $return_count = $db->del_object($objectSet);
 
-            &iprint("Deleted $return_count objects\n");
+            &nprint("Deleted $return_count objects\n");
 
         } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 

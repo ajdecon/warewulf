@@ -189,7 +189,7 @@ exec()
     } else {
         my $objectSet;
 
-        $objectSet = $db->get_objects($opt_type, $opt_lookup, &expand_bracket(@ARGV));
+        $objectSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
 
         my @objList = $objectSet->get_list();
 
@@ -229,7 +229,7 @@ exec()
             if ($opt_obj_delete) {
 
                 if ($term->interactive()) {
-                    print("\nAre you sure you wish to delete the above objects?\n\n");
+                    print("\nAre you sure you wish to delete the above nodes?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "No update performed\n";
@@ -239,7 +239,7 @@ exec()
 
                 $return_count = $db->del_object($objectSet);
 
-                &iprint("Deleted $return_count objects\n");
+                &nprint("Deleted $return_count objects\n");
 
             } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 
