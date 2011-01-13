@@ -72,6 +72,7 @@ new()
     my $class = ref($proto) || $proto;
 
     if (! $singleton) {
+        $singleton = {};
         bless($singleton, $class);
         $singleton->init();
     }
@@ -85,37 +86,36 @@ new()
 sub
 init()
 {
+    my $self = shift;
     my $config = Warewulf::Config->new("database.conf");
     my $db_server = $config->get("database server");
     my $db_name = $config->get("database name");
     my $db_user = $config->get("database user");
     my $db_pass = $config->get("database password");
  
-    if ($singleton && exists($singleton->{"DBH"}) && $singleton->{"DBH"}) {
+    if ($self && exists($self->{"DBH"}) && $self->{"DBH"}) {
         &dprint("DB Singleton exists, not going to initialize\n");
     } else {
-        %{$singleton} = ();
 
         if ($db_name and $db_server and $db_user) {
             &dprint("DATABASE NAME:      $db_name\n");
             &dprint("DATABASE SERVER:    $db_server\n");
             &dprint("DATABASE USER:      $db_user\n");
 
-            $singleton->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-            if ( $singleton->{"DBH"}) {
+            $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
+            if ( $self->{"DBH"}) {
                 &iprint("Successfully connected to database!\n");
             } else {
                 die "Could not connect to DB: $!!\n";
             }
 
-            bless($singleton, $class);
         } else {
             &dprint("Undefined credentials for database\n");
             return();
         }
     }
 
-    return $singleton;
+    return $self;
 }
 
 =item get_objects($type, $field, $val1, $val2, $val3);
