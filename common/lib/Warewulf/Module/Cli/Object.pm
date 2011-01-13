@@ -56,7 +56,7 @@ help()
     $output .= "        The object command will generically manipulate all datastore entries in the lookup table.\n";
     $output .= "           Usage options:\n";
     $output .= "            -t, --type             Limit the return of objects to this type\n";
-    $output .= "            -l, --lookup           Lookup objects using a given string type (default: all)\n";
+    $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
     $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
     $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
     $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
