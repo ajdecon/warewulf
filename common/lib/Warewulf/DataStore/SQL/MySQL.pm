@@ -70,6 +70,21 @@ new()
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
+
+    if (! $singleton) {
+        bless($singleton, $class);
+        $singleton->init();
+    }
+
+    return($singleton);
+}
+
+
+
+
+sub
+init()
+{
     my $config = Warewulf::Config->new("database.conf");
     my $db_server = $config->get("database server");
     my $db_name = $config->get("database name");
