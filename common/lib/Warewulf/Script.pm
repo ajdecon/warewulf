@@ -75,7 +75,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "CLASS", "ID");
+    return("NAME", "ID");
 }
 
 
