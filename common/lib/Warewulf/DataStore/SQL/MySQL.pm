@@ -108,6 +108,7 @@ init()
             } else {
                 die "Could not connect to DB: $!!\n";
             }
+            $self->{"DBH"}->{mysql_auto_reconnect} = 1;
 
         } else {
             &dprint("Undefined credentials for database\n");

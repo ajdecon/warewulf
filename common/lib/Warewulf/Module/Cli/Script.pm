@@ -82,18 +82,20 @@ get_lang()
 {
     my $data = shift;
 
-    my ($interpreter) = split(/\n/, $data);
+    if (length($data) > 0) {
+        my ($interpreter) = split(/\n/, $data);
 
-    if ($interpreter =~ /^#!\/.+\/perl\s*/) {
-        return("perl");
-    } elsif ($interpreter =~ /^#!\/.+\/sh\s*/) {
-        return("shell");
-    } elsif ($interpreter =~ /^#!\/.+\/bash\s*/) {
-        return("bash");
-    } elsif ($interpreter =~ /^#!\/.+\/python\s*/) {
-        return("python");
-    } elsif ($interpreter =~ /^#!\/.+\/t?csh\s*/) {
-        return("csh");
+        if ($interpreter =~ /^#!\/.+\/perl\s*/) {
+            return("perl");
+        } elsif ($interpreter =~ /^#!\/.+\/sh\s*/) {
+            return("shell");
+        } elsif ($interpreter =~ /^#!\/.+\/bash\s*/) {
+            return("bash");
+        } elsif ($interpreter =~ /^#!\/.+\/python\s*/) {
+            return("python");
+        } elsif ($interpreter =~ /^#!\/.+\/t?csh\s*/) {
+            return("csh");
+        }
     }
 
     return();
@@ -263,6 +265,7 @@ exec()
                 }
             }
             if (scalar(@objList) == 1) {
+                my $obj = $objList[0];
                 open(SCRIPT, "> $opt_export");
                 print SCRIPT $db->get_data($obj->get("id"));
                 close SCRIPT;
@@ -270,6 +273,13 @@ exec()
             } else {
                 &eprint("Can only export 1 script into a file, perhaps export to a directory?\n");
             }
+        } else {
+            my $obj = $objList[0];
+            my $dirname = dirname($opt_export);
+            open(SCRIPT, "> $opt_export");
+            print SCRIPT $db->get_data($obj->get("id"));
+            close SCRIPT;
+            print "Exported: $opt_export\n";
         }
     } elsif ($opt_show) {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
