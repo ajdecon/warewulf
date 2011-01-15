@@ -2,6 +2,7 @@
 /* Drop Existing Tables */
 
 DROP TABLE IF EXISTS lookup;
+DROP TABLE IF EXISTS binary;
 DROP TABLE IF EXISTS datastore;
 
 
@@ -14,8 +15,20 @@ CREATE TABLE datastore
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     type VARCHAR(64),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    serialized LONGBLOB,
-    data LONGBLOB,
+    serialized BLOB,
+    data BLOB,
+    INDEX (id),
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+
+
+CREATE TABLE binary
+(
+    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    object_id INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    data BLOB,
+    FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
     PRIMARY KEY (id)
 ) ENGINE=INNODB;
