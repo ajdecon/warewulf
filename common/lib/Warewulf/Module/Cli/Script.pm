@@ -82,7 +82,7 @@ get_lang()
 {
     my $data = shift;
 
-    if (length($data) > 0) {
+    if ($data and length($data) > 0) {
         my ($interpreter) = split(/\n/, $data);
 
         if ($interpreter =~ /^#!\/.+\/perl\s*/) {
@@ -210,10 +210,10 @@ exec()
                 $db->persist($obj);
                 push(@objList, $obj);
             }
+            my $obj = $objList[0];
             my $binstore = $db->binstore($obj->get("id"));
             my $rand = &rand_string("16");
             my $tmpfile = "/tmp/wwsh.$rand";
-            my $obj = $objList[0];
             my $digest1;
             my $digest2;
             open(TMPFILE, "> $tmpfile");
@@ -231,7 +231,7 @@ exec()
                     my $buffer;
                     open(SCRIPT, $tmpfile);
                     while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
-                        &dprint("Chunked $length bytes of $path\n");
+                        &dprint("Chunked $length bytes of $tmpfile\n");
                         $binstore->put_chunk($buffer);
                         if (! $size) {
                             $obj->set("lang", &get_lang($buffer));

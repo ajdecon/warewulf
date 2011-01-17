@@ -561,7 +561,10 @@ put_chunk()
         $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)");
         &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)\n");
     }
-    $self->{"PUT_STH"}->execute($buffer) or warn "EXECUTE FAILED: ". $self->{"PUT_STH"}->errstr ."\n";
+
+    if (! $self->{"PUT_STH"}->execute($buffer)) {
+        &eprint("put_chunk() failed with error: ". $self->{"PUT_STH"}->errstr ."\n");
+    }
 
     return;
 }
