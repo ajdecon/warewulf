@@ -223,9 +223,7 @@ exec()
                 }
                 foreach my $setstring (@opt_set) {
                     my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, $vals)) {
-                        printf(" set: %15s = %s\n", $key, $val);
-                    }
+                    printf(" set: %15s = %s\n", $key, $vals);
                 }
                 foreach my $setstring (@opt_add) {
                     my ($key, $vals) = &quotewords('=', 1, $setstring);
@@ -258,13 +256,11 @@ exec()
 
                 foreach my $setstring (@opt_set) {
                     my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, $vals)) {
-                        &dprint("Set: setting $key to $val\n");
-                        foreach my $obj (@objList) {
-                            $obj->set($key, split(",", $val));
-                        }
-                        $persist_bool = 1;
+                    &dprint("Set: setting $key to $vals\n");
+                    foreach my $obj (@objList) {
+                        $obj->set($key, &quotewords(',', 0, $vals));
                     }
+                    $persist_bool = 1;
                 }
             }
             if (@opt_add) {

@@ -152,33 +152,44 @@ exec()
                 }
                 my $obj = $objList[0];
                 $obj->set("checksum", $digest);
-                my $script;
+                my $binstore = $db->binstore($obj->get("id"));
+                my $size;
+                my $buffer;
                 open(SCRIPT, $path);
-                while(my $line = <SCRIPT>) {
-                    $script .= $line;
+                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                    &dprint("Chunked $length bytes of $path\n");
+                    $binstore->put_chunk($buffer);
+                    if (! $size) {
+                        $obj->set("lang", &get_lang($buffer));
+                    }
+                    $size += $length;
                 }
                 close SCRIPT;
-                $obj->set("lang", &get_lang($script));
-                $obj->set("size", length($script));
+                $obj->set("size", $size);
                 $db->persist($obj);
-                $db->set_data($obj->get("id"), $script);
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new Script Object\n");
-                my $script;
                 my $obj = Warewulf::Script->new();
+                $db->persist($obj);
                 $obj->set("name", $name);
                 $obj->set("checksum", digest_file_hex($path, "MD5"));
+                my $binstore = $db->binstore($obj->get("id"));
+                my $size;
+                my $buffer;
                 &dprint("Persisting new Script Object\n");
                 open(SCRIPT, $path);
-                while(my $line = <SCRIPT>) {
-                    $script .= $line;
+                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                    &dprint("Chunked $length bytes of $path\n");
+                    $binstore->put_chunk($buffer);
+                    if (! $size) {
+                        $obj->set("lang", &get_lang($buffer));
+                    }
+                    $size += $length;
                 }
                 close SCRIPT;
-                $obj->set("lang", &get_lang($script));
-                $obj->set("size", length($script));
+                $obj->set("size", $size);
                 $db->persist($obj);
-                $db->set_data($obj->get("id"), $script);
                 print "Imported $name into a new object\n";
             } else {
                 print "Import into one object at a time please!\n";
@@ -199,32 +210,40 @@ exec()
                 $db->persist($obj);
                 push(@objList, $obj);
             }
+            my $binstore = $db->binstore($obj->get("id"));
             my $rand = &rand_string("16");
             my $tmpfile = "/tmp/wwsh.$rand";
             my $obj = $objList[0];
             my $digest1;
             my $digest2;
             open(TMPFILE, "> $tmpfile");
-            print TMPFILE $db->get_data($obj->get("id"));
+            while(my $buffer = $binstore->get_chunk()) {
+                print TMPFILE $buffer;
+            }
             close TMPFILE;
             $digest1 = $obj->get("checksum") || "";
             $opt_program =~ s/^"(.+?)"$/$1/;
             if (system("$opt_program $tmpfile") == 0) {
                 $digest2 = digest_file_hex($tmpfile, "MD5");
                 if ($digest1 ne $digest2) {
-                    &nprint("Updated datastore\n");
-
-                    my $script;
+                    my $binstore = $db->binstore($obj->get("id"));
+                    my $size;
+                    my $buffer;
                     open(SCRIPT, $tmpfile);
-                    while(my $line = <SCRIPT>) {
-                        $script .= $line;
+                    while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                        &dprint("Chunked $length bytes of $path\n");
+                        $binstore->put_chunk($buffer);
+                        if (! $size) {
+                            $obj->set("lang", &get_lang($buffer));
+                        }
+                        $size += $length;
                     }
                     close SCRIPT;
                     $obj->set("checksum", $digest2);
                     $obj->set("lang", &get_lang($script));
-                    $obj->set("size", length($script));
-                    $db->set_data($obj->get("id"), $script);
+                    $obj->set("size", $size);
                     $db->persist($obj);
+                    &nprint("Updated datastore\n");
                 } else {
                     &nprint("Not updating datastore\n");
                 }
@@ -242,6 +261,8 @@ exec()
         if (-d $opt_export) {
             foreach my $obj (@objList) {
                 my $script = $obj->get("name");
+                my $binstore = $db->binstore($obj->get("id"));
+
                 if (-f "$opt_export/$script" and $term->interactive()) {
                     print("Are you sure you wish to overwrite $opt_export/$script?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
@@ -251,7 +272,10 @@ exec()
                     }
                 }
                 open(SCRIPT, "> $opt_export/$script");
-                print SCRIPT $db->get_data($obj->get("id"));
+                while(my $buffer = $binstore->get_chunk()) {
+                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
+                    print SCRIPT $buffer;
+                }
                 close SCRIPT;
                 print "Exported: $opt_export/$script\n";
             }
@@ -266,8 +290,11 @@ exec()
             }
             if (scalar(@objList) == 1) {
                 my $obj = $objList[0];
+                my $binstore = $db->binstore($obj->get("id"));
                 open(SCRIPT, "> $opt_export");
-                print SCRIPT $db->get_data($obj->get("id"));
+                while(my $buffer = $binstore->get_chunk()) {
+                    print SCRIPT $buffer;
+                }
                 close SCRIPT;
                 print "Exported: $opt_export\n";
             } else {
@@ -275,9 +302,12 @@ exec()
             }
         } else {
             my $obj = $objList[0];
+            my $binstore = $db->binstore($obj->get("id"));
             my $dirname = dirname($opt_export);
             open(SCRIPT, "> $opt_export");
-            print SCRIPT $db->get_data($obj->get("id"));
+            while(my $buffer = $binstore->get_chunk()) {
+                print SCRIPT $buffer;
+            }
             close SCRIPT;
             print "Exported: $opt_export\n";
         }
@@ -285,11 +315,11 @@ exec()
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         foreach my $obj (@objList) {
-            my $data = $db->get_data($obj->get("id"));
-            if ($data) {
-                my $name = $obj->get("name");
-                &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                print "$data";
+            my $binstore = $db->binstore($obj->get("id"));
+            my $name = $obj->get("name");
+            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+            while(my $buffer = $binstore->get_chunk()) {
+                print $buffer;
             }
         }
 
@@ -298,7 +328,7 @@ exec()
         my @objList = $objectSet->get_list();
         print "Language     #Nodes    Size(K)  Script Name\n";
         foreach my $obj (@objList) {
-            my @nodeObjects = $db->get_objects("node", "script", $obj->get("name"))->get_list();
+            my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
             printf("%-14s %4s %9.1f   %s\n",
                 $obj->get("lang") || "unknwon",
                 scalar(@nodeObjects),

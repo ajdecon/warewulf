@@ -2,7 +2,7 @@
 /* Drop Existing Tables */
 
 DROP TABLE IF EXISTS lookup;
-DROP TABLE IF EXISTS binary;
+DROP TABLE IF EXISTS binstore;
 DROP TABLE IF EXISTS datastore;
 
 
@@ -22,12 +22,11 @@ CREATE TABLE datastore
 ) ENGINE=INNODB;
 
 
-CREATE TABLE binary
+CREATE TABLE binstore
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     object_id INT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    data BLOB,
+    chunk LONGBLOB,
     FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
     PRIMARY KEY (id)

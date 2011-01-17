@@ -109,12 +109,35 @@ init()
                 die "Could not connect to DB: $!!\n";
             }
             $self->{"DBH"}->{mysql_auto_reconnect} = 1;
+#            $self->{"DBH"}->do("set global max_allowed_packet = ". 30 * 1024 * 1024 .";");
+#            $self->{"DBH"}->do("set max_allowed_packet = ". 30 * 1024 * 1024 .";");
+#            $self->{"DBH"}->do("set net_buffer_length = ". 1024 * 1024 .";");
+#            $self->{"DBH"}->do("flush tables;");
+#            $self->{"DBH"}->disconnect();
+#            $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
 
         } else {
             &dprint("Undefined credentials for database\n");
             return();
         }
     }
+
+
+
+    my (undef, $max_allowed_packet) =  $self->{"DBH"}->selectrow_array("show variables LIKE 'max_allowed_packet'");
+
+    if ($max_allowed_packet < 30 * 1024 * 1024) {
+        &wprint("To get full functionality from your database, you need to add the\n");
+        &wprint("following line to your MySQL configuration (/etc/my.cnf):\n");
+        &wprint("    \"max_allowed_packet=30M\"\n");
+        &wprint("to the [mysqld] section, and then restart your MySQL server\n\n");
+    }
+
+#printf "\n\nmax_allowed_packet => %d, %.2f MB\n", $max_allowed_packet, $max_allowed_packet  / (1024 *1024);
+
+
+
+
 
     return $self;
 }
@@ -487,6 +510,91 @@ new_object($)
 
     return($object);
 }
+
+
+
+=item binstore($object_id);
+
+Return a binstore object for the given object ID. The binstore object can have
+data put or gotten (put_chunk or get_chunk methods respectively) from this
+object.
+
+=cut
+sub
+binstore()
+{
+    my ($self, $object_id) = @_;
+    my $class = ref($self);
+    my $dsh = {};
+
+    $dsh->{"DBH"} = $self->{"DBH"};
+    $dsh->{"OBJECT_ID"} = $self->{"DBH"}->quote($object_id);
+    $dsh->{"BINSTORE"} = 1;
+
+    bless($dsh, $class);
+
+    return($dsh);
+}
+
+=item put_chunk($buffer);
+
+Put data into the binstore object one chunk at a time. Iterate through the
+entire datastream until all data has been added.
+
+=cut
+sub
+put_chunk()
+{
+    my ($self, $buffer) = @_;
+
+    if (! exists($self->{"BINSTORE"})) {
+        &eprint("Wrong object type\n");
+    }
+
+    if (! exists($self->{"OBJECT_ID"})) {
+        &eprint("Can not store into binstore without an object ID\n");
+        return;
+    }
+
+    if (! exists($self->{"PUT_STH"})) {
+        my $sth = $self->{"DBH"}->do("DELETE FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"});
+        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)");
+        &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)\n");
+    }
+    $self->{"PUT_STH"}->execute($buffer) or warn "EXECUTE FAILED: ". $self->{"PUT_STH"}->errstr ."\n";
+
+    return;
+}
+
+
+=item get_chunk();
+
+Get all of the data out of the binstore object one chunk at a time.
+
+=cut
+sub
+get_chunk()
+{
+    my ($self) = @_;
+
+    if (! exists($self->{"BINSTORE"})) {
+        &eprint("Wrong object type\n");
+    }
+
+    if (! exists($self->{"OBJECT_ID"})) {
+        &eprint("Can not store into binstore without an object ID\n");
+        return;
+    }
+
+    if (! exists($self->{"GET_STH"})) {
+        &dprint("SQL: SELECT chunk FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"} ." ORDER BY id\n");
+        $self->{"GET_STH"} = $self->{"DBH"}->prepare("SELECT chunk FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"} ." ORDER BY id");
+        $self->{"GET_STH"}->execute();
+    }
+
+    return($self->{"GET_STH"}->fetchrow_array());
+}
+
 
 
 =back
