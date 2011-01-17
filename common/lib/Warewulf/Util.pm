@@ -114,16 +114,25 @@ expand_bracket(@)
     my @ret;
 
     foreach my $range (@ranges) {
-        if ($range =~ /^(.*?)\[([0-9]+)\-([0-9]+)\](.*?)$/) {
+        if ($range =~ /^(.*?)\[([0-9\-\,]+)\](.*?)$/) {
             my $prefix = $1;
-            my $start = $2;
-            my $end = $3;
-            my $suffix = $4;
+            my $range = $2;
+            my $suffix = $3;
 
-            if ($end > $start) {
-                my $len = length($end);
-                for(my $i=$start; $i<=$end; $i++) {
-                    push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
+            foreach my $r (split(",", $range)) {
+                if ($r =~ /^([0-9]+)\-([0-9]+)$/) {
+                    my $start = $1;
+                    my $end = $2;
+                    if ($end > $start) {
+                        my $len = length($end);
+                        for(my $i=$start; $i<=$end; $i++) {
+                            push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
+                        }
+                    }
+                } elsif ($r =~ /^([0-9]+)$/ ) {
+                    my $num = $1;
+                    my $len = length($num);
+                    push(@ret, sprintf("%s%0.${len}d%s", $prefix, $num, $suffix));
                 }
             }
         } else {
