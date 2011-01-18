@@ -16,8 +16,11 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
+use Warewulf::Script;
 use Getopt::Long;
+use File::Basename;
 use Text::ParseWords;
+use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -56,12 +59,8 @@ help()
 
     $output .= "        Hello vnfs...\n";
     $output .= "           Usage options:\n";
-    $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-    $output .= "            -n, --new              Create a new object with the given name.\n";
-    $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
-    $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
-    $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
-    $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
+    $output .= "            -i, --import           Import a vnfs image into this object\n";
+    $output .= "            -e, --export           Export a vnfs image to the file system\n";
     $output .= "                --DELETE           Delete an entire object\n";
 
     return($output);
@@ -71,54 +70,10 @@ sub
 complete()
 {
     my ($self, $text) = @_;
-    my $opt_lookup = "name";
     my $db = $self->{"DB"};
-    my $opt_null;
-    my @ret;
 
-    if (! $db) {
-        return();
-    }
-
-    foreach (&quotewords('\s+', 0, $text)) {
-        if ($_) {
-            push(@ARGV, $_);
-        }
-    }
-
-    GetOptions(
-        'l|lookup=s'    => \$opt_lookup,
-        'n|new'         => \$opt_null,
-        'p|print=s'     => \$opt_null,
-        's|set=s'       => \$opt_null,
-        'a|add=s'       => \$opt_null,
-        'd|del=s'       => \$opt_null,
-        'DELETE'        => \$opt_null,
-        'h|help'        => \$opt_null,
-    );
-
-    if ($opt_lookup) {
-        my $objectSet = $db->get_objects($entity_type);
-
-        my @objList = $objectSet->get_list();
-
-        foreach my $o (@objList) {
-            my $string = $o->get($opt_lookup);
-            if ($string) {
-                if (ref($string) =~ /^ARRAY/) {
-                    push(@ret, @{$string});
-                } else {
-                    push(@ret, $string);
-                }
-            }
-        }
-    }
-
-    @ARGV = ();
-
-    return(@ret);
+    return($db->get_lookups("vnfs"));
 }
-
 
 sub
 exec()
@@ -126,30 +81,17 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $opt_lookup = "name";
-    my $opt_new;
-    my $opt_type;
-    my @opt_set;
-    my @opt_add;
-    my @opt_del;
+    my $opt_import;
+    my $opt_export;
     my $opt_obj_delete;
-    my $opt_help;
-    my @opt_print;
-    my $return_count;
 
     @ARGV = ();
     push(@ARGV, @_);
 
     GetOptions(
-        'n|new'         => \$opt_new,
-        'p|print=s'     => \@opt_print,
-        's|set=s'       => \@opt_set,
-        'a|add=s'       => \@opt_add,
-        'd|del=s'       => \@opt_del,
-        'l|lookup=s'    => \$opt_lookup,
+        'i|import=s'    => \$opt_import,
+        'e|export=s'    => \$opt_export,
         'DELETE'        => \$opt_obj_delete,
-        'h|help'        => \$opt_help,
-        't|type=s'      => \$opt_type,
     );
 
     if (! $db) {
@@ -157,198 +99,157 @@ exec()
         return();
     }
 
-    if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-        if ($term->interactive()) {
-            my %modifiers;
-            my @mod_print;
-            @opt_print = ("name");
-            foreach my $setstring (@opt_set, @opt_add, @opt_del) {
-                if ($setstring =~ /^([^=]+)/) {
-                    if (!exists($modifiers{"$1"})) {
-                        push(@mod_print, $1);
-                        $modifiers{"$1"} = 1;
+    if ($opt_import and $opt_import =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+        my $path = $1;
+        if (-f $path) {
+            my $name;
+            if (exists($ARGV[0])) {
+                $name = $ARGV[0];
+            } else {
+                $name = basename($path);
+            }
+            my $digest = digest_file_hex($path, "MD5");
+            $objectSet = $db->get_objects($entity_type, "name", $name);
+            my @objList = $objectSet->get_list();
+            if (scalar(@objList) == 1) {
+                if ($term->interactive()) {
+                    print("Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n");
+                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        print "No import performed\n";
+                        return();
                     }
                 }
+                my $obj = $objList[0];
+                $obj->set("checksum", $digest);
+                my $binstore = $db->binstore($obj->get("id"));
+                my $size;
+                my $buffer;
+                open(SCRIPT, $path);
+                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                    &dprint("Chunked $length bytes of $path\n");
+                    $binstore->put_chunk($buffer);
+                    $size += $length;
+                }
+                close SCRIPT;
+                $obj->set("size", $size);
+                $db->persist($obj);
+                print "Imported $name into existing object\n";
+            } elsif (scalar(@objList) == 0) {
+                &dprint("Creating new Vnfs Object\n");
+                my $obj = Warewulf::Vnfs->new();
+                $db->persist($obj);
+                $obj->set("name", $name);
+                $obj->set("checksum", digest_file_hex($path, "MD5"));
+                my $binstore = $db->binstore($obj->get("id"));
+                my $size;
+                my $buffer;
+                &dprint("Persisting new Vnfs Object\n");
+                open(SCRIPT, $path);
+                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                    &dprint("Chunked $length bytes of $path\n");
+                    $binstore->put_chunk($buffer);
+                    $size += $length;
+                }
+                close SCRIPT;
+                $obj->set("size", $size);
+                $db->persist($obj);
+                print "Imported $name into a new object\n";
+            } else {
+                print "Import into one object at a time please!\n";
             }
-            push(@opt_print, @mod_print);
+        } else {
+            &eprint("Could not import '$path' (file not found)\n");
         }
-    } elsif (scalar(@opt_print) > 0) {
-        @opt_print = split(",", join(",", @opt_print));
-    } else {
-        @opt_print = ("name");
-    }
 
-    if ($opt_new) {
-        foreach my $string (@ARGV) {
-            my $obj;
-            $obj = Warewulf::ObjectFactory->new($entity_type);
-
-            $obj->set($opt_lookup, $string);
-            foreach my $setstring (@opt_set) {
-                my ($key, $val) = split(/=/, $setstring);
-                $obj->set($key, $val);
-            }
-
-            $db->persist($obj);
-        }
-    } else {
-        my $objectSet;
-
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-
+    } elsif ($opt_export) {
+        $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
 
-        if (@objList) {
-            if (@opt_print) {
+        if (-d $opt_export) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name");
+                my $binstore = $db->binstore($obj->get("id"));
 
-                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-                    &nprintf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
-                }
-                foreach my $o ($objectSet->get_list()) {
-                    my @values;
-                    if (@opt_print and $opt_print[0] eq ":all") {
-                        my %hash = $o->get_hash();
-                        my $id = $o->get("id");
-                        my $name = $o->get("name");
-                        &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                        foreach my $h (keys %hash) {
-                            if(ref($hash{$h}) =~ /^ARRAY/) {
-                                &nprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
-                            } else {
-                                &nprintf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
-                            }
-                        }
-                    } else {
-                        foreach my $g (@opt_print) {
-                            if(ref($o->get($g)) =~ /^ARRAY/) {
-                                push(@values, join(",", sort $o->get($g)));
-                            } else {
-                                push(@values, $o->get($g) || "[undef]");
-                            }
-                        }
-                        &nprintf("%-20s " x (scalar @values) ."\n", @values);
-                    }
-                }
-            }
-
-            if ($opt_obj_delete) {
-
-                if ($term->interactive()) {
-                    print("\nAre you sure you wish to delete the above objects?\n\n");
+                if (-f "$opt_export/$name" and $term->interactive()) {
+                    print("Are you sure you wish to overwrite $opt_export/$name?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
-                        return();
+                        print "Skipped export of $opt_export/$name\n";
+                        next;
                     }
                 }
-
-                $return_count = $db->del_object($objectSet);
-
-                &iprint("Deleted $return_count objects\n");
-
-            } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-
-                my $persist_bool;
-
-                if ($term->interactive()) {
-                    if (scalar(@objList) eq 1) {
-                        print("\nAre you sure you wish to make the following changes to 1 node?\n\n");
-                    } else {
-                        print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
-                    }
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            printf(" set: %15s = %s\n", $key, $val);
-                        }
-                    }
-                    foreach my $setstring (@opt_add) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            printf(" add: %15s = %s\n", $key, $val);
-                        }
-                    }
-                    foreach my $setstring (@opt_del) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        if ($vals) {
-                            foreach my $val (&quotewords(',', 0, $vals)) {
-                                printf(" delete: %12s = %s\n", $key, $val);
-                            }
-                        } else {
-                            printf(" undefine: %10s = [ALL]\n", $key);
-                        }
-                    }
-
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
-
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
-                        return();
-                    }
+                open(SCRIPT, "> $opt_export/$name");
+                while(my $buffer = $binstore->get_chunk()) {
+                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
+                    print SCRIPT $buffer;
                 }
-
-                if (@opt_set) {
-
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            &dprint("Set: setting $key to $val\n");
-                            foreach my $obj (@objList) {
-                                $obj->set($key, split(",", $val));
-                            }
-                            $persist_bool = 1;
-                        }
-                    }
-                }
-                if (@opt_add) {
-
-                    foreach my $setstring (@opt_add) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            &dprint("Set: adding $key to $val\n");
-                            foreach my $obj (@objList) {
-                                $obj->add($key, split(",", $val));
-                            }
-                            $persist_bool = 1;
-                        }
-                    }
-
-                }
-                if (@opt_del) {
-
-                    foreach my $setstring (@opt_del) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        if ($key and $vals) {
-                            foreach my $val (&quotewords(',', 0, $vals)) {
-                                &dprint("Set: deleting $val from $key\n");
-                                foreach my $obj (@objList) {
-                                    $obj->del($key, split(",", $val));
-                                }
-                                $persist_bool = 1;
-                            }
-                        } elsif ($key) {
-                            &dprint("Set: deleting $key\n");
-                            foreach my $obj (@objList) {
-                                $obj->del($key);
-                            }
-                            $persist_bool = 1;
-                        }
-                    }
-
-                }
-
-                if ($persist_bool) {
-                    $return_count = $db->persist($objectSet);
-
-                    &iprint("Updated $return_count objects\n");
-                }
-
+                close SCRIPT;
+                print "Exported: $opt_export/$name\n";
             }
-
+        } elsif (-f $opt_export) {
+            if ($term->interactive()) {
+                print("Are you sure you wish to overwrite $opt_export?\n\n");
+                my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                if ($yesno ne "y" and $yesno ne "yes" ) {
+                    print "No export performed\n";
+                    return();
+                }
+            }
+            if (scalar(@objList) == 1) {
+                my $obj = $objList[0];
+                my $binstore = $db->binstore($obj->get("id"));
+                open(SCRIPT, "> $opt_export");
+                while(my $buffer = $binstore->get_chunk()) {
+                    print SCRIPT $buffer;
+                }
+                close SCRIPT;
+                print "Exported: $opt_export\n";
+            } else {
+                &eprint("Can only export 1 Vnfs image into a file, perhaps export to a directory?\n");
+            }
         } else {
-            &wprint("No objects found.\n");
+            my $obj = $objList[0];
+            my $binstore = $db->binstore($obj->get("id"));
+            my $dirname = dirname($opt_export);
+            open(SCRIPT, "> $opt_export");
+            while(my $buffer = $binstore->get_chunk()) {
+                print SCRIPT $buffer;
+            }
+            close SCRIPT;
+            print "Exported: $opt_export\n";
         }
+
+    } else {
+        $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
+        my @objList = $objectSet->get_list();
+        print "#NODES    SIZE (M)    VNFS NAME\n";
+        foreach my $obj (@objList) {
+            my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
+            printf("%-5s     %-8.1f    %s\n",
+                scalar(@nodeObjects),
+                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0",
+                $obj->get("name") || "[undef]");
+        }
+
+        if ($opt_obj_delete) {
+
+            if ($term->interactive()) {
+                print("\nAre you sure you wish to make the delete the above Vnfs image?\n\n");
+                my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                if ($yesno ne "y" and $yesno ne "yes" ) {
+                    print "No update performed\n";
+                    return();
+                }
+            }
+
+            my $return_count = $db->del_object($objectSet);
+
+            &nprint("Deleted $return_count objects\n");
+        }
+
     }
+
 
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();
