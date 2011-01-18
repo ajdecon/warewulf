@@ -382,6 +382,8 @@ del_object($$)
             dprint("Deleting object from the datastore: ID=$id\n");
             $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             $sth->execute($id);
+            $sth = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
+            $sth->execute($id);
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
         }
