@@ -36,7 +36,7 @@ new()
 sub
 exec()
 {
-    my ($self, $keyword, @args) = @_;
+    my ($self, @args) = @_;
 
     my $rpm;
     my $kversion;

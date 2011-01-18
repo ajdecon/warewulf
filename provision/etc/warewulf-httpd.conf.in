@@ -24,6 +24,7 @@ Alias /WW/static /usr/share/warewulf/www
 
 Listen 9870
 <VirtualHost *:9870>
-    ScriptAlias / @fulllibexecdir@/warewulf/cgi-bin/nodeinterface.pl
+    ScriptAlias /bootscript @fulllibexecdir@/warewulf/cgi-bin/bootscript.pl
+    ScriptAlias /vnfs @fulllibexecdir@/warewulf/cgi-bin/vnfs.pl
 </VirtualHost>
 

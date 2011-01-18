@@ -106,7 +106,7 @@ msg_gray "$WWCGI\n"
 echo "-------------------------------------------------------------------------------"
 
 while true; do
-    wget -q -O - "$WWCGI?type=node&action=boot&hwaddr=$HWADDR" 2>/dev/null | /bin/sh
+    wget -q -O - "$WWCGI/bootscript?hwaddr=$HWADDR" 2>/dev/null | /bin/sh
     sleep 5
 done
 
