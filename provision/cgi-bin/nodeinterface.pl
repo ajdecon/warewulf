@@ -13,7 +13,6 @@ my $hwaddr = $q->param('hwaddr');
 
 my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
 my $node = $nodeSet->get_object(0);
-my %nhash = $node->get_hash();
 
 if ($node) {
     my $nodeName = $node->get("name");
@@ -24,14 +23,27 @@ if ($node) {
     $db->persist($node);
 }
 
-
 foreach my $script ($node->get("bootscript")) {
+    if (! $script) {
+        next;
+    }
     my $s = $db->get_objects("script", "name", $script);
     my $sobj = $s->get_object(0);
-    my $script = $db->get_data($sobj->get("id"));
+    my $sbinstore = $db->binstore($sobj->get("id"));
+    my $script;
+    my %nhash = $node->get_hash();
+    while(my $buffer = $sbinstore->get_chunk()) {
+        $script .= $buffer;
+    }
     foreach my $key (keys %nhash) {
         my $uc_key = uc($key);
-        $script =~ s/\$\{?$uc_key\}?/$nhash{$key}/g;
+        my $val;
+        if (ref($nhash{"$key"}) eq "ARRAY") {
+            $val = $nhash{"$key"}->[0];
+        } else {
+            $val = $nhash{"$key"};
+        }
+        $script =~ s/\$\{?$uc_key\}?/$val/g;
     }
     print $script;
 }
