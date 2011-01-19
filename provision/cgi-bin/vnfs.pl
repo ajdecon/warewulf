@@ -23,7 +23,11 @@ print_vnfs()
     my $vnfs = $db->get_objects("vnfs", "name", $vnfs_name)->get_object(0);
     if ($vnfs) {
         print "Content-Type:application/octet-stream; name=\"vnfs.img\"\r\n";
-        print "Content-Disposition: attachment; filename=\"vnfs.img\"\r\n\n";
+        if (my $size = $vnfs->get("size")) {
+            print "Content-length: $size\r\n";
+        }
+        print "Content-Disposition: attachment; filename=\"vnfs.img\"\r\n";
+        print "\r\n";
         my $vnfs_binstore = $db->binstore($vnfs->get("id"));
         while(my $buffer = $vnfs_binstore->get_chunk()) {
             print $buffer;

@@ -96,18 +96,34 @@ done
 
 
 msg_white "Probing for HW Address: "
-NETDEV=`cat /tmp/wwdev`
-HWADDR=`cat /sys/class/net/$NETDEV/address 2>/dev/null`
+HWADDR=`/sbin/hwaddr`
 msg_gray "$HWADDR\n"
 
 
-msg_white "Connecting to Warewulf master: "
-msg_gray "$WWCGI\n"
-echo "-------------------------------------------------------------------------------"
-
 while true; do
-    wget -q -O - "$WWCGI/bootscript?hwaddr=$HWADDR" 2>/dev/null | /bin/sh
-    sleep 5
+    msg_white "Getting base node configuration: "
+    if getnodeconfig > /tmp/nodeconfig; then
+        . /tmp/nodeconfig
+        msg_gray "Success! (I am: $NAME)\n"
+    else
+        msg_red "Error!\n"
+    fi
+
+    msg_white "Getting node boot script: "
+    if getbootscript > /tmp/bootscript; then
+        msg_gray "Success!\n"
+    else
+        msg_red "Error!\n"
+    fi
+
+    msg_white "Running node boot script: "
+    msg_gray "(the following output is from the boot script)\n"
+    echo
+
+    sh /tmp/bootscript
+
+    echo
+    echo "-------------------------------------------------------------------------------";
+    msg_gray "Starting provision process again...\n"
+    sleep 3
 done
-
-

@@ -47,6 +47,10 @@ if [ -z "$WWPORT" ]; then
     WWPORT=9870
 fi
 
+if [ -z "$WWDEBUG" ]; then
+    WWDEBUG=0
+fi
+
 if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
    WWCGI="http://$WWMASTER:$WWPORT"
 fi

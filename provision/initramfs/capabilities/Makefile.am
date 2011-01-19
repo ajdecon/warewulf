@@ -1,1 +1,1 @@
-SUBDIRS = statelite
+SUBDIRS = statelite http-interface

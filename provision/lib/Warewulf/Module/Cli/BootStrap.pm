@@ -108,11 +108,12 @@ exec()
                 system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
                 system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
                 foreach my $module ($config->get("capabilities")) {
-                    if ($module =~ /^([a-zA-Z0-9\.\_]+)$/) {
+                    &dprint("Searching to include module: $module\n");
+                    if ($module =~ /^([a-zA-Z0-9\.\_-]+)$/) {
                         $module = $1;
                         my $file = "$initramfsdir/$module";
                         if (-f $file) {
-                            &nprint("Including module: $module\n");
+                            &nprint("Including capability: $module\n");
                             system("cd $tmpdir; cpio -i -u --quiet < $file");
                         } else {
                             &dprint("Defined module not found: $module\n");
