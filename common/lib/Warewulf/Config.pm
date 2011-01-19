@@ -150,7 +150,7 @@ read($)
                                 next;
                             }
                             my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                            push(@{$file_data{"$path"}{"$key"}}, $value);
+                            push(@{$file_data{"$path"}{"$key"}}, &quotewords('\s+', 0, $value));
                         }
                         close FILE;
                     } else {
