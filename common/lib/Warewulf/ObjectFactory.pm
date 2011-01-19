@@ -12,10 +12,9 @@ package Warewulf::ObjectFactory;
 
 use Warewulf::Util;
 use Warewulf::Logger;
-use Warewulf::Node;
-use Warewulf::Vnfs;
-use Warewulf::Script;
 use DBI;
+
+my %modules;
 
 =head1 NAME
 
@@ -40,19 +39,25 @@ new($$)
 {
     my $proto = shift;
     my $type = uc(shift);
+    my $mod_name = "Warewulf::". ucfirst(lc($type));
 
-    if ($type eq "NODE") {
-        return(Warewulf::Node->new(@_));
-    } elsif ($type eq "VNFS") {
-        return(Warewulf::Vnfs->new(@_));
-    } elsif ($type eq "SCRIPT") {
-        return(Warewulf::Script->new(@_));
-    } else {
-        &eprint("Unknown object Type: $type\n");
-        exit 1;
+    if (! exists($modules{$mod_name})) {
+        &dprint("Loading object name: $mod_name\n");
+        eval "require $mod_name";
+        if ($@) {
+            &cprint("Could not load '$mod_name'!\n");
+            exit 1;
+        }
+        $modules{$mod_name} = 1;
     }
 
-    return();
+    &dprint("Getting a new object from $mod_name\n");
+
+    my $obj = eval "$mod_name->new(\@_)";
+
+    &dprint("Got an object: $obj\n");
+
+    return($obj);
 }
 
 =back
