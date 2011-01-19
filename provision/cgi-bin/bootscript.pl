@@ -41,6 +41,6 @@ foreach my $script ($node->get("bootscript")) {
     my $script;
     my %nhash = $node->get_hash();
     while(my $buffer = $sbinstore->get_chunk()) {
-        print $script;
+        print $buffer;
     }
 }
