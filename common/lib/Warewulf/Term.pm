@@ -83,13 +83,15 @@ history_load()
 {
     my ($self, $file) = @_;
     my $dir = dirname($file);
-    
-    if ($file) {
-        if (! -d $dir) {
-            mkpath($dir);
+
+    if ($self->{"TERM"}->can("ReadHistory")) {
+        if ($file) {
+            if (! -d $dir) {
+                mkpath($dir);
+            }
+            $self->{"TERM"}->ReadHistory($file);
+            $self->{"HISTFILE"} = $file;
         }
-        $self->{"TERM"}->ReadHistory($file);
-        $self->{"HISTFILE"} = $file;
     }
 
     return();
@@ -109,20 +111,22 @@ history_save()
     my ($self, $file) = @_;
     my $dir;
     
-    if ($file) {
-        $dir = dirname($file);
-    }
-
-    if (exists($self->{"TERM"})) {
-        $self->{"TERM"}->StifleHistory(1000);
-
+    if ($self->{"TERM"}->can("WriteHistory")) {
         if ($file) {
-            if (! -d $dir) {
-                mkpath($dir);
+            $dir = dirname($file);
+        }
+
+        if (exists($self->{"TERM"})) {
+            $self->{"TERM"}->StifleHistory(1000);
+
+            if ($file) {
+                if (! -d $dir) {
+                    mkpath($dir);
+                }
+                $self->{"TERM"}->WriteHistory($file);
+            } elsif (exists($self->{"HISTFILE"})) {
+                $self->{"TERM"}->WriteHistory($self->{"HISTFILE"});
             }
-            $self->{"TERM"}->WriteHistory($file);
-        } elsif (exists($self->{"HISTFILE"})) {
-            $self->{"TERM"}->WriteHistory($self->{"HISTFILE"});
         }
     }
 
@@ -140,8 +144,10 @@ history_add($)
 {
     my ($self, $set) = @_;
 
-    if ($set) {
-        $self->{"TERM"}->AddHistory($set);
+    if ($self->{"TERM"}->can("AddHistory")) {
+        if ($set) {
+            $self->{"TERM"}->AddHistory($set);
+        }
     }
 
     return($set);
