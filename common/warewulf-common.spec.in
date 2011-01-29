@@ -35,7 +35,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %perl_vendorlib/*
 %{_bindir}/*
-%{_datadir}/*
 %{_sysconfdir}/*
+%{_datadir}/warewulf
 
 %changelog
