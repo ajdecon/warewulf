@@ -222,33 +222,36 @@ exec()
             }
             close TMPFILE;
             $digest1 = $obj->get("checksum") || "";
-            $opt_program =~ s/^"(.+?)"$/$1/;
-            if (system("$opt_program $tmpfile") == 0) {
-                $digest2 = digest_file_hex($tmpfile, "MD5");
-                if ($digest1 ne $digest2) {
-                    my $binstore = $db->binstore($obj->get("id"));
-                    my $size;
-                    my $buffer;
-                    open(SCRIPT, $tmpfile);
-                    while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
-                        &dprint("Chunked $length bytes of $tmpfile\n");
-                        $binstore->put_chunk($buffer);
-                        if (! $size) {
-                            $obj->set("lang", &get_lang($buffer));
+            if ($opt_program =~ /^"?([a-zA-Z0-9_\-\s\.]+?)"?$/) {
+                if (system("$1 $tmpfile") == 0) {
+                    $digest2 = digest_file_hex($tmpfile, "MD5");
+                    if ($digest1 ne $digest2) {
+                        my $binstore = $db->binstore($obj->get("id"));
+                        my $size;
+                        my $buffer;
+                        open(SCRIPT, $tmpfile);
+                        while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                            &dprint("Chunked $length bytes of $tmpfile\n");
+                            $binstore->put_chunk($buffer);
+                            if (! $size) {
+                                $obj->set("lang", &get_lang($buffer));
+                            }
+                            $size += $length;
                         }
-                        $size += $length;
+                        close SCRIPT;
+                        $obj->set("checksum", $digest2);
+                        $obj->set("lang", &get_lang($script));
+                        $obj->set("size", $size);
+                        $db->persist($obj);
+                        &nprint("Updated datastore\n");
+                    } else {
+                        &nprint("Not updating datastore\n");
                     }
-                    close SCRIPT;
-                    $obj->set("checksum", $digest2);
-                    $obj->set("lang", &get_lang($script));
-                    $obj->set("size", $size);
-                    $db->persist($obj);
-                    &nprint("Updated datastore\n");
                 } else {
-                    &nprint("Not updating datastore\n");
+                    &iprint("Command errored out, not updating datastore\n");
                 }
             } else {
-                &iprint("Command errored out, not updating datastore\n");
+                &eprint("Program name contains illeagle characters\n");
             }
         } else {
             &eprint("Command is undefined\n");
@@ -257,6 +260,13 @@ exec()
     } elsif ($opt_export) {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
+
+        if ($opt_export =~ /^([a-zA-Z0-9\/\-_\.\s]+)$/) {
+            $opt_export = $1;
+        } else {
+            &eprint("Bad characters in export path\n");
+            return();
+        }
 
         if (-d $opt_export) {
             foreach my $obj (@objList) {
