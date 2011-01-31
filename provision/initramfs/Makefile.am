@@ -39,6 +39,9 @@ rootfs: busybox
 	mkdir rootfs/var
 	mkdir rootfs/tmp
 	mkdir rootfs/usr
+	mkdir rootfs/lib
+	mkdir rootfs/lib64
+	chmod -R u+w rootfs/
 	cp -a _work/busybox-$(BUSYBOX_VERSION)/_install/* rootfs/
 	cp -L --parents /lib*/ld-linux* rootfs/
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
