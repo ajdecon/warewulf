@@ -41,7 +41,7 @@ rootfs: busybox
 	mkdir rootfs/usr
 	cp -a _work/busybox-$(BUSYBOX_VERSION)/_install/* rootfs/
 	cp -L --parents /lib*/ld-linux* rootfs/
-	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
+	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	find rootfs -type f -perm -o+x -print | xargs strip -g
 	rm -f rootfs/linuxrc
 	install -m 755 init rootfs/init
