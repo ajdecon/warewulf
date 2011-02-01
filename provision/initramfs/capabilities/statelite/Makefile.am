@@ -24,8 +24,11 @@ rootfs: unionfs
 	rm -rf rootfs
 	mkdir rootfs
 	mkdir rootfs/sbin
+	mkdir rootfs/lib
+	mkdir rootfs/lib64
+	chmod -R u+w rootfs/
 	cp -a unionfs rootfs/sbin/
-	find rootfs -type f -perm -o+x -print | xargs ldd | grep "=>" | awk '{print $$3}' | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
+	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	find rootfs -type f -perm -o+x -print | xargs strip -g
 
 statelite.cpio: rootfs
