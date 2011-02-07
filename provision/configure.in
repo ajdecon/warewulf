@@ -79,6 +79,7 @@ AC_OUTPUT(Makefile
    share/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
+   lib/Warewulf/DSO/Makefile
    lib/Warewulf/Module/Makefile
    lib/Warewulf/Module/Cli/Makefile
    lib/Warewulf/Provision/Makefile

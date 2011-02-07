@@ -1,4 +1,4 @@
-SUBDIRS = Provision Module
+SUBDIRS = Provision Module DSO
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 
