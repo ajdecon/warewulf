@@ -218,7 +218,7 @@ exec()
                             if(ref($o->get($g)) =~ /^ARRAY/) {
                                 push(@values, join(",", sort $o->get($g)));
                             } else {
-                                push(@values, $o->get($g) || "[undef]");
+                                push(@values, $o->get($g) || "NULL");
                             }
                         }
                         &nprintf("%-20s " x (scalar @values) ."\n", @values);

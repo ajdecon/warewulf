@@ -343,7 +343,7 @@ exec()
                 $obj->get("lang") || "unknwon",
                 scalar(@nodeObjects),
                 $obj->get("size") ? $obj->get("size")/1024 : "0",
-                $obj->get("name") || "[undef]");
+                $obj->get("name") || "NULL");
         }
 
         if ($opt_obj_delete) {
