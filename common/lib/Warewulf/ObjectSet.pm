@@ -11,7 +11,7 @@
 package Warewulf::ObjectSet;
 
 use Warewulf::Object;
-use Warewulf::ObjectFactory;
+use Warewulf::DSOFactory;
 
 our @ISA = ('Warewulf::Object');
 
@@ -235,7 +235,7 @@ add_hashes($$)
 
         if (ref($h) eq "HASH") {
             if (exists($h->{"TYPE"})) {
-                $obj = Warewulf::ObjectFactory->new($h->{"TYPE"}, $h);
+                $obj = Warewulf::DSOFactory->new($h->{"TYPE"}, $h);
             } else {
                 $obj = Warewulf::Object->new($h);
             }
@@ -248,7 +248,7 @@ add_hashes($$)
 
 =head1 SEE ALSO
 
-Warewulf::Object, Warewulf::ObjectFactory
+Warewulf::Object, Warewulf::DSOFactory
 
 =head1 COPYRIGHT
 

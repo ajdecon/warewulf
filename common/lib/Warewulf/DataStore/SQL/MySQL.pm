@@ -13,7 +13,7 @@ package Warewulf::DataStore::SQL::MySQL;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
-use Warewulf::ObjectFactory;
+use Warewulf::DSOFactory;
 use Warewulf::ObjectSet;
 use DBI;
 use Storable qw(freeze thaw);
@@ -189,7 +189,7 @@ get_objects($$$@)
     while (my $h = $sth->fetchrow_hashref()) {
         my $id = $h->{"id"};
         my $type = $h->{"type"};
-        my $o = Warewulf::ObjectFactory->new($type, $self->unserialize($h->{"serialized"}));
+        my $o = Warewulf::DSOFactory->new($type, $self->unserialize($h->{"serialized"}));
         $o->set("id", $id);
         $o->set("type", $type);
         $objectSet->add($o);

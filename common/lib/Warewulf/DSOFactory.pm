@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: ObjectFactory.pm 83 2010-12-09 22:13:21Z gmk $
+# $Id: DSOFactory.pm 83 2010-12-09 22:13:21Z gmk $
 #
 
-package Warewulf::ObjectFactory;
+package Warewulf::DSOFactory;
 
 use Warewulf::Util;
 use Warewulf::Logger;
@@ -18,16 +18,16 @@ my %modules;
 
 =head1 NAME
 
-Warewulf::ObjectFactory - 
+Warewulf::DSOFactory - 
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::ObjectFactory;
+    use Warewulf::DSOFactory;
 
-    my $obj = Warewulf::ObjectFactory->new($type);
+    my $obj = Warewulf::DSOFactory->new($type);
 
 =item new()
 
@@ -39,7 +39,7 @@ new($$)
 {
     my $proto = shift;
     my $type = uc(shift);
-    my $mod_name = "Warewulf::". ucfirst(lc($type));
+    my $mod_name = "Warewulf::DSO::". ucfirst(lc($type));
 
     if (! exists($modules{$mod_name})) {
         &dprint("Loading object name: $mod_name\n");

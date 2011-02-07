@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Script.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: Master.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Script;
+package Warewulf::Master;
 
 use Warewulf::Object;
 
@@ -16,16 +16,16 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Script - Warewulf's general object instance object interface.
+Warewulf::Master - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Script;
+    use Warewulf::Master;
 
-    my $obj = Warewulf::Script->new();
+    my $obj = Warewulf::Master->new();
 
 
 =head1 METHODS
@@ -47,8 +47,7 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    $self = {};
-
+    $self = $class->SUPER::new();
     bless($self, $class);
 
     return $self->init(@_);
@@ -66,7 +65,7 @@ type($)
 {
     my $self = shift;
 
-    return("script");
+    return("master");
 }
 
 
@@ -75,7 +74,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "ID", "LANG");
+    return("NAME", "IPADDR");
 }
 
 
