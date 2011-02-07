@@ -17,6 +17,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::Script;
+use Warewulf::DSO::Vnfs;
 use Getopt::Long;
 use File::Basename;
 use Text::ParseWords;
@@ -137,7 +138,7 @@ exec()
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new Vnfs Object\n");
-                my $obj = Warewulf::Vnfs->new();
+                my $obj = Warewulf::DSO::Vnfs->new();
                 $db->persist($obj);
                 $obj->set("name", $name);
                 $obj->set("checksum", digest_file_hex($path, "MD5"));
