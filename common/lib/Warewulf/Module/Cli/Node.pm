@@ -176,7 +176,7 @@ exec()
     if ($opt_new) {
         foreach my $string (@ARGV) {
             my $obj;
-            $obj = Warewulf::ObjectFactory->new($entity_type);
+            $obj = Warewulf::DSOFactory->new($entity_type);
 
             $obj->set($opt_lookup, $string);
             foreach my $setstring (@opt_set) {

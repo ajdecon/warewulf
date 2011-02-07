@@ -16,7 +16,7 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Script;
+use Warewulf::DSO::Script;
 use Getopt::Long;
 use File::Basename;
 use Text::ParseWords;
@@ -170,7 +170,7 @@ exec()
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new Script Object\n");
-                my $obj = Warewulf::Script->new();
+                my $obj = Warewulf::DSO::Script->new();
                 $db->persist($obj);
                 $obj->set("name", $name);
                 $obj->set("checksum", digest_file_hex($path, "MD5"));
@@ -205,7 +205,7 @@ exec()
                 &eprint("Only specify one object to operate on at a time\n");
                 return();
             } elsif (scalar(@objList) == 0) {
-                my $obj = Warewulf::Script->new();
+                my $obj = Warewulf::DSO::Script->new();
                 $obj->set("name", $ARGV[0]);
                 $db->persist($obj);
                 push(@objList, $obj);

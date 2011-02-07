@@ -1,5 +1,5 @@
 
-dist_bin_SCRIPTS = wwobjects wwconfig wwsh
+dist_bin_SCRIPTS = wwsh wwconfig
 
 
 MAINTAINERCLEANFILES = Makefile.in
