@@ -23,9 +23,9 @@ Warewulf::Master - Warewulf's general object instance object interface.
 
 =head1 SYNOPSIS
 
-    use Warewulf::Master;
+    use Warewulf::DSO::Master;
 
-    my $obj = Warewulf::Master->new();
+    my $obj = Warewulf::DSO::Master->new();
 
 
 =head1 METHODS

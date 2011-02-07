@@ -18,7 +18,8 @@ my %modules;
 
 =head1 NAME
 
-Warewulf::DSOFactory - 
+Warewulf::DSOFactory - This will automatically load the appropriate DSO
+(Data Store Object) on an as needed basis.
 
 =head1 ABOUT
 

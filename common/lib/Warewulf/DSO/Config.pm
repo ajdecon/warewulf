@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Node.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: Config.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::DSO::Node;
+package Warewulf::DSO::Config;
 
 use Warewulf::DSO;
 
@@ -16,16 +16,16 @@ our @ISA = ('Warewulf::DSO');
 
 =head1 NAME
 
-Warewulf::Node - Warewulf's general object instance object interface.
+Warewulf::Config - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::DSO::Node;
+    use Warewulf::DSO::Config;
 
-    my $obj = Warewulf::DSO::Node->new();
+    my $obj = Warewulf::DSO::Config->new();
 
 
 =head1 METHODS
@@ -47,7 +47,8 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = ();
 
-    $self = $class->SUPER::new();
+    $self = {};
+
     bless($self, $class);
 
     return $self->init(@_);
@@ -65,7 +66,7 @@ type($)
 {
     my $self = shift;
 
-    return("node");
+    return("config");
 }
 
 
@@ -74,7 +75,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "CLUSTER", "BOOTSCRIPT", "GROUP", "ID", "HWADDR", "VNFS", "STATUS", "MASTER");
+    return("NAME", "PATH");
 }
 
 

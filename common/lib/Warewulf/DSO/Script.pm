@@ -23,9 +23,9 @@ Warewulf::Script - Warewulf's general object instance object interface.
 
 =head1 SYNOPSIS
 
-    use Warewulf::Script;
+    use Warewulf::DSO::Script;
 
-    my $obj = Warewulf::Script->new();
+    my $obj = Warewulf::DSO::Script->new();
 
 
 =head1 METHODS
