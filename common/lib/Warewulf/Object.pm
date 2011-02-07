@@ -317,48 +317,6 @@ debug_string()
     return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{$_}\"" } sort(keys(%{$self}))));
 }
 
-=item I<key>([I<value>])
-
-Any methods not otherwise defined will be automatically translated
-into a get/set command, so you can do things like this:
-
-  $obj->title("Set title to this string");
-  $name = $obj->name();
-
-=cut
-
-sub
-AUTOLOAD
-{
-    my $self = shift;
-    my $type = ref($self) || return undef;
-    my $key = $AUTOLOAD;
-
-    if ($key =~ /destroy/i) {
-        return;
-    }
-    $key =~ s/.*://;
-
-    if (scalar(@_)) {
-        return $self->set($key, @_);
-    } else {
-        return $self->get($key);
-    }
-}
-
-=item lookups()
-
-Return an array of strings that should be used to create lookup references for
-this object (if they exist).
-
-=cut
-sub
-lookups($)
-{
-    return ();
-}
-
-
 =back
 
 =head1 SEE ALSO
