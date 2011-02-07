@@ -59,7 +59,7 @@ help()
     $output .= "        Hello nodes...\n";
     $output .= "           Usage options:\n";
     $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-    $output .= "            -n, --new              Create a new object with the given name.\n";
+    $output .= "            -n, --new              Create a new object with the given name\n";
     $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
     $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
     $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
@@ -187,9 +187,7 @@ exec()
             $db->persist($obj);
         }
     } else {
-        my $objectSet;
-
-        $objectSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+        my $objectSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
 
         my @objList = $objectSet->get_list();
 
