@@ -93,6 +93,8 @@ persist()
 {
     my $self = shift;
     my $datastore = Warewulf::DataStore->new();
+    my $config = Warewulf::Config->new("provision.conf");
+    my $netdev = $config->get("network device");
     my @local_addresses;
 
     foreach my $dev (&get_interfaces) {
@@ -114,6 +116,15 @@ persist()
     print FILE "not authoritative;\n";
     print FILE "\n";
 
+    print FILE "subnet 192.168.200.0 netmask 255.255.255.0 {\n";
+    print FILE "   not authoritative;\n";
+    print FILE "   option subnet-mask 255.255.255.0;\n";
+    print FILE "   option routers 192.168.200.1;\n";
+    print FILE "}\n";
+    print FILE "\n";
+
+    print FILE "group {\n";
+
     # Get all nodes that either have no master lookup set, or if they are set to any of the
     # local IP addresses on this system
     foreach my $n ($datastore->get_objects("node", "master", "NULL", @local_addresses)->get_list()) {
@@ -125,17 +136,18 @@ persist()
         my @ipaddr = $n->get("ipaddr");
 
         if ($name) {
-            print FILE "host $name {\n";
-            print FILE "   option host-name $name;\n";
-            print FILE "   hardware ethernet $hwaddr[0];\n";
-            print FILE "   fixed-address $ipaddr[0];\n";
+            print FILE "   host $name {\n";
+            print FILE "      option host-name $name;\n";
+            print FILE "      hardware ethernet $hwaddr[0];\n";
+            print FILE "      fixed-address $ipaddr[0];\n";
             if ($master[0]) {
-                print FILE "   next-server $master[0];\n";
+                print FILE "      next-server $master[0];\n";
             }
-            print FILE "}\n";
-            print FILE "\n";
+            print FILE "   }\n";
         }
     }
+
+    print FILE "}\n";
 
     close FILE;
 
