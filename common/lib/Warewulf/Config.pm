@@ -35,7 +35,7 @@ with as an object interface.
 
     use Warewulf::Config;
 
-    my $obj = Warewulf::Config->new();
+    my $obj = Warewulf::Config->new("something.conf");
 
     foreach my $entry ( $obj->get("config entry name") ) {
         print "->$entry<-\n";
@@ -69,19 +69,12 @@ Will yield the following values:
 =cut
 
 
-=item new([path to config])
+=item new($config_name)
 
 The new constructor will create the object that references configuration the
 stores. You can pass a list of configuration files that will be included in
-the object if desired.
-
-Some configuration files will automatically be included in the following
-order:
-
-    /etc/warewulf/[program name].conf
-    /etc/warewulf/main.conf
-
-(assumg that warewulf was built with --sysconfdir=/etc/)
+the object if desired. Each config will be searched for, first in the users
+home/private directory and then in the global locations.
 
 =cut
 
