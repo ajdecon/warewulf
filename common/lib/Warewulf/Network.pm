@@ -10,20 +10,17 @@
 
 package Warewulf::Network;
 
-#use Warewulf::Debug;
 use Warewulf::Logger;
-
+use Warewulf::Object;
 use Exporter;
 use File::Basename;
 use Socket;
 require 'sys/ioctl.ph';
 
-our @ISA = ('Exporter');
+our @ISA = ('Exporter', 'Warewulf::Object');
 
 our @EXPORT = (
-    '&get_interfaces',
-    '&get_interface_address',
-    '&get_interface_netmask',
+    '&list_interfaces',
     '&ip_serialize',
     '&ip_unserialize',
 );
@@ -43,13 +40,112 @@ The Warewulf::Network provides some additional helper functions
 =cut
 
 
-=item get_interfaces()
+=item new()
 
-Return a list of all found network interfaces for this host
+Instantiate an object.  Any initializer accepted by the C<set()>
+method may also be passed to C<new()>.
 
 =cut
-sub get_interfaces()
+
+sub
+new($)
 {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $self = {};
+
+    bless($self, $class);
+
+    return $self->init(@_);
+}
+
+sub
+init()
+{
+    my ($self)  = @_;
+
+    return($self);
+}
+
+
+=item ipaddr($device);
+
+Return the IPv4 address of the given device name
+
+=cut
+sub ipaddr()
+{
+    my ($self, $device) = @_;
+
+    if ($device) {
+        my $socket;
+        socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
+        my $buf = pack('a256', $device);
+        if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+            return join('.', @address);
+        }
+    } else {
+        &wprint("Called ipaddr() on device object without a device name\n");
+    }
+    return();
+}
+
+
+=item netmask($device)
+
+Return the IPv4 netmask of the given device name
+
+=cut
+sub netmask()
+{
+    my ($self, $device) = @_;
+
+    if ($device) {
+        my $socket;
+        socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
+        my $buf = pack('a256', $device);
+        if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+            return join('.', @address);
+        }
+    } else {
+        &wprint("Called netmask() on device object without a device name\n");
+    }
+
+    return();
+}
+
+
+=item network($device)
+
+Return the IPv4 network of the given device name
+
+=cut
+sub network {
+    my ($self, $device) = @_;
+    my $ipaddr = $self->ipaddr($device);
+    my $netmask = $self->netmask($device);
+
+    if ($ipaddr and $netmask) {
+        my $net_bin = unpack("N", inet_aton($ipaddr));
+        my $mask_bin = unpack("N", inet_aton($netmask));
+        my $net = ( $net_bin & $mask_bin ) | ( 0 & ~$mask_bin );
+
+        return(inet_ntoa(pack('N',$net)));
+    }
+
+    return();
+}
+
+
+
+=item list_devices()
+
+Return a list of all supported network devices
+
+=cut
+sub list_devices()
+{
+    my ($self) = @_;
     my @ret;
 
     foreach my $devpath (glob("/sys/class/net/*")) {
@@ -60,39 +156,24 @@ sub get_interfaces()
 }
 
 
-=item get_interface_address($device)
 
-Return the IPv4 address of the given device
+=item list_ipaddrs()
 
-=cut
-sub get_interface_address()
-{
-    my $device = shift;
-    my $socket;
-    socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-    my $buf = pack('a256', $device);
-    if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
-        return join('.', @address);
-    }
-    return();
-}
-
-
-=item get_interface_netmask($device)
-
-Return the IPv4 netmask of the given device
+Return a list of all supported network devices and their configured IP addresses
 
 =cut
-sub get_interface_netmask()
+sub list_ipaddrs()
 {
-    my $device = shift;
-    my $socket;
-    socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-    my $buf = pack('a256', $device);
-    if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (my @address = unpack('x20 C4', $buf))) {
-        return join('.', @address);
+    my ($self) = @_;
+    my @ret;
+
+    foreach my $dev ($self->list_devices()) {
+        if (my $ipaddr = $self->ipaddr($dev)) {
+            push(@ret, $ipaddr);
+        }
     }
-    return();
+
+    return(@ret);
 }
 
 
@@ -104,7 +185,7 @@ Convert a given IPv4 address to a serial numeric integer.
 sub
 ip_serialize($)
 {
-    my $ip = shift();
+    my ($self, $ip) = @_;
 
     if ( $ip =~ /^\d+\.\d+\.\d+\.\d+$/ ) {
         return(unpack("N", inet_aton($ip)));
@@ -122,7 +203,7 @@ Convert a given serialized numeric integer into a properly formatted IPv4 addres
 sub
 ip_unserialize($)
 {
-    my $int = shift();
+    my ($self, $int) = @_;
 
     if ( $bin =~ /^\d+$/ ) {
         return(inet_ntoa(pack('N',$int)));
@@ -130,8 +211,6 @@ ip_unserialize($)
 
     return();
 }
-
-
 
 =head1 SEE ALSO
 
