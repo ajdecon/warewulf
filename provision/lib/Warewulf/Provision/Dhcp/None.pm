@@ -5,31 +5,33 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Dhcp.pm 50 2010-11-02 01:15:57Z gmk $
+# $Id: None.pm 50 2010-11-02 01:15:57Z gmk $
 #
 
-package Warewulf::Provision::Dhcp;
+package Warewulf::Provision::Dhcp::None;
 
 use Warewulf::Logger;
-use Warewulf::Object;
+use Warewulf::Provision::Dhcp;
 use Warewulf::DataStore;
 use Warewulf::Network;
 use Socket;
 
-our @ISA = ('Warewulf::Object');
+our @ISA = ('Warewulf::Provision::Dhcp');
 
 =head1 NAME
 
-Warewulf::Dhcp - Warewulf's general DHCP object interface base class.
+Warewulf::Provision::Dhcp::None - Warewulf's NULL server interface. Use this
+if one is going to be managing their DHCP server by hand themselves and
+Warewulf should do nothing.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::Dhcp;
+    use Warewulf::Provision::Dhcp::None;
 
-    my $obj = Warewulf::Dhcp->new();
+    my $obj = Warewulf::Provision::Dhcp::None->new();
 
 
 =head1 METHODS
@@ -38,28 +40,11 @@ Warewulf::Dhcp - Warewulf's general DHCP object interface base class.
 =cut
 
 
-sub new() { undef };
-sub init() { undef };
-
-=item persist()
-
-This will update the DHCP file.
-
-=cut
-sub persist() { undef };
-
-=item restart()
-
-This will start/restart the DHCP service.
-
-=cut
-sub restart() { undef };
-
 =back
 
 =head1 SEE ALSO
 
-Warewulf::Object Warewulf::Provision::DhcpFactory
+Warewulf::Provision::Dhcp
 
 =head1 COPYRIGHT
 

@@ -16,7 +16,6 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Script;
 use Warewulf::DSO::Vnfs;
 use Getopt::Long;
 use File::Basename;

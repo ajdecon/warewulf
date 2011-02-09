@@ -10,7 +10,7 @@
 
 use CGI;
 use Warewulf::DataStore;
-use Warewulf::ObjectFactory;
+use Warewulf::DSOFactory;
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
@@ -25,7 +25,7 @@ my $node = $nodeSet->get_object(0);
 if ($node) {
     my $nodeName = $node->get("name");
 } else {
-    $node = Warewulf::ObjectFactory->new("node");
+    $node = Warewulf::DSOFactory->new("node");
     $node->set("name", "newnode");
     $node->set("hwaddr", $hwaddr);
     $db->persist($node);

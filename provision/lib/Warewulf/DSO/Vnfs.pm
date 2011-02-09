@@ -8,11 +8,11 @@
 # $Id: Vnfs.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::Vnfs;
+package Warewulf::DSO::Vnfs;
 
-use Warewulf::Object;
+use Warewulf::DSO;
 
-our @ISA = ('Warewulf::Object');
+our @ISA = ('Warewulf::DSO');
 
 =head1 NAME
 

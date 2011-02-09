@@ -10,7 +10,6 @@
 
 use CGI;
 use Warewulf::DataStore;
-use Warewulf::ObjectFactory;
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();

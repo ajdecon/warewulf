@@ -46,7 +46,7 @@ exec()
     my $tmpdir = "/var/tmp/wwinitrd.$randstring";
     my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
     my $initramfsdefault = "base";
-    my $config = Warewulf::Config->new("wwboot.conf");
+    my $config = Warewulf::Config->new("provision.conf");
     my $tftpboot = $config->get("tftpdir") || "/tftpboot";
 
     if (! &uid_test(0)) {
