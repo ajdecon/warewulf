@@ -88,8 +88,6 @@ new($$)
     my $class = ref($proto) || $proto;
     my $self = {};
 
-    &dprint("Creating new object\n");
-
     @{$self->{"FILES"}} = @files;
 
     bless($self, $class);
@@ -114,25 +112,26 @@ read($)
     );
 
     foreach my $file (@{$self->{"FILES"}}) {
-        my $path;
+        if (exists($file_data{"$file"})) {
+            &dprint("Using cached copy of file: $file\n");
+        } else {
+            my $path;
 
-        foreach my $basepath (@basepaths) {
-            if ($basepath =~ /^([a-zA-Z0-9\/_\-\.]+)$/) {
-                my $sanepath = $1;
+            foreach my $basepath (@basepaths) {
+                if ($basepath =~ /^([a-zA-Z0-9\/_\-\.]+)$/) {
+                    my $sanepath = $1;
 
-                &dprint("Checking for configuration file $file\n");
-                if (-f "$sanepath/$file") {
-                    &dprint("Found configuration file: $sanepath/$file\n");
-                    $path = "$sanepath/$file";
-                    last;
+                    &dprint("Checking for configuration file: $sanepath/$file\n");
+                    if (-f "$sanepath/$file") {
+                        &dprint("Found configuration file: $sanepath/$file\n");
+                        $path = "$sanepath/$file";
+                        push(@{$self->{"PATH"}}, $path);
+                        last;
+                    }
                 }
             }
-        }
 
-        if ($path) {
-            if (exists($file_data{"$path"})) {
-                &dprint("Using cached copy of file: $path\n");
-            } else {
+            if ($path) {
                 &iprint("Reading in file: $path\n");
                 if (-f $path) {
                     if (open(FILE, $path)) {
@@ -143,7 +142,7 @@ read($)
                                 next;
                             }
                             my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                            push(@{$file_data{"$path"}{"$key"}}, &quotewords('\s+', 0, $value));
+                            push(@{$file_data{"$file"}{"$key"}}, &quotewords('\s+', 0, $value));
                         }
                         close FILE;
                     } else {
@@ -153,11 +152,9 @@ read($)
                     &eprint("Configuration file not found: $path\n");
                 }
             }
-            foreach my $key (keys %{$file_data{"$path"}}) {
-                push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$path"}{"$key"}});
-            }
-        } else {
-            &eprint("Could not find configuration file: $file\n");
+        }
+        foreach my $key (keys %{$file_data{"$file"}}) {
+            push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$file"}{"$key"}});
         }
     }
 
