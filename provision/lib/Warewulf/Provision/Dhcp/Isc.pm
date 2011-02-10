@@ -148,7 +148,7 @@ persist()
 
     &dprint("Opening file ". $self->{"FILE"} ." for writing\n");
     if (! open(FILE, ">". $self->{"FILE"})) {
-        &wprint("Aborting, could not open ". $self->{"FILE"} ." for writing: $!\n");
+        &eprint("Aborting, could not open ". $self->{"FILE"} ." for writing: $!\n");
         return();
     }
 
