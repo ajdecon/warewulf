@@ -12,18 +12,12 @@ package Warewulf::Network;
 
 use Warewulf::Logger;
 use Warewulf::Object;
-use Exporter;
 use File::Basename;
 use Socket;
 require 'sys/ioctl.ph';
 
-our @ISA = ('Exporter', 'Warewulf::Object');
+our @ISA = ('Warewulf::Object');
 
-our @EXPORT = (
-    '&list_interfaces',
-    '&ip_serialize',
-    '&ip_unserialize',
-);
 
 =head1 NAME
 
