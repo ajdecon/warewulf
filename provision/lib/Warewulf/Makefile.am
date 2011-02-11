@@ -1,4 +1,4 @@
-SUBDIRS = Provision Module DSO
+SUBDIRS = Provision Module DSO Event
 
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf
 
