@@ -159,13 +159,6 @@ handle()
 }
 
 
-&set_log_level("DEBUG");
-
-my $obj = Warewulf::EventHandler->new();
-$obj->eventloader();
-$obj->handle("moo");
-
-
 =back
 
 =head1 SEE ALSO
