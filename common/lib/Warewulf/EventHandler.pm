@@ -14,7 +14,7 @@ use Warewulf::Util;
 use Warewulf::Logger;
 use File::Basename;
 
-my $singleton;
+my %events;
 
 =head1 NAME
 
@@ -45,9 +45,13 @@ TRIGGERING EVENTS:
 
     my $obj = Warewulf::EventHandler->new();
 
+    $obj->eventloader();
     $obj->handle("error.print", "arg1", "arg2");
 
-API for subscription and events:
+API registration recommendation:
+
+    There is nothing limiting this API to what is defined here but this is
+    a sane starting point as to what events should be used.
 
     Event string        Argument list
 
@@ -58,6 +62,12 @@ API for subscription and events:
     node.ready          node_object
     node.error          node_object
     node.warning        node_object
+    program.start
+    program.exit
+    program.error
+    [appname].start
+    [appname].exit
+    [appname].error
 
 =item new()
 
@@ -71,13 +81,45 @@ new($)
     my $proto = shift;
     my $type = shift;
     my $class = ref($proto) || $proto;
+    my $self = {};
 
-    if (! defined($singleton)) {
-        bless($singleton, $class);
-    }
+    bless($self, $class);
 
-    return($singleton);
+    &dprint("Created new EventHandler object\n");
+
+    return($self);
 }
+
+sub
+eventloader()
+{
+    my $self = shift;
+
+    foreach my $path (@INC) {
+        if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
+            &dprint("Module load path: $path\n");
+            foreach my $file (glob("$path/Warewulf/Event/*.pm")) {
+                &dprint("Found $file\n");
+                if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+                    my $file_clean = $1;
+                    my ($name, $tmp, $keyword);
+
+                    $name = "Warewulf::Event::". basename($file_clean);
+                    $name =~ s/\.pm$//;
+
+                    if (! exists($loaded{"$name"})) {
+                        &dprint("Module load file: $file_clean\n");
+                        eval "require '$file_clean'";
+                        if ($@) {
+                            &wprint("Caught error on module load: $@\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 =item register($trigger_name, $func_ref)
 
@@ -88,6 +130,11 @@ sub
 register()
 {
     my ($self, $event, $func_ref) = @_;
+    my $event_name = uc($event);
+
+
+
+    push(@{$events{"$event_name"}}, $func_ref);
 
 }
 
@@ -100,10 +147,23 @@ Run all of the events that have registered the defined trigger name
 sub
 handle()
 {
-    my ($self, $event, $func_ref) = @_;
+    my ($self, $event, @arguments) = @_;
+    my $event_name = uc($event);
 
+    if (exists($events{"$event_name"})) {
+        &dprint("Handling events for '$event_name'\n");
+        foreach my $func (@{$events{"$event_name"}}) {
+            &$func(@arguments);
+        }
+    }
 }
 
+
+&set_log_level("DEBUG");
+
+my $obj = Warewulf::EventHandler->new();
+$obj->eventloader();
+$obj->handle("moo");
 
 
 =back
