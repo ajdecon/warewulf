@@ -52,25 +52,32 @@ new($$)
         $type = $config->get("dhcp server") || "isc";
     }
 
-    $mod_name = $mod_base . ucfirst(lc($type));
+    if ($type =~ /^([a-zA-Z0-9\-_\.]+)$/) {
 
-    if (! exists($modules{$mod_name})) {
-        &dprint("Loading object name: $mod_name\n");
-        eval "require $mod_name";
-        if ($@) {
-            &cprint("Could not load '$mod_name'!\n");
-            exit 1;
+        $mod_name = $mod_base . ucfirst(lc($1));
+
+        if (! exists($modules{$mod_name})) {
+            &dprint("Loading object name: $mod_name\n");
+            eval "require $mod_name";
+            if ($@) {
+                &cprint("Could not load '$mod_name'!\n");
+                exit 1;
+            }
+            $modules{$mod_name} = 1;
         }
-        $modules{$mod_name} = 1;
+
+        &dprint("Getting a new object from $mod_name\n");
+
+        my $obj = eval "$mod_name->new(\@_)";
+
+        &dprint("Got an object: $obj\n");
+
+        return($obj);
+    } else {
+        &eprint("DHCP server name contains illegal characters.\n");
     }
 
-    &dprint("Getting a new object from $mod_name\n");
-
-    my $obj = eval "$mod_name->new(\@_)";
-
-    &dprint("Got an object: $obj\n");
-
-    return($obj);
+    return();
 }
 
 =head1 SEE ALSO

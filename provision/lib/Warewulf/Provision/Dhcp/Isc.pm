@@ -63,16 +63,29 @@ sub
 init()
 {
     my $self = shift;
-
+    my $config = Warewulf::Config->new("provision.conf");
 
     my @files = ('/etc/dhcp/dhcpd.conf', '/etc/dhcpd.conf');
 
-    if (! $self->get("FILE")) {
+    if (my $file = $config->get("dhcpd config file")) {
+        &dprint("Using the DHCPD configuration file as defined by provision.conf\n");
+        if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+            $self->set("FILE", $1);
+        } else {
+            &eprint("Illegal characters in path: $file\n");
+        }
+
+    } elsif (! $self->get("FILE")) {
         # First look to see if we can find an existing dhcpd.conf file
         foreach my $file (@files) {
-            if (-f $file) {
-                $self->set("FILE", $file);
-                &dprint("Found DHCPD configuration file: $file\n");
+            if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+                my $file_clean = $1;
+                if (-f $file_clean) {
+                    $self->set("FILE", $file_clean);
+                    &dprint("Found DHCPD configuration file: $file_clean\n");
+                }
+            } else {
+                &eprint("Illegal characters in path: $file\n");
             }
         }
         # If we couldn't find one, lets set it to a sane default and hope for the best
@@ -82,7 +95,11 @@ init()
                 open(CONF, "strings /usr/sbin/dhcpd | grep '/dhcpd.conf' | grep '^/etc/' |");
                 my $file = <CONF>;
                 chomp($file);
-                $self->set("FILE", $file);
+                if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+                    $self->set("FILE", $1);
+                } else {
+                    &eprint("Illegal characters in path: $file\n");
+                }
             }
         }
     }

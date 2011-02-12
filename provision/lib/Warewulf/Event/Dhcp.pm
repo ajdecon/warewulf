@@ -17,7 +17,7 @@ use Warewulf::EventHandler;
 use Warewulf::Provision::DhcpFactory;
 
 
-my $event = Warewulf::EventHandler;
+my $event = Warewulf::EventHandler->new();
 
 
 sub
