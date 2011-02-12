@@ -15,6 +15,7 @@ use Warewulf::Logger;
 use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
+use Warewulf::EventHandler;
 use Warewulf::Util;
 use Getopt::Long;
 use Text::ParseWords;
@@ -121,6 +122,7 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $event_handler = Warewulf::EventHandler->new();
     my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
@@ -131,6 +133,8 @@ exec()
     my $opt_help;
     my @opt_print;
     my $return_count;
+
+    $event_handler->eventloader();
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -185,6 +189,7 @@ exec()
             }
 
             $db->persist($obj);
+            $event_handler->handle("node.add", $obj);
         }
     } else {
         my $objectSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
@@ -238,6 +243,8 @@ exec()
                 $return_count = $db->del_object($objectSet);
 
                 &nprint("Deleted $return_count objects\n");
+
+                $event_handler->handle("node.delete", @objList);
 
             } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 
@@ -330,6 +337,8 @@ exec()
                     $return_count = $db->persist($objectSet);
 
                     &iprint("Updated $return_count objects\n");
+
+                    $event_handler->handle("node.modify", @objList);
                 }
 
             }

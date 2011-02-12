@@ -251,7 +251,7 @@ exec()
                     &iprint("Command errored out, not updating datastore\n");
                 }
             } else {
-                &eprint("Program name contains illeagle characters\n");
+                &eprint("Program name contains illegal characters\n");
             }
         } else {
             &eprint("Command is undefined\n");
