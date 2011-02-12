@@ -72,11 +72,16 @@ sub ipaddr()
     my ($self, $device) = @_;
 
     if ($device) {
-        my $socket;
-        socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-        my $buf = pack('a256', $device);
-        if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
-            return join('.', @address);
+        if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
+            my $device_clean = $1;
+            my $socket;
+            socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
+            my $buf = pack('a256', $device_clean);
+            if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+                return join('.', @address);
+            }
+        } else {
+            &dprint("Illegal characters used in network device name\n");
         }
     } else {
         &wprint("Called ipaddr() on device object without a device name\n");
@@ -95,11 +100,16 @@ sub netmask()
     my ($self, $device) = @_;
 
     if ($device) {
-        my $socket;
-        socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-        my $buf = pack('a256', $device);
-        if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (my @address = unpack('x20 C4', $buf))) {
-            return join('.', @address);
+        if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
+            my $device_clean = $1;
+            my $socket;
+            socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
+            my $buf = pack('a256', $device_clean);
+            if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+                return join('.', @address);
+            }
+        } else {
+            &dprint("Illegal characters used in network device name\n");
         }
     } else {
         &wprint("Called netmask() on device object without a device name\n");
