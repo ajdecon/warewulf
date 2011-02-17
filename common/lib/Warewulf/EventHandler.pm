@@ -109,7 +109,9 @@ eventloader()
 
                     if (! exists($loaded{"$name"})) {
                         &dprint("Module load file: $file_clean\n");
-                        eval "require \"$file_clean\"";
+                        eval {
+                            require $file_clean;
+                        };
                         if ($@) {
                             &wprint("Caught error on module load: $@\n");
                         }
