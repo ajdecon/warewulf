@@ -14,20 +14,7 @@ use Warewulf::Logger;
 use Warewulf::Object;
 use File::Basename;
 use Socket;
-
-# KLUDGE BEGIN
-# All of this is because of an issue in features.ph as defined in sys/ioctl.ph
-require '_h2ph_pre.ph';
-
-no warnings qw(redefine misc);
-
-unless(defined(&_SYS_IOCTL_H)) {
-    eval 'sub _SYS_IOCTL_H () {1;}' unless defined(&_SYS_IOCTL_H);
-    require 'bits/ioctls.ph';
-    require 'bits/ioctl-types.ph';
-    require 'sys/ttydefaults.ph';
-}
-# KLUDGE END
+require 'sys/ioctl.ph';
 
 our @ISA = ('Warewulf::Object');
 
