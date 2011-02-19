@@ -11,7 +11,6 @@
 package Warewulf::Event::Dhcp;
 
 use Warewulf::Logger;
-use Warewulf::Provision::Dhcp;
 use Warewulf::Event;
 use Warewulf::EventHandler;
 use Warewulf::Provision::DhcpFactory;

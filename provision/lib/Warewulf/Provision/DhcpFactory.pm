@@ -13,6 +13,7 @@ package Warewulf::Provision::DhcpFactory;
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
+use File::Basename;
 use DBI;
 
 
@@ -53,26 +54,45 @@ new($$)
     }
 
     if ($type =~ /^([a-zA-Z0-9\-_\.]+)$/) {
+        my $mod_name = ucfirst(lc($1));
+        foreach my $path (@INC) {
+            if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
+                &dprint("Searching for library at: $path/Warewulf/Provision/Dhcp/$mod_name.pm\n");
+                if (-f "$path/Warewulf/Provision/Dhcp/$mod_name.pm") {
+                    my $file = "$path/Warewulf/Provision/Dhcp/$mod_name.pm";
+                    if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+                        my $file_clean = $1;
+                        my ($name, $tmp, $keyword);
 
-        $mod_name = $mod_base . ucfirst(lc($1));
+                        $name = "Warewulf::Provision::Dhcp::". basename($file_clean);
+                        $name =~ s/\.pm$//;
 
-        if (! exists($modules{$mod_name})) {
-            &dprint("Loading object name: $mod_name\n");
-            eval "require $mod_name";
-            if ($@) {
-                &cprint("Could not load '$mod_name'!\n");
-                exit 1;
+                        &dprint("Module load file: $file_clean\n");
+                        eval {
+                            $SIG{"__WARN__"} = sub { 1; };
+                            require $file_clean;
+                        };
+                        if ($@) {
+                            &wprint("Caught error on module load: $@\n");
+                            &wprint("$@\n");
+                        } else {
+                            &dprint("Module $name loaded successful\n");
+                        }
+
+                        $tmp = eval "$name->new()";
+                        if ($tmp) {
+                            push(@{$self->{"MODULES"}}, $tmp);
+                            &dprint("Module load success: Added module $name\n");
+                            return($tmp);
+                        } else {
+                            &wprint("Module load error: Could not invoke $name->new(): $@\n");
+                        }
+                    } else {
+                        &wprint("Module has invalid characters '$file'\n");
+                    }
+                }
             }
-            $modules{$mod_name} = 1;
         }
-
-        &dprint("Getting a new object from $mod_name\n");
-
-        my $obj = eval "$mod_name->new(\@_)";
-
-        &dprint("Got an object: $obj\n");
-
-        return($obj);
     } else {
         &eprint("DHCP server name contains illegal characters.\n");
     }
