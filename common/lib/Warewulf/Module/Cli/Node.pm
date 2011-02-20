@@ -157,20 +157,18 @@ exec()
     }
 
     if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-        if ($term->interactive()) {
-            my %modifiers;
-            my @mod_print;
-            @opt_print = ("name");
-            foreach my $setstring (@opt_set, @opt_add, @opt_del) {
-                if ($setstring =~ /^([^=]+)/) {
-                    if (!exists($modifiers{"$1"})) {
-                        push(@mod_print, $1);
-                        $modifiers{"$1"} = 1;
-                    }
+        my %modifiers;
+        my @mod_print;
+        @opt_print = ("name");
+        foreach my $setstring (@opt_set, @opt_add, @opt_del) {
+            if ($setstring =~ /^([^=]+)/) {
+                if (!exists($modifiers{"$1"})) {
+                    push(@mod_print, $1);
+                    $modifiers{"$1"} = 1;
                 }
             }
-            push(@opt_print, @mod_print);
         }
+        push(@opt_print, @mod_print);
     } elsif (scalar(@opt_print) > 0) {
         @opt_print = split(",", join(",", @opt_print));
     } else {
@@ -232,12 +230,14 @@ exec()
             if ($opt_obj_delete) {
 
                 if ($term->interactive()) {
-                    print("\nAre you sure you wish to delete the above nodes?\n\n");
+                    &nprint("\nAre you sure you wish to delete the above nodes?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
+                        &nprint("No update performed\n");
                         return();
                     }
+                } else {
+                    &nprint("Deleting the above nodes\n");
                 }
 
                 $return_count = $db->del_object($objectSet);
@@ -250,39 +250,44 @@ exec()
 
                 my $persist_bool;
 
-                if ($term->interactive()) {
-                    if (scalar(@objList) eq 1) {
-                        print("\nAre you sure you wish to make the following changes to 1 node?\n\n");
-                    } else {
-                        print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
+                if (scalar(@objList) eq 1) {
+                    &nprint("\nAre you sure you wish to make the following changes to 1 node?\n\n");
+                } else {
+                    &nprint("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." nodes?\n\n");
+                }
+                foreach my $setstring (@opt_set) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    &nprintf(" set: %15s = %s\n", $key, $vals);
+                }
+                foreach my $setstring (@opt_add) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    foreach my $val (&quotewords(',', 0, $vals)) {
+                        &nprintf(" add: %15s = %s\n", $key, $val);
                     }
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        printf(" set: %15s = %s\n", $key, $vals);
-                    }
-                    foreach my $setstring (@opt_add) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
+                }
+                foreach my $setstring (@opt_del) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    if ($vals) {
                         foreach my $val (&quotewords(',', 0, $vals)) {
-                            printf(" add: %15s = %s\n", $key, $val);
+                            &nprintf(" delete: %12s = %s\n", $key, $val);
                         }
+                    } else {
+                        &nprintf(" undefine: %10s = [ALL]\n", $key);
                     }
-                    foreach my $setstring (@opt_del) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        if ($vals) {
-                            foreach my $val (&quotewords(',', 0, $vals)) {
-                                printf(" delete: %12s = %s\n", $key, $val);
-                            }
-                        } else {
-                            printf(" undefine: %10s = [ALL]\n", $key);
-                        }
-                    }
+                }
 
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                if ($term->interactive()) {
+                    my $yesno;
+                    do {
+                        $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    } while (! $yesno);
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
+                        &nprint("No update performed\n");
                         return();
                     }
+                } else {
+                    &nprint("Yes/No> (running non-interactively, defaulting to yes)\n");
                 }
 
                 if (@opt_set) {

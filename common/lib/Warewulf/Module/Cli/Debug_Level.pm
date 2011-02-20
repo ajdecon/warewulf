@@ -33,8 +33,8 @@ exec()
     my $debug_level = uc(shift);
 
     if ($debug_level) {
-        &nprint("Setting debug level to: $debug_level\n");
         &set_log_level($debug_level);
+        &iprint("Debug level set to: $debug_level\n");
     }
 }
 

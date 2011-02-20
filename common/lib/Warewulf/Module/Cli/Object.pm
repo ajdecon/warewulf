@@ -58,7 +58,7 @@ help()
     $output .= "            -t, --type             Limit the return of objects to this type\n";
     $output .= "            -n, --new              Create a new object with the given name\n";
     $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-    $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
+    $output .= "            -p, --print            Define what fields are &nprinted (':all' is a special tag)\n";
     $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
     $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
     $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
@@ -139,20 +139,18 @@ exec()
     }
 
     if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-        if ($term->interactive()) {
-            my %modifiers;
-            my @mod_print;
-            @opt_print = ("name");
-            foreach my $setstring (@opt_set, @opt_add, @opt_del) {
-                if ($setstring =~ /^([^=]+)/) {
-                    if (!exists($modifiers{"$1"})) {
-                        push(@mod_print, $1);
-                        $modifiers{"$1"} = 1;
-                    }
+        my %modifiers;
+        my @mod_print;
+        @opt_print = ("name");
+        foreach my $setstring (@opt_set, @opt_add, @opt_del) {
+            if ($setstring =~ /^([^=]+)/) {
+                if (!exists($modifiers{"$1"})) {
+                    push(@mod_print, $1);
+                    $modifiers{"$1"} = 1;
                 }
             }
-            push(@opt_print, @mod_print);
         }
+        push(@opt_print, @mod_print);
     } elsif (scalar(@opt_print) > 0) {
         @opt_print = split(",", join(",", @opt_print));
     } else {
@@ -222,12 +220,14 @@ exec()
             if ($opt_obj_delete) {
     
                 if ($term->interactive()) {
-                    print("\nAre you sure you wish to make the delete the above objects?\n\n");
+                    &nprint("\nAre you sure you wish to make the delete the above objects?\n\n");
                     my $yesno = $term->get_input("Yes/No> ", "no", "yes");
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
                         return();
                     }
+                } else {
+                    &nprint("Deleting the above objects\n");
                 }
 
                 $return_count = $db->del_object($objectSet);
@@ -237,43 +237,45 @@ exec()
             } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
 
                 my $persist_bool;
-                my $yesno;
+
+                if (scalar(@objList) eq 1) {
+                    &nprint("\nAre you sure you wish to make the following changes to 1 object?\n\n");
+                } else {
+                    &nprint("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." objects?\n\n");
+                }
+                foreach my $setstring (@opt_set) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    &nprintf(" set: %15s = %s\n", $key, $vals);
+                }
+                foreach my $setstring (@opt_add) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    foreach my $val (&quotewords(',', 0, $vals)) {
+                        &nprintf(" add: %15s = %s\n", $key, $val);
+                    }
+                }
+                foreach my $setstring (@opt_del) {
+                    my ($key, $vals) = &quotewords('=', 1, $setstring);
+                    if ($vals) {
+                        foreach my $val (&quotewords(',', 0, $vals)) {
+                            &nprintf(" delete: %12s = %s\n", $key, $val);
+                        }
+                    } else {
+                        &nprintf(" undefine: %10s = [ALL]\n", $key);
+                    }
+                }
 
                 if ($term->interactive()) {
-                    if (scalar(@objList) eq 1) {
-                        print("\nAre you sure you wish to make the following changes to 1 object?\n\n");
-                    } else {
-                        print("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." objects?\n\n");
-                    }
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        printf(" set: %15s = %s\n", $key, $vals);
-                    }
-                    foreach my $setstring (@opt_add) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            printf(" add: %15s = %s\n", $key, $val);
-                        }
-                    }
-                    foreach my $setstring (@opt_del) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        if ($vals) {
-                            foreach my $val (&quotewords(',', 0, $vals)) {
-                                printf(" delete: %12s = %s\n", $key, $val);
-                            }
-                        } else {
-                            printf(" undefine: %10s = [ALL]\n", $key);
-                        }
-                    }
-
+                    my $yesno;
                     do {
                         $yesno = $term->get_input("Yes/No> ", "no", "yes");
                     } while (! $yesno);
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No update performed\n";
+                        &nprint("No update performed\n");
                         return();
                     }
+                } else {
+                    &nprint("Yes/No> (running non-interactively, defaulting to yes)\n");
                 }
 
                 if (@opt_set) {
