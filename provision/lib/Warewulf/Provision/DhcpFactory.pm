@@ -49,6 +49,7 @@ new($$)
     my $mod_base = "Warewulf::Provision::Dhcp::";
 
     if (! $type) {
+        &dprint("Checking what DHCP implementation to use\n");
         my $config = Warewulf::Config->new("provision.conf");
         $type = $config->get("dhcp server") || "isc";
     }
