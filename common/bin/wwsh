@@ -59,6 +59,7 @@ run_cmd()
 my $opt_debug;
 my $opt_verbose;
 my $opt_quiet;
+my $opt_noask;
 $term = Warewulf::Term->new();
 
 Getopt::Long::Configure ("bundling", "pass_through");
@@ -67,6 +68,7 @@ GetOptions(
     'debug'         => \$opt_debug,
     'verbose'       => \$opt_verbose,
     'quiet'         => \$opt_quiet,
+    'noask'         => \$opt_noask,
 );
 
 
@@ -80,6 +82,7 @@ if ($opt_debug) {
     $term->interactive(0);
     &set_log_level("WARNING");
 }
+
 
 $modules = Warewulf::ModuleLoader->new("Cli");
 $db = Warewulf::DataStore->new();
@@ -112,6 +115,9 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
         &run_cmd(&quotewords('\s+', 1, $line));
     }
 } elsif (@ARGV) {
+    if ($opt_noask) {
+        $term->interactive(0);
+    }
     &iprint("Running non-interactively from directly passed argument\n");
     &run_cmd(@ARGV);
 } elsif ($term->interactive()) {
