@@ -36,6 +36,7 @@ AC_OUTPUT(Makefile
    lib/Warewulf/DSO/Makefile
    lib/Warewulf/Event/Makefile
    lib/Warewulf/HTML/Makefile
+   lib/Warewulf/System/Makefile
    lib/Warewulf/Module/Makefile
    lib/Warewulf/Module/Cli/Makefile
    lib/Warewulf/DataStore/Makefile
