@@ -10,11 +10,7 @@
 
 package Warewulf::Provision::Dhcp;
 
-use Warewulf::Logger;
 use Warewulf::Object;
-use Warewulf::DataStore;
-use Warewulf::Network;
-use Socket;
 
 our @ISA = ('Warewulf::Object');
 
