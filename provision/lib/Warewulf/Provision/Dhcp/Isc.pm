@@ -149,7 +149,7 @@ persist()
             $config_template .= "ddns-update-style interim;\n";
             $config_template .= "option domain-name-servers dns_servers;\n";
             $config_template .= "option routers default_router;\n";
-            $config_template .= "filename \"pxelinux.0\";\n";
+            $config_template .= "filename \"/warewulf/gpxelinux.0\";\n";
             $config_template .= "not authoritative;\n";
             $config_template .= "\n";
 

@@ -17,19 +17,18 @@ use Warewulf::Provision::Pxelinux;
 
 
 my $event = Warewulf::EventHandler->new();
+my $pxe = Warewulf::Provision::Pxelinux->new();
 
 
 sub
 update_pxe()
 {
-    my $pxe = Warewulf::Provision::Pxelinux->new();
     $pxe->update(@_);
 }
 
 sub
 delete_pxe()
 {
-    my $pxe = Warewulf::Provision::Pxelinux->new();
     $pxe->delete(@_);
 }
 

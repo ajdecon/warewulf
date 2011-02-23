@@ -56,6 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/Warewulf/*
 %{_libexecdir}/warewulf/*
 %{_localstatedir}/warewulf/*
+%{_datadir}/warewulf
 
 %files gpl_sources
 %defattr(-,root,root)

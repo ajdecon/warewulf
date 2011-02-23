@@ -124,7 +124,7 @@ exec()
                         }
                     }
                 }
-                my $tmpinitramfs = "$tftpboot/warewulf/$name/bootstrap";
+                my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$name/initfs";
                 system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
                 &nprint("Finding and cleaning duplicate files\n");
                 open(LIST, "cpio -it --quiet < $tmpinitramfs |");
