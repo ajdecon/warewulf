@@ -182,7 +182,9 @@ handle()
     my ($self, $event, @arguments) = @_;
     my $event_name = uc($event);
 
-    if (! $disable) {
+    if ($disable) {
+        &iprint("Event handler is disabled, not running any events for: $event_name\n");
+    } else {
         if (exists($events{"$event_name"})) {
             &dprint("Handling events for '$event_name'\n");
             foreach my $func (@{$events{"$event_name"}}) {
