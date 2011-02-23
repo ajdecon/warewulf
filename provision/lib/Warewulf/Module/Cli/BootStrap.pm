@@ -60,15 +60,19 @@ exec()
         'r|rpm'      => \$rpm,
     );
 
+    my $name = shift(@ARGV);
+
+    if (! $name) {
+        &eprint("What is the name of the bootstrap image you want to create?\n");
+    }
 
     if ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
         $tftpboot = $1;
     }
 
-    if (! -d $tftpboot) {
-        mkpath($tftpboot);
+    if (! -d "$tftpboot/warewulf/$name") {
+        mkpath("$tftpboot/warewulf/$name");
     }
-
 
     foreach my $m ($config->get("drivers")) {
         if ($m =~ /^([a-zA-Z0-9\/\*_\-]+)/) {
@@ -120,7 +124,7 @@ exec()
                         }
                     }
                 }
-                my $tmpinitramfs = "$tftpboot/wwinitramfs-$kversion_safe";
+                my $tmpinitramfs = "$tftpboot/warewulf/$name/bootstrap";
                 system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
                 &nprint("Finding and cleaning duplicate files\n");
                 open(LIST, "cpio -it --quiet < $tmpinitramfs |");
@@ -140,7 +144,7 @@ exec()
                 system("rm -rf $tmpdir/*");
                 &nprint("Extracting the kernel object\n");
                 system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
-                system("cp $tmpdir/boot/vmlinuz-* $tftpboot/");
+                system("cp $tmpdir/boot/vmlinuz-* $tftpboot/warewulf/$name/kernel");
                 system("rm -rf $tmpdir");
             }
         }
