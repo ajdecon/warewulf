@@ -15,6 +15,7 @@ use Warewulf::Logger;
 use File::Basename;
 
 my %events;
+my $disable;
 
 =head1 NAME
 
@@ -139,6 +140,37 @@ register()
 }
 
 
+=item disable()
+
+Disable all events
+
+=cut
+sub
+disable()
+{
+    my ($self) = @_;
+
+    $disable = 1;
+
+}
+
+
+=item enable()
+
+Enable all events (this is the default, so it toggles back on after
+disable() has been called).
+
+=cut
+sub
+enable()
+{
+    my ($self) = @_;
+
+    $disable = undef;
+
+}
+
+
 =item handle($trigger_name, @argument_list)
 
 Run all of the events that have registered the defined trigger name
@@ -150,10 +182,12 @@ handle()
     my ($self, $event, @arguments) = @_;
     my $event_name = uc($event);
 
-    if (exists($events{"$event_name"})) {
-        &dprint("Handling events for '$event_name'\n");
-        foreach my $func (@{$events{"$event_name"}}) {
-            &$func(@arguments);
+    if (! $disable) {
+        if (exists($events{"$event_name"})) {
+            &dprint("Handling events for '$event_name'\n");
+            foreach my $func (@{$events{"$event_name"}}) {
+                &$func(@arguments);
+            }
         }
     }
 }
