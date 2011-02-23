@@ -109,7 +109,7 @@ eventloader()
                     $name =~ s/\.pm$//;
 
                     if (! exists($loaded{"$name"})) {
-                        &dprint("Module load file: $file_clean\n");
+                        &iprint("Loading event handler: $name\n");
                         eval {
                             require $file_clean;
                         };
