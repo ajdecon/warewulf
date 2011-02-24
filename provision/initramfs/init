@@ -106,14 +106,16 @@ while true; do
         . /tmp/nodeconfig
         msg_gray "Success! (I am: $NAME)\n"
     else
-        msg_red "Error!\n"
+        sleep 5
+        continue
     fi
 
     msg_white "Getting node boot script: "
     if getbootscript > /tmp/bootscript; then
         msg_gray "Success!\n"
     else
-        msg_red "Error!\n"
+        sleep 5
+        continue
     fi
 
     msg_white "Running node boot script: "
