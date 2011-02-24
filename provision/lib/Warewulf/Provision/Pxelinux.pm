@@ -14,6 +14,7 @@ use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::Include;
+use Warewulf::Provision::Tftp;
 use File::Path;
 
 our @ISA = ('Warewulf::Object');
@@ -63,32 +64,14 @@ sub
 init()
 {
     my $self = shift;
-    my $config = Warewulf::Config->new("provision.conf");
-    my $tftpboot = $config->get("tftpboot");
     my $datadir = &wwconfig("datadir");
+    my $tftpdir = Warewulf::Provision::Tftp->new()->tftpdir();
 
-    if (! $tftpboot) {
-        if (-d "/var/lib/tftpboot") {
-            &dprint("Found tftpboot directory at /var/lib/tftpboot\n");
-            $self->{"TFTPROOT"} = "/var/lib/tftpboot";
-        } elsif (-d "/tftpboot") {
-            &dprint("Found tftpboot directory at /tftpboot\n");
-            $self->{"TFTPROOT"} = "/tftpboot";
-        } else {
-            &cprint("Could not locate TFTP server directory!\n");
-            return();
-        }
-    } elsif ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
-        $self->{"TFTPROOT"} = $1;
-    } else {
-        &eprint("TFTPBOOT configuration contains illegal characters!\n");
-    }
-
-    if (! -f $self->{"TFTPROOT"} ."/warewulf/gpxelinux.0") {
+    if (! -f "$tftpdir/warewulf/gpxelinux.0") {
         if (-f "$datadir/warewulf/gpxelinux.0") {
             &iprint("Copying gpxelinux.0 to the appropriate directory\n");
-            mkpath($self->{"TFTPROOT"} ."/warewulf/");
-            system("cp $datadir/warewulf/gpxelinux.0 ". $self->{"TFTPROOT"} ."/warewulf/gpxelinux.0");
+            mkpath("$tftpdir/warewulf/");
+            system("cp $datadir/warewulf/gpxelinux.0 $tftpdir/warewulf/gpxelinux.0");
         } else {
             &eprint("Could not locate Warewulf's internal gpxelinux.0! Go find one!\n");
         }
@@ -115,7 +98,7 @@ update()
         my ($append) = $nodeobj->get("append");
         my @masters = $nodeobj->get("master");
         my @hwaddrs = $nodeobj->get("hwaddr");
-        my $tftproot = $self->{"TFTPROOT"};
+        my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
 
         &dprint("Creating a pxelinux config for node '$name'\n");
 
@@ -135,8 +118,8 @@ update()
                 print PXELINUX "DEFAULT bootstrap\n";
                 print PXELINUX "LABEL bootstrap\n";
                 print PXELINUX "SAY Now booting Warewulf bootstrap: $bootstrap\n";
-                print PXELINUX "KERNEL /warewulf/bootstrap/$bootstrap/kernel\n";
-                print PXELINUX "APPEND ro initrd=/warewulf/bootstrap/$bootstrap/initfs ";
+                print PXELINUX "KERNEL bootstrap/$bootstrap/kernel\n";
+                print PXELINUX "APPEND ro initrd=bootstrap/$bootstrap/initfs.gz ";
                 if (scalar(@masters) > 1) {
                     my $master = join(",", @masters);
                     print PXELINUX "wwmaster=$master ";

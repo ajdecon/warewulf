@@ -14,8 +14,10 @@ use Warewulf::Include;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Util;
+use Warewulf::Provision::Tftp;
 use Getopt::Long;
 use File::Path;
+use File::Basename;
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -47,7 +49,7 @@ exec()
     my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
     my $initramfsdefault = "base";
     my $config = Warewulf::Config->new("provision.conf");
-    my $tftpboot = $config->get("tftpdir") || "/tftpboot";
+    my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
 
     if (! &uid_test(0)) {
         &eprint("This command can only be run by the superuser!\n");
@@ -57,34 +59,41 @@ exec()
     @ARGV = @args;
 
     GetOptions(
-        'r|rpm'      => \$rpm,
+        'r|rpm=s'    => \$rpm,
     );
 
     my $name = shift(@ARGV);
 
+    &dprint("Checking for bootstrap name\n");
     if (! $name) {
         &eprint("What is the name of the bootstrap image you want to create?\n");
+        return();
     }
+    &dprint("Got bootstrap name: $name\n");
 
+    &dprint("Checking for tftpboot sanity\n");
     if ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
         $tftpboot = $1;
     }
 
-    if (! -d "$tftpboot/warewulf/$name") {
-        mkpath("$tftpboot/warewulf/$name");
+    &dprint("Checking for tftpboot directory name for bootstrap name '$name'\n");
+    if (! -d "$tftpboot/warewulf/bootstrap/$name") {
+        mkpath("$tftpboot/warewulf/bootstrap/$name");
     }
 
+    &dprint("Building list of drivers to include from configuration file\n");
     foreach my $m ($config->get("drivers")) {
         if ($m =~ /^([a-zA-Z0-9\/\*_\-]+)/) {
             $modules .= "$1 ";
         }
     }
 
+    &dprint("Checking for base Warewulf initramfs archive\n");
     if (! -f "$initramfsdir/$initramfsdefault") {
         die "Could not locate the Warewulf CPIO archive at: $initramfsdir/$initramfsdefault!\n";
     }
 
-    # Check for depmod option for map files
+    &dprint("Check for depmod option to create mapfiles\n");
     open(DEPMOD, "/sbin/depmod --help 2>&1 |");
     while (my $line = <DEPMOD>) {
         chomp $line;
@@ -95,21 +104,25 @@ exec()
     }
     close DEPMOD;
 
+    &dprint("Check to see what format of kernel we are working with\n");
     if ($rpm) {
-        $rpm = $ARGV[0];
-        if ($ARGV[0] =~ /^([\/\.\-_a-zA-Z0-9]+\.rpm)$/) {
+        &dprint("Using RPM\n");
+        if ($rpm =~ /^([\/\.\-_a-zA-Z0-9]+\.rpm)$/) {
             $rpm = $1;
-            if (-f $rpm) {
-                open(RPM, "rpm -qp --qf '%{version}-%{release}' $rpm 2>/dev/null |");
-                $kversion = <RPM>;
-                close RPM;
+            my $kversion;
+            &dprint("creating temporary directory at: $tmpdir\n");
+            mkpath($tmpdir);
+            chdir($tmpdir);
+            &nprint("Extracting the kernel modules\n");
+            system("rpm2cpio $rpm | cpio --quiet -id $modules");
+            foreach my $dir (glob("$tmpdir/lib/modules/*")) {
+                if (-d $dir) {
+                    $kversion = basename($dir);
+                    last;
+                }
             }
             if ($kversion =~ /^([0-9_\.]+\-[a-zA-Z0-9_\..]+)$/) {
                 my $kversion_safe = $1;
-                &dprint("creating temporary directory at: $tmpdir\n");
-                mkpath($tmpdir);
-                &nprint("Extracting the kernel modules\n");
-                system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id $modules)");
                 system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
                 foreach my $module ($config->get("capabilities")) {
                     &dprint("Searching to include module: $module\n");
@@ -144,7 +157,7 @@ exec()
                 system("rm -rf $tmpdir/*");
                 &nprint("Extracting the kernel object\n");
                 system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
-                system("cp $tmpdir/boot/vmlinuz-* $tftpboot/warewulf/$name/kernel");
+                system("cp $tmpdir/boot/vmlinuz-* $tftpboot/warewulf/bootstrap/$name/kernel");
                 system("rm -rf $tmpdir");
             }
         }
