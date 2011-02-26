@@ -1,11 +1,14 @@
 METHODSCRIPTS = getbootscript.http getnodeconfig.http getvnfs.http
+ETCSCRIPTS = http-functions
 
 
 rootfs:
 	rm -rf rootfs
 	mkdir rootfs
 	mkdir rootfs/sbin
+	mkdir rootfs/etc
 	cp -a $(METHODSCRIPTS) rootfs/sbin/
+	cp -a $(ETCSCRIPTS) rootfs/etc/
 	chmod +x rootfs/sbin/*
 
 http.cpio: rootfs
@@ -20,4 +23,4 @@ clean:
 	rm -f unionfs
 
 
-EXTRA_DIST = $(METHODSCRIPTS)
+EXTRA_DIST = $(METHODSCRIPTS) $(ETCSCRIPTS)

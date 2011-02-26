@@ -97,15 +97,24 @@ done
 
 msg_white "Probing for HW Address: "
 HWADDR=`/sbin/hwaddr`
-msg_gray "$HWADDR\n"
-
+export HWADDR
+if [ -n "$HWADDR" ]; then
+    msg_gray "$HWADDR\n"
+else
+    msg_red "ERROR: Could not identify Ethernet hardware address\n"
+    echo "Rebooting in 5 seconds...."
+    sleep 5
+    /sbin/reboot
+fi
 
 while true; do
     msg_white "Getting base node configuration: "
+
     if getnodeconfig > /tmp/nodeconfig; then
         . /tmp/nodeconfig
         msg_gray "Success! (I am: $NAME)\n"
     else
+        msg_red "Failure\n"
         sleep 5
         continue
     fi
@@ -114,6 +123,7 @@ while true; do
     if getbootscript > /tmp/bootscript; then
         msg_gray "Success!\n"
     else
+        msg_red "Failure\n"
         sleep 5
         continue
     fi

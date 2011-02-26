@@ -8,9 +8,12 @@
 #
 
 
+> /etc/network.conf
 
 if test -n "$ip"; then
    ifconfig $interface $ip netmask $subnet
+   echo "IPADDR=$ip" >> /etc/network.conf
+   echo "NETMASK=$subnet" >> /etc/network.conf
 fi
 if test -n "$dns"; then
    > /etc/resolv.conf
@@ -20,7 +23,12 @@ if test -n "$dns"; then
 fi
 if test -n "$router"; then
    route add default gw $router
+   echo "GATEWAY=$router" >> /etc/network.conf
 fi
 if test -n "$hostname"; then
     hostname $hostname
+    echo "HOSTNAME=$hostname" >> /etc/network.conf
+fi
+if test -n "$serverid"; then
+    echo "DHCP_SERVER=$serverid" >> /etc/network.conf
 fi

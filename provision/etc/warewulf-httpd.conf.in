@@ -3,7 +3,8 @@ PerlSwitches -w
 PerlSwitches -T
 PerlSwitches -I/var/www/stage/cgi-bin
 
-PerlPreConnectionHandler Apache2::Reload
+# This is disabled as RHEL6 perl_mod seems to be missing this support
+#PerlPreConnectionHandler Apache2::Reload
 
 Alias /WW/static /usr/share/warewulf/www
 

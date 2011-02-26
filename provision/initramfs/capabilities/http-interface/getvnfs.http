@@ -7,3 +7,15 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
+. /etc/http-functions
+
+while true; do
+    for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
+        if wget -q -O - "http://$master:$WWPORT/vnfs?hwaddr=$HWADDR" 2>/dev/null; then
+            exit 0
+        fi
+    done
+    sleep 1
+done
+
+
