@@ -8,7 +8,7 @@
 
 
 
-package Warewulf::Module::Cli::BootStrap;
+package Warewulf::Module::Cli::Initramfs;
 
 use Warewulf::Include;
 use Warewulf::Config;
