@@ -11,6 +11,7 @@ BuildRoot: /var/tmp/%{name}-buildroot
 ExclusiveOS: linux
 Conflicts: warewulf <= 2.9
 Requires: warewulf-common
+BuildRequires: warewulf-common
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
