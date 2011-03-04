@@ -68,11 +68,11 @@ exec()
     if (! $name) {
         &eprint("What is the name of the initramfs image you want to create?\n");
         return();
-    } elsif ($name =~ /^(a-zA-Z0-9_\-\.]+)$/) {
+    } elsif ($name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
         &dprint("Got bootstrap name: $name\n");
         $name = $1;
     } else {
-        &eprint("Ileagle characters in initramfs name\n");
+        &eprint("Illegal characters in initramfs name\n");
         return();
     }
 
