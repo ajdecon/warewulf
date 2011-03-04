@@ -64,12 +64,17 @@ exec()
 
     my $name = shift(@ARGV);
 
-    &dprint("Checking for bootstrap name\n");
+    &dprint("Checking for initramfs name\n");
     if (! $name) {
-        &eprint("What is the name of the bootstrap image you want to create?\n");
+        &eprint("What is the name of the initramfs image you want to create?\n");
+        return();
+    } elsif ($name =~ /^(a-zA-Z0-9_\-\.]+)$/) {
+        &dprint("Got bootstrap name: $name\n");
+        $name = $1;
+    } else {
+        &eprint("Ileagle characters in initramfs name\n");
         return();
     }
-    &dprint("Got bootstrap name: $name\n");
 
     &dprint("Checking for tftpboot sanity\n");
     if ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
