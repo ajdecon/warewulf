@@ -253,6 +253,8 @@ exec()
             } else {
                 &eprint("Program name contains illegal characters\n");
             }
+            &dprint("Removing temporary file: $tmpfile\n");
+            unlink($tmpfile);
         } else {
             &eprint("Command is undefined\n");
         }
