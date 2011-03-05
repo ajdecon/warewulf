@@ -50,9 +50,7 @@ new($$)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $self = ();
-
-    $self = {};
+    my $self = {};
 
     bless($self, $class);
 
@@ -67,14 +65,18 @@ init()
     my $datadir = &wwconfig("datadir");
     my $tftpdir = Warewulf::Provision::Tftp->new()->tftpdir();
 
-    if (! -f "$tftpdir/warewulf/gpxelinux.0") {
-        if (-f "$datadir/warewulf/gpxelinux.0") {
-            &iprint("Copying gpxelinux.0 to the appropriate directory\n");
-            mkpath("$tftpdir/warewulf/");
-            system("cp $datadir/warewulf/gpxelinux.0 $tftpdir/warewulf/gpxelinux.0");
-        } else {
-            &eprint("Could not locate Warewulf's internal gpxelinux.0! Go find one!\n");
+    if ($tftpboot) {
+        if (! -f "$tftpdir/warewulf/gpxelinux.0") {
+            if (-f "$datadir/warewulf/gpxelinux.0") {
+                &iprint("Copying gpxelinux.0 to the appropriate directory\n");
+                mkpath("$tftpdir/warewulf/");
+                system("cp $datadir/warewulf/gpxelinux.0 $tftpdir/warewulf/gpxelinux.0");
+            } else {
+                &eprint("Could not locate Warewulf's internal gpxelinux.0! Go find one!\n");
+            }
         }
+    } else {
+        &iprint("Not integrating with TFTP, no TFTP root directory was found.\n");
     }
 
     return($self);
@@ -91,6 +93,12 @@ sub
 update()
 {
     my ($self, @nodeobjs) = @_;
+    my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
+
+    if (! $tftpboot) {
+        &dprint("Not updating Pxelinux because no TFTP root directory was found!\n");
+        return();
+    }
 
     foreach my $nodeobj (@nodeobjs) {
         my $name = $nodeobj->get("name") || "undefined";
@@ -98,7 +106,6 @@ update()
         my ($append) = $nodeobj->get("append");
         my @masters = $nodeobj->get("master");
         my @hwaddrs = $nodeobj->get("hwaddr");
-        my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
 
         &dprint("Creating a pxelinux config for node '$name'\n");
 
@@ -150,11 +157,16 @@ sub
 delete()
 {
     my ($self, @nodeobjs) = @_;
+    my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
+
+    if (! $tftpboot) {
+        &dprint("Not updating Pxelinux because no TFTP root directory was found!\n");
+        return();
+    }
 
     foreach my $nodeobj (@nodeobjs) {
         my $name = $nodeobj->get("name") || "undefined";
         my @hwaddrs = $nodeobj->get("hwaddr");
-        my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
 
         &dprint("Deleting pxelinux entries for node: $name\n");
 
