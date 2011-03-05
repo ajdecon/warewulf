@@ -145,7 +145,7 @@ set($$)
     }
 
     # If we only got 1 value, it better be a reference.
-    if ((scalar(@vals) == 1) && (ref($vals[0]))) {
+    if ((! $key) && (scalar(@vals) == 1) && (ref($vals[0]))) {
         my $hashref = $vals[0];
 
         if (ref($hashref) eq "HASH") {

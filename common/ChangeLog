@@ -99,3 +99,8 @@ Sun Jan  2 05:36:34 2011                        Michael Jennings (mej)
 
 Work in progress:  Log target handling.
 ----------------------------------------------------------------------
+Fri Mar  4 16:40:23 2011                        Michael Jennings (mej)
+
+Fix bug in Object->set() that wasn't allowing object member values to
+be references.
+----------------------------------------------------------------------
