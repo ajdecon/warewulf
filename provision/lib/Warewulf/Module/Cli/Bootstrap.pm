@@ -8,7 +8,7 @@
 
 
 
-package Warewulf::Module::Cli::Initramfs;
+package Warewulf::Module::Cli::Bootstrap;
 
 use Warewulf::Include;
 use Warewulf::Config;
@@ -64,9 +64,9 @@ exec()
 
     my $name = shift(@ARGV);
 
-    &dprint("Checking for initramfs name\n");
+    &dprint("Checking for bootstrap name\n");
     if (! $name) {
-        &eprint("What is the name of the initramfs image you want to create?\n");
+        &eprint("What is the name of the bootstrap image you want to create?\n");
         return();
     } elsif ($name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
         &dprint("Got bootstrap name: $name\n");
@@ -81,7 +81,7 @@ exec()
         $tftpboot = $1;
     }
 
-    &dprint("Checking for tftpboot directory name for bootstrap name '$name'\n");
+    &dprint("Checking for tftpboot directory name name '$name'\n");
     if (! -d "$tftpboot/warewulf/bootstrap/$name") {
         mkpath("$tftpboot/warewulf/bootstrap/$name");
     }

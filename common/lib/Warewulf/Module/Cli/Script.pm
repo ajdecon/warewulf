@@ -144,7 +144,7 @@ exec()
             if (scalar(@objList) == 1) {
                 if ($term->interactive()) {
                     print("Are you sure you wish to overwrite the Warewulf script '$name'?\n\n");
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "No import performed\n";
                         return();
@@ -277,7 +277,7 @@ exec()
 
                 if (-f "$opt_export/$script" and $term->interactive()) {
                     print("Are you sure you wish to overwrite $opt_export/$script?\n\n");
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         print "Skipped export of $opt_export/$script\n";
                         next;
@@ -294,7 +294,7 @@ exec()
         } elsif (-f $opt_export) {
             if ($term->interactive()) {
                 print("Are you sure you wish to overwrite $opt_export?\n\n");
-                my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     print "No export performed\n";
                     return();
@@ -352,7 +352,7 @@ exec()
 
             if ($term->interactive()) {
                 print("\nAre you sure you wish to make the delete the above scripts?\n\n");
-                my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     print "No update performed\n";
                     return();

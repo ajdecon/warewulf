@@ -52,10 +52,11 @@ rootfs: busybox
 	install -m 755 dhcp-script rootfs/sbin/
 	install -m 755 detect rootfs/sbin/
 	install -m 755 hwaddr rootfs/sbin/
-	install -m 755 methodhandler rootfs/sbin/
-	ln -s methodhandler rootfs/sbin/getvnfs
-	ln -s methodhandler rootfs/sbin/getbootscript
-	ln -s methodhandler rootfs/sbin/getnodeconfig
+	install -m 755 transporthandler rootfs/sbin/
+	install -m 755 provisionhandler rootfs/sbin/
+	ln -s transporthandler rootfs/sbin/wwgetvnfs
+	ln -s transporthandler rootfs/sbin/wwgetbootscript
+	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 
 initramfs.cpio: rootfs
 	cp devs.cpio initramfs.cpio
@@ -72,5 +73,5 @@ clean:
 
 
 
-EXTRA_DIST = *.config init devs.cpio functions dhcp-script detect hwaddr methodhandler
+EXTRA_DIST = *.config init devs.cpio functions dhcp-script detect hwaddr transporthandler provisionhandler
 

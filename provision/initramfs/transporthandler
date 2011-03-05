@@ -8,17 +8,18 @@
 #
 
 
-WWMETHOD=`sed -e '/ wwmethod=/!d;s/.*wwmethod=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWMETHOD
+TRANSPORT=`sed -e '/ wwtransport=/!d;s/.*wwtransport=\([^ ]*\).*/\1/' /proc/cmdline`
+export TRANSPORT
 
-if [ -z "$WWMETHOD" ]; then
-    WWMETHOD="http"
+
+if [ -z "$TRANSPORT" ]; then
+    TRANSPORT="http"
 fi
 
 PROG=$0
 
-if [ -x "$PROG.$WWMETHOD" ]; then
-    exec $PROG.$WWMETHOD $@
+if [ -x "$PROG.$TRANSPORT" ]; then
+    exec $PROG.$TRANSPORT $@
 else
-    echo "WARNING: Method $WWMETHOD is not supported!" 1>&2
+    echo "WARNING: Transport method $TRANSPORT is not supported!" 1>&2
 fi

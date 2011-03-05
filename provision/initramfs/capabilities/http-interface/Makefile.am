@@ -1,4 +1,4 @@
-METHODSCRIPTS = getbootscript.http getnodeconfig.http getvnfs.http
+METHODSCRIPTS = wwgetscript.http wwgetnodeconfig.http wwgetvnfs.http
 ETCSCRIPTS = http-functions
 
 

@@ -125,6 +125,9 @@ update()
                     print PXELINUX "wwmaster=$master ";
                 }
                 print PXELINUX "quiet\n";
+                if (! close PXELINUX) {
+                    &eprint("Could not write Pxelinux configuration file: $!\n");
+                }
             }
         } else {
             &dprint("Need more object information to create a pxelinux config file for this node\n");
@@ -152,8 +155,8 @@ delete()
 
         foreach my $hwaddr (@hwaddrs) {
             &iprint("Deleting Pxelinux configuration for: $name/$hwaddr\n");
-            my $config = $hwaddr;
-            $config =~ s/:/-/g;
+            $hwaddr =~ s/:/-/g;
+            my $config = "01-". $hwaddr;
             if (-f "$tftproot/pxelinux.cfg/$config") {
                 unlink("$tftproot/pxelinux.cfg/$config");
             }

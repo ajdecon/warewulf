@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+DIRNAME=`dirname $0`
+PROG=`basename $0`
+
+# If this is stateed at the command line, it should be used
+TMPPROVISIONMETHOD=`sed -e '/ wwprovisionmethod=/!d;s/.*wwprovisionmethod=\([^ ]*\).*/\1/' /proc/cmdline`
+
+if [ -n "$TMPPROVISIONMETHOD" ]; then
+    WWPROVISIONMETHOD=$TMPPROVISIONMETHOD
+fi
+
+if [ -z "$WWPROVISIONMETHOD" ]; then
+    WWPROVISIONMETHOD="tmpfs"
+fi
+
+for i in `find /etc/warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
+    if [ -x "$i" -a -f "$i" ]; then
+        msg_gray "   $i\n"
+        sh $i
+    fi
+done
+

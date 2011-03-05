@@ -42,16 +42,21 @@ if ($q->param('name')) {
     &print_vnfs($q->param('name'));
 } elsif ($q->param('hwaddr')) {
     my $hwaddr = $q->param('hwaddr');
-    my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
-    my $node = $nodeSet->get_object(0);
-    if ($node) {
-        my @vnfs_array = $node->get("vnfs");
-        if (@vnfs_array) {
-            foreach my $vnfs_name (@vnfs_array) {
-                &print_vnfs($vnfs_name);
+    if ($hwaddr =~ /^([0-9:]+)$/) {
+        my $hwaddr = $1;
+        my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
+        my $node = $nodeSet->get_object(0);
+        if ($node) {
+            my @vnfs_array = $node->get("vnfs");
+            if (@vnfs_array) {
+                foreach my $vnfs_name (@vnfs_array) {
+                    &print_vnfs($vnfs_name);
+                }
+            } else {
+                &eprint($node->get("name") ." has no VNFS set\n");
             }
-        } else {
-            &eprint($node->get("name") ." has no VNFS set\n");
         }
     }
 }
+
+

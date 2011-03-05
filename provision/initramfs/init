@@ -55,6 +55,7 @@ ifup() {
             msg_white  "Configuring $DEVICE: "
             ifconfig $DEVICE $WWIP netmask $WWNETMASK up
             RETVAL=$?
+            msg_green "Success! "
             msg_gray "$WWIP/$WWNETMASK\n"
         fi
     else
@@ -63,7 +64,13 @@ ifup() {
             sleep 2
             udhcpc --now -i $DEVICE -t 5 -s /sbin/dhcp-script >/dev/null
             RETVAL=$?
-            msg_gray "DHCP\n"
+            if [ "$RETVAL" -eq 0 ]; then
+                msg_green "Success! "
+                msg_gray "DHCP\n"
+            else
+                msg_red "Error! "
+                msg_gray "(Could not obtain a DHCP lease)\n"
+            fi
         fi
     fi
     return $RETVAL
@@ -99,7 +106,8 @@ msg_white "Probing for HW Address: "
 HWADDR=`/sbin/hwaddr`
 export HWADDR
 if [ -n "$HWADDR" ]; then
-    msg_gray "$HWADDR\n"
+    msg_green "Success! "
+    msg_gray "($HWADDR)\n"
 else
     msg_red "ERROR: Could not identify Ethernet hardware address\n"
     echo "Rebooting in 5 seconds...."
@@ -110,29 +118,25 @@ fi
 while true; do
     msg_white "Getting base node configuration: "
 
-    if getnodeconfig > /tmp/nodeconfig; then
+    if /sbin/wwgetnodeconfig > /tmp/nodeconfig; then
         . /tmp/nodeconfig
-        msg_gray "Success! (I am: $NAME)\n"
+        msg_green "Success! "
+        msg_gray "(I am: $NAME)\n"
     else
         msg_red "Failure\n"
         sleep 5
         continue
     fi
 
-    msg_white "Getting node boot script: "
-    if getbootscript > /tmp/bootscript; then
-        msg_gray "Success!\n"
-    else
-        msg_red "Failure\n"
-        sleep 5
-        continue
-    fi
 
-    msg_white "Running node boot script: "
-    msg_gray "(the following output is from the boot script)\n"
-    echo
+    msg_white "Downloading and running pre-provision scripts\n";
+    /sbin/wwgetscript pre | /bin/sh
 
-    sh /tmp/bootscript
+    msg_white "Running the provision handler\n"
+    /sbin/provisionhandler
+
+    msg_white "Downloading and running post-provision scripts\n";
+    /sbin/wwgetscript post | /bin/sh
 
     echo
     echo "-------------------------------------------------------------------------------";

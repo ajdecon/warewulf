@@ -107,6 +107,7 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $event_handler = Warewulf::EventHandler->new();
     my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
@@ -117,6 +118,8 @@ exec()
     my $opt_help;
     my @opt_print;
     my $return_count;
+
+    $event_handler->eventloader();
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -159,7 +162,7 @@ exec()
 
     if ($opt_new) {
         if ($opt_type) {
-            foreach my $string (@ARGV) {
+            foreach my $string (&expand_bracket(@ARGV)) {
                 my $obj;
                 $obj = Warewulf::DSOFactory->new($opt_type);
 
@@ -174,6 +177,7 @@ exec()
                 } else {
                     &eprint("Could not create an object of type: $opt_type\n");
                 }
+                $event_handler->handle("$opt_type.add", $obj);
             }
         } else {
             &eprint("What type of object would you like to create? (use the --type option)\n");
@@ -221,7 +225,7 @@ exec()
     
                 if ($term->interactive()) {
                     &nprint("\nAre you sure you wish to make the delete the above objects?\n\n");
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes") {
                         &nprint("No update performed\n");
                         return();
@@ -231,6 +235,8 @@ exec()
                 }
 
                 $return_count = $db->del_object($objectSet);
+
+                $event_handler->handle("$opt_type.delete", @objList);
 
                 &nprint("Deleted $return_count objects\n");
 
@@ -267,7 +273,7 @@ exec()
                 if ($term->interactive()) {
                     my $yesno;
                     do {
-                        $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                        $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     } while (! $yesno);
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
@@ -328,6 +334,8 @@ exec()
 
                 if ($persist_bool) {
                     $return_count = $db->persist($objectSet);
+
+                    $event_handler->handle("$opt_type.modify", @objList);
 
                     &iprint("Updated $return_count objects\n");
                 }

@@ -176,7 +176,7 @@ exec()
     }
 
     if ($opt_new) {
-        foreach my $string (@ARGV) {
+        foreach my $string (&expand_bracket(@ARGV)) {
             my $obj;
             $obj = Warewulf::DSOFactory->new($entity_type);
 
@@ -231,7 +231,7 @@ exec()
 
                 if ($term->interactive()) {
                     &nprint("\nAre you sure you wish to delete the above nodes?\n\n");
-                    my $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         &nprint("No update performed\n");
                         return();
@@ -279,7 +279,7 @@ exec()
                 if ($term->interactive()) {
                     my $yesno;
                     do {
-                        $yesno = $term->get_input("Yes/No> ", "no", "yes");
+                        $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     } while (! $yesno);
 
                     if ($yesno ne "y" and $yesno ne "yes" ) {
