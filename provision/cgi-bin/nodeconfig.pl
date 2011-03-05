@@ -19,7 +19,7 @@ print $q->header();
 
 my $hwaddr = $q->param('hwaddr');
 
-if ($hwaddr =~ /^([0-9:]+)$/) {
+if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
     my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
     my $node = $nodeSet->get_object(0);

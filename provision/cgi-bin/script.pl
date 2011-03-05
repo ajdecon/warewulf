@@ -22,7 +22,7 @@ my $type = $q->param('type');
 
 if ($type =~ /^(pre|post)$/) {
     my $scriptname = $1 . "script";
-    if ($hwaddr =~ /^([0-9:]+)$/) {
+    if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         $hwaddr = $1;
     
         my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);

@@ -110,24 +110,29 @@ update()
             }
 
             foreach my $hwaddr (@hwaddrs) {
-                &iprint("Creating a Pxelinux configuration for: $name/$hwaddr\n");
-                $hwaddr =~ s/:/-/g;
-                my $config = "01-". $hwaddr;
-                &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
-                open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
-                print PXELINUX "DEFAULT bootstrap\n";
-                print PXELINUX "LABEL bootstrap\n";
-                print PXELINUX "SAY Now booting Warewulf bootstrap: $bootstrap\n";
-                print PXELINUX "KERNEL bootstrap/$bootstrap/kernel\n";
-                print PXELINUX "APPEND ro initrd=bootstrap/$bootstrap/initfs.gz ";
-                if (scalar(@masters) > 1) {
-                    my $master = join(",", @masters);
-                    print PXELINUX "wwmaster=$master ";
+                if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
+                    $hwaddr = $1;
+                    &iprint("Creating a Pxelinux configuration for: $name/$hwaddr\n");
+                    $hwaddr =~ s/:/-/g;
+                    my $config = "01-". $hwaddr;
+                    &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
+                    open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
+                    print PXELINUX "DEFAULT bootstrap\n";
+                    print PXELINUX "LABEL bootstrap\n";
+                    print PXELINUX "SAY Now booting Warewulf bootstrap: $bootstrap\n";
+                    print PXELINUX "KERNEL bootstrap/$bootstrap/kernel\n";
+                    print PXELINUX "APPEND ro initrd=bootstrap/$bootstrap/initfs.gz ";
+                    if (scalar(@masters) > 1) {
+                        my $master = join(",", @masters);
+                        print PXELINUX "wwmaster=$master ";
+                    }
+                    print PXELINUX "quiet\n";
+                    if (! close PXELINUX) {
+                        &eprint("Could not write Pxelinux configuration file: $!\n");
+                    }
                 }
-                print PXELINUX "quiet\n";
-                if (! close PXELINUX) {
-                    &eprint("Could not write Pxelinux configuration file: $!\n");
-                }
+            } else {
+                &eprint("Bad characters in hwaddr: $hwaddr\n");
             }
         } else {
             &dprint("Need more object information to create a pxelinux config file for this node\n");
@@ -149,16 +154,21 @@ delete()
     foreach my $nodeobj (@nodeobjs) {
         my $name = $nodeobj->get("name") || "undefined";
         my @hwaddrs = $nodeobj->get("hwaddr");
-        my $tftproot = $self->{"TFTPROOT"};
+        my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
 
         &dprint("Deleting pxelinux entries for node: $name\n");
 
         foreach my $hwaddr (@hwaddrs) {
-            &iprint("Deleting Pxelinux configuration for: $name/$hwaddr\n");
-            $hwaddr =~ s/:/-/g;
-            my $config = "01-". $hwaddr;
-            if (-f "$tftproot/pxelinux.cfg/$config") {
-                unlink("$tftproot/pxelinux.cfg/$config");
+            if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
+                $hwaddr = $1;
+                &iprint("Deleting Pxelinux configuration for: $name/$hwaddr\n");
+                $hwaddr =~ s/:/-/g;
+                my $config = "01-". $hwaddr;
+                if (-f "$tftproot/pxelinux.cfg/$config") {
+                    unlink("$tftproot/pxelinux.cfg/$config");
+                }
+            } else {
+                &eprint("Bad characters in hwaddr: $hwaddr\n");
             }
         }
     }
