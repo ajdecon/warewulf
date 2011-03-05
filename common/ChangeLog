@@ -104,3 +104,9 @@ Fri Mar  4 16:40:23 2011                        Michael Jennings (mej)
 Fix bug in Object->set() that wasn't allowing object member values to
 be references.
 ----------------------------------------------------------------------
+Sat Mar  5 01:12:07 2011                        Michael Jennings (mej)
+
+Add subversion revision number to RPM release field.
+
+Numerous spec file fixes and cleanups.
+----------------------------------------------------------------------

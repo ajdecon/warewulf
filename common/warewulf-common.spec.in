@@ -1,23 +1,26 @@
+%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' || echo 0000)}}
+
 Name: warewulf-common
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
-Release: 1
+Release: %{_rel}
 License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
-BuildRoot: /var/tmp/%{name}-buildroot
 ExclusiveOS: linux
+BuildArch: noarch
 Conflicts: warewulf <= 2.9
+BuildRoot: %{?_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
-utilization and maintaince of clusters or groups of computers.
+utilization and maintenance of clusters or groups of computers.
 
 This is the main package which includes the main daemon and
 supporting libs.
 
 %prep
-%setup
+%setup -q
 
 %build
 %configure
@@ -29,13 +32,13 @@ supporting libs.
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%perl_vendorlib/*
+%dir %{_sysconfdir}/warewulf
+%config(noreplace) %{_sysconfdir}/warewulf/database.conf
 %{_bindir}/*
-%{_sysconfdir}/*
-%{_datadir}/warewulf
+%{_datadir}/warewulf/
+%{perl_vendorlib}/*
 
 %changelog
