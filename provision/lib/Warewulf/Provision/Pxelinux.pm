@@ -137,9 +137,9 @@ update()
                     if (! close PXELINUX) {
                         &eprint("Could not write Pxelinux configuration file: $!\n");
                     }
+                } else {
+                    &eprint("Bad characters in hwaddr: $hwaddr\n");
                 }
-            } else {
-                &eprint("Bad characters in hwaddr: $hwaddr\n");
             }
         } else {
             &dprint("Need more object information to create a pxelinux config file for this node\n");
