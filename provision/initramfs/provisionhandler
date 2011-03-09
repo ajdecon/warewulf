@@ -22,10 +22,12 @@ if [ -z "$WWPROVISIONMETHOD" ]; then
     WWPROVISIONMETHOD="tmpfs"
 fi
 
-for i in `find /etc/warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
-    if [ -x "$i" -a -f "$i" ]; then
-        msg_gray "   $i\n"
-        sh $i
-    fi
-done
+if [ -d "/warewulf/provision/" ]; then
+    for i in `find /warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
+        if [ -x "$i" -a -f "$i" ]; then
+            msg_gray "   $i\n"
+            sh $i
+        fi
+    done
+fi
 

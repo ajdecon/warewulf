@@ -25,7 +25,7 @@ esac
 
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O - "http://$master:$WWPORT/script?hwaddr=$HWADDR&type=post" 2>/dev/null; then
+        if wget -q -O - "http://$master:$WWPORT/script?hwaddr=$HWADDR&type=$TYPE" 2>/dev/null; then
             exit 0
         fi
     done

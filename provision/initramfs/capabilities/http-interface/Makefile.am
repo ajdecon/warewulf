@@ -1,10 +1,16 @@
 METHODSCRIPTS = wwgetscript wwgetnodeconfig wwgetvnfs register functions
 
+TRANSPORT_NAME = http
+
 
 rootfs:
 	rm -rf rootfs
 	mkdir -p rootfs/warewulf/transports/http
 	cp -a $(METHODSCRIPTS) rootfs/warewulf/transports/http
+	@ for i in $(METHODSCRIPTS); do \
+		echo "install -m 755 $$i rootfs/warewulf/transports/$$i.$(TRANSPORT_NAME)" ; \
+		install -m 755 $$i rootfs/warewulf/transports/$$i.$(TRANSPORT_NAME); \
+	done
 	chmod +x rootfs/warewulf/transports/http/*
 
 http.cpio: rootfs
