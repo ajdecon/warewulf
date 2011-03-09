@@ -1,1 +1,1 @@
-SUBDIRS = statelite http-interface
+SUBDIRS = provision-unionfs transport-http

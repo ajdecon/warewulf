@@ -73,8 +73,8 @@ AC_OUTPUT(Makefile
    etc/warewulf-httpd.conf
    initramfs/Makefile
    initramfs/capabilities/Makefile
-   initramfs/capabilities/http-interface/Makefile
-   initramfs/capabilities/statelite/Makefile
+   initramfs/capabilities/transport-http/Makefile
+   initramfs/capabilities/provision-unionfs/Makefile
    modules/Makefile
    share/Makefile
    lib/Makefile
