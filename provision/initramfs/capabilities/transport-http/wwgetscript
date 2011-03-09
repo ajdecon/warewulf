@@ -7,7 +7,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-. /warewulf/transports/http/functions
+. /warewulf/transports/functions.http
 
 
 case $1 in

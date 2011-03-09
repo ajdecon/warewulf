@@ -36,7 +36,7 @@ statelite.cpio: rootfs
 
 install: statelite.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/statelite
+	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-unionfs
 
 clean:
 	rm -rf _work
