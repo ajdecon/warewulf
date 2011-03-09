@@ -7,15 +7,28 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-. /etc/http-functions
+. /warewulf/transports/http/functions
+
+
+case $1 in
+    pre)
+        TYPE="pre"
+    ;;
+    post)
+        TYPE="post"
+    ;;
+    *)
+        echo "What type of script do you wish to download? ('pre' or 'post)"
+        exit 1
+    ;;
+esac
 
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O - "http://$master:$WWPORT/vnfs?hwaddr=$HWADDR" 2>/dev/null; then
+        if wget -q -O - "http://$master:$WWPORT/script?hwaddr=$HWADDR&type=post" 2>/dev/null; then
             exit 0
         fi
     done
     sleep 1
 done
-
 

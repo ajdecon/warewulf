@@ -1,15 +1,11 @@
-METHODSCRIPTS = wwgetscript.http wwgetnodeconfig.http wwgetvnfs.http
-ETCSCRIPTS = http-functions
+METHODSCRIPTS = wwgetscript wwgetnodeconfig wwgetvnfs register functions
 
 
 rootfs:
 	rm -rf rootfs
-	mkdir rootfs
-	mkdir rootfs/sbin
-	mkdir rootfs/etc
-	cp -a $(METHODSCRIPTS) rootfs/sbin/
-	cp -a $(ETCSCRIPTS) rootfs/etc/
-	chmod +x rootfs/sbin/*
+	mkdir -p rootfs/warewulf/transports/http
+	cp -a $(METHODSCRIPTS) rootfs/warewulf/transports/http
+	chmod +x rootfs/warewulf/transports/http/*
 
 http.cpio: rootfs
 	cd rootfs/; find . | cpio -o -H newc -F ../http.cpio
@@ -23,4 +19,4 @@ clean:
 	rm -f unionfs
 
 
-EXTRA_DIST = $(METHODSCRIPTS) $(ETCSCRIPTS)
+EXTRA_DIST = $(METHODSCRIPTS)

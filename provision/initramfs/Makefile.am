@@ -55,7 +55,7 @@ rootfs: busybox
 	install -m 755 transporthandler rootfs/sbin/
 	install -m 755 provisionhandler rootfs/sbin/
 	ln -s transporthandler rootfs/sbin/wwgetvnfs
-	ln -s transporthandler rootfs/sbin/wwgetbootscript
+	ln -s transporthandler rootfs/sbin/wwgetscript
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 
 initramfs.cpio: rootfs

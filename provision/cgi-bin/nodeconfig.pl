@@ -41,7 +41,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         } else {
             print "WW$uc_key=\"$nhash{$key}\"\n";
         }
-        print "export $uc_key\n";
+        print "export WW$uc_key\n";
     }
 }
 

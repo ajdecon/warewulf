@@ -16,10 +16,14 @@ if [ -z "$TRANSPORT" ]; then
     TRANSPORT="http"
 fi
 
-PROG=$0
+PROG=`basename $0`
 
-if [ -x "$PROG.$TRANSPORT" ]; then
-    exec $PROG.$TRANSPORT $@
+if [ -f "/warewulf/transports/$TRANSPORT/register" ]; then
+    if [ -x "/warewulf/transports/$TRANSPORT/$PROG" ]; then
+        exec /warewulf/transports/$TRANSPORT/$PROG
+    elif [ -f "/warewulf/transports/$TRANSPORT/$PROG" ]; then
+        echo "WARNING: /warewulf/transports/$TRANSPORT/$PROG is not executable"
+    fi
 else
     echo "WARNING: Transport method $TRANSPORT is not supported!" 1>&2
 fi
