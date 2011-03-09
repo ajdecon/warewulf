@@ -7,7 +7,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-. /warewulf/transports/functions.http
+. /warewulf/transports/http/functions
 
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do

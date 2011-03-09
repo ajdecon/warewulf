@@ -5,10 +5,10 @@ TRANSPORT_NAME = http
 
 rootfs:
 	rm -rf rootfs
-	mkdir -p rootfs/warewulf/transports/
+	mkdir -p rootfs/warewulf/transports/$(TRANSPORT_NAME)
 	@ for i in $(METHODSCRIPTS); do \
-		echo "install -m 755 $$i rootfs/warewulf/transports/$$i.$(TRANSPORT_NAME)" ; \
-		install -m 755 $$i rootfs/warewulf/transports/$$i.$(TRANSPORT_NAME); \
+		echo "install -m 755 $$i rootfs/warewulf/transports/$(TRANSPORT_NAME)/$$i" ; \
+		install -m 755 $$i rootfs/warewulf/transports/$(TRANSPORT_NAME)/$$i; \
 	done
 
 http.cpio: rootfs
