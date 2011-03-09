@@ -234,9 +234,14 @@ exec()
                     &nprint("Deleting the above objects\n");
                 }
 
-                $return_count = $db->del_object($objectSet);
+                foreach my $obj (@objList) {
+                    my $type = $obj->get("type");
+                    if ($type) {
+                        $event_handler->handle("$type.delete", $obj);
+                    }
+                }
 
-                $event_handler->handle("$opt_type.delete", @objList);
+                $return_count = $db->del_object($objectSet);
 
                 &nprint("Deleted $return_count objects\n");
 
@@ -335,7 +340,12 @@ exec()
                 if ($persist_bool) {
                     $return_count = $db->persist($objectSet);
 
-                    $event_handler->handle("$opt_type.modify", @objList);
+                    foreach my $obj (@objList) {
+                        my $type = $obj->get("type");
+                        if ($type) {
+                            $event_handler->handle("$type.modify", $obj);
+                        }
+                    }
 
                     &iprint("Updated $return_count objects\n");
                 }
