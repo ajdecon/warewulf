@@ -12,11 +12,11 @@ rootfs:
 	done
 
 http.cpio: rootfs
-	cd rootfs/; find . | cpio -o -H newc -F ../http.cpio
+	cd rootfs/; find . | cpio -o -H newc -F ../capability.cpio
 
 install: http.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 http.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/transport-http
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/transport-http
 
 clean:
 	rm -rf _work

@@ -19,6 +19,8 @@ mount -t sysfs none /sys
 
 . /etc/functions
 
+NEWROOT=/newroot
+export NEWROOT
 
 dmesg -n 1 >/dev/null 2>&1
 
@@ -130,16 +132,16 @@ while true; do
     fi
 
 
-    msg_white "Downloading and running pre-provision scripts\n";
-    wwgetscript pre | /bin/sh
-
     msg_white "Running the provision handler\n"
     provisionhandler
 
-    msg_white "Downloading and running post-provision scripts\n";
-    wwgetscript post | /bin/sh
-
-    /bin/sh
+    if [ -x "/warewulf/init.$WWPROVISIONMETHOD" ]; then
+        echo
+        msg_white "Calling init.....\n"
+        sleep 3
+        clear
+        exec /warewulf/init.$WWPROVISIONMETHOD
+    fi
 
     echo
     echo "-------------------------------------------------------------------------------";

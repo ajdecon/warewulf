@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cp -r /lib/modules/* $NEWROOT/lib/modules/
+

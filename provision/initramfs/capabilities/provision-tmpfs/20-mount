@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ -n "$WWTMPFSSIZE" ]; then
+    OPTIONS="size=$WWTMPFSSIZE"
+fi
+
+if [ -n "$WWTMPFSOPTIONS" ]; then
+    OPTIONS=",$WWTMPFSOPTIONS"
+fi
+
+if [ -n "$OPTIONS" ]; then
+    OPTIONS="-o $OPTIONS"
+fi
+
+
+mkdir $NEWROOT
+mount -t tmpfs $OPTIONS root $NEWROOT

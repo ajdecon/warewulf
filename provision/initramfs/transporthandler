@@ -8,6 +8,9 @@
 #
 
 
+. /etc/functions
+
+
 TRANSPORT=`sed -e '/ wwtransport=/!d;s/.*wwtransport=\([^ ]*\).*/\1/' /proc/cmdline`
 export TRANSPORT
 

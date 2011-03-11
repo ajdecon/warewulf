@@ -8,18 +8,16 @@
 #
 
 
+. /etc/functions
+
+
 DIRNAME=`dirname $0`
 PROG=`basename $0`
 
-# If this is stateed at the command line, it should be used
-TMPPROVISIONMETHOD=`sed -e '/ wwprovisionmethod=/!d;s/.*wwprovisionmethod=\([^ ]*\).*/\1/' /proc/cmdline`
-
-if [ -n "$TMPPROVISIONMETHOD" ]; then
-    WWPROVISIONMETHOD=$TMPPROVISIONMETHOD
-fi
 
 if [ -z "$WWPROVISIONMETHOD" ]; then
-    WWPROVISIONMETHOD="tmpfs"
+    echo "ERROR: Provision method undefined!"
+    exit;
 fi
 
 if [ -d "/warewulf/provision/" ]; then

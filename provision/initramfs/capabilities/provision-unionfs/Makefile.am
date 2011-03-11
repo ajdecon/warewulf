@@ -32,11 +32,11 @@ rootfs: unionfs
 	find rootfs -type f -perm -o+x -print | xargs strip -g
 
 statelite.cpio: rootfs
-	cd rootfs/; find . | cpio -o -H newc -F ../statelite.cpio
+	cd rootfs/; find . | cpio -o -H newc -F ../capability.cpio
 
 install: statelite.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 statelite.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-unionfs
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-unionfs
 
 clean:
 	rm -rf _work

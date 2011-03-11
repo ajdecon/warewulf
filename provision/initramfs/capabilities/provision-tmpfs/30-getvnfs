@@ -1,0 +1,8 @@
+#!/bin/sh
+
+
+cd $NEWROOT
+
+wwgetvnfs | gunzip | cpio -id --quiet
+
+

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+
+# FIXME!!!
+exec chroot $NEWROOT /sbin/init
