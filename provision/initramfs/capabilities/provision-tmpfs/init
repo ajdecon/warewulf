@@ -8,4 +8,4 @@
 #
 
 
-exec chroot $NEWROOT /sbin/init
+exec switch_root $NEWROOT /sbin/init
