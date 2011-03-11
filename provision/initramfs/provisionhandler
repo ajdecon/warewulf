@@ -23,7 +23,9 @@ fi
 if [ -d "/warewulf/provision/" ]; then
     for i in `find /warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
         if [ -x "$i" -a -f "$i" ]; then
-            msg_gray "   $i\n"
+            NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)\..*/\1/'`
+            msg_white "   * $NAME "
+            msg_gray "($i)\n"
             sh $i
         fi
     done
