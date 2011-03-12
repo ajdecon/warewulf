@@ -198,10 +198,10 @@ exec()
                 }
                 close FILE;
                 $obj->set("size", $size);
-                $obj->set("uid", geteuid);
-                $obj->set("gid", getegid);
+                $obj->set("uid", $uid);
+                $obj->set("gid", $gid);
+                $obj->set("mode", $mode & 07777);
                 $obj->set("path", $path);
-                $obj->set("mode", "0644");
                 $db->persist($obj);
                 print "Imported $name into a new object\n";
             } else {
