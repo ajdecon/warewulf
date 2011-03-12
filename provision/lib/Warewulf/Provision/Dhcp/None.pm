@@ -39,6 +39,23 @@ Warewulf should do nothing.
 =over 12
 =cut
 
+=item new()
+
+New object constructor
+
+=cut
+sub
+new($$)
+{
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $self = {};
+
+    bless($self, $class);
+
+    return $self;
+}
+
 
 =back
 
