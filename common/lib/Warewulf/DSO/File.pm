@@ -5,10 +5,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Script.pm 50 2010-11-02 01:15:57Z mej $
+# $Id: File.pm 50 2010-11-02 01:15:57Z mej $
 #
 
-package Warewulf::DSO::Script;
+package Warewulf::DSO::File;
 
 use Warewulf::DSO;
 
@@ -16,16 +16,16 @@ our @ISA = ('Warewulf::DSO');
 
 =head1 NAME
 
-Warewulf::Script - Warewulf's general object instance object interface.
+Warewulf::File - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
 
 =head1 SYNOPSIS
 
-    use Warewulf::DSO::Script;
+    use Warewulf::DSO::File;
 
-    my $obj = Warewulf::DSO::Script->new();
+    my $obj = Warewulf::DSO::File->new();
 
 
 =head1 METHODS
@@ -66,7 +66,7 @@ type($)
 {
     my $self = shift;
 
-    return("script");
+    return("file");
 }
 
 
@@ -75,7 +75,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "ID", "LANG");
+    return("NAME", "ID", "LANG", "PATH");
 }
 
 

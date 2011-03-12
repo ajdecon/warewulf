@@ -11,6 +11,7 @@
 package Warewulf::DSO;
 
 use Warewulf::Object;
+use Warewulf::DataStore;
 
 our @ISA = ('Warewulf::Object');
 
@@ -84,6 +85,20 @@ lookups($)
     return("NAME");
 }
 
+
+=item persist()
+
+Persist this object into the datastore
+
+=cut
+sub
+persist($)
+{
+    my $self = shift;
+    my $datastore = Warewulf::DataStore->new();
+
+    $datastore->persist($self);
+}
 
 
 =back

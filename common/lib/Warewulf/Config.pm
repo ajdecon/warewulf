@@ -97,9 +97,30 @@ new($$)
     return($self);
 }
 
+
+=item reread()
+
+This will flush the file data cache, and then reread them.
+
+=cut
+sub
+reread()
+{
+    my ($self) = @_;
+
+    foreach my $file (@{$self->{"FILES"}}) {
+        if (exists($file_data{"$file"})) {
+            delete($file_data{"$file"});
+        }
+    }
+
+    $self->read();
+
+}
+
 =item read
 
-This will cause the configuration files to be reread.
+This will cause the configuration files to be read.
 
 =cut
 sub

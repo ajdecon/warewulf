@@ -12,6 +12,7 @@ package Warewulf::DSOFactory;
 
 use Warewulf::Util;
 use Warewulf::Logger;
+use Warewulf::DSO;
 use DBI;
 
 my %modules;
@@ -46,8 +47,8 @@ new($$)
         &dprint("Loading object name: $mod_name\n");
         eval "require $mod_name";
         if ($@) {
-            &cprint("Could not load '$mod_name'!\n");
-            exit 1;
+            &wprint("Could not load '$mod_name', returning a DSO baseclass object!\n");
+            return(Warewulf::DSO->new(\@_));
         }
         $modules{$mod_name} = 1;
     }
