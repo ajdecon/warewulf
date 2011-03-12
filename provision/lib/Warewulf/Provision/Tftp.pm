@@ -52,6 +52,7 @@ new($$)
     my $class = ref($proto) || $proto;
 
     if (! $singleton) {
+        &dprint("Creating new singleton\n");
         $singleton = {};
         bless($singleton, $class);
         return $singleton->init(@_);
@@ -69,6 +70,7 @@ init()
     my $tftpboot = $config->get("tftpboot");
 
     if (! $tftpboot) {
+        &dprint("Searching for tftpboot directory\n");
         if (-d "/var/lib/tftpboot") {
             &dprint("Found tftpboot directory at /var/lib/tftpboot\n");
             $self->set("TFTPROOT", "/var/lib/tftpboot");
@@ -99,10 +101,14 @@ tftpdir()
 {
     my ($self, $tftpdir) = @_;
 
+    &dprint("Called tftpdir()\n");
+
     if ($tftpdir) {
+        &dprint("Setting tftpdir to: $tftpdir\n");
         $self->set("TFTPROOT", $tftpdir);
     }
 
+    &dprint("Returning tftpdir() with: ". $self->get("TFTPROOT") ."\n");
     return($self->get("TFTPROOT"));
 }
 

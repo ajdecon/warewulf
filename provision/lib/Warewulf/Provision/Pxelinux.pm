@@ -65,7 +65,7 @@ init()
     my $datadir = &wwconfig("datadir");
     my $tftpdir = Warewulf::Provision::Tftp->new()->tftpdir();
 
-    if ($tftpboot) {
+    if ($tftpdir) {
         if (! -f "$tftpdir/warewulf/gpxelinux.0") {
             if (-f "$datadir/warewulf/gpxelinux.0") {
                 &iprint("Copying gpxelinux.0 to the appropriate directory\n");
@@ -95,7 +95,7 @@ update()
     my ($self, @nodeobjs) = @_;
     my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
 
-    if (! $tftpboot) {
+    if (! $tftproot) {
         &dprint("Not updating Pxelinux because no TFTP root directory was found!\n");
         return();
     }
