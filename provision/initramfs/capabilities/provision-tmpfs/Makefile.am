@@ -1,4 +1,4 @@
-METHODSCRIPTS = 20-mount 30-getvnfs 50-config 70-devtree
+METHODSCRIPTS = 20-mount 30-getvnfs 50-config 70-devtree 90-files
 INITSCRIPT = init
 
 PROVISION_NAME = tmpfs

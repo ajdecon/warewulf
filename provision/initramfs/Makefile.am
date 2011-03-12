@@ -57,6 +57,7 @@ rootfs: busybox
 	ln -s transporthandler rootfs/sbin/wwgetvnfs
 	ln -s transporthandler rootfs/sbin/wwgetscript
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
+	ln -s transporthandler rootfs/sbin/wwgetfiles
 
 initramfs.cpio: rootfs
 	cp devs.cpio initramfs.cpio

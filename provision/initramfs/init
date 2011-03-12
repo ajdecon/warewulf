@@ -22,6 +22,10 @@ mount -t sysfs none /sys
 NEWROOT=/newroot
 export NEWROOT
 
+# Old habbits die hard.
+DESTDIR=$NEWROOT
+export DESTDIR
+
 dmesg -n 1 >/dev/null 2>&1
 
 clear
@@ -135,6 +139,13 @@ while true; do
     msg_white "Starting the provision handler: \n"
     provisionhandler
     echo
+
+    if [ -n "$WWPOSTSHELL" ]; then
+        echo "This node is configured to run a shell after the provision process"
+        echo "due to the 'postshell' Warewulf node configuration... So be it!"
+        echo
+        /bin/sh
+    fi
 
     if [ -x "/warewulf/init.$WWPROVISIONMETHOD" ]; then
         msg_white "Calling init...\n"
