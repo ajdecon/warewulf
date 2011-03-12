@@ -174,7 +174,7 @@ exec()
                 $obj->set("size", $size);
                 $obj->set("uid", $uid);
                 $obj->set("gid", $gid);
-                $obj->set("mode", $mode & 07777);
+                $obj->set("mode", sprintf("%04o", $mode & 07777));
                 $db->persist($obj);
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
@@ -200,7 +200,7 @@ exec()
                 $obj->set("size", $size);
                 $obj->set("uid", $uid);
                 $obj->set("gid", $gid);
-                $obj->set("mode", $mode & 07777);
+                $obj->set("mode", sprintf("%04o", $mode & 07777));
                 $obj->set("path", $path);
                 $db->persist($obj);
                 print "Imported $name into a new object\n";
