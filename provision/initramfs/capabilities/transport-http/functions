@@ -11,6 +11,12 @@ if [ -f "/etc/network.conf" ]; then
     . /etc/network.conf
 fi
 
+SLEEP=0
+BACKOFF=2
+RETRY=30
+COUNT=1
+export SLEEP BACKOFF RETRY COUNT
+
 WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
 WWPORT=`sed -e '/ wwport=/!d;s/.*wwport=\([^ ]*\).*/\1/' /proc/cmdline`
@@ -28,4 +34,14 @@ if [ -z "$WWMASTER" ]; then
         exit 1
     fi
 fi
+
+
+throttled_sleep() {
+    sleep $SLEEP
+    if [ $COUNT -ge $RETRY ]; then
+        exit 1
+    fi
+    COUNT=`expr $COUNT + 1`
+    SLEEP=`expr $SLEEP + $BACKOFF`
+}
 

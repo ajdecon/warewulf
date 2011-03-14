@@ -22,11 +22,13 @@ while true; do
                     chmod $mode $NEWROOT/$path
                 else
                     echo "ERROR: Could not download $name"
+                    exit 1
                 fi
             done
             exit 0
         fi
     done
-    sleep 1
+    echo -n "." 1>&2
+    throttled_sleep
 done
 

@@ -22,4 +22,6 @@ fi
 
 
 mkdir $NEWROOT
-mount -t tmpfs $OPTIONS root $NEWROOT
+if ! mount -t tmpfs $OPTIONS root $NEWROOT; then
+    exit 255
+fi

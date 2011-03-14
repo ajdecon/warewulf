@@ -16,7 +16,7 @@ while true; do
             exit 0
         fi
     done
-    sleep 1
+    echo -n "." 1>&2
+    throttled_sleep
 done
-
 

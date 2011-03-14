@@ -17,7 +17,7 @@ busybox:
 		for i in $(BUSYBOX_PATCHES); do \
 			(cd _work/busybox-$(BUSYBOX_VERSION); patch -p1 < ../../$${i} || exit 1) \
 		done ;\
-		cp busybox.config _work/busybox-$(BUSYBOX_VERSION)/.config ;\
+		cp $(srcdir)/busybox.config _work/busybox-$(BUSYBOX_VERSION)/.config ;\
 	fi
 	@ if [ ! -f "_work/busybox-$(BUSYBOX_VERSION)/" ]; then \
 		echo "Building initramfs core" ;\
@@ -47,20 +47,20 @@ rootfs: busybox
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	find rootfs -type f -perm -o+x -print | xargs strip -g
 	rm -f rootfs/linuxrc
-	install -m 755 init rootfs/init
-	install -m 755 functions rootfs/etc/functions
-	install -m 755 dhcp-script rootfs/sbin/
-	install -m 755 detect rootfs/sbin/
-	install -m 755 hwaddr rootfs/sbin/
-	install -m 755 transporthandler rootfs/sbin/
-	install -m 755 provisionhandler rootfs/sbin/
+	install -m 755 $(srcdir)/init rootfs/init
+	install -m 755 $(srcdir)/functions rootfs/etc/functions
+	install -m 755 $(srcdir)/dhcp-script rootfs/sbin/
+	install -m 755 $(srcdir)/detect rootfs/sbin/
+	install -m 755 $(srcdir)/hwaddr rootfs/sbin/
+	install -m 755 $(srcdir)/transporthandler rootfs/sbin/
+	install -m 755 $(srcdir)/provisionhandler rootfs/sbin/
 	ln -s transporthandler rootfs/sbin/wwgetvnfs
 	ln -s transporthandler rootfs/sbin/wwgetscript
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 	ln -s transporthandler rootfs/sbin/wwgetfiles
 
 initramfs.cpio: rootfs
-	cp devs.cpio initramfs.cpio
+	install -m 644 $(srcdir)/devs.cpio initramfs.cpio
 	cd rootfs/; find . | cpio -o -H newc -A -F ../initramfs.cpio
 
 install: install-recursive initramfs.cpio

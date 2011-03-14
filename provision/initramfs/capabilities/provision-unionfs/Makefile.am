@@ -9,7 +9,7 @@ unionfs:
 	@ if [ ! -d "_work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)" ]; then \
 	    echo "Preparing to build unionfs-fuse" ;\
 	    mkdir -p _work/unionfs-fuse;\
-	    tar xjf $(UNIONFS_SOURCE) -C _work/unionfs-fuse/ ;\
+	    tar xjf $(srcdir)/$(UNIONFS_SOURCE) -C _work/unionfs-fuse/ ;\
 	fi
 	@ if [ ! -f "_work/unionfs-fuse/unionfs-fuse-$(UNIONFS_VERSION)/src/unionfs" ]; then \
 	    echo "Building unionfs-fuse" ;\

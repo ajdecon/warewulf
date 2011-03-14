@@ -117,6 +117,34 @@ msg() {
     msg_white $@
 }
 
+wwsuccess() {
+    echo -en "\\033[78G"
+    msg_green "OK\n"
+}
+
+wwdone() {
+    echo -en "\\033[76G"
+    msg_red "DONE\n"
+}
+
+wwfailure() {
+    echo -en "\\033[75G"
+    msg_red "ERROR\n"
+}
+
+wwreboot() {
+    message=$1
+    echo
+    echo
+    if [ -n "$message" ]; then
+        msg_red $message
+    fi
+    echo
+    echo "Rebooting in 5 seconds...."
+    sleep 5
+    /sbin/reboot -n -f
+}
+
 run() {
     if [ -n "$1" ]; then
         if [ $WWDEBUG -eq 0 ]; then

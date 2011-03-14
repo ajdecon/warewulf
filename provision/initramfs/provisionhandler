@@ -24,9 +24,17 @@ if [ -d "/warewulf/provision/" ]; then
     for i in `find /warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
         if [ -x "$i" -a -f "$i" ]; then
             NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)\..*/\1/'`
-            msg_white "   * $NAME "
-            msg_gray "($i)\n"
+            msg_white " * $NAME "
             sh $i
+            RETVAL=$?
+            if [ $RETVAL -eq 0 ]; then
+                wwsuccess
+            elif [ $RETVAL -gt 1 ]; then
+                wwfailure
+                wwreboot
+            else
+                wwfailure
+            fi
         fi
     done
 fi

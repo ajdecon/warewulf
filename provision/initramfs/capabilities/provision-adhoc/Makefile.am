@@ -8,7 +8,7 @@ rootfs:
 	mkdir -p rootfs/warewulf/provision/
 	@ for i in $(METHODSCRIPTS); do \
 		echo "install -m 755 $$i rootfs/warewulf/provision/$$i.$(PROVISION_NAME)" ; \
-		install -m 755 $$i rootfs/warewulf/provision/$$i.$(PROVISION_NAME); \
+		install -m 755 $(srcdir)/$$i rootfs/warewulf/provision/$$i.$(PROVISION_NAME); \
 	done
 
 http.cpio: rootfs

@@ -8,4 +8,6 @@
 #
 
 
-wwgetfiles
+if ! wwgetfiles; then
+    exit 255
+fi

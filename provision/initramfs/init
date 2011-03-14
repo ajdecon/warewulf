@@ -51,7 +51,9 @@ for module in `/sbin/detect | sort | uniq`; do
     modprobe $module
 done
 
-echo
+wwsuccess
+
+
 
 ifup() {
     DEVICE=$1
@@ -61,8 +63,8 @@ ifup() {
             msg_white  "Configuring $DEVICE: "
             ifconfig $DEVICE $WWIP netmask $WWNETMASK up
             RETVAL=$?
-            msg_green "Success! "
-            msg_gray "$WWIP/$WWNETMASK\n"
+            msg_gray "$WWIP/$WWNETMASK"
+            wwsuccess
         fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
@@ -71,12 +73,12 @@ ifup() {
             udhcpc --now --quit -i $DEVICE -t 5 -s /sbin/dhcp-script >/dev/null
             RETVAL=$?
             if [ "$RETVAL" -eq 0 ]; then
-                msg_green "Success! "
                 . /etc/network.conf
-                msg_gray "DHCP/$IPADDR\n"
+                msg_gray "DHCP/$IPADDR"
+                wwsuccess
             else
-                msg_red "Error! "
                 msg_gray "(Could not obtain a DHCP lease)\n"
+                wwfailure
             fi
         fi
     fi
@@ -113,13 +115,11 @@ msg_white "Probing for HW Address: "
 HWADDR=`/sbin/hwaddr`
 export HWADDR
 if [ -n "$HWADDR" ]; then
-    msg_green "Success! "
-    msg_gray "($HWADDR)\n"
+    msg_gray "($HWADDR)"
+    wwsuccess
 else
-    msg_red "ERROR: Could not identify Ethernet hardware address\n"
-    echo "Rebooting in 5 seconds...."
-    sleep 5
-    /sbin/reboot
+    wwfailure
+    wwreboot
 fi
 
 while true; do
@@ -127,12 +127,11 @@ while true; do
 
     if wwgetnodeconfig > /tmp/nodeconfig; then
         . /tmp/nodeconfig
-        msg_green "Success! "
-        msg_gray "(I am: $WWNAME)\n"
+        msg_gray "(I am: $WWNAME)"
+        wwsuccess
     else
-        msg_red "Failure\n"
-        sleep 5
-        continue
+        wwfailure
+        wwreboot
     fi
 
 

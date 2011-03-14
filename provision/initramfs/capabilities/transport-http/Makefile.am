@@ -8,7 +8,7 @@ rootfs:
 	mkdir -p rootfs/warewulf/transports/$(TRANSPORT_NAME)
 	@ for i in $(METHODSCRIPTS); do \
 		echo "install -m 755 $$i rootfs/warewulf/transports/$(TRANSPORT_NAME)/$$i" ; \
-		install -m 755 $$i rootfs/warewulf/transports/$(TRANSPORT_NAME)/$$i; \
+		install -m 755 $(srcdir)/$$i rootfs/warewulf/transports/$(TRANSPORT_NAME)/$$i; \
 	done
 
 http.cpio: rootfs
