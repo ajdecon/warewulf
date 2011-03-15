@@ -14,6 +14,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Config;
 use Warewulf::ModuleLoader;
+use Warewulf::Debug;
 use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
