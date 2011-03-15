@@ -41,23 +41,31 @@ new($$)
 {
     my $proto = shift;
     my $type = uc(shift);
-    my $mod_name = "Warewulf::DSO::". ucfirst(lc($type));
 
-    if (! exists($modules{$mod_name})) {
-        &dprint("Loading object name: $mod_name\n");
-        eval "require $mod_name";
-        if ($@) {
-            &wprint("Could not load '$mod_name', returning a DSO baseclass object!\n");
-            return(Warewulf::DSO->new(\@_));
+    if ( $type =~ /^([a-zA-Z0-9\-_\.]+)$/ ) {
+
+        my $mod_name = "Warewulf::DSO::". ucfirst(lc($type));
+
+        if (! exists($modules{$mod_name})) {
+            &dprint("Loading object name: $mod_name\n");
+            eval "require $mod_name";
+            if ($@) {
+                &wprint("Could not load '$mod_name', returning a DSO baseclass object!\n");
+                return(Warewulf::DSO->new(\@_));
+            }
+            $modules{$mod_name} = 1;
         }
-        $modules{$mod_name} = 1;
+
+        &dprint("Getting a new object from $mod_name\n");
+
+        my $obj = eval "$mod_name->new(\@_)";
+
+        &dprint("Got an object: $obj\n");
+    } elsif ($type) {
+        &eprint("Illegal character in mod_name type: $type\n");
+    } else {
+        &eprint("DSOFactory called without type!\n");
     }
-
-    &dprint("Getting a new object from $mod_name\n");
-
-    my $obj = eval "$mod_name->new(\@_)";
-
-    &dprint("Got an object: $obj\n");
 
     return($obj);
 }
