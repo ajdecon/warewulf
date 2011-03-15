@@ -69,4 +69,9 @@ required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
 
+BEGIN {
+    $SIG{"__WARN__"} = sub { warn @_; &backtrace(); };
+    $SIG{"__DIE__"} = sub { &backtrace(); die @_; }; 
+}
+
 1;
