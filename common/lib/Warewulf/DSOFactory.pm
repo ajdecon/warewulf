@@ -41,8 +41,10 @@ new($$)
 {
     my $proto = shift;
     my $type = uc(shift);
+    my $obj;
 
     if ( $type =~ /^([a-zA-Z0-9\-_\.]+)$/ ) {
+        $type = $1;
 
         my $mod_name = "Warewulf::DSO::". ucfirst(lc($type));
 
@@ -58,7 +60,7 @@ new($$)
 
         &dprint("Getting a new object from $mod_name\n");
 
-        my $obj = eval "$mod_name->new(\@_)";
+        $obj = eval "$mod_name->new(\@_)";
 
         &dprint("Got an object: $obj\n");
     } elsif ($type) {
