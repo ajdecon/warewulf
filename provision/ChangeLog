@@ -6,3 +6,7 @@ Sat Oct 30 01:31:24 2010                        Michael Jennings (mej)
 
 Add copyrights to perl scripts.
 ----------------------------------------------------------------------
+Mon Mar 14 17:49:00 2011                        Michael Jennings (mej)
+
+Add SVN revision number to release field.  Clean up spec.
+----------------------------------------------------------------------

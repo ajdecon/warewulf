@@ -1,17 +1,18 @@
+%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' || echo 0000)}}
 %define debug_package %{nil}
 
 Name: warewulf-provision
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
-Release: 1
+Release: %{_rel}
 License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
-BuildRoot: /var/tmp/%{name}-buildroot
 ExclusiveOS: linux
-Conflicts: warewulf <= 2.9
-Requires: warewulf-common
 BuildRequires: warewulf-common
+Requires: warewulf-common
+Conflicts: warewulf <= 2.9
+BuildRoot: %{?_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
@@ -23,6 +24,7 @@ supporting libs.
 %package gpl_sources
 Summary: This package contains the GPL sources used in Warewulf
 Group: Development/System
+Requires: %{name} = %{version}-%{release}
 
 %description gpl_sources
 Warewulf is distributed with some third-party software as a convenience to
@@ -35,7 +37,7 @@ the included GPL software.
 
 
 %prep
-%setup
+%setup -q
 
 %build
 %configure
@@ -51,16 +53,19 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%config /etc/warewulf/*
-%{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
+%config(noreplace) %{_sysconfdir}/warewulf/provision.conf
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
 %{_bindir}/wwboot
-%{perl_vendorlib}/Warewulf/*
 %{_libexecdir}/warewulf/*
 %{_localstatedir}/warewulf/*
-%{_datadir}/warewulf
+%{_datadir}/warewulf/*
+%{perl_vendorlib}/Warewulf/DSO/*
+%{perl_vendorlib}/Warewulf/Event/*
+%{perl_vendorlib}/Warewulf/Module/*
+%{perl_vendorlib}/Warewulf/Provision/
 
 %files gpl_sources
 %defattr(-,root,root)
-%{_prefix}/src/warewulf/3rd_party/GPL
+%{_prefix}/src/warewulf/3rd_party/GPL/
 
 %changelog
