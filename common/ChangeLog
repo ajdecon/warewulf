@@ -122,3 +122,7 @@ Flesh out syslog and alternative logging target handling.
 
 Disable backtrace on warn/die invocation...too noisy for now.
 ----------------------------------------------------------------------
+Wed Mar 16 16:24:36 2011                        Michael Jennings (mej)
+
+Improve autogen.sh.
+----------------------------------------------------------------------

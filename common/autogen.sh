@@ -1,11 +1,16 @@
 #!/bin/sh
 
-set -x
-libtoolize -f -c
-aclocal
-autoconf
-autoheader
-automake -ca -Wno-portability
+if autoreconf -V >/dev/null 2>&1 ; then
+    set -x
+    autoreconf -f -i
+else
+    set -x
+    libtoolize -f -c
+    aclocal
+    autoconf
+    autoheader
+    automake -ca -Wno-portability
+fi
 
 if [ -z "$NO_CONFIGURE" ]; then
    ./configure $@
