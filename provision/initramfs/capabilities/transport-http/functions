@@ -11,11 +11,11 @@ if [ -f "/etc/network.conf" ]; then
     . /etc/network.conf
 fi
 
-SLEEP=0
+START=0
 BACKOFF=2
-RETRY=30
+INTERVALS=30
 COUNT=1
-export SLEEP BACKOFF RETRY COUNT
+export START BACKOFF INTERVALS COUNT
 
 WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
@@ -37,11 +37,11 @@ fi
 
 
 throttled_sleep() {
-    sleep $SLEEP
-    if [ $COUNT -ge $RETRY ]; then
+    sleep $START
+    if [ $COUNT -ge $INTERVALS ]; then
         exit 1
     fi
     COUNT=`expr $COUNT + 1`
-    SLEEP=`expr $SLEEP + $BACKOFF`
+    START=`expr $START + $BACKOFF`
 }
 

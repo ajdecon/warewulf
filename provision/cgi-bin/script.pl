@@ -20,34 +20,25 @@ print $q->header();
 my $hwaddr = $q->param('hwaddr');
 my $type = $q->param('type');
 
-if ($type =~ /^(pre|post)$/) {
+if ($type =~ /^([a-zA-Z0-9\-\._]+)$/) {
     my $scriptname = $1 . "script";
     if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         $hwaddr = $1;
     
-        my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
-        my $node = $nodeSet->get_object(0);
+        my $node = $db->get_objects("node", "hwaddr", $hwaddr)->get_object(0);
     
         if ($node) {
-            my $nodeName = $node->get("name");
-        } else {
-            $node = Warewulf::DSOFactory->new("node");
-            $node->set("name", "newnode");
-            $node->set("hwaddr", $hwaddr);
-            $db->persist($node);
-        }
-    
-        foreach my $script ($node->get("$scriptname")) {
-            if (! $script) {
-                next;
-            }
-            my $s = $db->get_objects("script", "name", $script);
-            my $sobj = $s->get_object(0);
-            my $sbinstore = $db->binstore($sobj->get("id"));
-            my $script;
-            my %nhash = $node->get_hash();
-            while(my $buffer = $sbinstore->get_chunk()) {
-                print $buffer;
+            foreach my $script ($node->get("$scriptname")) {
+                if (! $script) {
+                    next;
+                }
+                my $obj = $db->get_objects("file", "name", $script)->get_object(0);
+                if ($obj->get("format") eq "shell") {
+                    my $binstore = $db->binstore($obj->get("id"));
+                    while(my $buffer = $binstore->get_chunk()) {
+                        print $buffer;
+                    }
+                }
             }
         }
     }

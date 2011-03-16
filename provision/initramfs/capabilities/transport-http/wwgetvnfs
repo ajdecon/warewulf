@@ -9,11 +9,15 @@
 
 . /warewulf/transports/http/functions
 
-
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O - "http://$master:$WWPORT/vnfs?hwaddr=$HWADDR" 2>/dev/null; then
-            exit 0
+        if wget -q -O - "http://$master:$WWPORT/vnfs?hwaddr=$HWADDR&stat=1" 2>/dev/null > /tmp/wwgetvnfs; then
+            . /tmp/wwgetvnfs
+            if [ -n "$VNFS_NAME" ]; then
+                if wget -q -O - "http://$master:$WWPORT/vnfs?hwaddr=$HWADDR" 2>/dev/null; then
+                    exit 0
+                fi
+            fi
         fi
     done
     echo -n "." 1>&2

@@ -43,7 +43,7 @@ if (! $fileid) {
                             $obj->get("name") || "NULL",
                             $obj->get("uid") || "0",
                             $obj->get("gid") || "0",
-                            $obj->get("mode") || "NULL",
+                            $obj->get("mode") || "0000",
                             $obj->get("path") || "NULL");
                     }
                 }

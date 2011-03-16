@@ -8,6 +8,7 @@ if [ -z "$VNFSDIR" ]; then
     exit 1
 fi
 
+mkdir -p $VNFSDIR
 
 yum --installroot $VNFSDIR -y install \
     SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
@@ -35,9 +36,14 @@ echo "Creating SSH host keys"
 /usr/bin/ssh-keygen -q -t rsa -f $VNFSDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
 /usr/bin/ssh-keygen -q -t dsa -f $VNFSDIR/etc/ssh/ssh_host_dsa_key -C '' -N ''
 
+if [ ! -f "$VNFSDIR/etc/shadow" ]; then
+    echo "Creating shadow file"
+    /usr/sbin/chroot $VNFSDIR /usr/sbin/pwconv
+fi
+
 if [ -x "$VNFSDIR/usr/bin/passwd" ]; then
     echo "Setting root password..."
-    chroot $VNFSDIR /usr/bin/passwd root
+    /usr/sbin/chroot $VNFSDIR /usr/bin/passwd root
 else
     echo "Setting root password to NULL (be sure to fix this yourself)"
     sed -i -e 's/^root:\*:/root::/' $VNFSDIR/etc/shadow

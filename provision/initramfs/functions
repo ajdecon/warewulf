@@ -132,16 +132,40 @@ wwfailure() {
     msg_red "ERROR\n"
 }
 
+_doreboot() {
+    local SLEEP=$1
+    touch /reboot
+    sleep $SLEEP
+
+    if [ -f "/reboot" ]; then
+        echo
+        echo
+        echo "Rebooting system... Please stand by"
+        echo
+        sleep 2
+        /sbin/reboot -n -f
+    fi
+}
+
 wwreboot() {
     message=$1
+    _doreboot 10 &
     echo
     echo
     if [ -n "$message" ]; then
         msg_red $message
     fi
     echo
-    echo "Rebooting in 5 seconds...."
-    sleep 5
+    echo "Rebooting in 10 seconds.... "
+    echo
+    echo -n "   Press [ENTER] to inturrupt and get a debugging shell: "
+    read foo
+    echo
+    echo "Spawning a debug shell."
+    echo "System will reboot automatically when you close the shell."
+    echo
+    rm /reboot
+    /bin/sh
     /sbin/reboot -n -f
 }
 
