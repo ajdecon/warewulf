@@ -16,6 +16,7 @@ use File::Basename;
 
 my %events;
 my $disable;
+my $events_loaded;
 
 =head1 NAME
 
@@ -96,19 +97,22 @@ eventloader()
 {
     my $self = shift;
 
-    foreach my $path (@INC) {
-        if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
-            &dprint("Module load path: $path\n");
-            foreach my $file (glob("$path/Warewulf/Event/*.pm")) {
-                &dprint("Found $file\n");
-                if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
-                    my $file_clean = $1;
-                    my ($name, $tmp, $keyword);
+    if ($events_loaded) {
+        &dprint("Events already loaded, skipping...\n");
+    } else {
+        $events_loaded = 1;
+        foreach my $path (@INC) {
+            if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
+                &dprint("Module load path: $path\n");
+                foreach my $file (glob("$path/Warewulf/Event/*.pm")) {
+                    &dprint("Found $file\n");
+                    if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
+                        my $file_clean = $1;
+                        my ($name, $tmp, $keyword);
 
-                    $name = "Warewulf::Event::". basename($file_clean);
-                    $name =~ s/\.pm$//;
+                        $name = "Warewulf::Event::". basename($file_clean);
+                        $name =~ s/\.pm$//;
 
-                    if (! exists($loaded{"$name"})) {
                         &iprint("Loading event handler: $name\n");
                         eval {
                             require $file_clean;

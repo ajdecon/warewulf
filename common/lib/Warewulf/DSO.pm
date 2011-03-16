@@ -46,9 +46,9 @@ new($$)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $self = ();
+    my $self = {};
 
-    $self = $class->SUPER::new();
+#    $self = $class->SUPER::new();
     bless($self, $class);
 
     return $self->init(@_);
@@ -68,6 +68,13 @@ type($)
     my $type = ref($self);
     $type =~ s/^.+:://;
 
+    if ($type eq "DSO") {
+        if (my $given_type = $self->get("type")) {
+            return(lc($given_type));
+        } else {
+            return("unknown");
+        }
+    }
     return(lc($type));
 }
 

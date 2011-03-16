@@ -16,7 +16,7 @@ use Exporter;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = ('&daemonize', '&daemon_check');
+our @EXPORT = ('&daemonize', '&daemonized');
 
 my $DAEMONIZED;
 
@@ -80,14 +80,21 @@ daemonize()
 
 }
 
-=item daemon_check()
+=item daemonized()
 
-Return true if running as a daemon
+Return true if running as a daemon. If an argument is defined then it will set
+daemonized to return true.
 
 =cut
 sub
-daemon_check()
+daemonized()
 {
+    my $set = shift;
+
+    if ($set) {
+        $DAEMONIZED = 1;
+    }
+
     return($DAEMONIZED);
 }
 

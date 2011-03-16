@@ -50,10 +50,12 @@ new($$)
 
         if (! exists($modules{$mod_name})) {
             &dprint("Loading object name: $mod_name\n");
-            eval "require $mod_name";
+            eval "\$SIG{__DIE__} = sub { 1; }; require $mod_name;";
             if ($@) {
-                &wprint("Could not load '$mod_name', returning a DSO baseclass object!\n");
-                return(Warewulf::DSO->new(\@_));
+                &iprint("Could not DataStore object class for type '$type', loading a DSO baseclass instead!\n");
+                my $obj = Warewulf::DSO->new(@_);
+                $obj->set("type", $type);
+                return($obj);
             }
             $modules{$mod_name} = 1;
         }

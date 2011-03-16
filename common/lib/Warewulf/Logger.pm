@@ -201,6 +201,9 @@ lprint
     chomp($string);
     $string = &leader($level) . $string;
     print $LOGFILE "$string\n";
+    if ($level == $WWLOG_CRITICAL) {
+        &backtrace();
+    }
 }
 
 =item lprintf(LEVEL, $format, @arguments)
@@ -221,6 +224,9 @@ lprintf
     }
     $format = &leader($level) . $format;
     printf $LOGFILE $format, @args;
+    if ($level == $WWLOG_CRITICAL) {
+        &backtrace();
+    }
 }
 
 =item cprint($string)
@@ -316,7 +322,7 @@ init_log_targets()
 {
     my ($so, $se);
 
-    if (&daemon_check()) {
+    if (&daemonized()) {
         $so = $se = IO::File->new("/tmp/test.log", "a", 0600);
     } else {
         $so = IO::Handle->new_from_fd(fileno(STDOUT), "w");
@@ -377,7 +383,7 @@ leader($)
     my ($level) = @_;
 
     if (!defined($LOGFILE)) {
-        if (&daemon_check()) {
+        if (&daemonized()) {
             # Test log file
             open($LOGFILE, ">> /tmp/test.log");
         } else {
