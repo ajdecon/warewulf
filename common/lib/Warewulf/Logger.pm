@@ -10,9 +10,12 @@
 
 package Warewulf::Logger;
 
+use File::Basename;
 use IO::Handle;
 use IO::File;
 use IO::Pipe;
+use Sys::Syslog;
+use Warewulf::Debug;
 use Warewulf::Daemon;
 use Exporter;
 
@@ -22,6 +25,15 @@ my $WWLOG_WARNING = 2;
 my $WWLOG_NOTICE = 3;
 my $WWLOG_INFO = 4;
 my $WWLOG_DEBUG = 5;
+
+my @SYSLOG_LEVELS = (
+    $WWLOG_CRITICAL => LOG_CRIT,
+    $WWLOG_ERROR => LOG_ERR,
+    $WWLOG_WARNING => LOG_WARNING,
+    $WWLOG_NOTICE => LOG_NOTICE,
+    $WWLOG_INFO => LOG_INFO,
+    $WWLOG_DEBUG => LOG_DEBUG
+);
 
 our @ISA = ('Exporter');
 
@@ -39,7 +51,6 @@ sub resolve_log_level(@);
 sub leader($);
 
 my $LEVEL = 0;
-my $LOGFILE = undef;
 my @TARGETS;
 
 =head1 NAME
@@ -89,9 +100,10 @@ set_log_level($)
 =item add_log_target(TARGET, LEVEL, [ LEVEL ... ])
 
 Add a logging target (IO::Handle, filehandle, filename, string to be
-passed to open(), code reference, or the special target "SYSLOG") to
-one or more logging levels.  The range operator may be used to supply
-a range of levels.  "ALL" specifies all log levels.
+passed to open(), code reference, or the special target
+"SYSLOG:<ident>:<facility>") to one or more logging levels.  The range
+operator may be used to supply a range of levels.  "ALL" specifies all
+log levels.
 
 Returns the number of log levels to which the specified target was
 successfully appended or "undef" on error.
@@ -133,6 +145,17 @@ add_log_target()
                 return undef;
             }
         }
+    } elsif ($target =~ /^SYSLOG(?::[^:]+(?::[^:]+)?)?$/) {
+        my ($ident, $facility) = ($1, $2);
+
+        if (! $ident) {
+            $ident = basename($0);
+        }
+        if (! $facility) {
+            $facility = ((&daemonized()) ? (LOG_DAEMON) : (LOG_USER));
+        }
+        openlog($ident, "ndelay,nofatal,pid", $facility);
+        $target = "SYSLOG";
     } else {
         if (-w $target) {
             $target = ">>$target";
@@ -200,10 +223,7 @@ lprint
     }
     chomp($string);
     $string = &leader($level) . $string;
-    print $LOGFILE "$string\n";
-    if ($level == $WWLOG_CRITICAL) {
-        &backtrace();
-    }
+    &write_to_targets($level, "$string\n");
 }
 
 =item lprintf(LEVEL, $format, @arguments)
@@ -223,10 +243,7 @@ lprintf
         return;
     }
     $format = &leader($level) . $format;
-    printf $LOGFILE $format, @args;
-    if ($level == $WWLOG_CRITICAL) {
-        &backtrace();
-    }
+    &write_to_targets($level, sprintf($format, @args));
 }
 
 =item cprint($string)
@@ -376,49 +393,61 @@ resolve_log_level(@)
     return ((wantarray()) ? (@ret) : ($ret[0]));
 }
 
+# Return debugging-style formatted caller string.
+sub
+get_caller_string()
+{
+    my ($p, $f, $l, $s) = &caller_fixed(4);
+
+    return (($p eq "main") ? ($f) : ($p)) . "->$s/$l";
+}
+
 # Return prefix for log file message based on its severity.
 sub
 leader($)
 {
     my ($level) = @_;
 
-    if (!defined($LOGFILE)) {
-        if (&daemonized()) {
-            # Test log file
-            open($LOGFILE, ">> /tmp/test.log");
-        } else {
-            open($LOGFILE, ">&STDERR");
-        }
-    }
     if (!scalar(@TARGETS)) {
         &init_log_targets();
     }
     if ($level == $WWLOG_DEBUG) {
-        my $depth = 1;
-
-        (undef, undef, undef, $s) = caller($depth + 1);
-        if ($s && $s =~ /^Warewulf::Logger::.printf?$/) {
-            $depth++;
-            (undef, undef, undef, $s) = caller($depth + 1);
-        }
-        if (!defined($s)) {
-            $s = "MAIN";
-        }
-        ($f, undef, $l) = caller($depth);
-        $s =~ s/\w+:://g;
-        $s .= "()" if ($s =~ /^\w+$/);
-        $f = "" if (!defined($f));
-        $l = "" if (!defined($l));
-        $s = "" if (!defined($s));
-        return sprintf("%-40s", "[$f->$s/$l]:  ");
+        return sprintf("%-40s", "[" . &get_caller_string() . "]:  ");
     } elsif ($level == $WWLOG_CRITICAL) {
-        return "CRITICAL:  ";
+        #return &get_backtrace(3) . "CRITICAL:  ";
+        return &get_caller_string() . ":  CRITICAL:  ";
     } elsif ($level == $WWLOG_ERROR) {
         return "ERROR:  ";
     } elsif ($level == $WWLOG_WARNING) {
         return "WARNING:  ";
     }
     return "";
+}
+
+# Write log message to target(s)
+sub
+write_to_targets($$)
+{
+    my ($level, $str) = @_;
+
+    foreach my $target (@{$TARGETS[$level]}) {
+        if ($target eq "SYSLOG") {
+            syslog($SYSLOG_LEVELS[$level], "%s", $str);
+        } elsif (ref($target)) {
+            if (ref($target) eq "CODE") {
+                &{$target}($str);
+            } elsif (ref($target) eq "SCALAR") {
+                ${$target} .= $str;
+            } elsif (ref($target) eq "ARRAY") {
+                push @{$target}, $str;
+            } else {
+                $target->print($str);
+            }
+        } else {
+            # This should never happen!
+            print STDERR &get_backtrace(3), "CRITICAL:  Unrecognized logging target $target!\n";
+        }
+    }
 }
 
 1;

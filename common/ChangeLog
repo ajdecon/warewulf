@@ -114,3 +114,11 @@ Tue Mar 15 15:24:40 2011                        Michael Jennings (mej)
 
 Handle warnings/fatal errors if Debug.pm is loaded by printing a stack trace.
 ----------------------------------------------------------------------
+Wed Mar 16 13:55:17 2011                        Michael Jennings (mej)
+
+Refactor logging and debugging to be more flexible.
+
+Flesh out syslog and alternative logging target handling.
+
+Disable backtrace on warn/die invocation...too noisy for now.
+----------------------------------------------------------------------
