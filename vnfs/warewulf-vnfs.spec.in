@@ -1,0 +1,38 @@
+Name: warewulf-vnfs
+Summary: A suite of tools for clustering
+Version: @PACKAGE_VERSION@
+Release: 1
+License: GPL
+Group: System Environment/Clustering
+Source: %{name}-%{version}.tar.gz
+BuildRoot: /var/tmp/%{name}-buildroot
+ExclusiveOS: linux
+Conflicts: warewulf <= 2.9
+
+%description
+Warewulf >= 3 is a set of utilities designed to better enable
+utilization and maintaince of clusters or groups of computers.
+
+This is the main package which includes the main daemon and
+supporting libs.
+
+%prep
+%setup
+
+%build
+%configure
+%{__make} %{?mflags}
+
+%install
+%{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root)
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%perl_vendorlib/*
+
+%changelog
