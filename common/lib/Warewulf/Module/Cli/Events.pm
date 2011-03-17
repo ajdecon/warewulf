@@ -30,16 +30,23 @@ new()
 sub
 exec()
 {
-    my $self = shift;
-    my $onoff = uc(shift);
+    my ($self, $arg) = @_;
     my $events = Warewulf::EventHandler->new();
 
-    if ($onoff eq "ENABLE") {
+    if (uc($arg) eq "ENABLE") {
         &nprint("Enabling the Warewulf Event Handler\n");
         $events->enable();
-    } elsif ($onoff eq "DISABLE") {
+    } elsif (uc($arg) eq "DISABLE") {
         &nprint("Disabling the Warewulf Event Handler\n");
         $events->disable();
+    } elsif (uc($arg) eq "RUN") {
+        $events->run();
+    } elsif (uc($arg) eq "CLEAR") {
+        $events->clear();
+    } elsif (uc($arg) eq "PENDING") {
+        foreach my $event ($events->pending()) {
+            &nprint("  $event\n");
+        }
     }
 }
 
@@ -49,7 +56,7 @@ complete()
 {
     my ($self) = @_;
 
-    return("enable", "disable", "run", "clear", "show");
+    return("enable", "disable", "run", "clear", "pending");
 }
 
 
@@ -61,9 +68,9 @@ options()
 
     $hash{"enable"} = "Enable the event handler (default)";
     $hash{"disable"} = "Disable events from occuring (note they will still be queued)";
-    $hash{"run"} = "Run the event queue (unavailable)";
-    $hash{"clear"} = "Clear the event queue (unavailable)";
-    $hash{"show"} = "Show the event queue (unavailable)";
+    $hash{"run"} = "Run the event queue";
+    $hash{"clear"} = "Clear the event queue";
+    $hash{"pending"} = "Show the pending event queue";
 
     return(%hash);
 }

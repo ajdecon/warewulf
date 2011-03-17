@@ -15,6 +15,7 @@ use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::DSOFactory;
 use Warewulf::ObjectSet;
+use Warewulf::EventHandler;
 use DBI;
 use Storable qw(freeze thaw);
 
@@ -306,6 +307,7 @@ sub
 persist($$)
 {
     my ($self, $object) = @_;
+    my $event = Warewulf::EventHandler->new();
     my @objlist;
 
     if (ref($object) eq "Warewulf::ObjectSet") {
@@ -318,16 +320,18 @@ persist($$)
     }
     foreach my $o (@objlist) {
         my $id = $o->get("id");
+        my $type = $o->get("type");
 
         if (! $id) {
             my $sth;
             dprint("Inserting a new object into the datastore\n");
             $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
-            $sth->execute($o->type());
+            $sth->execute($type);
             $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
             $sth->execute();
             $id = $sth->fetchrow_array();
             $o->set("id", $id);
+            $event->queue("$type.new", $o);
         }
 
         dprint("Updating datastore ID = $id\n");
@@ -349,6 +353,8 @@ persist($$)
         } else {
             dprint("Not adding lookup entries\n");
         }
+
+        $event->queue("$type.modify", $o);
     }
     return(scalar(@objlist));
 }
@@ -365,6 +371,7 @@ del_object($$)
 {
     my ($self, $object) = @_;
     my @objlist;
+    my $event = Warewulf::EventHandler->new();
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
@@ -376,6 +383,7 @@ del_object($$)
     }
     foreach my $o (@objlist) {
         my $id = $o->get("id");
+        my $type = $o->get("type");
 
         if ($id) {
             my $sth;
@@ -386,6 +394,7 @@ del_object($$)
             $sth->execute($id);
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
+            $event->queue("$type.delete", $o);
         }
     }
 
@@ -494,6 +503,7 @@ sub
 new_object($)
 {
     my $self = shift;
+    my $event = Warewulf::EventHandler->new();
     my $sth;
 
     wprint("DB->new_object() is deprecated...\n");
@@ -509,6 +519,8 @@ new_object($)
     $sth->execute();
 
     $object->set("id", $sth->fetchrow_array());
+
+    $event->queue("$type.new", $object);
 
     return($object);
 }

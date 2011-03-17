@@ -15,7 +15,6 @@ use Warewulf::Logger;
 use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
-use Warewulf::EventHandler;
 use Warewulf::Util;
 use Getopt::Long;
 use Text::ParseWords;
@@ -112,14 +111,11 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $event_handler = Warewulf::EventHandler->new();
     my $opt_new;
     my $opt_obj_delete;
     my $opt_help;
     my @opt_print;
     my $return_count;
-
-    $event_handler->eventloader();
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -144,7 +140,6 @@ exec()
             $obj->set("name", $string);
 
             $db->persist($obj);
-            $event_handler->handle("node.add", $obj);
         }
     }
 

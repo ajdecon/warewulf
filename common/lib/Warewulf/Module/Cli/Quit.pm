@@ -10,6 +10,8 @@
 package Warewulf::Module::Cli::Quit;
 
 use Warewulf::Logger;
+use Warewulf::EventHandler;
+use Warewulf::Term;
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -41,6 +43,12 @@ sub
 exec()
 {
     my $self = shift;
+    my $event_handler = Warewulf::EventHandler->new();
+    my $term = Warewulf::Term->new();
+
+    $event_handler->eventloader();
+    $event_handler->run();
+    $term->history_save();
 
     exit;
 }

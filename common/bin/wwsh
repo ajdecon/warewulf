@@ -15,6 +15,7 @@ use Warewulf::DataStore;
 use Warewulf::Config;
 use Warewulf::ModuleLoader;
 use Warewulf::Debug;
+use Warewulf::EventHandler;
 use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
@@ -61,7 +62,7 @@ my $opt_debug;
 my $opt_verbose;
 my $opt_quiet;
 my $opt_noask;
-$term = Warewulf::Term->new();
+my $event_handler;
 
 Getopt::Long::Configure ("bundling", "pass_through");
 
@@ -73,6 +74,12 @@ GetOptions(
 );
 
 
+$modules = Warewulf::ModuleLoader->new("Cli");
+$db = Warewulf::DataStore->new();
+$term = Warewulf::Term->new();
+$event_handler = Warewulf::EventHandler->new();
+
+$event_handler->eventloader();
 &set_log_level("NOTICE");
 
 if ($opt_debug) {
@@ -84,9 +91,6 @@ if ($opt_debug) {
     &set_log_level("WARNING");
 }
 
-
-$modules = Warewulf::ModuleLoader->new("Cli");
-$db = Warewulf::DataStore->new();
 
 
 foreach my $module ($modules->list()) {
@@ -181,4 +185,5 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
 }
 
 
+$event_handler->run();
 exit($retval);

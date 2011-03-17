@@ -160,7 +160,6 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $event_handler = Warewulf::EventHandler->new();
     my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
@@ -172,7 +171,6 @@ exec()
     my @opt_print;
     my $return_count;
 
-    $event_handler->eventloader();
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -230,7 +228,6 @@ exec()
                 } else {
                     &eprint("Could not create an object of type: $opt_type\n");
                 }
-                $event_handler->handle("$opt_type.add", $obj);
             }
         } else {
             &eprint("What type of object would you like to create? (use the --type option)\n");
@@ -285,13 +282,6 @@ exec()
                     }
                 } else {
                     &nprint("Deleting the above objects\n");
-                }
-
-                foreach my $obj (@objList) {
-                    my $type = $obj->get("type");
-                    if ($type) {
-                        $event_handler->handle("$type.delete", $obj);
-                    }
                 }
 
                 $return_count = $db->del_object($objectSet);
@@ -392,13 +382,6 @@ exec()
 
                 if ($persist_bool) {
                     $return_count = $db->persist($objectSet);
-
-                    foreach my $obj (@objList) {
-                        my $type = $obj->get("type");
-                        if ($type) {
-                            $event_handler->handle("$type.modify", $obj);
-                        }
-                    }
 
                     &iprint("Updated $return_count objects\n");
                 }
