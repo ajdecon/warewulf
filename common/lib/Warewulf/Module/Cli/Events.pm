@@ -49,8 +49,49 @@ complete()
 {
     my ($self) = @_;
 
-    return("enable", "disable");
+    return("enable", "disable", "run", "clear", "show");
 }
+
+
+
+sub
+options()
+{
+    my %hash;
+
+    $hash{"enable"} = "Enable the event handler (default)";
+    $hash{"disable"} = "Disable events from occuring (note they will still be queued)";
+    $hash{"run"} = "Run the event queue (unavailable)";
+    $hash{"clear"} = "Clear the event queue (unavailable)";
+    $hash{"show"} = "Show the event queue (unavailable)";
+
+    return(%hash);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Control how events are handled";
+
+    return($output);
+}
+
+sub
+description()
+{
+    my $output;
+
+    $output .= "Warewulf may have events configured to run automatically based on triggers\n";
+    $output .= "that are automatically added to Warewulf via subpackages.\n";
+
+    return($output);
+}
+
+
+
+
 
 sub
 help()

@@ -53,7 +53,58 @@ init()
 
 
 sub
-help()
+options()
+{
+    my %hash;
+
+    $hash{"-i, --import"} = "Import a file into this object";
+    $hash{"-e, --export"} = "Export a file from Warewulf to the file system";
+    $hash{"-l, --lookup"} = "Lookup by field (default: name)";
+    $hash{"-p, --program"} = "Filter file through a program";
+    $hash{"-s, --show"} = "Show the contents of the file data";
+    $hash{"    --DELETE"} = "Delete this object from Warewulf";
+
+    return(%hash);
+}
+
+sub
+examples()
+{
+    my @output;
+
+    push(@output, "file --import /etc/passwd");
+    push(@output, "file -p vim passwd");
+
+    return(@output);
+}
+
+sub
+description()
+{
+    my $output;
+
+    $output .= "This is the base file interface for dealing with Warewulf. It allows you to\n";
+    $output .= "import, export, create and modify files within the Warewulf datastore. Some\n";
+    $output .= "examples of this would be if you wanted to use a specific file as a node\n";
+    $output .= "gets provisioned\n";
+    $output .= "\n";
+
+    return($output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Work with entire files within the Warewulf datastore.";
+
+    return($output);
+}
+
+
+sub
+help1()
 {
     my ($self, $keyword) = @_;
     my $output;

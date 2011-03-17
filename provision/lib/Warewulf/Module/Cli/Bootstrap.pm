@@ -36,6 +36,49 @@ new()
 
 
 sub
+options()
+{
+    my %hash;
+
+    $hash{"-r, --rpm"} = "Pass the kernel that you want to use via RPM";
+
+    return(%hash);
+}
+
+sub
+description()
+{
+    my $output;
+
+    $output .= "This command will create the bootstrap images that nodes use to\n";
+    $output .= "bootstrap the provisioning process.\n";
+
+    return($output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Build provisioning bootstrap images";
+
+    return($output);
+}
+
+
+sub
+examples()
+{
+    my @output;
+
+    push(@output, "bootstrap -r /path/to/kernel.rpm bootstrap_test");
+
+    return(@output);
+}
+
+
+sub
 exec()
 {
     my ($self, @args) = @_;
@@ -84,6 +127,7 @@ exec()
     &dprint("Checking for tftpboot directory name name '$name'\n");
     if (! -d "$tftpboot/warewulf/bootstrap/$name") {
         mkpath("$tftpboot/warewulf/bootstrap/$name");
+        &nprint("Using TFTP directory: $tftpboot\n");
     }
 
     &dprint("Building list of drivers to include from configuration file\n");
@@ -164,6 +208,7 @@ exec()
                 system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
                 system("cp $tmpdir/boot/vmlinuz-* $tftpboot/warewulf/bootstrap/$name/kernel");
                 system("rm -rf $tmpdir");
+                &nprint("Bootstrap image '$name' is ready\n");
             }
         }
     } else {

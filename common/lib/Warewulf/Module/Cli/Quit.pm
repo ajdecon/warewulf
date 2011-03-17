@@ -27,6 +27,17 @@ new()
 }
 
 sub
+summary()
+{
+    my $output;
+
+    $output .= "Exit/leave the Warewulf shell";
+
+    return($output);
+}
+
+
+sub
 exec()
 {
     my $self = shift;

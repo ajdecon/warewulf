@@ -52,7 +52,41 @@ init()
 
 
 sub
-help()
+options()
+{
+    my %hash;
+
+    $hash{"-i, --import"} = "Import a VNFS image into the Warewulf datastore";
+    $hash{"-e, --export"} = "Export a VNFS image to the local file system";
+    $hash{"    --DELETE"} = "Delete a VNFS from the datstore";
+
+    return(%hash);
+}
+
+sub
+description()
+{
+    my $output;
+
+    $output .= "VNFS Management interface.";
+
+    return($output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Manage your VNFS images.";
+
+    return($output);
+}
+
+
+
+sub
+help1()
 {
     my ($self, $keyword) = @_;
     my $output;

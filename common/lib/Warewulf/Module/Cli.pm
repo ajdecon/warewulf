@@ -32,21 +32,36 @@ Warewulf::Module::Cli -
 
 =over 4
 
-=item usage()
+=item options()
 
-Define the command line usage of this module interface.
-
-=cut
-sub usage() { };
-
-
-=item help()
-
-Show the help options for this module
+Define the command line options of this module interface.
 
 =cut
-# Leave this undefined...
-#sub help() {};
+#sub options() { };
+
+
+=item description()
+
+Verbose description of the module
+
+=cut
+#sub description() { };
+
+
+=item summary()
+
+A very short summary describing this module
+
+=cut
+#sub summary() { };
+
+
+=item examples()
+
+Return an array of usage examples
+
+=cut
+#sub examples() { };
 
 
 =item command()

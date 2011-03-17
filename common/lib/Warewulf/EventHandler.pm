@@ -177,7 +177,7 @@ enable()
 
 =item handle($trigger_name, @argument_list)
 
-Run all of the events that have registered the defined trigger name
+Add event
 
 =cut
 sub
@@ -186,16 +186,31 @@ handle()
     my ($self, $event, @arguments) = @_;
     my $event_name = uc($event);
 
+    $self->add("events", $event);
+}
+
+
+=item run()
+
+Run all of the accumulated events that have been handled.
+
+=cut
+sub
+run()
+{
+    my ($self) = @_;
+
     if ($disable) {
         &iprint("Event handler is disabled, not running any events for: $event_name\n");
     } else {
-        if (exists($events{"$event_name"})) {
+        foreach my $event_name ($self->get("events")) {
             &dprint("Handling events for '$event_name'\n");
             foreach my $func (@{$events{"$event_name"}}) {
                 &$func(@arguments);
             }
         }
     }
+
 }
 
 

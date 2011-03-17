@@ -48,18 +48,33 @@ complete()
 }
 
 sub
-help()
+options()
 {
-    my ($self) = @_;
+    my %hash;
+
+    $hash{"notice"} = "Only show normal usage messages";
+    $hash{"info"} = "Display increased verbosity";
+    $hash{"debug"} = "Debugging output";
+
+    return(%hash);
+}
+
+sub
+description()
+{
     my $output;
 
-    $output .= "        This will set the default debugging/logging level for this shell. Valid\n";
-    $output .= "        options include:\n";
-    $output .= "\n";
-    $output .= "            notice:     Only show normal usage messages\n";
-    $output .= "            info:       Display increased verbosity\n";
-    $output .= "            debug:      Debugging output\n";
-    $output .= "\n";
+    $output .= "This will set the debugging/logging level for this shell.";
+
+    return($output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "This will set the debugging/logging level";
 
     return($output);
 }

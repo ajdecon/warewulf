@@ -30,6 +30,28 @@ new()
 
 
 sub
+description()
+{
+    my $output;
+
+    $output .= "Reconfigure DHCP services for this host manually";
+
+    return($output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Configure/Reconfigure DHCP services";
+
+    return($output);
+}
+
+
+
+sub
 help()
 {
     my ($self, $keyword) = @_;

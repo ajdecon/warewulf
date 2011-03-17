@@ -48,7 +48,60 @@ init()
 
 
 sub
-help()
+options()
+{
+    my %hash;
+
+    $hash{"-t, --type"} = "Limit the return of objects to this object type";
+    $hash{"-n, --new"} = "Create a new object with the given name";
+    $hash{"-l, --lookup"} = "Address objects by a specific lookup value (default: name)";
+    $hash{"-p, --print"} = "Define what fields are printed (':all' is a special tag)";
+    $hash{"-s, --set"} = "Set a given attribute";
+    $hash{"-a, --add"} = "Add an attribute to an existing key (otherwise create the key)";
+    $hash{"-d, --del"} = "Delete an attribute from a key";
+    $hash{"    --DELETE"} = "Delete an entire object";
+
+    return(%hash);
+}
+
+sub
+description()
+{
+    my $output;
+
+    $output .= "The object command provides an interface for generically manipulating all\n";
+    $output .= "object types within the Warewulf datastore.\n";
+    $output .= "\n";
+
+    return($output);
+}
+
+sub
+examples()
+{
+    my @output;
+
+    push(@output, "object -t node -l hwaddr 00:00:00:00:00:00 00:00:00:00:00:01");
+    push(@output, "object -t node -s group=grp1,grp2 n00[00-99]");
+    push(@output, "object -t file -p :all");
+
+    return(@output);
+}
+
+sub
+summary()
+{
+    my $output;
+
+    $output .= "Generically manipulate all Warewulf datastore entries";
+
+    return($output);
+}
+
+
+
+sub
+help1()
 {
     my ($self, $keyword) = @_;
     my $output;
