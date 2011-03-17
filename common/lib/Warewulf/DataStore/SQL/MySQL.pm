@@ -324,6 +324,7 @@ persist($$)
 
         if (! $id) {
             my $sth;
+            $event->handle("$type.new", $o);
             dprint("Inserting a new object into the datastore\n");
             $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
             $sth->execute($type);
@@ -331,7 +332,6 @@ persist($$)
             $sth->execute();
             $id = $sth->fetchrow_array();
             $o->set("id", $id);
-            $event->queue("$type.new", $o);
         }
 
         dprint("Updating datastore ID = $id\n");
@@ -354,7 +354,7 @@ persist($$)
             dprint("Not adding lookup entries\n");
         }
 
-        $event->queue("$type.modify", $o);
+        $event->handle("$type.modify", $o);
     }
     return(scalar(@objlist));
 }
@@ -387,6 +387,7 @@ del_object($$)
 
         if ($id) {
             my $sth;
+            $event->handle("$type.delete", $o);
             dprint("Deleting object from the datastore: ID=$id\n");
             $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             $sth->execute($id);
@@ -394,7 +395,6 @@ del_object($$)
             $sth->execute($id);
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
-            $event->queue("$type.delete", $o);
         }
     }
 
@@ -519,8 +519,6 @@ new_object($)
     $sth->execute();
 
     $object->set("id", $sth->fetchrow_array());
-
-    $event->queue("$type.new", $object);
 
     return($object);
 }
