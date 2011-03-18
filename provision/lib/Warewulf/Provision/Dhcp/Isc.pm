@@ -18,7 +18,6 @@ use Warewulf::SystemFactory;
 use Warewulf::Util;
 use Socket;
 use Digest::file qw(digest_file_hex);
-use Digest::MD5;
 
 our @ISA = ('Warewulf::Provision::Dhcp');
 
@@ -211,6 +210,10 @@ persist()
         $dhcpd_contents .= "}\n";
 
         if ( 1 ) { # Eventually be smart about if this gets updated.
+            my ($digest1, $digest2);
+            my $system = Warewulf::SystemFactory->new();
+
+            $digest1 = digest_file_hex($self->{"FILE"}, "MD5");
             &iprint("Updating DHCP configuration\n");
             &dprint("Opening file ". $self->{"FILE"} ." for writing\n");
             if (! open(FILE, ">". $self->{"FILE"})) {
@@ -221,12 +224,16 @@ persist()
             print FILE $dhcpd_contents;
 
             close FILE;
-
-            my $system = Warewulf::SystemFactory->new();
-            if (!$system->chkconfig("dhcpd", "on")) {
-                &eprint($system->output() ."\n");
+            $digest2 = digest_file_hex($self->{"FILE"}, "MD5");
+            if ($digest1 ne $digest2) {
+                &dprint("Restarting DHCPD service\n");
+                if (! $system->service("dhcpd", "restart")) {
+                    &eprint($system->output() ."\n");
+                }
+            } else {
+                &dprint("Not restarting DHCPD service\n");
             }
-            if (! $system->service("dhcpd", "restart")) {
+            if (!$system->chkconfig("dhcpd", "on")) {
                 &eprint($system->output() ."\n");
             }
         } else {
