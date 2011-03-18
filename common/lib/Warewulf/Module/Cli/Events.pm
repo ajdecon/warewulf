@@ -39,14 +39,6 @@ exec()
     } elsif (uc($arg) eq "DISABLE") {
         &nprint("Disabling the Warewulf Event Handler\n");
         $events->disable();
-    } elsif (uc($arg) eq "RUN") {
-        $events->run();
-    } elsif (uc($arg) eq "CLEAR") {
-        $events->clear();
-    } elsif (uc($arg) eq "PENDING") {
-        foreach my $event ($events->pending()) {
-            &nprint("  $event\n");
-        }
     }
 }
 
@@ -56,7 +48,7 @@ complete()
 {
     my ($self) = @_;
 
-    return("enable", "disable", "run", "clear", "pending");
+    return("enable", "disable");
 }
 
 
@@ -68,9 +60,6 @@ options()
 
     $hash{"enable"} = "Enable the event handler (default)";
     $hash{"disable"} = "Disable events from occuring (note they will still be queued)";
-    $hash{"run"} = "Run the event queue";
-    $hash{"clear"} = "Clear the event queue";
-    $hash{"pending"} = "Show the pending event queue";
 
     return(%hash);
 }

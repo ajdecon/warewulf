@@ -126,7 +126,6 @@ parse()
             }
         }
         foreach my $key (keys %{$files{"$file"}}) {
-            &dprint("Setting: $file:$key = ". @{$files{"$file"}{"$key"}} ."\n");
             $self->set($key, @{$files{"$file"}{"$key"}});
         }
     }

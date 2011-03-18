@@ -308,6 +308,7 @@ persist($$)
 {
     my ($self, $object) = @_;
     my $event = Warewulf::EventHandler->new();
+    my %events;
     my @objlist;
 
     if (ref($object) eq "Warewulf::ObjectSet") {
@@ -354,7 +355,10 @@ persist($$)
             dprint("Not adding lookup entries\n");
         }
 
-        $event->queue("$type.modify", @objlist);
+        push(@{$events{"$type.modify"}}, $o);
+    }
+    foreach my $e (keys %events) {
+        $event->handle($e, @{$events{"$e"}});
     }
     return(scalar(@objlist));
 }
@@ -370,8 +374,9 @@ sub
 del_object($$)
 {
     my ($self, $object) = @_;
-    my @objlist;
     my $event = Warewulf::EventHandler->new();
+    my %events;
+    my @objlist;
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
@@ -395,7 +400,10 @@ del_object($$)
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
         }
-        $event->queue("$type.delete", @objlist);
+        push(@{$events{"$type.delete"}}, $o);
+    }
+    foreach my $e (keys %events) {
+        $event->handle($e, @{$events{"$e"}});
     }
 
     return(scalar(@objlist));

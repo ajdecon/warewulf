@@ -17,7 +17,6 @@ use File::Basename;
 my %events;
 my $disable;
 my $events_loaded;
-my %queue;
 
 =head1 NAME
 
@@ -203,85 +202,6 @@ handle()
     }
 }
 
-
-=item queue()
-
-Queue an event for later runnage.
-
-=cut
-sub
-queue()
-{
-    my ($self, $event, @arguments) = @_;
-    my $event_name = uc($event);
-
-    foreach my $newval (@arguments) {
-        if (!scalar(grep({ $_ eq $newval } @{$queue{$event_name}}))) {
-            push(@{$queue{"$event_name"}}, $newval);
-        }
-    }
-}
-
-=item pending()
-
-Return the event names that are pending.
-
-=cut
-sub
-pending()
-{
-    return(keys %queue);
-}
-
-=item clear()
-
-Clear the event queue.
-
-=cut
-sub
-clear()
-{
-    %queue = ();
-}
-
-
-=item run($optional_event_name)
-
-Run any items that are queueued up. If an event name is passed, it will run
-those events and then delete them from the queue.
-
-=cut
-sub
-run()
-{
-    my ($self, @args) = @_;
-
-    if (@args) {
-        &dprint("Running event queue for specific events\n");
-        foreach my $event (@args) {
-            my $event_name = uc($event);
-            &dprint("Going to run event queue for: $event_name\n");
-            foreach my $args (@{$queue{"$event_name"}}) {
-                foreach my $func (@{$events{"$event_name"}}) {
-                    &$func($args);
-                }
-            }
-            delete($queue{"$event_name"});
-        }
-
-    } else {
-        &dprint("Running event queue for all modules\n");
-        foreach my $event (keys %queue) {
-            my $event_name = uc($event);
-            &dprint("Going to run event queue for: $event_name\n");
-            foreach my $func (@{$events{"$event_name"}}) {
-                &dprint("Running function: $func\n");
-                &$func(@{$queue{"$event_name"}});
-            }
-            delete($queue{"$event_name"});
-        }
-    }
-}
 
 =back
 
