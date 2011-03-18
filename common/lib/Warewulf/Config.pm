@@ -14,13 +14,10 @@ use Warewulf::Include;
 use Warewulf::Debug;
 use Warewulf::Logger;
 use Warewulf::Util;
+use Warewulf::Object;
 use Text::ParseWords;
 
-use Exporter;
-
-our @ISA = ('Exporter');
-
-our @EXPORT = ();
+our @ISA = ('Warewulf::Object', 'Exporter');
 
 =head1 NAME
 
@@ -78,84 +75,40 @@ home/private directory and then in the global locations.
 
 =cut
 
-my %file_data;
-
+my %files;
 
 sub
-new($$)
+new()
 {
-    my ($proto, @files) = @_;
+    my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
     my $self = {};
 
-    @{$self->{"FILES"}} = @files;
-
+    $self = $class->SUPER::new();
     bless($self, $class);
 
-    $self->read();
-
-    return($self);
+    return($self->parse(@args));
 }
 
-
-=item reread()
-
-This will flush the file data cache, and then reread them.
-
-=cut
 sub
-reread()
+parse()
 {
-    my ($self) = @_;
+    my ($self, @args) = @_;
 
-    foreach my $file (@{$self->{"FILES"}}) {
-        if (exists($file_data{"$file"})) {
-            delete($file_data{"$file"});
-        }
-    }
-
-    $self->read();
-
-}
-
-=item read
-
-This will cause the configuration files to be read.
-
-=cut
-sub
-read($)
-{
-    my ($self) = @_;
     my @basepaths = (
         (getpwuid $>)[7] . "/.warewulf",
         $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf"
     );
 
-    foreach my $file (@{$self->{"FILES"}}) {
-        if (exists($file_data{"$file"})) {
-            &dprint("Using cached copy of file: $file\n");
+    foreach my $file (@args) {
+        if (exists($files{"$file"})) {
+            &iprint("Using cached configuration file: $file\n");
         } else {
-            my $path;
-
-            foreach my $basepath (@basepaths) {
-                if ($basepath =~ /^([a-zA-Z0-9\/_\-\.]+)$/) {
-                    my $sanepath = $1;
-
-                    &dprint("Checking for configuration file: $sanepath/$file\n");
-                    if (-f "$sanepath/$file") {
-                        &dprint("Found configuration file: $sanepath/$file\n");
-                        $path = "$sanepath/$file";
-                        push(@{$self->{"PATH"}}, $path);
-                        last;
-                    }
-                }
-            }
-
-            if ($path) {
-                &iprint("Reading in file: $path\n");
-                if (-f $path) {
-                    if (open(FILE, $path)) {
+            foreach my $path (@basepaths) {
+                &dprint("Searching for file: $path/$file\n");
+                if (-f "$path/$file") {
+                    &dprint("Found file: $file\n");
+                    if (open(FILE, "$path/$file")) {
                         while(my $line = <FILE>) {
                             chomp($line);
                             $line =~ s/#.*//;
@@ -163,53 +116,22 @@ read($)
                                 next;
                             }
                             my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                            push(@{$file_data{"$file"}{"$key"}}, &quotewords('\s+', 0, $value));
+                            push(@{$files{"$file"}{"$key"}}, &quotewords('[,\s]+', 0, $value));
                         }
                         close FILE;
                     } else {
-                        &eprint("Could not open configuration file: $path ($!)\n");
+                        &wprint("Could not open file: $path/$file: $!\n");
                     }
-                } else {
-                    &eprint("Configuration file not found: $path\n");
                 }
             }
         }
-        foreach my $key (keys %{$file_data{"$file"}}) {
-            push(@{$self->{"DATA"}{"$key"}}, @{$file_data{"$file"}{"$key"}});
+        foreach my $key (keys %{$files{"$file"}}) {
+            &dprint("Setting: $file:$key = ". @{$files{"$file"}{"$key"}} ."\n");
+            $self->set($key, @{$files{"$file"}{"$key"}});
         }
     }
 
-    return();
-}
-
-=item get(config key)
-
-This will read from the configuration object and return the values of the key
-specified. If this method is called in a scalar context it will return the
-first match found. Otherwise it will return an array of all matches.
-
-=cut
-sub
-get($$)
-{
-    my $self                = shift;
-    my $key                 = shift;
-    my @values              = ();
-    my $string              = ();
-
-    if ( $key ) {
-        if (exists($self->{"DATA"}{"$key"})) {
-            push(@values, @{$self->{"DATA"}{"$key"}});
-        }
-    } else {
-        return();
-    }
-
-    if ( wantarray ) {
-        return(@values);
-    } else {
-        return($values[0]);
-    }
+    return($self);
 }
 
 

@@ -14,8 +14,6 @@ use Warewulf::Util;
 use Warewulf::Logger;
 use File::Basename;
 
-my $singleton;
-
 =head1 NAME
 
 Warewulf::Event - Database interface

@@ -140,6 +140,8 @@ register()
     my ($self, $event, $func_ref) = @_;
     my $event_name = uc($event);
 
+    &dprint("Registering event '$event' for ". ref($self) ."\n");
+
     push(@{$events{"$event_name"}}, $func_ref);
 
 }
@@ -195,6 +197,8 @@ handle()
             foreach my $func (@{$events{"$event_name"}}) {
                 &$func(@arguments);
             }
+        } else {
+            &dprint("No events registered for: $event_name\n");
         }
     }
 }

@@ -74,12 +74,6 @@ GetOptions(
 );
 
 
-$modules = Warewulf::ModuleLoader->new("Cli");
-$db = Warewulf::DataStore->new();
-$term = Warewulf::Term->new();
-$event_handler = Warewulf::EventHandler->new();
-
-$event_handler->eventloader();
 &set_log_level("NOTICE");
 
 if ($opt_debug) {
@@ -90,6 +84,13 @@ if ($opt_debug) {
     $term->interactive(0);
     &set_log_level("WARNING");
 }
+
+$modules = Warewulf::ModuleLoader->new("Cli");
+$db = Warewulf::DataStore->new();
+$term = Warewulf::Term->new();
+$event_handler = Warewulf::EventHandler->new();
+
+$event_handler->eventloader();
 
 
 

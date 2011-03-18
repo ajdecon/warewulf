@@ -320,7 +320,7 @@ persist($$)
     }
     foreach my $o (@objlist) {
         my $id = $o->get("id");
-        my $type = $o->get("type");
+        my $type = $o->type();
 
         if (! $id) {
             my $sth;
@@ -354,7 +354,7 @@ persist($$)
             dprint("Not adding lookup entries\n");
         }
 
-        $event->handle("$type.modify", $o);
+        $event->queue("$type.modify", @objlist);
     }
     return(scalar(@objlist));
 }
@@ -383,11 +383,10 @@ del_object($$)
     }
     foreach my $o (@objlist) {
         my $id = $o->get("id");
-        my $type = $o->get("type");
+        my $type = $o->type;
 
         if ($id) {
             my $sth;
-            $event->handle("$type.delete", $o);
             dprint("Deleting object from the datastore: ID=$id\n");
             $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             $sth->execute($id);
@@ -396,6 +395,7 @@ del_object($$)
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
         }
+        $event->queue("$type.delete", @objlist);
     }
 
     return(scalar(@objlist));

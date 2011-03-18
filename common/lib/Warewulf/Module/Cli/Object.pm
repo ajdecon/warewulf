@@ -213,20 +213,31 @@ exec()
 
     if ($opt_new) {
         if ($opt_type) {
-            foreach my $string (&expand_bracket(@ARGV)) {
-                my $obj;
-                $obj = Warewulf::DSOFactory->new($opt_type);
+            &dprint("Creating a new object of type: $opt_type\n");
+            if (@ARGV) {
+                foreach my $string (&expand_bracket(@ARGV)) {
+                    &dprint("New object known by: $opt_lookup=$string\n");
+                    my $obj = Warewulf::DSOFactory->new($opt_type);
 
-                if ($obj) {
-                    $obj->set($opt_lookup, $string);
-                    foreach my $setstring (@opt_set) {
-                        my ($key, $val) = split(/=/, $setstring);
-                        $obj->set($key, $val);
+                    if ($obj) {
+                        $obj->set($opt_lookup, $string);
+                        foreach my $setstring (@opt_set) {
+                            my ($key, $val) = split(/=/, $setstring);
+                            $obj->set($key, $val);
+                        }
+
+                        $db->persist($obj);
+                        &nprint("Created new '$opt_type' object ($opt_lookup=$string)\n");
+                    } else {
+                        &eprint("Could not create an object of type: $opt_type\n");
                     }
-
+                }
+            } else {
+                &dprint("Creating a blank object\n");
+                my $obj = Warewulf::DSOFactory->new($opt_type);
+                if ($obj) {
                     $db->persist($obj);
-                } else {
-                    &eprint("Could not create an object of type: $opt_type\n");
+                    &nprint("Created new blank '$opt_type' object\n");
                 }
             }
         } else {
@@ -250,7 +261,7 @@ exec()
                         my %hash = $o->get_hash();
                         my $id = $o->get("id");
                         my $name = $o->get("name");
-                        &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+                        &nprintf("#### %s %s#\n", $name || "NULL", "#" x (72 - length($name)));
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
                                 &nprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));

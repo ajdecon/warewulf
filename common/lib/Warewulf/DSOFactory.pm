@@ -52,7 +52,7 @@ new($$)
             &dprint("Loading object name: $mod_name\n");
             eval "\$SIG{__DIE__} = sub { 1; }; require $mod_name;";
             if ($@) {
-                &iprint("Could not DataStore object class for type '$type', loading a DSO baseclass instead!\n");
+                &iprint("Could not load DataStore object class for type '$type', loading a DSO baseclass instead!\n");
                 my $obj = Warewulf::DSO->new(@_);
                 $obj->set("type", $type);
                 return($obj);
@@ -69,6 +69,8 @@ new($$)
         &eprint("Illegal character in mod_name type: $type\n");
     } else {
         &eprint("DSOFactory called without type!\n");
+        $obj = Warewulf::DSO->new(@_);
+        $obj->set("type", "UNDEFINED");
     }
 
     return($obj);
