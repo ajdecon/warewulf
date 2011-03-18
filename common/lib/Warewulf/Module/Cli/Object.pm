@@ -175,6 +175,8 @@ exec()
     @ARGV = ();
     push(@ARGV, @_);
 
+    Getopt::Long::Configure ("bundling");
+
     GetOptions(
         'n|new'         => \$opt_new,
         'p|print=s'     => \@opt_print,

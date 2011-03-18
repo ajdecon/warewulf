@@ -1,7 +1,10 @@
+%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' || echo 0000)}}
+%define debug_package %{nil}
+
 Name: warewulf-vnfs
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
-Release: 1
+Release: %{_rel}
 License: GPL
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
@@ -33,6 +36,6 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
-%perl_vendorlib/*
+%{_bindir}/*
 
 %changelog

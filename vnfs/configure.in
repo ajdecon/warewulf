@@ -29,7 +29,8 @@ AC_SUBST(PERL_VENDORLIB)
 AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
-   warewulf-skel.spec
+   warewulf-vnfs.spec
+   bin/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )

@@ -1,5 +1,5 @@
 
-dist_bin_SCRIPTS = wwboot
+dist_bin_SCRIPTS = 
 
 
 MAINTAINERCLEANFILES = Makefile.in
