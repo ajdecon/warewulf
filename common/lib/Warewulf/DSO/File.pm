@@ -75,7 +75,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "ID", "LANG", "PATH");
+    return("NAME", "ID", "LANG", "PATH", "FORMAT");
 }
 
 

@@ -123,7 +123,7 @@ help1()
 sub
 complete()
 {
-    my ($self, $text) = @_;
+    my $self = shift;
     my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my $opt_type;
@@ -135,11 +135,13 @@ complete()
 
     @ARGV = ();
 
-    foreach (&quotewords('\s+', 0, $text)) {
-        if ($_) {
+    foreach (&quotewords('\s+', 0, @_)) {
+        if (defined($_)) {
             push(@ARGV, $_);
         }
     }
+
+    Getopt::Long::Configure ("bundling");
 
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
@@ -173,7 +175,7 @@ exec()
 
 
     @ARGV = ();
-    push(@ARGV, @_);
+    push(@ARGV, &quotewords('\s+', 0, @_));
 
     Getopt::Long::Configure ("bundling");
 

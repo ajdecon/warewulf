@@ -7,7 +7,7 @@
 #
 
 
-package Warewulf::Module::Cli::Debug_Level;
+package Warewulf::Module::Cli::Output;
 
 use Warewulf::Logger;
 
@@ -32,10 +32,18 @@ exec()
     my $self = shift;
     my $debug_level = uc(shift);
 
-    if ($debug_level) {
-        &set_log_level($debug_level);
-        &iprint("Debug level set to: $debug_level\n");
+    if ($debug_level eq "QUIET") {
+        &set_log_level("WARNING");
+    } elsif ($debug_level eq "NORMAL") {
+        &set_log_level("NOTICE");
+    } elsif ($debug_level eq "VERBOSE") {
+        &set_log_level("INFO");
+    } elsif ($debug_level eq "DEBUG") {
+        &set_log_level("DEBUG");
+    } elsif ($debug_level) {
+        &eprint("Invalid output level: $debug_level\n");
     }
+    &iprint("Debug level: ". &get_log_level() ."\n");
 }
 
 
@@ -44,7 +52,7 @@ complete()
 {
     my ($self) = @_;
 
-    return("notice", "info", "debug");
+    return("quiet", "normal", "verbose", "debug");
 }
 
 sub
@@ -52,8 +60,9 @@ options()
 {
     my %hash;
 
-    $hash{"notice"} = "Only show normal usage messages";
-    $hash{"info"} = "Display increased verbosity";
+    $hash{"quiet"} = "Suppress all messages but warnings and errors";
+    $hash{"normal"} = "Only show normal usage messages";
+    $hash{"verbose"} = "Display increased verbosity";
     $hash{"debug"} = "Debugging output";
 
     return(%hash);
