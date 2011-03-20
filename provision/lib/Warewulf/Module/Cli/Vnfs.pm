@@ -147,10 +147,10 @@ exec()
             my @objList = $objectSet->get_list();
             if (scalar(@objList) == 1) {
                 if ($term->interactive()) {
-                    print("Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n");
+                    &nprint("Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n");
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "No import performed\n";
+                        &nprint("No import performed\n");
                         return();
                     }
                 }
@@ -168,9 +168,9 @@ exec()
                 close SCRIPT;
                 $obj->set("size", $size);
                 $db->persist($obj);
-                print "Imported $name into existing object\n";
+                &nprint("Imported $name into existing object\n");
             } elsif (scalar(@objList) == 0) {
-                &dprint("Creating new Vnfs Object\n");
+                &nprint("Creating new Vnfs Object: $name\n");
                 my $obj = Warewulf::DSO::Vnfs->new();
                 $db->persist($obj);
                 $obj->set("name", $name);
@@ -188,9 +188,9 @@ exec()
                 close SCRIPT;
                 $obj->set("size", $size);
                 $db->persist($obj);
-                print "Imported $name into a new object\n";
+                &nprint("Imported $name into a new object\n");
             } else {
-                print "Import into one object at a time please!\n";
+                &wprint("Import into one object at a time please!\n");
             }
         } else {
             &eprint("Could not import '$path' (file not found)\n");
@@ -206,10 +206,10 @@ exec()
                 my $binstore = $db->binstore($obj->get("id"));
 
                 if (-f "$opt_export/$name" and $term->interactive()) {
-                    print("Are you sure you wish to overwrite $opt_export/$name?\n\n");
+                    &wprint("Are you sure you wish to overwrite $opt_export/$name?\n\n");
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "Skipped export of $opt_export/$name\n";
+                        &nprint("Skipped export of $opt_export/$name\n");
                         next;
                     }
                 }
@@ -219,14 +219,14 @@ exec()
                     print SCRIPT $buffer;
                 }
                 close SCRIPT;
-                print "Exported: $opt_export/$name\n";
+                &nprint("Exported: $opt_export/$name\n");
             }
         } elsif (-f $opt_export) {
             if ($term->interactive()) {
-                print("Are you sure you wish to overwrite $opt_export?\n\n");
+                &wprint("Are you sure you wish to overwrite $opt_export?\n\n");
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
-                    print "No export performed\n";
+                    &nprint("No export performed\n");
                     return();
                 }
             }
@@ -238,7 +238,7 @@ exec()
                     print SCRIPT $buffer;
                 }
                 close SCRIPT;
-                print "Exported: $opt_export\n";
+                &nprint("Exported: $opt_export\n");
             } else {
                 &eprint("Can only export 1 Vnfs image into a file, perhaps export to a directory?\n");
             }
@@ -251,13 +251,13 @@ exec()
                 print SCRIPT $buffer;
             }
             close SCRIPT;
-            print "Exported: $opt_export\n";
+            &nprint("Exported: $opt_export\n");
         }
 
     } else {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
-        print "#NODES    SIZE (M)    VNFS NAME\n";
+        &nprint("#NODES    SIZE (M)    VNFS NAME\n");
         foreach my $obj (@objList) {
             my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
             printf("%-5s     %-8.1f    %s\n",
@@ -269,10 +269,10 @@ exec()
         if ($opt_obj_delete) {
 
             if ($term->interactive()) {
-                print("\nAre you sure you wish to make the delete the above Vnfs image?\n\n");
+                &wprint("\nAre you sure you wish to make the delete the above Vnfs image?\n\n");
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
-                    print "No update performed\n";
+                    &nprint("No update performed\n");
                     return();
                 }
             }
