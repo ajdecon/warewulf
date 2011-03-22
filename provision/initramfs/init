@@ -103,6 +103,14 @@ else
 fi
 
 
+if [ $WWDEBUG -ge 3 ]; then
+    echo
+    echo "Spawning a debug shell. Exit to continue provisioning."
+    /bin/sh
+    echo "Continuing provisioning process."
+    echo
+fi
+
 
 for i in /etc/warewulf/init/*; do
     if [ -x "$i" -a -f "$i" ]; then
