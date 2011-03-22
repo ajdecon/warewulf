@@ -187,19 +187,19 @@ persist()
             my $name = $n->get("name");
             my $cluster = $n->get("cluster");
             my $domain = $n->get("domain");
-            my @master = $n->get("master");
             my @hwaddr = $n->get("hwaddr");
-            my @ipaddr = $n->get("ipaddr");
+            my $master_ipv4 = $netobj->ip_unserialize($n->get("master"));
+            my $node_ipv4 = $netobj->ip_unserialize($n->get("ipaddr"));
 
             &dprint("Adding a host entry for: $name\n");
 
-            if ($name and $ipaddr[0] and $hwaddr[0]) {
+            if ($name and $node_ipv4 and $hwaddr[0]) {
                 $dhcpd_contents .= "   host $name {\n";
                 $dhcpd_contents .= "      option host-name $name;\n";
                 $dhcpd_contents .= "      hardware ethernet $hwaddr[0];\n";
-                $dhcpd_contents .= "      fixed-address $ipaddr[0];\n";
+                $dhcpd_contents .= "      fixed-address $node_ipv4;\n";
                 if ($master[0]) {
-                    $dhcpd_contents .= "      next-server $master[0];\n";
+                    $dhcpd_contents .= "      next-server $master_ipv4;\n";
                 }
                 $dhcpd_contents .= "   }\n";
             } else {

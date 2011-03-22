@@ -187,12 +187,14 @@ Convert a given IPv4 address to a serial numeric integer.
 
 =cut
 sub
-ip_serialize($)
+ip_serialize()
 {
-    my ($self, $ip) = @_;
+    my ($self, $string) = @_;
 
-    if ( $ip =~ /^\d+\.\d+\.\d+\.\d+$/ ) {
-        return(unpack("N", inet_aton($ip)));
+    if ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
+        return(unpack("N", inet_aton($string)));
+    } elsif ($string =~ /^\d+$/) {
+        return($string)
     }
 
     return();
@@ -205,12 +207,14 @@ Convert a given serialized numeric integer into a properly formatted IPv4 addres
 
 =cut
 sub
-ip_unserialize($)
+ip_unserialize()
 {
-    my ($self, $int) = @_;
+    my ($self, $string) = @_;
 
-    if ( $bin =~ /^\d+$/ ) {
-        return(inet_ntoa(pack('N',$int)));
+    if ( $string =~ /^\d+$/ ) {
+        return(inet_ntoa(pack('N', $string)));
+    } elsif ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
+        return($string);
     }
 
     return();

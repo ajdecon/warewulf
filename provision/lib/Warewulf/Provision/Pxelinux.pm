@@ -103,7 +103,7 @@ update()
     foreach my $nodeobj (@nodeobjs) {
         my $name = $nodeobj->get("name") || "undefined";
         my ($bootstrap) = $nodeobj->get("bootstrap");
-        my ($append) = $nodeobj->get("append");
+        my @append = $nodeobj->get("append");
         my @masters = $nodeobj->get("master");
         my @hwaddrs = $nodeobj->get("hwaddr");
 
@@ -119,21 +119,26 @@ update()
             foreach my $hwaddr (@hwaddrs) {
                 if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                     $hwaddr = $1;
-                    &iprint("Creating a Pxelinux configuration for: $name/$hwaddr\n");
+                    &iprint("Building Pxelinux configuration for: $name/$hwaddr\n");
                     $hwaddr =~ s/:/-/g;
                     my $config = "01-". $hwaddr;
                     &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
                     open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
                     print PXELINUX "DEFAULT bootstrap\n";
                     print PXELINUX "LABEL bootstrap\n";
-                    print PXELINUX "SAY Now booting Warewulf bootstrap: $bootstrap\n";
+                    print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrap\n";
                     print PXELINUX "KERNEL bootstrap/$bootstrap/kernel\n";
                     print PXELINUX "APPEND ro initrd=bootstrap/$bootstrap/initfs.gz ";
                     if (scalar(@masters) > 1) {
                         my $master = join(",", @masters);
                         print PXELINUX "wwmaster=$master ";
                     }
-                    print PXELINUX "quiet\n";
+                    if (@append) {
+                        print PXELINUX join(" ", @append);
+                    } else {
+                        print PXELINUX "quiet";
+                    }
+                    print PXELINUX "\n";
                     if (! close PXELINUX) {
                         &eprint("Could not write Pxelinux configuration file: $!\n");
                     }
