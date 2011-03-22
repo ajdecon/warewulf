@@ -29,10 +29,12 @@ default_config()
     foreach my $obj (@objects) {
         my $type = $obj->type();
         my $def_object = $db->get_objects($type, "name", "DEFAULT")->get_object(0);
-        my %hash = $def_object->get_hash();
-        foreach my $key (keys %hash) {
-            if (! $obj->get($key)) {
-                $obj->set($key, $hash{"$key"});
+        if ($def_object) {
+            my %hash = $def_object->get_hash();
+            foreach my $key (keys %hash) {
+                if (! $obj->get($key)) {
+                    $obj->set($key, $hash{"$key"});
+                }
             }
         }
     }
