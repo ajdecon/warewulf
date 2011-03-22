@@ -147,7 +147,7 @@ exec()
             my @objList = $objectSet->get_list();
             if (scalar(@objList) == 1) {
                 if ($term->interactive()) {
-                    &nprint("Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n");
+                    print "Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         &nprint("No import performed\n");
@@ -206,7 +206,7 @@ exec()
                 my $binstore = $db->binstore($obj->get("id"));
 
                 if (-f "$opt_export/$name" and $term->interactive()) {
-                    &wprint("Are you sure you wish to overwrite $opt_export/$name?\n\n");
+                    print "Are you sure you wish to overwrite $opt_export/$name?\n\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes" ) {
                         &nprint("Skipped export of $opt_export/$name\n");
@@ -223,7 +223,7 @@ exec()
             }
         } elsif (-f $opt_export) {
             if ($term->interactive()) {
-                &wprint("Are you sure you wish to overwrite $opt_export?\n\n");
+                print "Are you sure you wish to overwrite $opt_export?\n\n";
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     &nprint("No export performed\n");
@@ -269,7 +269,7 @@ exec()
         if ($opt_obj_delete) {
 
             if ($term->interactive()) {
-                &wprint("\nAre you sure you wish to make the delete the above Vnfs image?\n\n");
+                print "\nAre you sure you wish to make the delete the above Vnfs image?\n\n";
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     &nprint("No update performed\n");

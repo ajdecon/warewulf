@@ -126,7 +126,7 @@ complete()
     my ($self, $text) = @_;
     my $db = $self->{"DB"};
 
-    return($db->get_lookups($entity_type));
+    return($db->get_lookups($entity_type, "name"));
 }
 
 sub
@@ -404,7 +404,7 @@ exec()
     } else {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
-        print "NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n";
+        &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
         foreach my $obj (@objList) {
             my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
             printf("%-18s %-14s %4s %9.1f   %s\n",

@@ -289,7 +289,7 @@ exec()
             if ($opt_obj_delete) {
     
                 if ($term->interactive()) {
-                    &nprint("\nAre you sure you wish to make the delete the above objects?\n\n");
+                    print "\nAre you sure you wish to make the delete the above objects?\n\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes") {
                         &nprint("No update performed\n");
@@ -308,28 +308,28 @@ exec()
                 my $persist_bool;
 
                 if (scalar(@objList) eq 1) {
-                    &nprint("\nAre you sure you wish to make the following changes to 1 object?\n\n");
+                    print "\nAre you sure you wish to make the following changes to 1 object?\n\n";
                 } else {
-                    &nprint("\nAre you sure you wish to make the following changes to ". scalar(@objList) ." objects?\n\n");
+                    print "\nAre you sure you wish to make the following changes to ". scalar(@objList) ." objects?\n\n";
                 }
                 foreach my $setstring (@opt_set) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    &nprintf(" set: %15s = %s\n", $key, $vals);
+                    my ($key, @vals) = &quotewords('=', 1, $setstring);
+                    printf(" set: %15s = %s\n", $key, join("=", @vals));
                 }
                 foreach my $setstring (@opt_add) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, $vals)) {
-                        &nprintf(" add: %15s = %s\n", $key, $val);
+                    my ($key, @vals) = &quotewords('=', 1, $setstring);
+                    foreach my $val (&quotewords(',', 0, join("=", @vals))) {
+                        printf(" add: %15s = %s\n", $key, $val);
                     }
                 }
                 foreach my $setstring (@opt_del) {
-                    my ($key, $vals) = &quotewords('=', 1, $setstring);
-                    if ($vals) {
-                        foreach my $val (&quotewords(',', 0, $vals)) {
-                            &nprintf(" delete: %12s = %s\n", $key, $val);
+                    my ($key, @vals) = &quotewords('=', 1, $setstring);
+                    if (@vals) {
+                        foreach my $val (&quotewords(',', 0, join("=", @vals))) {
+                            printf(" delete: %12s = %s\n", $key, $val);
                         }
                     } else {
-                        &nprintf(" undefine: %10s = [ALL]\n", $key);
+                        printf(" undefine: %10s = [ALL]\n", $key);
                     }
                 }
 
@@ -344,16 +344,16 @@ exec()
                         return();
                     }
                 } else {
-                    &nprint("Yes/No> (running non-interactively, defaulting to yes)\n");
+                    print "Yes/No> (running non-interactively, defaulting to yes)\n";
                 }
 
                 if (@opt_set) {
 
                     foreach my $setstring (@opt_set) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        &dprint("Set: setting $key to $vals\n");
+                        my ($key, @vals) = &quotewords('=', 1, $setstring);
+                        &dprint("Set: setting $key to ". join("=", @vals) ."\n");
                         foreach my $obj (@objList) {
-                            $obj->set($key, &quotewords(',', 0, $vals));
+                            $obj->set($key, &quotewords(',', 0, join("=", @vals)));
                         }
                         $persist_bool = 1;
                     }
@@ -361,8 +361,8 @@ exec()
                 if (@opt_add) {
 
                     foreach my $setstring (@opt_add) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, $vals)) {
+                        my ($key, @vals) = &quotewords('=', 1, $setstring);
+                        foreach my $val (&quotewords(',', 0, join("=", @vals))) {
                             &dprint("Set: adding $key to $val\n");
                             foreach my $obj (@objList) {
                                 $obj->add($key, split(",", $val));
@@ -375,9 +375,9 @@ exec()
                 if (@opt_del) {
 
                     foreach my $setstring (@opt_del) {
-                        my ($key, $vals) = &quotewords('=', 1, $setstring);
-                        if ($key and $vals) {
-                            foreach my $val (&quotewords(',', 0, $vals)) {
+                        my ($key, @vals) = &quotewords('=', 1, $setstring);
+                        if ($key and @vals) {
+                            foreach my $val (&quotewords(',', 0, join("=", @vals))) {
                                 &dprint("Set: deleting $val from $key\n");
                                 foreach my $obj (@objList) {
                                     $obj->del($key, split(",", $val));
