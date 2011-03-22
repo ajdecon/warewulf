@@ -8,12 +8,13 @@
 # $Id: Pxelinux.pm 50 2010-11-02 01:15:57Z gmk $
 #
 
-package Warewulf::Event::NewNode;
+package Warewulf::Event::NewObject;
 
 use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
 use Warewulf::Config;
+use Warewulf::DataStore;
 
 my $event = Warewulf::EventHandler->new();
 
@@ -21,17 +22,17 @@ sub
 default_config()
 {
     my @objects = @_;
-    my $config = Warewulf::Config->new("node-defaults.conf");
+    my $db = Warewulf::DataStore->new();
 
-    my %hash = $config->get_hash();
+    &iprint("Building default configuration for new object(s)\n");
 
     foreach my $obj (@objects) {
+        my $type = $obj->type();
+        my $def_object = $db->get_objects($type, "name", "DEFAULT")->get_object(0);
+        my %hash = $def_object->get_hash();
         foreach my $key (keys %hash) {
-            if ($obj->get($key)) {
-                &dprint("Not overriding previously set value for $key\n");
-            } else {
-                &dprint("Setting node attribute: $key = $hash{$key}\n");
-                $obj->set($key, $hash{$key});
+            if (! $obj->get($key)) {
+                $obj->set($key, $hash{"$key"});
             }
         }
     }
@@ -39,6 +40,6 @@ default_config()
 }
 
 
-$event->register("node.new", \&default_config);
+$event->register("*.new", \&default_config);
 
 1;

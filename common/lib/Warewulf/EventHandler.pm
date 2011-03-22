@@ -199,6 +199,24 @@ handle()
         } else {
             &dprint("No events registered for: $event_name\n");
         }
+        if ($event_name =~ /^([^\.]+)\.([^\.]+)$/) {
+            my $type = $1;
+            my $action = $2;
+            if (exists($events{"$type.*"})) {
+                &dprint("Handling events for '$type.*'\n");
+                foreach my $func (@{$events{"$type.*"}}) {
+                    &$func(@arguments);
+                }
+            }
+            if (exists($events{"*.$action"})) {
+                &dprint("Handling events for '*.$action'\n");
+                foreach my $func (@{$events{"*.$action"}}) {
+                    &$func(@arguments);
+                }
+            }
+        } else {
+            &dprint("event_name couldn't be parsed for type.action\n");
+        }
     }
 }
 
