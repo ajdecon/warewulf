@@ -306,56 +306,60 @@ get_lookups($$$@)
 sub
 persist($$)
 {
-    my ($self, $object) = @_;
+    my ($self, @objects) = @_;
     my $event = Warewulf::EventHandler->new();
     my %events;
     my @objlist;
 
-    if (ref($object) eq "Warewulf::ObjectSet") {
-        @objlist = $object->get_list();
-    } elsif (ref($object) =~ /^Warewulf::/) {
-        @objlist = ($object);
-    } else {
-        &eprint("Invalid parameter to persist():  $object\n");
-        return undef;
-    }
-    foreach my $o (@objlist) {
-        my $id = $o->get("id");
-        my $type = $o->type();
+    $event->eventloader();
 
-        if (! $id) {
-            my $sth;
-            $event->handle("$type.new", $o);
-            dprint("Inserting a new object into the datastore\n");
-            $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
-            $sth->execute($type);
-            $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
-            $sth->execute();
-            $id = $sth->fetchrow_array();
-            $o->set("id", $id);
-        }
-
-        dprint("Updating datastore ID = $id\n");
-        $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-        $sth->execute($self->serialize(scalar($o->get_hash())), $id);
-
-        $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
-        $sth->execute($id);
-
-        if ($o->can("lookups")) {
-            my @add_lookups;
-            foreach my $l ($o->lookups) {
-                foreach my $value ($o->get($l)) {
-                    push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "NULL") .",". $self->{"DBH"}->quote($id) .")");
-                }
-            }
-            my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
-            $sth->execute();
+    foreach my $object (@objects) {
+        if (ref($object) eq "Warewulf::ObjectSet") {
+            @objlist = $object->get_list();
+        } elsif (ref($object) =~ /^Warewulf::/) {
+            @objlist = ($object);
         } else {
-            dprint("Not adding lookup entries\n");
+            &eprint("Invalid parameter to persist():  $object\n");
+            return undef;
         }
+        foreach my $o (@objlist) {
+            my $id = $o->get("id");
+            my $type = $o->type();
 
-        push(@{$events{"$type.modify"}}, $o);
+            if (! $id) {
+                my $sth;
+                $event->handle("$type.new", $o);
+                dprint("Inserting a new object into the datastore\n");
+                $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
+                $sth->execute($type);
+                $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
+                $sth->execute();
+                $id = $sth->fetchrow_array();
+                $o->set("id", $id);
+            }
+
+            dprint("Updating datastore ID = $id\n");
+            $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+            $sth->execute($self->serialize(scalar($o->get_hash())), $id);
+
+            $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
+            $sth->execute($id);
+
+            if ($o->can("lookups")) {
+                my @add_lookups;
+                foreach my $l ($o->lookups) {
+                    foreach my $value ($o->get($l)) {
+                        push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "NULL") .",". $self->{"DBH"}->quote($id) .")");
+                    }
+                }
+                my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
+                $sth->execute();
+            } else {
+                dprint("Not adding lookup entries\n");
+            }
+
+            push(@{$events{"$type.modify"}}, $o);
+        }
     }
     foreach my $e (keys %events) {
         $event->handle($e, @{$events{"$e"}});
