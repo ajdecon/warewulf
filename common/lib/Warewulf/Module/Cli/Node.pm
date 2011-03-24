@@ -83,27 +83,35 @@ summary()
 
 
 sub
-usage1()
-{
-    my ($self) = @_;
-    my $output;
-
-    $output .= "            -n, --new              Create a new object with the given name\n";
-    $output .= "            -p, --print            Define what fields are printed (':all' is a special tag)\n";
-    $output .= "                --DELETE           Delete an entire object\n";
-
-    return($output);
-}
-
-sub
 complete()
 {
-    my ($self, $text) = @_;
+    my $self = shift;
+    my $opt_lookup = "name";
     my $db = $self->{"DB"};
+    my @ret;
 
-    return($db->get_lookups("node", "name"));
+    if (! $db) {
+        return();
+    }
+
+    @ARGV = ();
+
+    foreach (&quotewords('\s+', 0, @_)) {
+        if (defined($_)) {
+            push(@ARGV, $_);
+        }
+    }
+
+    Getopt::Long::Configure ("bundling");
+
+    GetOptions(
+        'l|lookup=s'    => \$opt_lookup,
+    );
+
+    @ARGV = ();
+
+    return($db->get_lookups($entity_type, $opt_lookup));
 }
-
 
 sub
 exec()
