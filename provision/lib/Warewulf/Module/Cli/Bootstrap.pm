@@ -18,6 +18,7 @@ use Warewulf::Provision::Tftp;
 use Getopt::Long;
 use File::Path;
 use File::Basename;
+use File::Copy;
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -40,7 +41,8 @@ options()
 {
     my %hash;
 
-    $hash{"-r, --rpm"} = "Pass the kernel that you want to use via RPM";
+    $hash{"-r, --root"} = "Look into this chroot directory to find the kernel";
+    $hash{"-n, --name"} = "Override the default name of the kernel version with the given string";
 
     return(%hash);
 }
@@ -72,7 +74,9 @@ examples()
 {
     my @output;
 
-    push(@output, "bootstrap -r /path/to/kernel.rpm bootstrap_test");
+    push(@output, "bootstrap 2.6.32-71.el6.x86_64");
+    push(@output, "bootstrap --name testbootstrap 2.6.32-71.el6.x86_64");
+    push(@output, "bootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64");
 
     return(@output);
 }
@@ -83,7 +87,6 @@ exec()
 {
     my ($self, @args) = @_;
 
-    my $rpm;
     my $kversion;
     my $modules;
     my $depmod_map_arg = "";
@@ -93,6 +96,11 @@ exec()
     my $initramfsdefault = "base";
     my $config = Warewulf::Config->new("provision.conf");
     my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
+    my $opt_root;
+    my $opt_name;
+    my $opt_kversion;
+    my $module_count = 0;
+    my $firmware_count = 0;
 
     if (! &uid_test(0)) {
         &eprint("This command can only be run by the superuser!\n");
@@ -102,32 +110,50 @@ exec()
     @ARGV = @args;
 
     GetOptions(
-        'r|rpm=s'    => \$rpm,
+        'r|root=s'   => \$opt_root,
+        'n|name=s'   => \$opt_name,
     );
 
-    my $name = shift(@ARGV);
+    $opt_kversion = shift(@ARGV);
 
-    &dprint("Checking for bootstrap name\n");
-    if (! $name) {
-        &eprint("What is the name of the bootstrap image you want to create?\n");
+    &dprint("Checking for bootstrap kernel version\n");
+    if (! $opt_kversion) {
+        &eprint("What is the kernel version for the bootstrap you wish to create?\n");
         return();
-    } elsif ($name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
-        &dprint("Got bootstrap name: $name\n");
+    } elsif ($opt_kversion =~ /^([a-zA-Z0-9_\-\.]+)$/) {
+        &dprint("Got kernel version: $opt_kversion\n");
         $name = $1;
     } else {
-        &eprint("Illegal characters in initramfs name\n");
+        &eprint("Illegal characters in kernel version!\n");
         return();
     }
 
-    &dprint("Checking for tftpboot sanity\n");
-    if ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
-        $tftpboot = $1;
+    if ($opt_root and $opt_root =~ /^([a-zA-Z0-9_\-\.]+)\/?$/) {
+        $opt_root = $1;
+        &iprint("Using root directory: $opt_root\n");
+    } elsif ($opt_root) {
+        &eprint("Root directory name contains illegal characters!\n");
+        return();
+    } else {
+        $opt_root = "/";
     }
 
-    &dprint("Checking for tftpboot directory name name '$name'\n");
-    if (! -d "$tftpboot/warewulf/bootstrap/$name") {
-        mkpath("$tftpboot/warewulf/bootstrap/$name");
-        &nprint("Using TFTP directory: $tftpboot\n");
+    if ($opt_name and $opt_name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
+        $opt_name = $1;
+        &iprint("Using bootstrap name: $opt_name\n");
+    } elsif ($opt_name) {
+        &eprint("Bootstrap name contains illegal characters!\n");
+        return();
+    } else {
+        $opt_name = $opt_kversion;
+    }
+
+
+
+    &dprint("Checking for tftpboot directory name name '$opt_name'\n");
+    if (! -d "$tftpboot/warewulf/bootstrap/$opt_name") {
+        mkpath("$tftpboot/warewulf/bootstrap/$opt_name");
+        &iprint("Created TFTP directory: $tftpboot/warewulf/bootstrap/$opt_name\n");
     }
 
     &dprint("Building list of drivers to include from configuration file\n");
@@ -148,72 +174,116 @@ exec()
         chomp $line;
         if ( $line =~ /^\s*-m\s+/ ) {
             $depmod_map_arg = "-m";
-            &nprint("Will use the \"-m\" option to depmod to trigger map file generation\n");
+            &iprint("Will use the \"-m\" depmod option to trigger map file generation\n");
         }
     }
     close DEPMOD;
 
-    &dprint("Check to see what format of kernel we are working with\n");
-    if ($rpm) {
-        &dprint("Using RPM\n");
-        if ($rpm =~ /^([\/\.\-_a-zA-Z0-9]+\.rpm)$/) {
-            $rpm = $1;
-            my $kversion;
-            &dprint("creating temporary directory at: $tmpdir\n");
-            mkpath($tmpdir);
-            chdir($tmpdir);
-            &nprint("Extracting the kernel modules\n");
-            system("rpm2cpio $rpm | cpio --quiet -id $modules");
-            foreach my $dir (glob("$tmpdir/lib/modules/*")) {
-                if (-d $dir) {
-                    $kversion = basename($dir);
-                    last;
-                }
-            }
-            if ($kversion =~ /^([0-9_\.]+\-[a-zA-Z0-9_\..]+)$/) {
-                my $kversion_safe = $1;
-                system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $kversion_safe");
-                foreach my $module ($config->get("capabilities")) {
-                    &dprint("Searching to include module: $module\n");
-                    if ($module =~ /^([a-zA-Z0-9\.\_-]+)$/) {
+
+
+    mkpath($tmpdir);
+    chdir($opt_root);
+
+    if (! -f "./boot/vmlinuz-$opt_kversion") {
+        &eprint("Can't locate the boot kernel: ". $opt_root ."boot/vmlinuz-$opt_kversion\n");
+        return();
+    }
+
+    if ($config->get("drivers")) {
+        mkpath("$tmpdir/lib/modules/$opt_kversion");
+        foreach my $m ($config->get("drivers")) {
+            if ($m and $m =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
+                my $m_clean = $1;
+                open(FIND, "find ./lib/modules/$opt_kversion/kernel/$m_clean -type f |");
+                while(my $module = <FIND>) {
+                    chomp($module);
+                    if ($module =~ /([a-zA-Z0-9\/_\-\.]+)/) {
                         $module = $1;
-                        my $file = "$initramfsdir/$module";
-                        if (-f $file) {
-                            &nprint("Including capability: $module\n");
-                            system("cd $tmpdir; cpio -i -u --quiet < $file");
-                        } else {
-                            &dprint("Defined module not found: $module\n");
+                        my $path = dirname($module);
+                        &dprint("Including driver: $module\n");
+                        if (! -d "$tmpdir/$path") {
+                            mkpath("$tmpdir/$path");
+                        }
+                        if (copy($module, "$tmpdir/$path")) {
+                            $module_count++;
                         }
                     }
                 }
-                my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$name/initfs";
-                system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
-                &nprint("Finding and cleaning duplicate files\n");
-                open(LIST, "cpio -it --quiet < $tmpinitramfs |");
-                while(my $file = <LIST>) {
-                    chomp($file);
-                    if (-f "$tmpdir/$file") {
-                        dprint "Removing redundant file: $file\n";
-                        if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
-                            unlink("$tmpdir/$1");
-                        }
-                    }
-                }
-                close LIST;
-                system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
-                &nprint("Compressing the initramfs\n");
-                system("gzip -f -9 $tmpinitramfs");
-                system("rm -rf $tmpdir/*");
-                &nprint("Extracting the kernel object\n");
-                system("rpm2cpio $rpm | (cd $tmpdir; cpio --quiet -id */boot/vmlinuz-*)");
-                system("cp $tmpdir/boot/vmlinuz-* $tftpboot/warewulf/bootstrap/$name/kernel");
-                system("rm -rf $tmpdir");
-                &nprint("Bootstrap image '$name' is ready\n");
+                close FIND;
             }
         }
-    } else {
-        &eprint("This command only understands RPM files at the moment\n");
+
+        if ($module_count > 0) {
+            &nprint("Number of drivers included in bootstrap: $module_count\n");
+            system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $opt_kversion");
+        }
     }
+
+    if ($config->get("firmware")) {
+        mkpath("$tmpdir/lib/firmware");
+        foreach my $f ($config->get("firmware")) {
+            if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
+                my $f_clean = $1;
+                open(FIND, "find ./lib/firmware/$f_clean -type f |");
+                while(my $firmware = <FIND>) {
+                    chomp($firmware);
+                    if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
+                        $firmware = $1;
+                        my $path = dirname($firmware);
+                        &dprint("Including firmware: $firmware\n");
+                        if (! -d "$tmpdir/$path") {
+                            mkpath("$tmpdir/$path");
+                        }
+                        if (copy($firmware, "$tmpdir/$path")) {
+                            $firmware_count++;
+                        }
+                    }
+                }
+                close FIND;
+            }
+        }
+
+        if ($firmware_count > 0) {
+            &nprint("Number of firmwares included in bootstrap: $firmware_count\n");
+        }
+    }
+
+    foreach my $module ($config->get("capabilities")) {
+        &dprint("Searching to include module: $module\n");
+        if ($module =~ /^([a-zA-Z0-9\.\_-]+)$/) {
+            $module = $1;
+            my $file = "$initramfsdir/$module";
+            if (-f $file) {
+                &nprint("Including capability: $module\n");
+                system("cd $tmpdir; cpio -i -u --quiet < $file");
+            } else {
+                &dprint("Defined module not found: $module\n");
+            }
+        }
+    }
+
+    my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$name/initfs";
+    system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
+    &nprint("Finding and cleaning duplicate files\n");
+    open(LIST, "cpio -it --quiet < $tmpinitramfs |");
+    while(my $file = <LIST>) {
+        chomp($file);
+        if (-f "$tmpdir/$file") {
+            dprint "Removing redundant file: $file\n";
+            if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
+                unlink("$tmpdir/$1");
+            }
+        }
+    }
+    close LIST;
+
+    system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
+    &nprint("Compressing the initramfs\n");
+    system("gzip -f -9 $tmpinitramfs");
+    &nprint("Locating the kernel object\n");
+    system("cp ./boot/vmlinuz-$opt_kversion $tftpboot/warewulf/bootstrap/$name/kernel");
+    system("rm -rf $tmpdir");
+    &nprint("Bootstrap image '$name' is ready\n");
 
     @ARGV = ();
 }
