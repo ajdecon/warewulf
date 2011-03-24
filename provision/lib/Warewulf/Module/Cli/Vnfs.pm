@@ -84,22 +84,6 @@ summary()
 }
 
 
-
-sub
-help1()
-{
-    my ($self, $keyword) = @_;
-    my $output;
-
-    $output .= "        Hello vnfs...\n";
-    $output .= "           Usage options:\n";
-    $output .= "            -i, --import           Import a vnfs image into this object\n";
-    $output .= "            -e, --export           Export a vnfs image to the file system\n";
-    $output .= "                --DELETE           Delete an entire object\n";
-
-    return($output);
-}
-
 sub
 complete()
 {
