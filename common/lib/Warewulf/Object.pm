@@ -207,8 +207,10 @@ add()
         $self->{$key} = [];
     }
     foreach my $newval (@vals) {
-        if (!scalar(grep { $_ eq $newval } @{$self->{$key}})) {
-            push @{$self->{$key}}, $newval;
+        if ($newval) {
+            if (!scalar(grep { $_ eq $newval } @{$self->{$key}})) {
+                push @{$self->{$key}}, $newval;
+            }
         }
     }
     return @{$self->{$key}};
