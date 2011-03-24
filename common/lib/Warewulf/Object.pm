@@ -207,7 +207,8 @@ add()
         $self->{$key} = [];
     }
     foreach my $newval (@vals) {
-        if ($newval) {
+        if (defined($newval)) {
+            # NOTE: that this prevents undef from being a value in this array
             if (!scalar(grep { $_ eq $newval } @{$self->{$key}})) {
                 push @{$self->{$key}}, $newval;
             }

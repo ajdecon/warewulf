@@ -116,7 +116,7 @@ parse()
                                 next;
                             }
                             my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                            push(@{$files{"$file"}{"$key"}}, &quotewords('[,\s]+', 0, $value));
+                            push(@{$files{$file}{$key}}, grep { defined($_) } &quotewords('[,\s]+', 0, $value));
                         }
                         close FILE;
                     } else {
@@ -125,8 +125,8 @@ parse()
                 }
             }
         }
-        foreach my $key (keys %{$files{"$file"}}) {
-            $self->set($key, @{$files{"$file"}{"$key"}});
+        foreach my $key (keys %{$files{$file}}) {
+            $self->set($key, @{$files{$file}{$key}});
         }
     }
 
