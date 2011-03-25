@@ -69,7 +69,7 @@ if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
 fi
 
 if [ -n "$WWKMODS" ]; then
-    WWKMODS=`echo $WWKMODS | sed -e 's/,/ /'`
+    WWKMODS=`echo $WWKMODS | sed -e 's/,/ /g'`
 fi
 
 
