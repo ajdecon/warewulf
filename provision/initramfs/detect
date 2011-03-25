@@ -10,12 +10,12 @@
 KVERSION=`uname -r`
 
 if [ ! -f /lib/modules/$KVERSION/modules.pcimap ]; then
-    echo "PCI map for this kernel is not available!"
+    echo "PCI map for this kernel is not available!" 1>&2
     exit 1
 fi
 
 if [ ! -d /sys/bus/pci/devices ]; then
-    echo "The SYSFS file system is not available!"
+    echo "The SYSFS file system is not available!" 1>&2
     exit 1
 fi
 
