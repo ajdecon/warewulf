@@ -69,21 +69,25 @@ ifup() {
         fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
-            msg_white "Configuring $DEVICE: "
-            sleep 2
-            udhcpc --now --quit -i $DEVICE -t 5 -s /sbin/dhcp-script >/dev/null
-            RETVAL=$?
-            if [ "$RETVAL" -eq 0 ]; then
-                . /etc/network.conf
-                msg_gray "DHCP/$IPADDR"
-                wwsuccess
-            else
-                msg_gray "(Could not obtain a DHCP lease)\n"
-                wwfailure
-            fi
+            COUNT=0
+            msg_white "Configuring $DEVICE"
+            while [ $COUNT -le 30 ]; do
+                msg_gray "."
+                udhcpc --now --quit -i $DEVICE -t 1 -T 1 -A 1 -s /sbin/dhcp-script >/dev/null
+                if [ "$?" -eq 0 ]; then
+                    . /etc/network.conf
+                    msg_gray "DHCP/$IPADDR"
+                    wwsuccess
+                    return 0
+                fi
+                COUNT=`expr $COUNT + 1`
+                sleep 1
+            done
+            msg_gray "(Could not obtain a DHCP lease)\n"
+            wwfailure
         fi
     fi
-    return $RETVAL
+    return 255
 }
 
 
