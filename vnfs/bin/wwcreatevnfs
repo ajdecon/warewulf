@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
 # Copyright (c) 2003-2011, The Regents of the University of California,
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
@@ -8,7 +10,7 @@
 VNFSDIR=$1
 
 if [ -z "$VNFSDIR" ]; then
-    echo "USAGE: $0 /path/to/chroot"
+    echo "USAGE: $0 /path/to/vnfsdir"
     exit 1
 fi
 
