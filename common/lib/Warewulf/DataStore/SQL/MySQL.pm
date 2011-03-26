@@ -348,8 +348,13 @@ persist($$)
             if ($o->can("lookups")) {
                 my @add_lookups;
                 foreach my $l ($o->lookups) {
-                    foreach my $value ($o->get($l)) {
-                        push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "NULL") .",". $self->{"DBH"}->quote($id) .")");
+                    my @lookups = $o->get($l);
+                    if (scalar(@lookups)) {
+                        foreach my $value (@lookups) {
+                            push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "NULL") .",". $self->{"DBH"}->quote($id) .")");
+                        }
+                    } else {
+                        push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",'NULL',". $self->{"DBH"}->quote($id) .")");
                     }
                 }
                 my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
