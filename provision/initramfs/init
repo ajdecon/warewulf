@@ -48,7 +48,7 @@ msg_white  "Loading drivers: "
 
 for module in `/sbin/detect | sort | uniq`; do
     msg_gray " * $module:"
-    if modprobe $module 2>&1; then
+    if modprobe $module 2>/dev/null; then
         wwsuccess
     else
         wwfailure

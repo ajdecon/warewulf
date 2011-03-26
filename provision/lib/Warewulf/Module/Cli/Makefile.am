@@ -1,6 +1,6 @@
 perlmodsdir = ${PERL_VENDORLIB}/Warewulf/Module/Cli
 
-dist_perlmods_SCRIPTS = Bootstrap.pm Vnfs.pm Dhcp.pm
+dist_perlmods_SCRIPTS = Bootstrap.pm Vnfs.pm Dhcp.pm NodeProvision.pm
 
 MAINTAINERCLEANFILES = Makefile.in
 

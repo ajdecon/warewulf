@@ -194,7 +194,7 @@ exec()
         foreach my $m ($config->get("drivers")) {
             if ($m and $m =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
                 my $m_clean = $1;
-                open(FIND, "find ./lib/modules/$opt_kversion/kernel/$m_clean -type f |");
+                open(FIND, "find ./lib/modules/$opt_kversion/kernel/$m_clean -type f 2>/dev/null |");
                 while(my $module = <FIND>) {
                     chomp($module);
                     if ($module =~ /([a-zA-Z0-9\/_\-\.]+)/) {
@@ -224,7 +224,7 @@ exec()
         foreach my $f ($config->get("firmware")) {
             if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
                 my $f_clean = $1;
-                open(FIND, "find ./lib/firmware/$f_clean -type f |");
+                open(FIND, "find ./lib/firmware/$f_clean -type f 2>/dev/null |");
                 while(my $firmware = <FIND>) {
                     chomp($firmware);
                     if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
@@ -244,7 +244,7 @@ exec()
         }
 
         if ($firmware_count > 0) {
-            &nprint("Number of firmwares included in bootstrap: $firmware_count\n");
+            &nprint("Number of firmware images included in bootstrap: $firmware_count\n");
         }
     }
 
