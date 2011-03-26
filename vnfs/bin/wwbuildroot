@@ -1,11 +1,13 @@
 #!/bin/bash
 #
-# Compyright 2010 Ben McClelland and Andrew Shewmaker
+# Author: Ben McClelland and Andrew Shewmaker
 #
 # This program has been approved for release from Los Alamos National
 # Laboratory by LA-CC Number 10-066, and authored by an employee of
 # LANS LLC, operator of the Los Alamos National Laboratory
 # under Contract No. DE-AC52-06NA25396 with the U.S. Department of Energy.
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
 #
 # Copyright (c) 2003-2011, The Regents of the University of California,
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
