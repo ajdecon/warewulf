@@ -105,7 +105,7 @@ get($)
             return $self->{$key};
         }
     } else {
-        return undef;
+        return ((wantarray()) ? () : (undef));
     }
 }
 

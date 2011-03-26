@@ -126,3 +126,7 @@ Wed Mar 16 16:24:36 2011                        Michael Jennings (mej)
 
 Improve autogen.sh.
 ----------------------------------------------------------------------
+Fri Mar 25 17:45:06 2011                        Michael Jennings (mej)
+
+Object::get() in an array context now returns an empty array.
+----------------------------------------------------------------------
