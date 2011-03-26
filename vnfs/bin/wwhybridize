@@ -244,7 +244,7 @@ sub wanted {
 
 =head1 NAME
 
-B<hybridize> - generate an optimal Perceus hybridize list
+B<hybridize> - generate an optimal Warewulf hybridize list
 
 =head1 SYNOPSIS
 
@@ -255,7 +255,7 @@ B<hybridize> [B<--debug>] [B<--output> I<file>] B<--ram-list> <I<file>> I</path/
 =head1 DESCRIPTION
 
 B<hybridize> generates a list of files and/or directories suitable for
-building hybrid Perceus VNFS capsules.  The list is optimal in the sense
+building hybrid VNFS capsules.  The list is optimal in the sense
 that it contains a minimal set of symbolic links back into the VNFS while
 ensuring that entries from I<file> reside in RAM.  The generated list is
 unique to the I</vnfs/root> provided on the command line.
