@@ -122,7 +122,7 @@ exec()
         return();
     } elsif ($opt_kversion =~ /^([a-zA-Z0-9_\-\.]+)$/) {
         &dprint("Got kernel version: $opt_kversion\n");
-        $name = $1;
+        $opt_kversion = $1;
     } else {
         &eprint("Illegal characters in kernel version!\n");
         return();
@@ -262,7 +262,7 @@ exec()
         }
     }
 
-    my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$name/initfs";
+    my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$opt_name/initfs";
     system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
     &nprint("Finding and cleaning duplicate files\n");
     open(LIST, "cpio -it --quiet < $tmpinitramfs |");
@@ -281,9 +281,9 @@ exec()
     &nprint("Compressing the initramfs\n");
     system("gzip -f -9 $tmpinitramfs");
     &nprint("Locating the kernel object\n");
-    system("cp ./boot/vmlinuz-$opt_kversion $tftpboot/warewulf/bootstrap/$name/kernel");
+    system("cp ./boot/vmlinuz-$opt_kversion $tftpboot/warewulf/bootstrap/$opt_name/kernel");
     system("rm -rf $tmpdir");
-    &nprint("Bootstrap image '$name' is ready\n");
+    &nprint("Bootstrap image '$opt_name' is ready\n");
 
     @ARGV = ();
 }
