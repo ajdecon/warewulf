@@ -13,8 +13,8 @@ WWDEBUG=0
 WWDEBUG=`sed -e '/ wwdebug=/!d;s/.*wwdebug=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWDEBUG
 
-WWKMODS=`sed -e '/ wwkmods=/!d;s/.*wwkmods=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWKMODS
+WWNETRETRY=`sed -e '/ wwnetretry=/!d;s/.*wwnetretry=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWNETRETRY
 
 WWNODE=`sed -e '/ wwnode=/!d;s/.*wwnode=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNODE
@@ -64,12 +64,12 @@ if [ -z "$WWDEBUG" ]; then
     WWDEBUG=0
 fi
 
-if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
-   WWCGI="http://$WWMASTER:$WWPORT"
+if [ -z "$WWNETRETRY" ]; then
+    WWNETRETRY=30
 fi
 
-if [ -n "$WWKMODS" ]; then
-    WWKMODS=`echo $WWKMODS | sed -e 's/,/ /g'`
+if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
+   WWCGI="http://$WWMASTER:$WWPORT"
 fi
 
 
@@ -199,7 +199,7 @@ run() {
 
 
 
-if [ $WWDEBUG -gt 3 ]; then
+if [ $WWDEBUG -ge 2 ]; then
     set -x
 fi
 

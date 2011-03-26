@@ -8,6 +8,7 @@
 #
 
 KVERSION=`uname -r`
+AUTOLOAD="uhci-hcd ohci-hcd ehci-hcd whci-hcd isp116x-hcd isp1362-hcd xhci-hcd sl811-hcd u132-hcd"
 
 if [ ! -f /lib/modules/$KVERSION/modules.pcimap ]; then
     echo "PCI map for this kernel is not available!" 1>&2
@@ -19,6 +20,21 @@ if [ ! -d /sys/bus/pci/devices ]; then
     exit 1
 fi
 
+modcheck() {
+    /sbin/modprobe -l | grep -q "/$1.ko"
+}
+
+
+WWKMODS=`sed -e '/ wwkmods=/!d;s/.*wwkmods=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWKMODS
+
+if [ -n "$WWKMODS" ]; then
+    for mod in `echo $WWKMODS | sed -e 's/,/ /g'`; do
+        if modcheck $mod; then
+            echo $mod
+        fi
+    done
+fi
 
 for pci in /sys/bus/pci/devices/*; do
     VENDOR_1=`cat $pci/vendor`
@@ -27,3 +43,12 @@ for pci in /sys/bus/pci/devices/*; do
     DEVICE=`printf "0x%08x\n" $DEVICE_1`
     grep "$VENDOR $DEVICE" /lib/modules/$KVERSION/modules.pcimap | awk '{print $1}'
 done
+
+if [ -n "$AUTOLOAD" ]; then
+    for mod in $AUTOLOAD; do
+        if modcheck $mod; then
+            echo $mod
+        fi
+    done
+fi
+
