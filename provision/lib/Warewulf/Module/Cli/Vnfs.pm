@@ -247,7 +247,7 @@ exec()
             printf("%-5s     %-8.1f    %s\n",
                 scalar(@nodeObjects),
                 $obj->get("size") ? $obj->get("size")/(1024*1024) : "0",
-                $obj->get("name") || "NULL");
+                $obj->get("name") || "UNDEF");
         }
 
         if ($opt_obj_delete) {

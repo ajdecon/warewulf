@@ -265,7 +265,7 @@ exec()
                         my %hash = $o->get_hash();
                         my $id = $o->get("id");
                         my $name = $o->get("name");
-                        &nprintf("#### %s %s#\n", $name || "NULL", "#" x (72 - length($name)));
+                        &nprintf("#### %s %s#\n", $name || "UNDEF", "#" x (72 - length($name)));
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
                                 &nprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
@@ -278,7 +278,7 @@ exec()
                             if(ref($o->get($g)) =~ /^ARRAY/) {
                                 push(@values, join(",", sort $o->get($g)));
                             } else {
-                                push(@values, $o->get($g) || "NULL");
+                                push(@values, $o->get($g) || "UNDEF");
                             }
                         }
                         &nprintf("%-20s " x (scalar @values) ."\n", @values);

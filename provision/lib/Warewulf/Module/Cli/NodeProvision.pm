@@ -134,18 +134,18 @@ exec()
         my @changes;
         if ($opt_bootstrap) {
             foreach my $obj (@objList) {
-                my $name = $obj->get("name") || "NULL";
+                my $name = $obj->get("name") || "UNDEF";
                 $obj->set("bootstrap", $opt_bootstrap);
-                &dprint("Setting bootstrap for node: $name\n");
+                &dprint("Setting bootstrap for node name: $name\n");
                 $persist_bool = 1;
             }
             push(@changes, sprintf("   %10s = %s\n", "BOOTSTRAP", $opt_bootstrap));
         }
         if ($opt_vnfs) {
             foreach my $obj (@objList) {
-                my $name = $obj->get("name") || "NULL";
+                my $name = $obj->get("name") || "UNDEF";
                 $obj->set("vnfs", $opt_vnfs);
-                &dprint("Setting vnfs for node: $name\n");
+                &dprint("Setting vnfs for node name: $name\n");
                 $persist_bool = 1;
             }
             push(@changes, sprintf("   %10s = %s\n", "VNFS", $opt_vnfs));

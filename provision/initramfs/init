@@ -44,7 +44,7 @@ if [ -x "/sbin/mdev" ]; then
    /sbin/mdev -s
 fi
 
-msg_white  "Loading drivers: "
+msg_white  "Loading drivers:\n"
 
 for module in `/sbin/detect | sort | uniq`; do
     msg_gray " * $module:"
@@ -54,9 +54,6 @@ for module in `/sbin/detect | sort | uniq`; do
         wwfailure
     fi
 done
-
-wwsuccess
-
 
 ifup() {
     DEVICE=$1

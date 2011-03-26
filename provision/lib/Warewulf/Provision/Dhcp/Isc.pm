@@ -183,7 +183,7 @@ persist()
 
         # Get all nodes that either have no master lookup set, or if they are set to any of the
         # local IP addresses on this system
-        foreach my $n ($datastore->get_objects("node", "master", "NULL", $netobj->list_ipaddrs())->get_list()) {
+        foreach my $n ($datastore->get_objects("node", "master", "UNDEF", $netobj->list_ipaddrs())->get_list()) {
             my $name = $n->get("name");
             my $cluster = $n->get("cluster");
             my $domain = $n->get("domain");

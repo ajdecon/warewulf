@@ -180,7 +180,7 @@ exec()
                     if(ref($o->get($g)) =~ /^ARRAY/) {
                         push(@values, join(",", sort $o->get($g)));
                     } else {
-                        push(@values, $o->get($g) || "NULL");
+                        push(@values, $o->get($g) || "UNDEF");
                     }
                 }
                 &nprintf("%-20s " x (scalar @values) ."\n", @values);

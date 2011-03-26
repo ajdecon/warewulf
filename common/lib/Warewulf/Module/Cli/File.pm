@@ -408,7 +408,7 @@ exec()
         foreach my $obj (@objList) {
             my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
             printf("%-18s %-14s %4s %9.1f   %s\n",
-                $obj->get("name") || "NULL",
+                $obj->get("name") || "UNDEF",
                 $obj->get("format") || "unknwon",
                 scalar(@nodeObjects),
                 $obj->get("size") ? $obj->get("size")/1024 : "0",
