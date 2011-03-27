@@ -76,7 +76,7 @@ init()
             }
         }
     } else {
-        &iprint("Not integrating with TFTP, no TFTP root directory was found.\n");
+        &wprint("Not integrating with TFTP, no TFTP root directory was found.\n");
     }
 
     return($self);

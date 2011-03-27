@@ -110,12 +110,6 @@ init()
                 die "Could not connect to DB: $!!\n";
             }
             $self->{"DBH"}->{mysql_auto_reconnect} = 1;
-#            $self->{"DBH"}->do("set global max_allowed_packet = ". 30 * 1024 * 1024 .";");
-#            $self->{"DBH"}->do("set max_allowed_packet = ". 30 * 1024 * 1024 .";");
-#            $self->{"DBH"}->do("set net_buffer_length = ". 1024 * 1024 .";");
-#            $self->{"DBH"}->do("flush tables;");
-#            $self->{"DBH"}->disconnect();
-#            $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
 
         } else {
             &dprint("Undefined credentials for database\n");
@@ -124,24 +118,28 @@ init()
     }
 
 
+    return $self;
+}
+
+
+=item chunk_size()
+
+Return the proper chunk size.
+
+=cut
+sub
+chunk_size()
+{
+    my $self = shift;
 
     my (undef, $max_allowed_packet) =  $self->{"DBH"}->selectrow_array("show variables LIKE 'max_allowed_packet'");
 
-    if ($max_allowed_packet < 30 * 1024 * 1024) {
-        &wprint("To get full functionality from your database, you need to add the\n");
-        &wprint("following line to your MySQL configuration (/etc/my.cnf):\n");
-        &wprint("    \"max_allowed_packet=30M\"\n");
-        &wprint("to the [mysqld] section, and then restart your MySQL server\n\n");
-    }
+    &dprint("max_allowed_packet: $max_allowed_packet\n");
+    &dprint("Returning max_allowed_packet - 786432\n");
 
-#printf "\n\nmax_allowed_packet => %d, %.2f MB\n", $max_allowed_packet, $max_allowed_packet  / (1024 *1024);
-
-
-
-
-
-    return $self;
+    return($max_allowed_packet-786432);
 }
+
 
 =item get_objects($type, $field, $val1, $val2, $val3);
 

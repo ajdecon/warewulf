@@ -78,8 +78,7 @@ init()
             &dprint("Found tftpboot directory at /tftpboot\n");
             $self->set("TFTPROOT", "/tftpboot");
         } else {
-            &cprint("Could not locate TFTP server directory!\n");
-            return();
+            &wprint("Could not locate TFTP server directory!\n");
         }
     } elsif ($tftpboot =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
         $self->set("TFTPROOT", $1);
@@ -108,8 +107,12 @@ tftpdir()
         $self->set("TFTPROOT", $tftpdir);
     }
 
-    &dprint("Returning tftpdir() with: ". $self->get("TFTPROOT") ."\n");
-    return($self->get("TFTPROOT"));
+    if (my $tftp = $self->get("TFTPROOT")) {
+        &dprint("Returning tftpdir() with: $tftp\n");
+        return($tftp);
+    } else {
+        return(undef);
+    }
 }
 
 

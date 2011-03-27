@@ -213,7 +213,7 @@ exec()
                 my $size;
                 my $buffer;
                 open(FILE, $path);
-                while(my $length = sysread(FILE, $buffer, 15*1024*1024)) {
+                while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
                     &dprint("Chunked $length bytes of $path\n");
                     $binstore->put_chunk($buffer);
                     if (! $size) {

@@ -144,7 +144,7 @@ exec()
                 my $size;
                 my $buffer;
                 open(SCRIPT, $path);
-                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
+                while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
                     &dprint("Chunked $length bytes of $path\n");
                     $binstore->put_chunk($buffer);
                     $size += $length;
