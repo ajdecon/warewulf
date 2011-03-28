@@ -1,4 +1,4 @@
-SUBDIRS = lib bin
+SUBDIRS = lib bin etc
 
 MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
 DISTCLEANFILES = 

@@ -11,9 +11,11 @@
 use Warewulf::Logger;
 use Warewulf::Debug;
 use Warewulf::Config;
+use Warewulf::Util;
 use File::Path;
 use File::Basename;
 use Getopt::Long;
+use Cwd;
 
 my $config;
 my $opt_chroot;
@@ -22,8 +24,12 @@ my $opt_debug;
 my $opt_verbose;
 my $opt_quiet;
 my $opt_name;
+my @opt_excludes;
+my $opt_excludefile;
+my $opt_includefile;
+my @exclude_files;
 
-Getopt::Long::Configure ("bundling", "pass_through");
+Getopt::Long::Configure ("bundling");
 
 GetOptions(
     'debug'         => \$opt_debug,
@@ -31,6 +37,10 @@ GetOptions(
     'quiet'         => \$opt_quiet,
     'c|chroot=s'    => \$opt_chroot,
     'v|vnfs=s'      => \$opt_vnfs,
+    'e|excludes=s'  => \@opt_excludes,
+    'excludefile=s' => \$opt_excludefile,
+    'includefile=s' => \$opt_includefile,
+    'h|hybrid=s'    => \$opt_hybrid,
 );
 
 &set_log_level("NOTICE");
@@ -43,20 +53,57 @@ if ($opt_debug) {
     &set_log_level("WARNING");
 }
 
-if ($opt_name) {
-    $config = Warewulf::Config->new("vnfs.conf", "vnfs/$opt_name.conf");
+$opt_name = shift(@ARGV);
+
+foreach my $exclude (@opt_excludes) {
+   push(@exclude_files, split(/\s*,\s*/, $exclude));
+}
+
+if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
+    $opt_name = $1;
+    $config = Warewulf::Config->new("vnfs/$1.conf", "vnfs.conf");
     if (! $opt_chroot) {
-        $opt_chroot = $config->get("chroot path");
+        $opt_chroot = $config->get("chroot");
     }
     if (! $opt_vnfs) {
-        $opt_vnfs = $config->get("vnfs path");
+        unless ($opt_vnfs = $config->get("vnfs")) {
+            $opt_vnfs = cwd() ."/$opt_name.vnfs";
+        }
     }
+    if (! $opt_excludefile) {
+        $opt_excludefile = $config->get("exclude file");
+    }
+    if (! $opt_includefile) {
+        $opt_includefile = $config->get("include file");
+    }
+    push(@exclude_files, $config->get("excludes"));
+} elsif ($opt_name) {
+    &eprint("VNFS name contains illegal characters!\n");
+    exit 1;
 } else {
     $config = Warewulf::Config->new("vnfs.conf");
 }
 
 if (! $opt_chroot or ! $opt_vnfs) {
-    &nprint("USAGE: $0 --chroot=/path/to/chroot --vnfs=/path/to/name.vnfs\n");
+    print "USAGE: $0 [options] (name)\n";
+    print "\nOPTIONS:\n\n";
+    print "   -c, --chroot      Path to the chroot to use for this VNFS image\n";
+    print "   -v, --vnfs        Location of the VNFS file to create\n";
+    print "   -e, --excludes    Exclude a file or directory from the VNFS image\n";
+    print "       --excludefile Path to a file that contains a list of files and directories to\n";
+    print "                     exclude from the VNFS image\n";
+# At the moment, include file support does not exist
+#    print "   -i, --includefile Path to a file that contains a list of files and directories to\n";
+#    print "                     include, and thus create the VNFS out of\n";
+    print "   -h, --hybridpath  Path to use within the VNFS where the links will be pointed to in\n";
+    print "                     the final image (this needs to be added to the VNFS fstab!)\n";
+    exit 1;
+}
+
+if ($opt_hybrid and $opt_hybrid =~ /^([a-zA-Z0-9\-_\/:\.]+)$/) {
+    $opt_hybrid = $1;
+} else {
+    &eprint("Illegal characters in --hybrid option: $opt_hybrid\n");
     exit 1;
 }
 
@@ -78,7 +125,59 @@ if (-d $opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
                 mkpath($dirname);
             }
             &nprint("Creating VNFS image at: $opt_vnfs\n");
-            system("(cd $opt_chroot; find . | cpio --quiet -o -H newc ) | gzip -9 > $opt_vnfs");
+
+            if ($opt_excludefile and $opt_excludefile =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
+                open(EXCLUDES, $1);
+                while(my $line = <EXCLUDES>) {
+                    chomp($line);
+                    push(@exclude_files, $line);
+                }
+            } elsif ($opt_excludefile) {
+                &eprint("Exclude file contains illegal characters!\n");
+                exit 1;
+            }
+
+            if (@exclude_files) {
+                &nprint("Building template VNFS image\n");
+                my $tmpdir = "/var/tmp/wwvnfs.". &rand_string(16);
+                mkpath($tmpdir);
+                &iprint("Creating temporary chroot at: $tmpdir\n");
+                system("cd $opt_chroot; cp -rap . $tmpdir");
+                &nprint("Excluding files from VNFS\n");
+                foreach my $line (@exclude_files) {
+                    if ($line =~ /^\/(.*)$/) {
+                        chdir($tmpdir);
+                        foreach my $file (glob("$line")) {
+                            if ($file =~ /^([a-zA-Z0-9_\-\/\.]+?)\/?$/) {
+                                $file = $1;
+                                if (-e $file) {
+                                    &dprint("Excluding from VNFS: $tmpdir$file\n");
+                                    system("rm -rf $tmpdir$file");
+                                    if ($opt_hybrid) {
+                                        &iprint("Hybridizing location in VNFS: $file\n");
+                                        system("ln -s $opt_hybrid/$file $tmpdir/$file");
+                                    }
+                                } else {
+                                    &iprint("Skipping non-existent file to exclude/hybridize: $file\n");
+                                }
+                            }
+                        }
+                    }
+                }
+                &nprint("Building and compressing the final image\n");
+                system("(cd $tmpdir; find . | cpio --quiet -o -H newc ) | gzip -9 > $opt_vnfs");
+                &nprint("Cleaning temporary files\n");
+                system("rm -rf $tmpdir");
+            } elsif ($opt_includefile) {
+                if ($opt_includefile =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
+                    $opt_includefile = $1;
+                }
+
+            } else {
+                &nprint("Building and compressing VNFS image\n");
+                system("(cd $opt_chroot; find . | cpio --quiet -o -H newc ) | gzip -9 > $opt_vnfs");
+            }
+
             &nprint("Done.\n");
         } else {
             &eprint("Right now you need to specify the --vnfs=/path/to/name.vnfs option\n");

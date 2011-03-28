@@ -31,6 +31,7 @@ AC_SUBST(PERLBIN)
 AC_OUTPUT(Makefile
    warewulf-vnfs.spec
    bin/Makefile
+   etc/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )
