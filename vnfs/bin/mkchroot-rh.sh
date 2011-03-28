@@ -16,8 +16,16 @@ if [ -z "$VNFSDIR" ]; then
     exit 1
 fi
 
-mkdir -p $VNFSDIR
+VERSION=`rpm -qf /etc/redhat-release  --qf '%{VERSION}\n'`
 
+mkdir -p $VNFSDIR
+mkdir -p $VNFSDIR/etc
+
+echo "Creating yum configuration based on master"
+cp -rap /etc/yum.conf /etc/yum.repos.d $VNFSDIR/etc
+sed -i -e "s/\$releasever/$VERSION/g" `find $VNFSDIR/etc/yum* -type f`
+
+echo "Starting package installation"
 yum --installroot $VNFSDIR -y install \
     SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
     ethtool filesystem findutils gawk grep initscripts iproute iputils \
