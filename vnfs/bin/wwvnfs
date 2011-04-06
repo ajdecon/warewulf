@@ -27,6 +27,7 @@ my $opt_name;
 my @opt_excludes;
 my $opt_excludefile;
 my $opt_includefile;
+my $opt_hybrid;
 my @exclude_files;
 
 Getopt::Long::Configure ("bundling");
@@ -40,7 +41,7 @@ GetOptions(
     'e|excludes=s'  => \@opt_excludes,
     'excludefile=s' => \$opt_excludefile,
     'includefile=s' => \$opt_includefile,
-    'h|hybrid=s'    => \$opt_hybrid,
+    'h|hybridpath=s' => \$opt_hybrid,
 );
 
 &set_log_level("NOTICE");
@@ -66,9 +67,7 @@ if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
         $opt_chroot = $config->get("chroot");
     }
     if (! $opt_vnfs) {
-        unless ($opt_vnfs = $config->get("vnfs")) {
-            $opt_vnfs = cwd() ."/$opt_name.vnfs";
-        }
+        $opt_vnfs = $config->get("vnfs");
     }
     if (! $opt_excludefile) {
         $opt_excludefile = $config->get("exclude file");
@@ -82,6 +81,7 @@ if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
     exit 1;
 } else {
     $config = Warewulf::Config->new("vnfs.conf");
+    push(@exclude_files, $config->get("excludes"));
 }
 
 if (! $opt_chroot or ! $opt_vnfs) {
@@ -102,7 +102,7 @@ if (! $opt_chroot or ! $opt_vnfs) {
 
 if ($opt_hybrid and $opt_hybrid =~ /^([a-zA-Z0-9\-_\/:\.]+)$/) {
     $opt_hybrid = $1;
-} else {
+} elsif ($opt_hybrid) {
     &eprint("Illegal characters in --hybrid option: $opt_hybrid\n");
     exit 1;
 }
@@ -146,7 +146,6 @@ if (-d $opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
                 &nprint("Excluding files from VNFS\n");
                 foreach my $line (@exclude_files) {
                     if ($line =~ /^\/(.*)$/) {
-                        chdir($tmpdir);
                         foreach my $file (glob("$line")) {
                             if ($file =~ /^([a-zA-Z0-9_\-\/\.]+?)\/?$/) {
                                 $file = $1;
