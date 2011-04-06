@@ -57,9 +57,23 @@ new($$)
     return $self->init(@_);
 }
 
-
 sub
 init()
+{
+    my $self = shift;
+
+
+    return($self);
+}
+
+
+=item setup()
+
+Setup the basic pxelinux environment (e.g. gpxelinux.0).
+
+=cut
+sub
+setup()
 {
     my $self = shift;
     my $datadir = &wwconfig("datadir");

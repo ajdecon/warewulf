@@ -32,9 +32,16 @@ delete_pxe()
     $pxe->delete(@_);
 }
 
+sub
+setup_pxe()
+{
+    $pxe->setup(@_);
+}
+
 
 $event->register("node.add", \&update_pxe);
 $event->register("node.delete", \&delete_pxe);
 $event->register("node.modify", \&update_pxe);
+$event->register("wwsh.start", \&setup_pxe);
 
 1;
