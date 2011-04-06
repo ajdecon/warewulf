@@ -47,7 +47,7 @@ exec()
     my $term = Warewulf::Term->new();
 
     $event_handler->eventloader();
-    $event_handler->run();
+    $event_handler->handle("WWSH.END");
     $term->history_save();
 
     exit;
