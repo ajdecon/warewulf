@@ -14,6 +14,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Config;
 use Warewulf::ModuleLoader;
+use Warewulf::EventHandler;
 use Warewulf::Debug;
 use Getopt::Long;
 use Term::ReadLine;
@@ -24,6 +25,7 @@ my ($modules, $db, $term);
 my @keywords;
 my %keyword_hash;
 my $retval = 0;
+my $events = Warewulf::EventHandler->new();
 
 $ENV{"PATH"} = "/bin:/usr/bin";
 
@@ -106,6 +108,9 @@ if (exists($ENV{"HOME"}) and $ENV{"HOME"} =~ /^([a-zA-Z0-9\/\._\-]+)$/) {
     }
 }
 
+$events->eventloader();
+$events->handle("WWSH.START");
+
 if (exists($ARGV[0]) and -f $ARGV[0]) {
     &iprint("Running non-interactively from file\n");
     $term->interactive(0);
@@ -181,4 +186,5 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
 }
 
 
+$events->handle("WWSH.END");
 exit($retval);
