@@ -128,7 +128,7 @@ exec()
         return();
     }
 
-    if ($opt_root and $opt_root =~ /^([a-zA-Z0-9_\-\.]+)\/?$/) {
+    if ($opt_root and $opt_root =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
         $opt_root = $1;
         &iprint("Using root directory: $opt_root\n");
     } elsif ($opt_root) {
