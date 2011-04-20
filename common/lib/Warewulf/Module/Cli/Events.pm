@@ -59,7 +59,7 @@ options()
     my %hash;
 
     $hash{"enable"} = "Enable the event handler (default)";
-    $hash{"disable"} = "Disable events from occuring (note they will still be queued)";
+    $hash{"disable"} = "Disable events from occurring (note they will still be queued)";
 
     return(%hash);
 }
