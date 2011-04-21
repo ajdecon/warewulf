@@ -10,3 +10,7 @@ Mon Mar 14 17:49:00 2011                        Michael Jennings (mej)
 
 Add SVN revision number to release field.  Clean up spec.
 ----------------------------------------------------------------------
+Thu Apr 21 16:55:02 2011                        Michael Jennings (mej)
+
+Another attempt to improve --root regexp.
+----------------------------------------------------------------------
