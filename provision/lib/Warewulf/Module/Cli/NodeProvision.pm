@@ -219,13 +219,19 @@ exec()
             push(@changes, sprintf("   %10s = %s\n", "PROVISIONMETHOD", $opt_provision));
         }
         if ($persist_bool) {
-            &nprint("\n");
-            &nprint("Making the following changes to ". scalar(@objList) ." node(s):\n\n");
-            foreach my $change (@changes) {
-                &nprint($change);
+            if ($term->interactive()) {
+                print "Are you sure you want to make the following changes to ". scalar(@objList) ." node(s):\n\n";
+                foreach my $change (@changes) {
+                    print $change;
+                }
+                print "\n";
+                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                if ($yesno ne "y" and $yesno ne "yes") {
+                    &nprint("No update performed\n");
+                    return();
+                }
             }
             $db->persist(@objList);
-            &nprint("\n");
         }
     }
 

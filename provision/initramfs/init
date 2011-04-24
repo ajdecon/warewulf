@@ -69,16 +69,16 @@ ifup() {
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
             COUNT=0
-            msg_white "Configuring $DEVICE: "
+            msg_white "Configuring $DEVICE..."
             while [ $COUNT -le $WWNETRETRY ]; do
-                msg_gray "."
                 udhcpc --now --quit -i $DEVICE -t 1 -T 1 -A 1 -s /sbin/dhcp-script >/dev/null
                 if [ "$?" -eq 0 ]; then
                     . /etc/network.conf
-                    msg_gray "DHCP/$IPADDR"
+                    msg_gray " DHCP/$IPADDR"
                     wwsuccess
                     return 0
                 fi
+                msg_gray "."
                 COUNT=`expr $COUNT + 1`
                 sleep 1
             done
