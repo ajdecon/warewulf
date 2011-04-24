@@ -18,6 +18,8 @@ use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::DSO::Node;
 use Getopt::Long;
+use Text::ParseWords;
+
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -110,6 +112,12 @@ exec()
     my $term = Warewulf::Term->new();
     my $opt_bootstrap;
     my $opt_vnfs;
+    my $opt_hwaddr;
+    my $opt_ipaddr;
+    my $opt_kargs;
+    my $opt_files;
+    my $opt_debug;
+    my $opt_provision;
     my $opt_lookup = "name";
 
     @ARGV = ();
@@ -119,6 +127,12 @@ exec()
         'b|bootstrap=s' => \$opt_bootstrap,
         'v|vnfs=s'      => \$opt_vnfs,
         'l|lookup=s'    => \$opt_lookup,
+        'h|hwaddr=s'    => \$opt_hwaddr,
+        'i|ipaddr=s'    => \$opt_ipaddr,
+        'k|kernelargs=s' => \$opt_kargs,
+        'f|files=s'     => \$opt_files,
+        'd|debug=s'     => \$opt_debug,
+        'p|provision=s' => \$opt_provision,
     );
 
     if (! $db) {
@@ -149,6 +163,60 @@ exec()
                 $persist_bool = 1;
             }
             push(@changes, sprintf("   %10s = %s\n", "VNFS", $opt_vnfs));
+        }
+        if ($opt_hwaddr) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("hwaddr", $opt_hwaddr);
+                &dprint("Setting hwaddr for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "HWADDR", $opt_hwaddr));
+        }
+        if ($opt_ipaddr) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("ipaddr", $opt_ipaddr);
+                &dprint("Setting ipaddr for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "IPADDR", $opt_ipaddr));
+        }
+        if ($opt_kargs) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("kargs", $opt_kargs);
+                &dprint("Setting kargs for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "KARGS", $opt_kargs));
+        }
+        if ($opt_files) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("files", &quotewords(',', 0, $opt_files));
+                &dprint("Setting files for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "FILES", $opt_files));
+        }
+        if ($opt_debug) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("debug", $opt_debug);
+                &dprint("Setting debug for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "DEBUG", $opt_debug));
+        }
+        if ($opt_provision) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("provisionmethod", $opt_provision);
+                &dprint("Setting provisionmethod for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   %10s = %s\n", "PROVISIONMETHOD", $opt_provision));
         }
         if ($persist_bool) {
             &nprint("\n");

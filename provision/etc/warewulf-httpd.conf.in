@@ -8,6 +8,11 @@ PerlSwitches -I/var/www/stage/cgi-bin
 
 Alias /WW/static /usr/share/warewulf/www
 
+ScriptAlias /WW/file @fulllibexecdir@/warewulf/cgi-bin/file.pl
+ScriptAlias /WW/script @fulllibexecdir@/warewulf/cgi-bin/script.pl
+ScriptAlias /WW/nodeconfig @fulllibexecdir@/warewulf/cgi-bin/nodeconfig.pl
+ScriptAlias /WW/vnfs @fulllibexecdir@/warewulf/cgi-bin/vnfs.pl
+
 <Directory @fulllibexecdir@/warewulf/cgi-bin>
     SetHandler perl-script
     PerlResponseHandler ModPerl::Registry
@@ -22,12 +27,4 @@ Alias /WW/static /usr/share/warewulf/www
     Allow from all
 </Directory>
 
-
-Listen 9870
-<VirtualHost *:9870>
-    ScriptAlias /file @fulllibexecdir@/warewulf/cgi-bin/file.pl
-    ScriptAlias /script @fulllibexecdir@/warewulf/cgi-bin/script.pl
-    ScriptAlias /nodeconfig @fulllibexecdir@/warewulf/cgi-bin/nodeconfig.pl
-    ScriptAlias /vnfs @fulllibexecdir@/warewulf/cgi-bin/vnfs.pl
-</VirtualHost>
 

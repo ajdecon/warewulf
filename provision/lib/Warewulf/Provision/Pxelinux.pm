@@ -117,7 +117,7 @@ update()
     foreach my $nodeobj (@nodeobjs) {
         my $name = $nodeobj->get("name") || "undefined";
         my ($bootstrap) = $nodeobj->get("bootstrap");
-        my @append = $nodeobj->get("append");
+        my @kargs = $nodeobj->get("kargs");
         my @masters = $nodeobj->get("master");
         my @hwaddrs = $nodeobj->get("hwaddr");
 
@@ -147,8 +147,8 @@ update()
                         my $master = join(",", @masters);
                         print PXELINUX "wwmaster=$master ";
                     }
-                    if (@append) {
-                        print PXELINUX join(" ", @append);
+                    if (@kargs) {
+                        print PXELINUX join(" ", @kargs);
                     } else {
                         print PXELINUX "quiet";
                     }

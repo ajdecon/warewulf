@@ -19,12 +19,6 @@ export START BACKOFF INTERVALS COUNT
 
 WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
-WWPORT=`sed -e '/ wwport=/!d;s/.*wwport=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWPORT
-
-if [ -z "$WWPORT" ]; then
-    WWPORT=9870
-fi
 
 if [ -z "$WWMASTER" ]; then
     if [ -n "$DHCP_SERVER" ]; then

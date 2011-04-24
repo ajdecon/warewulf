@@ -19,15 +19,6 @@ export WWNETRETRY
 WWNODE=`sed -e '/ wwnode=/!d;s/.*wwnode=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNODE
 
-WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWMASTER
-
-WWPORT=`sed -e '/ wwport=/!d;s/.*wwport=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWPORT
-
-WWCGI=`sed -e '/ wwcgi=/!d;s/.*wwcgi=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWCGI
-
 WWIP=`sed -e '/ wwip=/!d;s/.*wwip=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWIP
 
@@ -66,10 +57,6 @@ fi
 
 if [ -z "$WWNETRETRY" ]; then
     WWNETRETRY=30
-fi
-
-if [ -z "$WWCGI" -a -n "$WWMASTER" ]; then
-   WWCGI="http://$WWMASTER:$WWPORT"
 fi
 
 
