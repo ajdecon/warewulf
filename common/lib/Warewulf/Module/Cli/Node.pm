@@ -113,7 +113,7 @@ complete()
     if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "create" or $ARGV[1] eq "edit")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "create", "edit");
+        @ret = ("print", "create", "edit", "delete");
     }
 
     @ARGV = ();
@@ -138,10 +138,13 @@ exec()
     my $opt_devremove;
     my $opt_bootstrap;
     my $opt_vnfs;
+    my $opt_cluster;
     my @opt_set;
     my @opt_add;
     my @opt_del;
     my @opt_print;
+    my @opt_groupadd;
+    my @opt_groupdel;
     my $return_count;
     my $objSet;
     my @changes;
@@ -156,6 +159,8 @@ exec()
         's|set=s'       => \@opt_set,
         'a|add=s'       => \@opt_add,
         'd|del=s'       => \@opt_del,
+        'groupadd=s'    => \@opt_groupadd,
+        'groupdel=s'    => \@opt_groupdel,
         'DELETE'        => \$opt_obj_delete,
         'h|help'        => \$opt_help,
         'netdev=s'      => \$opt_netdev,
@@ -163,6 +168,7 @@ exec()
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
         'netmask=s'     => \$opt_netmask,
+        'cluster=s'     => \$opt_cluster,
         'b|bootstrap=s' => \$opt_bootstrap,
         'v|vnfs=s'      => \$opt_vnfs,
         'l|lookup=s'    => \$opt_lookup,
@@ -197,17 +203,121 @@ exec()
         $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
     }
 
+    my $object_count = scalar($objSet->get_list()) || 0;
+
+    if ($object_count == 0 ) {
+        &nprint("No nodes found\n");
+        return();
+    }
+
     if ($command eq "delete") {
+        if ($term->interactive()) {
+            print "Are you sure you want to delete $object_count node(s):\n\n";
+            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+            if ($yesno ne "y" and $yesno ne "yes") {
+                &nprint("No update performed\n");
+                return();
+            }
+        }
         $db->del_object($objSet);
     } elsif ($command eq "print") {
+        my @list;
+        foreach my $o ($objSet->get_list()) {
+            my $limit;
+            if ($opt_cluster and $o->get("cluster") eq $opt_cluster) {
+                push(@list, $o);
+                $limit = 1;
+            }
+            if ($opt_vnfs and $o->get("vnfs") eq $opt_vnfs) {
+                push(@list, $o);
+                $limit = 1;
+            }
+            if (! $limit) {
+                push(@list, $o);
+            }
+        }
+        if (@opt_print) {
+            @opt_print = split(",", join(",", @opt_print));
+
+            if (scalar(@opt_print) > 1) {
+                my $string = sprintf("%-20s " x (scalar @opt_print), map {uc($_);} @opt_print);
+                &nprint($string ."\n");
+                &nprint("=" x length($string) ."\n");
+            }
+
+            foreach my $o (@list) {
+                my @values;
+                foreach my $g (@opt_print) {
+                    if(ref($o->get($g)) =~ /^ARRAY/) {
+                        push(@values, join(",", sort $o->get($g)));
+                    } else {
+                        push(@values, $o->get($g) || "UNDEF");
+                    }
+                }
+                printf("%-20s " x (scalar @values) ."\n", @values);
+            }
+        } else {
+            &nprintf("%-10s %-10s %-15s %-10s %-10s %s\n",
+                "NAME",
+                "CLUSTER",
+                "GROUPS",
+                "VNFS",
+                "BOOTSTRAP",
+                "NETDEVS"
+            );
+            &nprintf("=" x 92 ."\n");
+            foreach my $o (@list) {
+                my ($name) = $o->get("name") || "UNDEF";
+                my ($cluster) = $o->get("cluster") || "UNDEF";
+                my ($bootstrap) = $o->get("bootstrap") || "UNDEF";
+                my $groups = join(",", sort $o->get("groups")) || "UNDEF";
+                my $vnfs = "UNDEF";
+                my @netdevs;
+                if (my $vnfsid = $o->get("vnfsid")) {
+                    my $vnfsObj = $db->get_objects("vnfs", "id", $o->get("vnfsid"))->get_object(0);
+                    $vnfs = $vnfsObj->get("name") || "UNDEF";
+                }
+                foreach my $n ($o->get("netdevs")) {
+                    if (ref($n) =~ /^Warewulf::DSO::/) {
+                        my $name = $n->get("name") || "unknown";
+                        my $ipaddr = $n->get("ipaddr") || "UNDEF";
+                        my $netmask = $n->get("netmask");
+                        my $hwaddr = $n->get("hwaddr");
+                        if ($netmask) {
+                            $netmask = "/$netmask";
+                        } else {
+                            $netmask = "";
+                        }
+                        if ($hwaddr) {
+                            $hwaddr = "($hwaddr)";
+                        } else {
+                            $hwaddr = "";
+                        }
+                        push(@netdevs, "$name$hwaddr:$ipaddr$netmask");
+                    }
+                }
+                printf("%-10s %-10s %-15s %-10s %-10s %s\n",
+                    $name,
+                    $cluster,
+                    $groups,
+                    $vnfs,
+                    $bootstrap,
+                    join(",", @netdevs)
+                );
+            }
+        }
+
+        return();
+
+
 
         if (scalar(@opt_print) > 0) {
             @opt_print = split(",", join(",", @opt_print));
         } else {
-            @opt_print = ("name", "cluster", "group", "vnfs", "hwaddr");
+            @opt_print = ("name", "cluster", "group", "vnfs", "bootstrap");
         }
         if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-            my $string = sprintf("%-15s " x (scalar @opt_print), map {uc($_);} @opt_print);
+            my $string = sprintf("%-20s " x (scalar @opt_print), map {uc($_);} @opt_print);
             &nprint($string ."\n");
             &nprint("=" x length($string) ."\n");
         }
@@ -247,7 +357,7 @@ exec()
                         push(@values, $o->get($g) || "UNDEF");
                     }
                 }
-                printf("%-15s " x (scalar @values) ."\n", @values);
+                printf("%-20s " x (scalar @values) ."\n", @values);
             }
         }
     } elsif ($command eq "set" or $command eq "edit" or $command eq "create") {
@@ -337,21 +447,68 @@ exec()
             if (uc($opt_vnfs) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("vnfs");
-                    &dprint("Deleting vnfs for node name: $name\n");
+                    $obj->del("vnfsid");
+                    &dprint("Deleting vnfsid for node name: $name\n");
                     $persist_bool = 1;
                 }
                 push(@changes, sprintf("   %10s = %s\n", "VNFS", "UNDEF"));
             } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("vnfs", $opt_vnfs);
-                    &dprint("Setting vnfs for node name: $name\n");
-                    $persist_bool = 1;
+                my $vnfsObj = $db->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
+                if (my $vnfsid = $vnfsObj->get("id")) {
+                    foreach my $obj ($objSet->get_list()) {
+                        my $name = $obj->get("name") || "UNDEF";
+                        $obj->set("vnfsid", $vnfsid);
+                        &dprint("Setting vnfsid for node name: $name\n");
+                        $persist_bool = 1;
+                    }
+                    push(@changes, sprintf("   %10s = %s\n", "VNFS", $opt_vnfs));
+                } else {
+                    &eprint("No VNFS named: $opt_vnfs\n");
                 }
-                push(@changes, sprintf("   %10s = %s\n", "VNFS", $opt_vnfs));
             }
         }
+
+        if ($opt_cluster) {
+            if (uc($opt_cluster) eq "UNDEF") {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->del("cluster");
+                    &dprint("Deleting cluster for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   %10s = %s\n", "CLUSTER", "UNDEF"));
+            } else {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("cluster", $opt_cluster);
+                    &dprint("Setting clusterfor node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   %10s = %s\n", "CLUSTER", $opt_cluster));
+            }
+        }
+
+        if (@opt_groupadd) {
+            foreach my $opt (@opt_groupadd) {
+                &dprint("Adding group $opt to nodes\n");
+                foreach my $obj ($objSet->get_list()) {
+                    $obj->add("groups", split(",", $opt));
+                }
+                push(@changes, sprintf("   %10s += %s\n", "GROUP", $opt));
+                $persist_bool = 1;
+            }
+        }
+        if (@opt_groupdel) {
+            foreach my $opt (@opt_groupdel) {
+                &dprint("Deleting group $opt from nodes\n");
+                foreach my $obj ($objSet->get_list()) {
+                    $obj->del("groups", split(",", $opt));
+                }
+                push(@changes, sprintf("   %10s -= %s\n", "GROUP", $opt));
+                $persist_bool = 1;
+            }
+        }
+
 
         if (@opt_set) {
             foreach my $setstring (@opt_set) {
@@ -398,7 +555,7 @@ exec()
         }
 
         if ($persist_bool) {
-            if ($term->interactive()) {
+            if ($command ne "create" and $term->interactive()) {
                 print "Are you sure you want to make the following changes to ". scalar($objSet->get_list()) ." node(s):\n\n";
                 foreach my $change (@changes) {
                     print $change;
