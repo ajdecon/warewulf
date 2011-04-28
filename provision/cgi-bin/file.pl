@@ -19,16 +19,15 @@ print $q->header("text/plain");
 
 my $hwaddr = $q->param('hwaddr');
 my $fileid = $q->param('fileid');
+my $node;
 
+if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
+    $hwaddr = $1;
 
-if (! $fileid) {
-    if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
-        $hwaddr = $1;
+    $node = $db->get_objects("node", "hwaddr", $hwaddr)->get_object(0);
 
-        my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
-        my $node = $nodeSet->get_object(0);
-
-        if ($node) {
+    if ($node) {
+        if (! $fileid and $node) {
             my $nodeName = $node->get("name");
 
             foreach my $file ($node->get("file")) {
@@ -48,19 +47,33 @@ if (! $fileid) {
                     }
                 }
             }
-        }
-    }
-} elsif ($fileid =~ /^([0-9]+)$/ ) {
-    $fileid = $1;
-    my $fileObj = $db->get_objects("file", "id", $fileid)->get_object(0);;
+        } elsif ($fileid =~ /^([0-9]+)$/ ) {
+            $fileid = $1;
+            my $output;
+            my $fileObj = $db->get_objects("file", "id", $fileid)->get_object(0);;
+            my %nhash = $node->get_hash();
 
-    if ($fileObj) {
-        my $binstore = $db->binstore($fileObj->get("id"));
-        while(my $buffer = $binstore->get_chunk()) {
-            print $buffer;
-        }
-    }
+            if ($fileObj) {
+                my $binstore = $db->binstore($fileObj->get("id"));
+                while(my $buffer = $binstore->get_chunk()) {
+                    $output .= $buffer;
+                }
+                foreach my $key (keys %nhash) {
+                    if (ref($nhash{"$key"}) eq "ARRAY") {
+                        $output =~ s/\$\{WWNODE_$key(\[(\d+)\])?\}/$nhash{"$key"}[$2||0]/g;
+                    } else {
+                        $output =~ s/\$\{WWNODE_$key(\[(\d+)\])?\}/$nhash{"$key"}/g;
+                    }
+                }
+                print $output;
+            }
 
+        } else {
+            &wprint("FILEID contains illegal characters\n");
+        }
+    } else {
+        &wprint("Unknown HWADDR ID\n");
+    }
 } else {
-    &wprint("FILEID contains illegal characters\n");
+    &wprint("HWADDR needs to be defined\n");
 }
