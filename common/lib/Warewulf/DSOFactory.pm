@@ -15,7 +15,33 @@ use Warewulf::Logger;
 use Warewulf::DSO;
 use DBI;
 
-my %modules;
+my %classes;
+
+
+BEGIN {
+    foreach my $path (@INC) {
+        foreach my $req (glob("$path/Warewulf/DSO/*.pm")) {
+            if ($req =~ /^([a-zA-Z0-9\/\._\-]+?\/Warewulf\/DSO\/([a-zA-Z0-9\-_]+)\.pm)$/) {
+                my $file = $1;
+                my $baseclass = $2;
+                my $class = "Warewulf::DSO::$baseclass";
+                my $name = uc($baseclass);
+
+                eval {
+                    require $file;
+                };
+
+                if ($class->can("new")) {
+                    print "Making $class accessible by name '$name'\n";
+                    $classes{"$name"} = $class;
+                }
+
+            }
+
+        }
+    }
+
+}
 
 =head1 NAME
 
@@ -40,37 +66,24 @@ sub
 new($$)
 {
     my $proto = shift;
-    my $type = uc(shift);
+    my $type = shift;
     my $obj;
 
     if ( $type =~ /^([a-zA-Z0-9\-_\.]+)$/ ) {
-        $type = $1;
+        my $name = uc($1);
 
-        my $mod_name = "Warewulf::DSO::". ucfirst(lc($type));
-
-        if (! exists($modules{$mod_name})) {
-            &dprint("Loading object name: $mod_name\n");
-            eval "\$SIG{__DIE__} = sub { 1; }; require $mod_name;";
-            if ($@) {
-                &iprint("Could not load DataStore object class for type '$type', loading a DSO baseclass instead!\n");
-                my $obj = Warewulf::DSO->new(@_);
-                $obj->set("type", $type);
-                return($obj);
-            }
-            $modules{$mod_name} = 1;
+        if (exists($classes{"$name"})) {
+            $obj = $classes{"$name"}->new(@_);
+        } else {
+            &iprint("Could not load DataStore object class for type '$name', loading a DSO baseclass instead!\n");
+            $obj = Warewulf::DSO->new(@_);
         }
-
-        &dprint("Getting a new object from $mod_name\n");
-
-        $obj = eval "$mod_name->new(\@_)";
 
         &dprint("Got an object: $obj\n");
     } elsif ($type) {
         &eprint("Illegal character in mod_name type: $type\n");
     } else {
         &eprint("DSOFactory called without type!\n");
-        $obj = Warewulf::DSO->new(@_);
-        $obj->set("type", "UNDEFINED");
     }
 
     return($obj);
