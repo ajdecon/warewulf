@@ -11,6 +11,10 @@
 use CGI;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
+use Warewulf::Logger;
+use Warewulf::Daemon;
+
+&daemonized(1);
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
