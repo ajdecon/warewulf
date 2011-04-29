@@ -32,7 +32,6 @@ BEGIN {
                 };
 
                 if ($class->can("new")) {
-                    print "Making $class accessible by name '$name'\n";
                     $classes{"$name"} = $class;
                 }
 
