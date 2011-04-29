@@ -317,7 +317,7 @@ persist($$)
         } elsif (ref($object) =~ /^Warewulf::/) {
             @objlist = ($object);
         } else {
-            &eprint("Invalid parameter to persist():  $object\n");
+            &eprint("Invalid object type to persist():  $object\n");
             return undef;
         }
         foreach my $o (@objlist) {
@@ -390,7 +390,7 @@ del_object($$)
     } elsif (ref($object) =~ /^Warewulf::/) {
         @objlist = ($object);
     } else {
-        &eprint("Invalid parameter to persist():  $object\n");
+        &eprint("Invalid parameter to delete():  $object (". ref($object) .")\n");
         return undef;
     }
     foreach my $o (@objlist) {

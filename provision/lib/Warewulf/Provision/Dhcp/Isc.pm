@@ -16,6 +16,7 @@ use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
+use Warewulf::DSOFactory;
 use Socket;
 use Digest::file qw(digest_file_hex);
 
@@ -136,8 +137,6 @@ persist()
             }
             close DHCP;
         } else {
-            my $config = Warewulf::Config->new("provision.conf");
-            my $netobj = Warewulf::Network->new();
             my $netdev = $config->get("network device");
             my $ipaddr = $netobj->ipaddr($netdev);
             my $netmask = $netobj->netmask($netdev);
@@ -184,26 +183,36 @@ persist()
         # Get all nodes that either have no master lookup set, or if they are set to any of the
         # local IP addresses on this system
         foreach my $n ($datastore->get_objects("node", "master", "UNDEF", $netobj->list_ipaddrs())->get_list()) {
-            my $name = $n->get("name");
+            my $nodename = $n->get("name");
             my $cluster = $n->get("cluster");
             my $domain = $n->get("domain");
-            my @hwaddr = $n->get("hwaddr");
-            my $master_ipv4 = $netobj->ip_unserialize($n->get("master"));
-            my $node_ipv4 = $netobj->ip_unserialize($n->get("ipaddr"));
+            my $master_ipv4_bin = $n->get("master");
+            my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
 
-            &dprint("Adding a host entry for: $name\n");
+            foreach my $d ($n->get("netdevs")) {
+                if (ref($netdev) eq "Warewulf::DSO::Netdev") {
+                    my ($netdev) = $d->get("name");
+                    my ($hwaddr) = $d->get("hwaddr");
+                    my ($ipv4_bin) = $d->get("ipaddr");
+                    my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
 
-            if ($name and $node_ipv4 and $hwaddr[0]) {
-                $dhcpd_contents .= "   host $name {\n";
-                $dhcpd_contents .= "      option host-name $name;\n";
-                $dhcpd_contents .= "      hardware ethernet $hwaddr[0];\n";
-                $dhcpd_contents .= "      fixed-address $node_ipv4;\n";
-                if ($master[0]) {
-                    $dhcpd_contents .= "      next-server $master_ipv4;\n";
+                    &dprint("Adding a host entry for: $nodename-$netdev\n");
+
+                    if ($nodename and $ipv4_addr and $hwaddr) {
+                        $dhcpd_contents .= "   host $nodename-$netdev {\n";
+                        $dhcpd_contents .= "      option host-name $nodename;\n";
+                        $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
+                        $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
+                        if ($master[0]) {
+                            $dhcpd_contents .= "      next-server $master_ipv4;\n";
+                        }
+                        $dhcpd_contents .= "   }\n";
+                    } else {
+                        &dprint("Skipping node '$nodename-$netdev' due to insufficient information\n");
+                    }
+                } else {
+                    &eprint("Node '$nodename' has an invalid netdevs entry!\n");
                 }
-                $dhcpd_contents .= "   }\n";
-            } else {
-                &dprint("Skipping node '$name' due to insufficient information\n");
             }
         }
 

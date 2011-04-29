@@ -115,6 +115,8 @@ eventloader()
 
                         &iprint("Loading event handler: $name\n");
                         eval {
+                            no warnings;
+                            $SIG{__WARN__} = sub { 1; };
                             require $file_clean;
                         };
                         if ($@) {

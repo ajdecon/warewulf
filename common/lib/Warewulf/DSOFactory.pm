@@ -27,12 +27,18 @@ BEGIN {
                 my $class = "Warewulf::DSO::$baseclass";
                 my $name = uc($baseclass);
 
-                eval {
-                    require $file;
-                };
+                if (exists($classes{"$name"})) {
+                    # Already loaded
+                } else {
+                    eval {
+                        no warnings;
+                        $SIG{__WARN__} = sub { 1; };
+                        require $file;
+                    };
 
-                if ($class->can("new")) {
-                    $classes{"$name"} = $class;
+                    if ($class->can("new")) {
+                        $classes{"$name"} = $class;
+                    }
                 }
 
             }

@@ -14,6 +14,7 @@ use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::Include;
+use Warewulf::Network;
 use Warewulf::Provision::Tftp;
 use File::Path;
 
@@ -108,32 +109,39 @@ update()
 {
     my ($self, @nodeobjs) = @_;
     my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
+    my $netobj = Warewulf::Network->new();
+
 
     if (! $tftproot) {
         &dprint("Not updating Pxelinux because no TFTP root directory was found!\n");
         return();
     }
 
+    if (! -d "$tftproot/warewulf/pxelinux.cfg") {
+        &iprint("Creating pxelinux configuration directory: $tftproot/warewulf/pxelinux.cfg");
+        mkpath("$tftproot/warewulf/pxelinux.cfg");
+    }
+
     foreach my $nodeobj (@nodeobjs) {
-        my $name = $nodeobj->get("name") || "undefined";
+        my $nodename = $nodeobj->get("name") || "undefined";
         my ($bootstrap) = $nodeobj->get("bootstrap");
         my @kargs = $nodeobj->get("kargs");
         my @masters = $nodeobj->get("master");
-        my @hwaddrs = $nodeobj->get("hwaddr");
 
-        &dprint("Creating a pxelinux config for node '$name'\n");
+        foreach my $netdev ($nodeobj->get("netdevs")) {
 
-        if ($bootstrap and @hwaddrs) {
+            if (ref($netdev) eq "Warewulf::DSO::Netdev") {
+                my ($device) = $netdev->get("name");
+                my ($hwaddr) = $netdev->get("hwaddr");
+                my ($ipv4_bin) = $netdev->get("ipaddr");
+                my ($netmsk) = $netdev->get("netmask");
+                my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
 
-            if (! -d "$tftproot/warewulf/pxelinux.cfg") {
-                &iprint("Creating pxelinux configuration directory: $tftproot/warewulf/pxelinux.cfg");
-                mkpath("$tftproot/warewulf/pxelinux.cfg");
-            }
+                &dprint("Creating a pxelinux config for node '$nodename-$device'\n");
 
-            foreach my $hwaddr (@hwaddrs) {
-                if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
+                if ($bootstrap and $hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                     $hwaddr = $1;
-                    &iprint("Building Pxelinux configuration for: $name/$hwaddr\n");
+                    &iprint("Building Pxelinux configuration for: $nodename/$hwaddr\n");
                     $hwaddr =~ s/:/-/g;
                     my $config = "01-". $hwaddr;
                     &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
@@ -150,7 +158,12 @@ update()
                     if (@kargs) {
                         print PXELINUX join(" ", @kargs);
                     } else {
-                        print PXELINUX "quiet";
+                        print PXELINUX "quiet ";
+                    }
+                    if ($device and $ipv4_addr and $netmsk) {
+                        print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmsk wwnetdev=$device ";
+                    } else {
+                        &dprint("Skipping static network definition because configuration not complete\n");
                     }
                     print PXELINUX "\n";
                     if (! close PXELINUX) {
@@ -159,9 +172,9 @@ update()
                 } else {
                     &eprint("Bad characters in hwaddr: $hwaddr\n");
                 }
+            } else {
+                &eprint("Node '$nodename' has an invalid netdevs entry!\n");
             }
-        } else {
-            &dprint("Need more object information to create a pxelinux config file for this node\n");
         }
     }
 }
@@ -184,15 +197,15 @@ delete()
     }
 
     foreach my $nodeobj (@nodeobjs) {
-        my $name = $nodeobj->get("name") || "undefined";
+        my $nodename = $nodeobj->get("name") || "undefined";
         my @hwaddrs = $nodeobj->get("hwaddr");
 
-        &dprint("Deleting pxelinux entries for node: $name\n");
+        &dprint("Deleting pxelinux entries for node: $nodename\n");
 
         foreach my $hwaddr (@hwaddrs) {
             if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                 $hwaddr = $1;
-                &iprint("Deleting Pxelinux configuration for: $name/$hwaddr\n");
+                &iprint("Deleting Pxelinux configuration for: $nodename/$hwaddr\n");
                 $hwaddr =~ s/:/-/g;
                 my $config = "01-". $hwaddr;
                 if (-f "$tftproot/pxelinux.cfg/$config") {

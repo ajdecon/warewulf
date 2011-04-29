@@ -16,7 +16,7 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::DSO::File;
+use Warewulf::DSOFactory;
 use Getopt::Long;
 use File::Basename;
 use Text::ParseWords;
@@ -230,7 +230,7 @@ exec()
                 print "Imported $name into existing object\n";
             } elsif (scalar(@objList) == 0) {
                 &dprint("Creating new File Object\n");
-                my $obj = Warewulf::DSO::File->new();
+                my $obj = Warewulf::DSOFactory->new("file");
                 $db->persist($obj);
                 $obj->set($opt_lookup, $name);
                 $obj->set("checksum", digest_file_hex($path, "MD5"));
@@ -269,7 +269,7 @@ exec()
                 &eprint("Only specify one object to operate on at a time\n");
                 return();
             } elsif (scalar(@objList) == 0) {
-                my $obj = Warewulf::DSO::File->new();
+                my $obj = Warewulf::DSOFactory->new("file");
                 $obj->set($opt_lookup, $ARGV[0]);
                 $db->persist($obj);
                 push(@objList, $obj);

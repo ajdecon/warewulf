@@ -16,8 +16,6 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::DSO::Netdev;
-use Warewulf::DSO::Node;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -388,7 +386,7 @@ exec()
                 } else {
                     if (! $netobject) {
                         &dprint("Creating new netdev object\n");
-                        $netobject = Warewulf::DSO::Netdev->new();
+                        $netobject = Warewulf::DSOFactory->new("netdev");
                         $netobject->set("name", $opt_netdev);
                         $obj->add("netdevs", $netobject);
                     }
