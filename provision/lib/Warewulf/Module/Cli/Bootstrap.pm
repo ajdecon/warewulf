@@ -226,7 +226,7 @@ exec()
                 &dprint("Including requested path: $d\n");
                 push(@driver_files, @tmp);
             } else {
-                &wprint("Could not find path to requested driver: $d\n");
+                &dprint("Could not find path to requested driver: $d\n");
             }
         }
 
@@ -238,11 +238,11 @@ exec()
 
         foreach my $file (@driver_files) {
             my $path = dirname($file);
-            if (! -d "$tmpdir/$path") {
-                mkpath("$tmpdir/$path");
+            if (! -d "$tmpdir/lib/modules/$opt_kversion/$path") {
+                mkpath("$tmpdir/lib/modules/$opt_kversion/$path");
             }
-            if (copy("./lib/modules/$opt_kversion/$file", "$tmpdir/$file")) {
-                &dprint("Integrated driver: $tmpdir/$file\n");
+            if (copy("./lib/modules/$opt_kversion/$file", "$tmpdir/lib/modules/$opt_kversion/$file")) {
+                &dprint("Integrated driver: $tmpdir/lib/modules/$opt_kversion/$file\n");
                 $module_count++;
                 if (exists($mod_deps{"$file"})) {
                     foreach my $dep (@{$mod_deps{"$file"}}) {
@@ -255,7 +255,6 @@ exec()
                 }
 
             }
-
 
         }
         if ($module_count > 0) {
