@@ -94,7 +94,7 @@ exec()
     my $tmpdir = "/var/tmp/wwinitrd.$randstring";
     my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
     my $initramfsdefault = "base";
-    my $config = Warewulf::Config->new("provision.conf");
+    my $config = Warewulf::Config->new("bootstrap.conf");
     my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
     my $opt_root;
     my $opt_name;
@@ -189,30 +189,75 @@ exec()
         return();
     }
 
-    if ($config->get("drivers")) {
-        mkpath("$tmpdir/lib/modules/$opt_kversion");
-        foreach my $m ($config->get("drivers")) {
-            if ($m and $m =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
-                my $m_clean = $1;
-                open(FIND, "find ./lib/modules/$opt_kversion/kernel/$m_clean -type f 2>/dev/null |");
-                while(my $module = <FIND>) {
-                    chomp($module);
-                    if ($module =~ /([a-zA-Z0-9\/_\-\.]+)/) {
-                        $module = $1;
-                        my $path = dirname($module);
-                        &dprint("Including driver: $module\n");
-                        if (! -d "$tmpdir/$path") {
-                            mkpath("$tmpdir/$path");
-                        }
-                        if (copy($module, "$tmpdir/$path")) {
-                            $module_count++;
-                        }
-                    }
+    my %mod_path;
+    my %mod_deps;
+    my @mod_files;
+
+    if (-f "./lib/modules/$opt_kversion/modules.dep") {
+        open(DEP, "./lib/modules/$opt_kversion/modules.dep");
+        while (my $line = <DEP>) {
+            chomp($line);
+            if ($line =~ /^([a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
+                my $path = $1;
+                my @deps = split(/\s+/, $2);
+                my $name = basename($path);
+                $name =~ s/\.ko$//;
+                $mod_path{"$name"} = $path;
+                push(@mod_files, $path);
+                if (@deps) {
+                    @{$mod_deps{"$path"}} = @deps;
                 }
-                close FIND;
+            }
+        }
+        close(DEP);
+    }
+
+    if ($config->get("drivers")) {
+        my %included_files;
+        my @driver_files;
+        mkpath("$tmpdir/lib/modules/$opt_kversion");
+        my @drivers = $config->get("drivers");
+        foreach my $d (@drivers) {
+            &dprint("Looking for matches to: $d\n");
+            if (exists($mod_path{"$d"})) {
+                &dprint("Including requested driver: $d @ ". $mod_path{"$d"});
+                push(@driver_files, $mod_path{"$d"});
+            } elsif (my @tmp = grep(/^\Q$d\E/, @mod_files)) {
+                &dprint("Including requested path: $d\n");
+                push(@driver_files, @tmp);
+            } else {
+                &wprint("Could not find path to requested driver: $d\n");
             }
         }
 
+        # Bootstrapping the included files hash so that dependencies don't get
+        # automatically added if they are already in the list.
+        foreach my $file (@driver_files) {
+            $included_files{"$file"} = 1;
+        }
+
+        foreach my $file (@driver_files) {
+            my $path = dirname($file);
+            if (! -d "$tmpdir/$path") {
+                mkpath("$tmpdir/$path");
+            }
+            if (copy("./lib/modules/$opt_kversion/$file", "$tmpdir/$file")) {
+                &dprint("Integrated driver: $tmpdir/$file\n");
+                $module_count++;
+                if (exists($mod_deps{"$file"})) {
+                    foreach my $dep (@{$mod_deps{"$file"}}) {
+                        if (! exists($included_files{"$dep"})) {
+                            $included_files{"$dep"} = 1;
+                            &dprint("Including driver dependency: $dep\n");
+                            push(@driver_files, $dep);
+                        }
+                    }
+                }
+
+            }
+
+
+        }
         if ($module_count > 0) {
             &nprint("Number of drivers included in bootstrap: $module_count\n");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $opt_kversion");

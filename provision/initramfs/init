@@ -89,6 +89,7 @@ ifup() {
     return 255
 }
 
+> /tmp/wwdev
 
 if [ -n "$WWDEV" ]; then
     for i in $WWDEV; do
