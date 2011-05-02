@@ -62,15 +62,67 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 while(my $buffer = $binstore->get_chunk()) {
                     $output .= $buffer;
                 }
-                foreach my $key (keys %nhash) {
-                    if (ref($nhash{"$key"}) eq "ARRAY") {
-                        $output =~ s/\$\{WWNODE_$key(\[(\d+)\])?\}/$nhash{"$key"}[$2||0]/g;
-                    } else {
-                        $output =~ s/\$\{WWNODE_$key(\[(\d+)\])?\}/$nhash{"$key"}/g;
+
+                # Search for all matching variable entries.
+                #foreach my $wwstring ($output =~ m/\%\{WWNODE::[^\}]+\}(\[([0-9]+)\])?/g) {
+                foreach my $wwstring ($output =~ m/\%\{WWNODE::[^\}]+\}(?:\[\d+\])?/g) {
+                    # Check for format, and seperate into a seperate wwvar string
+                    if ($wwstring =~ /^\%\{WWNODE::(.+?)\}(\[(\d+)\])?$/) {
+                        my $wwvar = $1;
+                        my $wwarrayindex = $3;
+                        # Set the current object that we are looking at. This is
+                        # important as we iterate through multiple levels.
+                        my $curObj = $node;
+                        my @keys = split(/::/, $wwvar);
+                        while(my $key = shift(@keys)) {
+                            my $val = $curObj->get($key);
+                            if (ref($val) eq "ARRAY") {
+                                if (defined($wwarrayindex)) {
+                                    # If the person defined an array index as part of the
+                                    # variable, then give that.
+                                    my $value = $val->[$wwarrayindex];
+                                    $output =~ s/\Q$wwstring\E/$value/g;
+                                } else {
+                                    # If the value is an array, We need to iterate
+                                    # through the array.
+                                    foreach my $a (@{$val}) {
+                                        if (ref($a) =~ /^Warewulf::DSO::/) {
+                                            # Check to see if the array entry is a Data
+                                            # Store Object (DSO), and if it is, then reset
+                                            # the $curObj, and start over.
+                                            my $name = $keys[0];
+                                            if (uc($a->get("name")) eq uc($name)) {
+                                                $curObj = $a;
+                                                # Since we found this and used the current key
+                                                # we need to shift the array.
+                                                shift(@keys);
+                                                last;
+                                            }
+                                        } elsif ($a) {
+                                            $output =~ s/\Q$wwstring\E/$a/g;
+                                        } else {
+                                            $output =~ s/\Q$wwstring\E//g;
+                                        }
+                                    }
+                                }
+                            } elsif ($val) {
+                                # Same logic as above just without the array contexts.
+                                if (ref($a) =~ /^Warewulf::DSO::/) {
+                                    my $name = shift(@keys);
+                                    if (uc($a->get("name")) eq uc($name)) {
+                                        $curObj = $a;
+                                    }
+                                } else {
+                                    $output =~ s/\Q$wwstring\E/$val/g;
+                                }
+                            } else {
+                                $output =~ s/\Q$wwstring\E//g;
+                            }
+                        }
                     }
                 }
-                print $output;
             }
+            print $output;
 
         } else {
             &wprint("FILEID contains illegal characters\n");
