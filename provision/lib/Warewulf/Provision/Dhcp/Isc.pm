@@ -190,7 +190,7 @@ persist()
             my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
 
             foreach my $d ($n->get("netdevs")) {
-                if (ref($netdev) eq "Warewulf::DSO::Netdev") {
+                if (ref($d) eq "Warewulf::DSO::Netdev") {
                     my ($netdev) = $d->get("name");
                     my ($hwaddr) = $d->get("hwaddr");
                     my ($ipv4_bin) = $d->get("ipaddr");
