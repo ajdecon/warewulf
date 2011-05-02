@@ -406,7 +406,7 @@ exec()
         my @objList = $objectSet->get_list();
         &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
         foreach my $obj (@objList) {
-            my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
+            my @nodeObjects = $db->get_objects("node", "files", $obj->get("name"))->get_list();
             printf("%-18s %-14s %4s %9.1f   %s\n",
                 $obj->get("name") || "UNDEF",
                 $obj->get("format") || "unknwon",

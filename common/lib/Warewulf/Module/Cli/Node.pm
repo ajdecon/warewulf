@@ -143,6 +143,8 @@ exec()
     my @opt_print;
     my @opt_groupadd;
     my @opt_groupdel;
+    my @opt_fileadd;
+    my @opt_filedel;
     my $return_count;
     my $objSet;
     my @changes;
@@ -159,6 +161,8 @@ exec()
         'd|del=s'       => \@opt_del,
         'groupadd=s'    => \@opt_groupadd,
         'groupdel=s'    => \@opt_groupdel,
+        'fileadd=s'     => \@opt_fileadd,
+        'filedel=s'     => \@opt_filedel,
         'DELETE'        => \$opt_obj_delete,
         'h|help'        => \$opt_help,
         'netdev=s'      => \$opt_netdev,
@@ -407,16 +411,16 @@ exec()
             }
 
             if ($opt_devremove) {
-                push(@changes, sprintf("   %10s = %s\n", $opt_netdev, "REMOVE"));
+                push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
             } else {
                 if ($opt_ipaddr) {
-                    push(@changes, sprintf("   %10s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
                 }
                 if ($opt_netmask) {
-                    push(@changes, sprintf("   %10s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
                 }
                 if ($opt_hwaddr) {
-                    push(@changes, sprintf("   %10s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
                 }
             }
         }
@@ -429,7 +433,7 @@ exec()
                     &dprint("Deleting bootstrap for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   %10s = %s\n", "BOOTSTRAP", "UNDEF"));
+                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
@@ -437,7 +441,7 @@ exec()
                     &dprint("Setting bootstrap for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   %10s = %s\n", "BOOTSTRAP", $opt_bootstrap));
+                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
             }
         }
 
@@ -449,17 +453,17 @@ exec()
                     &dprint("Deleting vnfsid for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   %10s = %s\n", "VNFS", "UNDEF"));
+                push(@changes, sprintf("   UNSET: %-20s\n", "VNFS"));
             } else {
                 my $vnfsObj = $db->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
-                if (my $vnfsid = $vnfsObj->get("id")) {
+                if ($vnfsObj and my $vnfsid = $vnfsObj->get("id")) {
                     foreach my $obj ($objSet->get_list()) {
                         my $name = $obj->get("name") || "UNDEF";
                         $obj->set("vnfsid", $vnfsid);
                         &dprint("Setting vnfsid for node name: $name\n");
                         $persist_bool = 1;
                     }
-                    push(@changes, sprintf("   %10s = %s\n", "VNFS", $opt_vnfs));
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "VNFS", $opt_vnfs));
                 } else {
                     &eprint("No VNFS named: $opt_vnfs\n");
                 }
@@ -474,7 +478,7 @@ exec()
                     &dprint("Deleting cluster for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   %10s = %s\n", "CLUSTER", "UNDEF"));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", "UNDEF"));
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
@@ -482,7 +486,7 @@ exec()
                     &dprint("Setting clusterfor node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   %10s = %s\n", "CLUSTER", $opt_cluster));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
             }
         }
 
@@ -492,7 +496,7 @@ exec()
                 foreach my $obj ($objSet->get_list()) {
                     $obj->add("groups", split(",", $opt));
                 }
-                push(@changes, sprintf("   %10s += %s\n", "GROUP", $opt));
+                push(@changes, sprintf("     ADD: %-20s = %s\n", "GROUPS", $opt));
                 $persist_bool = 1;
             }
         }
@@ -502,7 +506,28 @@ exec()
                 foreach my $obj ($objSet->get_list()) {
                     $obj->del("groups", split(",", $opt));
                 }
-                push(@changes, sprintf("   %10s -= %s\n", "GROUP", $opt));
+                push(@changes, sprintf("     DEL: %-20s = %s\n", "GROUPS", $opt));
+                $persist_bool = 1;
+            }
+        }
+
+        if (@opt_fileadd) {
+            foreach my $opt (@opt_fileadd) {
+                &dprint("Adding file $opt to nodes\n");
+                foreach my $obj ($objSet->get_list()) {
+                    $obj->add("files", split(",", $opt));
+                }
+                push(@changes, sprintf("     ADD: %-20s = %s\n", "FILES", $opt));
+                $persist_bool = 1;
+            }
+        }
+        if (@opt_filedel) {
+            foreach my $opt (@opt_filedel) {
+                &dprint("Deleting file $opt from nodes\n");
+                foreach my $obj ($objSet->get_list()) {
+                    $obj->del("files", split(",", $opt));
+                }
+                push(@changes, sprintf("     DEL: %-20s = %s\n", "FILES", $opt));
                 $persist_bool = 1;
             }
         }
@@ -526,6 +551,7 @@ exec()
                     foreach my $obj ($objSet->get_list()) {
                         $obj->add($key, split(",", $val));
                     }
+                    push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $opt));
                     $persist_bool = 1;
                 }
             }
@@ -541,6 +567,7 @@ exec()
                             $obj->del($key, split(",", $val));
                         }
                         $persist_bool = 1;
+                        push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $opt));
                     }
                 } elsif ($key) {
                     &dprint("Set: deleting $key\n");
@@ -548,6 +575,7 @@ exec()
                         $obj->del($key);
                     }
                     $persist_bool = 1;
+                    push(@changes, sprintf("   UNSET: %-20s\n", $key));
                 }
             }
         }

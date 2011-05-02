@@ -34,11 +34,11 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         if (! $fileid and $node) {
             my $nodeName = $node->get("name");
 
-            foreach my $file ($node->get("file")) {
+            foreach my $file ($node->get("files")) {
                 if (! $file) {
                     next;
                 }
-                my $objSet = $db->get_objects("file", "name", $file);
+                my $objSet = $db->get_objects("files", "name", $file);
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
                         printf("%s %s %s %s %s %s\n",
@@ -54,7 +54,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         } elsif ($fileid =~ /^([0-9]+)$/ ) {
             $fileid = $1;
             my $output;
-            my $fileObj = $db->get_objects("file", "id", $fileid)->get_object(0);;
+            my $fileObj = $db->get_objects("files", "id", $fileid)->get_object(0);;
             my %nhash = $node->get_hash();
 
             if ($fileObj) {
