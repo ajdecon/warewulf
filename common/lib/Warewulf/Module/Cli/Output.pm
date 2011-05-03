@@ -55,28 +55,31 @@ complete()
     return("quiet", "normal", "verbose", "debug");
 }
 
-sub
-options()
-{
-    my %hash;
-
-    $hash{"quiet"} = "Suppress all messages but warnings and errors";
-    $hash{"normal"} = "Only show normal usage messages";
-    $hash{"verbose"} = "Display increased verbosity";
-    $hash{"debug"} = "Debugging output";
-
-    return(%hash);
-}
 
 sub
-description()
+help()
 {
-    my $output;
+    my $h;
 
-    $output .= "This will set the debugging/logging level for this shell.";
+    $h .= "SUMMARY:\n";
+    $h .= "     The output command sets the output level of the shell.\n";
+    $h .= "\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     quiet       Only print warnings and errors\n";
+    $h .= "     normal      Normal output of notifications, warnings and errors\n";
+    $h .= "     verbose     Including verbose messages over normal\n";
+    $h .= "     debug       Print all messages possible\n";
+    $h .= "\n";
+    $h .= "EXAMPLES:\n";
+    $h .= "\n";
+    $h .= "     Warewulf> output debug\n";
+    $h .= "     Warewulf> output normal\n";
+    $h .= "\n";
 
-    return($output);
+    return($h);
 }
+
 
 sub
 summary()

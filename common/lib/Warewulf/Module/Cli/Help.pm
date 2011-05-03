@@ -49,15 +49,8 @@ exec()
         &dprint("Gathering help topics for: $target\n");
         foreach my $mod (sort $modules->list($target)) {
             my $ref = ref($mod);
-            &dprint("Calling on module: $mod\n");
-            if ($mod->can("description")) {
-                &iprint("$ref:\n");
-                my $description = $mod->description();
-                chomp($description);
-                &dprint("Calling $mod->description()\n");
-                print $description ."\n\n";
-                $printed = 1;
-            } elsif ($mod->can("help")) {
+            &dprint("Calling on module: $mod->help()\n");
+            if ($mod->can("help")) {
                 &iprint("$ref:\n");
                 my $help = $mod->help();
                 chomp($help);
@@ -66,41 +59,7 @@ exec()
                 $printed = 1;
             }
         }
-        foreach my $mod (sort $modules->list($target)) {
-            &dprint("Calling on module: $mod\n");
-            if ($mod->can("options")) {
-                if (! $options_printed) {
-                    print "OPTIONS:\n";
-                    $options_printed = 1;
-                }
-                my $ref = ref($mod);
-                &iprint("  ($ref)\n");
-                &dprint("Calling $mod->options()\n");
-                my %tmp = $mod->options();
-                foreach my $key (sort keys %tmp) {
-                    printf("  %-17s %s\n", $key, $tmp{$key});
-                }
-                $printed = 1;
-            }
-        }
-        foreach my $mod (sort $modules->list($target)) {
-            &dprint("Calling on module: $mod\n");
-            if ($mod->can("examples")) {
-                if (! $examples_printed) {
-                    print "\nEXAMPLES:\n";
-                    $examples_printed = 1;
-                }
-                &dprint("Calling $mod->example()\n");
-                foreach my $example ($mod->examples()) {
-                    chomp $example;
-                    print "  Warewulf> $example\n";
-                    $printed = 1;
-                }
-            }
-        }
-        if ($printed) {
-            print "\n";
-        } else {
+        if (! $printed) {
             print "This module has no help methods defined\n";
         }
     } else {

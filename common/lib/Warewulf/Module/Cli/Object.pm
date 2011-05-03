@@ -48,45 +48,32 @@ init()
 
 
 sub
-options()
+help()
 {
-    my %hash;
+    my $h;
 
-    $hash{"-t, --type"} = "Limit the return of objects to this object type";
-    $hash{"-n, --new"} = "Create a new object with the given name";
-    $hash{"-l, --lookup"} = "Address objects by a specific lookup value (default: name)";
-    $hash{"-p, --print"} = "Define what fields are printed (':all' is a special tag)";
-    $hash{"-s, --set"} = "Set a given attribute";
-    $hash{"-a, --add"} = "Add an attribute to an existing key (otherwise create the key)";
-    $hash{"-d, --del"} = "Delete an attribute from a key";
-    $hash{"    --DELETE"} = "Delete an entire object";
+    $h .= "SUMMARY:\n";
+    $h .= "     The object command provides an interface for generically manipulating all\n";
+    $h .= "     object types within the Warewulf datastore.\n";
+    $h .= "\n";
+    $h .= "OPTIONS:\n";
+    $h .= "\n";
+    $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
+    $h .= "     -t, --type      What type of object should we be limit by\n";
+    $h .= "     -p, --print     Define what fields are printed (':all' is a special tag)\n";
+    $h .= "     -s, --set       Set a given attribute\n";
+    $h .= "     -a, --add       Add an attribute to an existing key (otherwise create the key)\n";
+    $h .= "     -d, --del       Delete an attribute from a key\n";
+    $h .= "         --DELETE    Delete an entire object\n";
+    $h .= "\n";
+    $h .= "EXAMPLES:\n";
+    $h .= "\n";
+    $h .= "     Warewulf> object -p id,name,type\n";
+    $h .= "\n";
 
-    return(%hash);
+    return($h);
 }
 
-sub
-description()
-{
-    my $output;
-
-    $output .= "The object command provides an interface for generically manipulating all\n";
-    $output .= "object types within the Warewulf datastore.\n";
-    $output .= "\n";
-
-    return($output);
-}
-
-sub
-examples()
-{
-    my @output;
-
-    push(@output, "object -t node -l hwaddr 00:00:00:00:00:00 00:00:00:00:00:01");
-    push(@output, "object -t node -s group=grp1,grp2 n00[00-99]");
-    push(@output, "object -t file -p :all");
-
-    return(@output);
-}
 
 sub
 summary()
@@ -98,27 +85,6 @@ summary()
     return($output);
 }
 
-
-
-sub
-help1()
-{
-    my ($self, $keyword) = @_;
-    my $output;
-
-    $output .= "        The object command will generically manipulate all datastore entries in the lookup table.\n";
-    $output .= "           Usage options:\n";
-    $output .= "            -t, --type             Limit the return of objects to this type\n";
-    $output .= "            -n, --new              Create a new object with the given name\n";
-    $output .= "            -l, --lookup           Lookup objects using a given string type (default: name)\n";
-    $output .= "            -p, --print            Define what fields are &nprinted (':all' is a special tag)\n";
-    $output .= "            -s, --set              Set a given attribute (e.g. -s key=value)\n";
-    $output .= "            -a, --add              Add an attribute to a key (-a key=value2)\n";
-    $output .= "            -d, --del              Delete an attribute from a key (-d key=value)\n";
-    $output .= "                --DELETE           Delete an entire object\n";
-
-    return($output);
-}
 
 sub
 complete()

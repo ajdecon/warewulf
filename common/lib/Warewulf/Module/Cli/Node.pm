@@ -49,25 +49,49 @@ init()
 
 
 sub
-options()
+help()
 {
-    my %hash;
+    my $h;
 
-    $hash{"-n, --new"} = "Create a new object with the given name";
-    $hash{"-p, --print"} = "Define what fields are printed (':all' is a special tag)";
-    $hash{"    --DELETE"} = "Delete an entire object";
+    $h .= "SUMMARY:\n";
+    $h .= "    The node command is used for editing the node configurations.\n";
+    $h .= "\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     new             Create a new node configuration with a given or list of names\n";
+    $h .= "     set             Modify an existing node configuration\n";
+    $h .= "     print           Print the node configuration\n";
+    $h .= "     delete          Remove a node configuration from the data store\n";
+    $h .= "\n";
+    $h .= "OPTIONS:\n";
+    $h .= "\n";
+    $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
+    $h .= "     -p, --print     Define what fields are printed (':all' is a special tag)\n";
+    $h .= "     -b, --bootstrap What bootstrap should this node be used to boot on\n";
+    $h .= "     -v, --vnfs      Define the VNFS that this node should use\n";
+    $h .= "         --groupadd  Associate a group to this node\n";
+    $h .= "         --groupdel  Remove a group association from this node\n";
+    $h .= "         --fileadd   Associate a file to this node\n";
+    $h .= "         --filedel   Remove a file association from this node\n";
+    $h .= "         --netdev    Define a network device to set for this node\n";
+    $h .= "         --ipaddr    Set an IP address for the given network device\n";
+    $h .= "         --netmask   Set a subnet mask for the given network device\n";
+    $h .= "         --hwaddr    Set the device's hardware/MAC address\n";
+    $h .= "         --netdel    Remove a network device from the system\n";
+    $h .= "         --cluster   Define the cluster that this node is a part of\n";
+    $h .= "         --name      Rename this node\n";
+    $h .= "\n";
+    $h .= "EXAMPLES:\n";
+    $h .= "\n";
+    $h .= "     Warewulf> node new n0000 --netdev=eth0 --hwaddr=xx:xx:xx:xx:xx:xx\n";
+    $h .= "     Warewulf> node set n0000 --ipaddr=10.0.0.10 --netmask=255.255.255.0\n";
+    $h .= "     Warewulf> node set n0000 --groupadd=mygroup,hello,bye --cluster=mycluster\n";
+    $h .= "     Warewulf> node set n0000 --groupdel=bye --fileadd=ifcfg-eth0\n";
+    $h .= "     Warewulf> node set xx:xx:xx:xx:xx:xx --lookup=hwaddr --bootstrap=2.6.30 --vnfs=sl6.vnfs\n";
+    $h .= "     Warewulf> node print mygroup hello group123 --lookup=groups\n";
+    $h .= "\n";
 
-    return(%hash);
-}
-
-sub
-description()
-{
-    my $output;
-
-    $output .= "Hello from nodes.";
-
-    return($output);
+    return($h);
 }
 
 sub
@@ -108,10 +132,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "create" or $ARGV[1] eq "edit")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "create", "edit", "delete");
+        @ret = ("print", "new", "set", "delete");
     }
 
     @ARGV = ();
@@ -126,9 +150,6 @@ exec()
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
     my $opt_lookup = "name";
-    my $opt_new;
-    my $opt_obj_delete;
-    my $opt_help;
     my $opt_hwaddr;
     my $opt_ipaddr;
     my $opt_netmask;
@@ -137,6 +158,7 @@ exec()
     my $opt_bootstrap;
     my $opt_vnfs;
     my $opt_cluster;
+    my $opt_name;
     my @opt_set;
     my @opt_add;
     my @opt_del;
@@ -154,7 +176,6 @@ exec()
     push(@ARGV, @_);
 
     GetOptions(
-        'n|new'         => \$opt_new,
         'p|print=s'     => \@opt_print,
         's|set=s'       => \@opt_set,
         'a|add=s'       => \@opt_add,
@@ -163,14 +184,13 @@ exec()
         'groupdel=s'    => \@opt_groupdel,
         'fileadd=s'     => \@opt_fileadd,
         'filedel=s'     => \@opt_filedel,
-        'DELETE'        => \$opt_obj_delete,
-        'h|help'        => \$opt_help,
         'netdev=s'      => \$opt_netdev,
         'remove'        => \$opt_devremove,
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
         'netmask=s'     => \$opt_netmask,
         'cluster=s'     => \$opt_cluster,
+        'name=s'        => \$opt_name,
         'b|bootstrap=s' => \$opt_bootstrap,
         'v|vnfs=s'      => \$opt_vnfs,
         'l|lookup=s'    => \$opt_lookup,
@@ -190,7 +210,7 @@ exec()
         return();
     }
 
-    if ($command eq "create") {
+    if ($command eq "new") {
         $objSet = Warewulf::ObjectSet->new();
         foreach my $string (&expand_bracket(@ARGV)) {
             my $obj;
@@ -259,7 +279,7 @@ exec()
                 printf("%-20s " x (scalar @values) ."\n", @values);
             }
         } else {
-            &nprintf("%-10s %-10s %-15s %-10s %-10s %s\n",
+            &nprintf("%-10s %-15s %-15s %-15s %-15s %s\n",
                 "NAME",
                 "CLUSTER",
                 "GROUPS",
@@ -298,7 +318,7 @@ exec()
                         push(@netdevs, "$name$hwaddr:$ipaddr$netmask");
                     }
                 }
-                printf("%-10s %-10s %-15s %-10s %-10s %s\n",
+                printf("%-10s %-15s %-15s %-15s %-15s %s\n",
                     $name,
                     $cluster,
                     $groups,
@@ -316,7 +336,7 @@ exec()
         if (scalar(@opt_print) > 0) {
             @opt_print = split(",", join(",", @opt_print));
         } else {
-            @opt_print = ("name", "cluster", "group", "vnfs", "bootstrap");
+            @opt_print = ("name", "cluster", "groups", "vnfs", "bootstrap");
         }
         if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
             my $string = sprintf("%-20s " x (scalar @opt_print), map {uc($_);} @opt_print);
@@ -362,7 +382,7 @@ exec()
                 printf("%-20s " x (scalar @values) ."\n", @values);
             }
         }
-    } elsif ($command eq "set" or $command eq "edit" or $command eq "create") {
+    } elsif ($command eq "set" or $command eq "new") {
         &dprint("Entered 'set' loop\n");
         my $persist_bool;
 
@@ -483,10 +503,24 @@ exec()
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->set("cluster", $opt_cluster);
-                    &dprint("Setting clusterfor node name: $name\n");
+                    &dprint("Setting cluster for node name: $name\n");
                     $persist_bool = 1;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
+            }
+        }
+
+        if ($opt_name) {
+            if (uc($opt_name) eq "UNDEF") {
+                &eprint("You must define the name you wish to reference the node as!\n");
+            } else {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("name", $opt_name);
+                    &dprint("Setting name for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "NAME", $opt_name));
             }
         }
 
@@ -581,7 +615,7 @@ exec()
         }
 
         if ($persist_bool) {
-            if ($command ne "create" and $term->interactive()) {
+            if ($command ne "new" and $term->interactive()) {
                 print "Are you sure you want to make the following changes to ". scalar($objSet->get_list()) ." node(s):\n\n";
                 foreach my $change (@changes) {
                     print $change;

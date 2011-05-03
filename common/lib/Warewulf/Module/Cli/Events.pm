@@ -52,16 +52,21 @@ complete()
 }
 
 
-
 sub
-options()
+help()
 {
-    my %hash;
+    my $h;
 
-    $hash{"enable"} = "Enable the event handler (default)";
-    $hash{"disable"} = "Disable events from occurring (note they will still be queued)";
+    $h .= "SUMMARY:\n";
+    $h .= "     Control how/if events are handled.\n";
+    $h .= "\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     enable      Enable all events for this shell (default)\n";
+    $h .= "     disable     Disable the event handler\n";
+    $h .= "\n";
 
-    return(%hash);
+    return($h);
 }
 
 sub
@@ -70,33 +75,6 @@ summary()
     my $output;
 
     $output .= "Control how events are handled";
-
-    return($output);
-}
-
-sub
-description()
-{
-    my $output;
-
-    $output .= "Warewulf may have events configured to run automatically based on triggers\n";
-    $output .= "that are automatically added to Warewulf via subpackages.\n";
-
-    return($output);
-}
-
-
-
-
-
-sub
-help()
-{
-    my ($self) = @_;
-    my $output;
-
-    $output .= "        Globally enable or disable the event handler.\n";
-    $output .= "\n";
 
     return($output);
 }
