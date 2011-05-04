@@ -56,39 +56,55 @@ help()
     $h .= "SUMMARY:\n";
     $h .= "    The node command is used for editing the node configurations.\n";
     $h .= "\n";
-    $h .= "COMMANDS:\n";
+    $h .= "ACTIONS:\n";
     $h .= "\n";
-    $h .= "     new             Create a new node configuration with a given or list of names\n";
-    $h .= "     set             Modify an existing node configuration\n";
-    $h .= "     print           Print the node configuration\n";
-    $h .= "     delete          Remove a node configuration from the data store\n";
+    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
+    $h .= "     the action, the order of the options and the targets is not specific.\n";
+    $h .= "\n";
+    $h .= "         new             Create a new node configuration defined by the 'target'\n";
+    $h .= "         set             Modify an existing node configuration\n";
+    $h .= "         print           Print the node configuration\n";
+    $h .= "         delete          Remove a node configuration from the data store\n";
+    $h .= "\n";
+    $h .= "TARGETS:\n";
+    $h .= "\n";
+    $h .= "     The target is the specification for the node you wish to act on. By default\n";
+    $h .= "     the specification is the node's name and this can be changed by setting the\n";
+    $h .= "     --lookup option to something else (e.g. 'hwaddr' or 'groups').\n";
+    $h .= "\n";
+    $h .= "     All targets can be bracket expanded as follows:\n";
+    $h .= "\n";
+    $h .= "         n00[0-99]       inclusively all nodes from n0000 to n0099\n";
+    $h .= "         n00[00,10-99]   n0000 and inclusively all nodes from n0010 to n0099\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
-    $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
-    $h .= "     -p, --print     Define what fields are printed (':all' is a special tag)\n";
-    $h .= "     -b, --bootstrap What bootstrap should this node be used to boot on\n";
-    $h .= "     -v, --vnfs      Define the VNFS that this node should use\n";
-    $h .= "         --groupadd  Associate a group to this node\n";
-    $h .= "         --groupdel  Remove a group association from this node\n";
-    $h .= "         --fileadd   Associate a file to this node\n";
-    $h .= "         --filedel   Remove a file association from this node\n";
-    $h .= "         --netdev    Define a network device to set for this node\n";
-    $h .= "         --ipaddr    Set an IP address for the given network device\n";
-    $h .= "         --netmask   Set a subnet mask for the given network device\n";
-    $h .= "         --hwaddr    Set the device's hardware/MAC address\n";
-    $h .= "         --netdel    Remove a network device from the system\n";
-    $h .= "         --cluster   Define the cluster that this node is a part of\n";
-    $h .= "         --name      Rename this node\n";
+    $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
+    $h .= "     -p, --print         Define what fields are printed (':all' prints all)\n";
+    $h .= "     -b, --bootstrap     What bootstrap should this node be used to boot on\n";
+    $h .= "     -v, --vnfs          Define the VNFS that this node should use\n";
+    $h .= "         --groupadd      Associate a group to this node\n";
+    $h .= "         --groupdel      Remove a group association from this node\n";
+    $h .= "         --fileadd       Associate a file to this node\n";
+    $h .= "         --filedel       Remove a file association from this node\n";
+    $h .= "         --netdev        Define a network device to set for this node\n";
+    $h .= "         --ipaddr        Set an IP address for the given network device\n";
+    $h .= "         --netmask       Set a subnet mask for the given network device\n";
+    $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
+    $h .= "         --netdel        Remove a network device from the system\n";
+    $h .= "         --pool          Define the pool of nodes that this node is a part of\n";
+    $h .= "         --name          Rename this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
     $h .= "     Warewulf> node new n0000 --netdev=eth0 --hwaddr=xx:xx:xx:xx:xx:xx\n";
-    $h .= "     Warewulf> node set n0000 --ipaddr=10.0.0.10 --netmask=255.255.255.0\n";
-    $h .= "     Warewulf> node set n0000 --groupadd=mygroup,hello,bye --cluster=mycluster\n";
-    $h .= "     Warewulf> node set n0000 --groupdel=bye --fileadd=ifcfg-eth0\n";
-    $h .= "     Warewulf> node set xx:xx:xx:xx:xx:xx --lookup=hwaddr --bootstrap=2.6.30 --vnfs=sl6.vnfs\n";
-    $h .= "     Warewulf> node print mygroup hello group123 --lookup=groups\n";
+    $h .= "     Warewulf> node set n0000 --netdev=eth0 --ipaddr=10.0.0.10\n";
+    $h .= "     Warewulf> node set n0000 --netdev=eth0 --netmask=255.255.255.0\n";
+    $h .= "     Warewulf> node set --groupadd=mygroup,hello,bye --pool=mycluster n0000\n";
+    $h .= "     Warewulf> node set --groupdel=bye\n";
+    $h .= "     Warewulf> node set --fileadd=ifcfg-eth0 --vnfs=sl6.vnfs n00[00-99]\n";
+    $h .= "     Warewulf> node set xx:xx:xx:xx:xx:xx --lookup=hwaddr --bootstrap=2.6.30\n";
+    $h .= "     Warewulf> node print --lookup=groups --print=id,name,groups mygroup hello group123\n";
     $h .= "\n";
 
     return($h);
@@ -157,7 +173,7 @@ exec()
     my $opt_devremove;
     my $opt_bootstrap;
     my $opt_vnfs;
-    my $opt_cluster;
+    my $opt_pool;
     my $opt_name;
     my @opt_set;
     my @opt_add;
@@ -189,7 +205,7 @@ exec()
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
         'netmask=s'     => \$opt_netmask,
-        'cluster=s'     => \$opt_cluster,
+        'pool=s'        => \$opt_pool,
         'name=s'        => \$opt_name,
         'b|bootstrap=s' => \$opt_bootstrap,
         'v|vnfs=s'      => \$opt_vnfs,
@@ -243,108 +259,17 @@ exec()
         }
         $db->del_object($objSet);
     } elsif ($command eq "print") {
-        my @list;
-        foreach my $o ($objSet->get_list()) {
-            my $limit;
-            if ($opt_cluster and $o->get("cluster") eq $opt_cluster) {
-                push(@list, $o);
-                $limit = 1;
-            }
-            if ($opt_vnfs and $o->get("vnfs") eq $opt_vnfs) {
-                push(@list, $o);
-                $limit = 1;
-            }
-            if (! $limit) {
-                push(@list, $o);
-            }
-        }
-        if (@opt_print) {
-            @opt_print = split(",", join(",", @opt_print));
-
-            if (scalar(@opt_print) > 1) {
-                my $string = sprintf("%-20s " x (scalar @opt_print), map {uc($_);} @opt_print);
-                &nprint($string ."\n");
-                &nprint("=" x length($string) ."\n");
-            }
-
-            foreach my $o (@list) {
-                my @values;
-                foreach my $g (@opt_print) {
-                    if(ref($o->get($g)) =~ /^ARRAY/) {
-                        push(@values, join(",", sort $o->get($g)));
-                    } else {
-                        push(@values, $o->get($g) || "UNDEF");
-                    }
-                }
-                printf("%-20s " x (scalar @values) ."\n", @values);
-            }
-        } else {
-            &nprintf("%-10s %-15s %-15s %-15s %-15s %s\n",
-                "NAME",
-                "CLUSTER",
-                "GROUPS",
-                "VNFS",
-                "BOOTSTRAP",
-                "NETDEVS"
-            );
-            &nprintf("=" x 92 ."\n");
-            foreach my $o (@list) {
-                my ($name) = $o->get("name") || "UNDEF";
-                my ($cluster) = $o->get("cluster") || "UNDEF";
-                my ($bootstrap) = $o->get("bootstrap") || "UNDEF";
-                my $groups = join(",", sort $o->get("groups")) || "UNDEF";
-                my $vnfs = "UNDEF";
-                my @netdevs;
-                if (my $vnfsid = $o->get("vnfsid")) {
-                    my $vnfsObj = $db->get_objects("vnfs", "id", $o->get("vnfsid"))->get_object(0);
-                    $vnfs = $vnfsObj->get("name") || "UNDEF";
-                }
-                foreach my $n ($o->get("netdevs")) {
-                    if (ref($n) =~ /^Warewulf::DSO::/) {
-                        my $name = $n->get("name") || "unknown";
-                        my $ipaddr = $n->get("ipaddr") || "UNDEF";
-                        my $netmask = $n->get("netmask");
-                        my $hwaddr = $n->get("hwaddr");
-                        if ($netmask) {
-                            $netmask = "/$netmask";
-                        } else {
-                            $netmask = "";
-                        }
-                        if ($hwaddr) {
-                            $hwaddr = "($hwaddr)";
-                        } else {
-                            $hwaddr = "";
-                        }
-                        push(@netdevs, "$name$hwaddr:$ipaddr$netmask");
-                    }
-                }
-                printf("%-10s %-15s %-15s %-15s %-15s %s\n",
-                    $name,
-                    $cluster,
-                    $groups,
-                    $vnfs,
-                    $bootstrap,
-                    join(",", @netdevs)
-                );
-            }
-        }
-
-        return();
-
-
-
         if (scalar(@opt_print) > 0) {
             @opt_print = split(",", join(",", @opt_print));
         } else {
-            @opt_print = ("name", "cluster", "groups", "vnfs", "bootstrap");
+            @opt_print = ("name", "pool", "groups", "netdevs");
         }
         if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-            my $string = sprintf("%-20s " x (scalar @opt_print), map {uc($_);} @opt_print);
+            my $string = sprintf("%-15s " x (scalar @opt_print), map {uc($_);} @opt_print);
             &nprint($string ."\n");
             &nprint("=" x length($string) ."\n");
         }
         foreach my $o ($objSet->get_list()) {
-            my @values;
             if (@opt_print and $opt_print[0] eq ":all") {
                 my %hash = $o->get_hash();
                 my $id = $o->get("id");
@@ -355,31 +280,84 @@ exec()
                         my @scalars;
                         foreach my $e (@{$hash{$h}}) {
                             if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                push(@scalars, lc($1) ."(". ($e->get("name") || "undef") .")");
+                                my $type = lc($1);
+                                my @s;
+                                foreach my $l ($e->lookups()) {
+                                    if (my $string = $e->get($l)) {
+                                        push(@s, $l ."=". $string);
+                                    }
+                                }
+                                push(@scalars, $type ."(". join(",", @s) .")");
                             } else {
                                 push(@scalars, $e);
                             }
                         }
                         if (scalar(@scalars) > 0) {
                             printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
+                        } else {
+                            push(@values, "UNDEF");
                         }
                     } else {
                         if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                            printf("%8s: %-10s = %s\n", $id, $h, lc($1) ."(". ($e->get("name") || "undef") .")");
+                            my @scalars;
+                            my $type = lc($1);
+                            my @s;
+                            foreach my $l ($e->lookups()) {
+                                if (my $string = $e->get($l)) {
+                                    push(@s, $l ."=". $string);
+                                }
+                            }
+                            printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
                         } else {
                             printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
                         }
                     }
                 }
             } else {
-                foreach my $g (@opt_print) {
-                    if(ref($o->get($g)) =~ /^ARRAY/) {
-                        push(@values, join(",", sort $o->get($g)));
+                my @values;
+                foreach my $h (@opt_print) {
+                    if (my $val = $o->get($h)) {
+                        if(ref($val) =~ /^ARRAY/) {
+                            my @scalars;
+                            foreach my $e (@{$val}) {
+                                if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                    my $type = lc($1);
+                                    my @s;
+                                    foreach my $l ($e->lookups()) {
+                                        if (my $string = $e->get($l)) {
+                                            push(@s, $l ."=". $string);
+                                        }
+                                    }
+                                    push(@scalars, $type ."(". join(",", @s) .")");
+                                } else {
+                                    push(@scalars, $e);
+                                }
+                            }
+                            if (scalar(@scalars) > 0) {
+                                push(@values, join(",", sort @scalars));
+                            } else {
+                                push(@values, "UNDEF1");
+                            }
+                        } else {
+                            if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                my @scalars;
+                                my $type = lc($1);
+                                my @s;
+                                foreach my $l ($e->lookups()) {
+                                    if (my $string = $e->get($l)) {
+                                        push(@s, $l ."=". $string);
+                                    }
+                                }
+                                push(@values, $type ."(". join(",", @s) .")");
+                            } else {
+                                push(@values, $val);
+                            }
+                        }
                     } else {
-                        push(@values, $o->get($g) || "UNDEF");
+                        push(@values, "UNDEF2");
                     }
                 }
-                printf("%-20s " x (scalar @values) ."\n", @values);
+                printf("%-15s " x (scalar @values) ."\n", @values);
             }
         }
     } elsif ($command eq "set" or $command eq "new") {
@@ -490,23 +468,23 @@ exec()
             }
         }
 
-        if ($opt_cluster) {
-            if (uc($opt_cluster) eq "UNDEF") {
+        if ($opt_pool) {
+            if (uc($opt_pool) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("cluster");
-                    &dprint("Deleting cluster for node name: $name\n");
+                    $obj->del("pool");
+                    &dprint("Deleting pool for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", "UNDEF"));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "POOL", "UNDEF"));
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("cluster", $opt_cluster);
-                    &dprint("Setting cluster for node name: $name\n");
+                    $obj->set("pool", $opt_pool);
+                    &dprint("Setting pool for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "POOL", $opt_pool));
             }
         }
 
