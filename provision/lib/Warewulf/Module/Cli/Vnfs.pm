@@ -52,26 +52,36 @@ init()
 
 
 sub
-options()
+help()
 {
-    my %hash;
+    my $h;
 
-    $hash{"-i, --import"} = "Import a VNFS image into the Warewulf datastore";
-    $hash{"-e, --export"} = "Export a VNFS image to the local file system";
-    $hash{"    --DELETE"} = "Delete a VNFS from the datstore";
+    $h .= "SUMMARY:\n";
+    $h .= "     This interface allows you to manage your VNFS images within the Warewulf\n";
+    $h .= "     data store.\n";
+    $h .= "\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     import          Import a VNFS image into Warewulf\n";
+    $h .= "     export          Export a VNFS image to the local file system\n";
+    $h .= "     delete          Delete a VNFS image from Warewulf\n";
+    $h .= "     print           Show all of the currently imported VNFS images\n";
+    $h .= "\n";
+    $h .= "\n";
+    $h .= "OPTIONS:\n";
+    $h .= "\n";
+    $h .= "     -n, --name      When importing a VNFS use this name instead of the file name\n";
+    $h .= "\n";
+    $h .= "EXAMPLES:\n";
+    $h .= "\n";
+    $h .= "     Warewulf> vnfs import /path/to/name.vnfs --name=vnfs1\n";
+    $h .= "     Warewulf> vnfs print\n";
+    $h .= "\n";
 
-    return(%hash);
+    return($h);
 }
 
-sub
-description()
-{
-    my $output;
 
-    $output .= "VNFS Management interface.";
-
-    return($output);
-}
 
 sub
 summary()
@@ -99,88 +109,103 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $opt_import;
-    my $opt_export;
-    my $opt_obj_delete;
+    my $opt_name;
+    my $command;
 
     @ARGV = ();
     push(@ARGV, @_);
 
     GetOptions(
-        'i|import=s'    => \$opt_import,
-        'e|export=s'    => \$opt_export,
-        'DELETE'        => \$opt_obj_delete,
+        'n|name=s'      => \$opt_name,
     );
+
+    if (scalar(@ARGV) > 0) {
+        $command = shift(@ARGV);
+        &dprint("Running command: $command\n");
+    } else {
+        &dprint("Returning with nothing to do\n");
+        return();
+    }
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
         return();
     }
 
-    if ($opt_import and $opt_import =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-        my $path = $1;
-        if (-f $path) {
-            my $name;
-            if (exists($ARGV[0])) {
-                $name = $ARGV[0];
-            } else {
-                $name = basename($path);
-            }
-            my $digest = digest_file_hex($path, "MD5");
-            $objectSet = $db->get_objects($entity_type, "name", $name);
-            my @objList = $objectSet->get_list();
-            if (scalar(@objList) == 1) {
-                if ($term->interactive()) {
-                    print "Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("No import performed\n");
-                        return();
+    if ($command eq "import") {
+        my $import = shift(@ARGV);
+        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+            my $path = $1;
+            if (-f $path) {
+                my $name;
+                if (defined($opt_name)) {
+                    $name = $opt_name;
+                } else {
+                    $name = basename($path);
+                }
+                my $digest = digest_file_hex($path, "MD5");
+                $objectSet = $db->get_objects($entity_type, "name", $name);
+                my @objList = $objectSet->get_list();
+                if (scalar(@objList) == 1) {
+                    if ($term->interactive()) {
+                        print "Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n";
+                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                        if ($yesno ne "y" and $yesno ne "yes" ) {
+                            &nprint("No import performed\n");
+                            return();
+                        }
                     }
+                    my $obj = $objList[0];
+                    $obj->set("checksum", $digest);
+                    my $binstore = $db->binstore($obj->get("id"));
+                    my $size;
+                    my $buffer;
+                    open(SCRIPT, $path);
+                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
+                        &dprint("Chunked $length bytes of $path\n");
+                        if (! $binstore->put_chunk($buffer)) {
+                            &eprint("VNFS import failure!\n");
+                            return();
+                        }
+                        $size += $length;
+                    }
+                    close SCRIPT;
+                    $obj->set("size", $size);
+                    $db->persist($obj);
+                    &nprint("Imported $name into existing object\n");
+                } elsif (scalar(@objList) == 0) {
+                    &nprint("Creating new Vnfs Object: $name\n");
+                    my $obj = Warewulf::DSOFactory->new("vnfs");
+                    $db->persist($obj);
+                    $obj->set("name", $name);
+                    $obj->set("checksum", digest_file_hex($path, "MD5"));
+                    my $binstore = $db->binstore($obj->get("id"));
+                    my $size;
+                    my $buffer;
+                    &dprint("Persisting new Vnfs Object\n");
+                    open(SCRIPT, $path);
+                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
+                        &dprint("Chunked $length bytes of $path\n");
+                        if (! $binstore->put_chunk($buffer)) {
+                            $db->del_object($obj);
+                            &eprint("VNFS import failure!\n");
+                            return();
+                        }
+                        $size += $length;
+                    }
+                    close SCRIPT;
+                    $obj->set("size", $size);
+                    $db->persist($obj);
+                    &nprint("Imported $name into a new object\n");
+                } else {
+                    &wprint("Import into one object at a time please!\n");
                 }
-                my $obj = $objList[0];
-                $obj->set("checksum", $digest);
-                my $binstore = $db->binstore($obj->get("id"));
-                my $size;
-                my $buffer;
-                open(SCRIPT, $path);
-                while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
-                    &dprint("Chunked $length bytes of $path\n");
-                    $binstore->put_chunk($buffer);
-                    $size += $length;
-                }
-                close SCRIPT;
-                $obj->set("size", $size);
-                $db->persist($obj);
-                &nprint("Imported $name into existing object\n");
-            } elsif (scalar(@objList) == 0) {
-                &nprint("Creating new Vnfs Object: $name\n");
-                my $obj = Warewulf::DSOFactory->new("vnfs");
-                $db->persist($obj);
-                $obj->set("name", $name);
-                $obj->set("checksum", digest_file_hex($path, "MD5"));
-                my $binstore = $db->binstore($obj->get("id"));
-                my $size;
-                my $buffer;
-                &dprint("Persisting new Vnfs Object\n");
-                open(SCRIPT, $path);
-                while(my $length = sysread(SCRIPT, $buffer, 15*1024*1024)) {
-                    &dprint("Chunked $length bytes of $path\n");
-                    $binstore->put_chunk($buffer);
-                    $size += $length;
-                }
-                close SCRIPT;
-                $obj->set("size", $size);
-                $db->persist($obj);
-                &nprint("Imported $name into a new object\n");
             } else {
-                &wprint("Import into one object at a time please!\n");
+                &eprint("Could not import '$path' (file not found)\n");
             }
-        } else {
-            &eprint("Could not import '$path' (file not found)\n");
         }
 
-    } elsif ($opt_export) {
+    } elsif ($command eq "export") {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
 
@@ -238,19 +263,19 @@ exec()
             &nprint("Exported: $opt_export\n");
         }
 
-    } else {
+    } elsif ($command eq "print" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         &nprint("#NODES    SIZE (M)    VNFS NAME\n");
         foreach my $obj (@objList) {
-            my @nodeObjects = $db->get_objects("node", undef, $obj->get("name"))->get_list();
+            my @nodeObjects = $db->get_objects("node", "vnfsid", $obj->get("id"))->get_list();
             printf("%-5s     %-8.1f    %s\n",
                 scalar(@nodeObjects),
                 $obj->get("size") ? $obj->get("size")/(1024*1024) : "0",
                 $obj->get("name") || "UNDEF");
         }
 
-        if ($opt_obj_delete) {
+        if ($command eq "delete") {
 
             if ($term->interactive()) {
                 print "\nAre you sure you wish to make the delete the above Vnfs image?\n\n";
@@ -265,7 +290,6 @@ exec()
 
             &nprint("Deleted $return_count objects\n");
         }
-
     }
 
 
