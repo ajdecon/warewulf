@@ -591,9 +591,10 @@ put_chunk()
 
     if (! $self->{"PUT_STH"}->execute($buffer)) {
         &eprint("put_chunk() failed with error: ". $self->{"PUT_STH"}->errstr ."\n");
+        return();
+    } else {
+        return(1);
     }
-
-    return;
 }
 
 
