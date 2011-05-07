@@ -19,7 +19,6 @@ use Warewulf::Util;
 use Warewulf::DSOFactory;
 use Getopt::Long;
 use File::Basename;
-use Text::ParseWords;
 use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
@@ -99,8 +98,15 @@ complete()
 {
     my ($self, $text) = @_;
     my $db = $self->{"DB"};
+    my @ret;
 
-    return($db->get_lookups("vnfs"));
+    if ($text =~ /^\S+\s+\S+\s+/) {
+        @ret = $db->get_lookups("vnfs");
+    } else {
+        @ret = ("print", "import", "export", "delete");
+    }
+
+    return(@ret);
 }
 
 sub
