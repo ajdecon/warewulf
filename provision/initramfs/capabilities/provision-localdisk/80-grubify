@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+if [ -n "$WWDEVDISK" ]; then
+    WWDEVDISK=`egrep ' .da' /proc/partitions | awk '{print $4}' | head -n 1`
+fi
+
+KERNELVERSION=`ls $NEWROOT/boot/vmlinuz-* | tail -n 1 | sed -e 's@/boot/vmlinuz-@@'`
+
+if [ -f "$NEWROOT/etc/redhat-release" ]; then
+    OSVERSION=`sed -e 's@ (.*@@' $NEWROOT/etc/redhat-release`
+elif [ -f "$NEWROOT/etc/release" ]; then
+    OSVERSION=`cat $NEWROOT/etc/redhat-release | head -n 1`
+else
+    OSVERSION="Warewulf"
+fi
+
+cat <<EOF > $NEWROOT/grub/device.map
+# This file was written by Warewulf bootstrap (capability provision-localdisk)
+(hd0)     /dev/$WWDEVDISK
+EOF
+
+cat <<EOF > $NEWROOT/grub/grub.conf
+# This file was written by Warewulf bootstrap (capability provision-localdisk)
+default 0
+timeout 10
+root (hd0,0)
+
+title $OSVERSION - $KERNELVERSION
+    kernel /boot/vmlinuz-$KERNELVERSION ro root=/dev/$WWDEVDISK
+    initrd /boot/initrd-$KERNELVERSION
+EOF
+
+chroot $NEWROOT grub-install /dev/$WWDEVDISK
