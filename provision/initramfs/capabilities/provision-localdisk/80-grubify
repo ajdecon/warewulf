@@ -8,7 +8,7 @@
 #
 
 
-if [ -n "$WWDEVDISK" ]; then
+if [ -z "$WWDEVDISK" ]; then
     WWDEVDISK=`egrep ' .da' /proc/partitions | awk '{print $4}' | head -n 1`
 fi
 

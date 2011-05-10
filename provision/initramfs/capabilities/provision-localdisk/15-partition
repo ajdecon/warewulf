@@ -8,18 +8,28 @@
 #
 
 
-if [ -n "$WWDEVDISK" ]; then
+if [ -z "$WWDEVDISK" ]; then
     WWDEVDISK=`egrep ' .da' /proc/partitions | awk '{print $4}' | head -n 1`
 fi
 
-if [ -n "$WWROOTSIZE" ]; then
+BLOCKS=`cat /sys/class/block/$WWDEVDISK/size`
+SIZE=`expr $BLOCKS / 2048`
+
+if [ -z "$WWROOTSIZE" ]; then
     WWROOTSIZE=4096
 fi
 
-if [ -n "$WWSWAPSIZE" ]; then
+if [ -z "$WWSWAPSIZE" ]; then
     WWSWAPSIZE=2048
 fi
 
+TOTAL_SIZE=`expr $WWROOTSIZE + $WWSWAPSIZE + 64`
+
+if [ $TOTAL_SIZE -gt $SIZE ]; then
+    WWSWAPSIZE=`expr $SIZE / 8`
+    WWROOTSIZE=`expr $SIZE - 64 - $WWSWAPSIZE`
+
+fi
 
 cat <<EOF | /sbin/fdisk /dev/$WWDEVDISK || exit 255
 n

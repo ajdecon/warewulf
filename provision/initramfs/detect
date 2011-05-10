@@ -8,7 +8,7 @@
 #
 
 KVERSION=`uname -r`
-AUTOLOAD="uhci-hcd ohci-hcd ehci-hcd whci-hcd isp116x-hcd isp1362-hcd xhci-hcd sl811-hcd"
+AUTOLOAD="uhci-hcd ohci-hcd ehci-hcd whci-hcd isp116x-hcd isp1362-hcd xhci-hcd sl811-hcd sd_mod"
 
 if [ ! -f /lib/modules/$KVERSION/modules.pcimap ]; then
     echo "PCI map for this kernel is not available!" 1>&2

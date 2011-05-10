@@ -8,17 +8,11 @@
 #
 
 
-if [ -n "$WWDEVDISK" ]; then
+if [ -z "$WWDEVDISK" ]; then
     WWDEVDISK=`egrep ' .da' /proc/partitions | awk '{print $4}' | head -n 1`
 fi
 
-if [ -n "$WWFILESYSTEM" ]; then
-    WWFILESYSTEM=ext2
-fi
-
-
-if [ -x "/sbin/mkfs.$WWFILESYSTEM" ]; then
-    if ! /sbin/mkfs.$WWFILESYSTEM /dev/$WWDEVDISK; then
-        exit 255
-    fi
+if [ -z "$WWDEVDISK" ]; then
+    echo "ERROR: Could not locate the hard drive to partition to!"
+    exit 255
 fi

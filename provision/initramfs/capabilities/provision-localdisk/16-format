@@ -17,7 +17,11 @@ if [ -z "$WWFILESYSTEM" ]; then
 fi
 
 
-mkdir $NEWROOT
-if ! mount -t $WWFILESYSTEM /dev/${WWDEVDISK}1 $NEWROOT; then
+if [ -x "/sbin/mkfs.$WWFILESYSTEM" ]; then
+    if ! /sbin/mkfs.$WWFILESYSTEM /dev/${WWDEVDISK}1; then
+        exit 255
+    fi
+fi
+if ! /sbin/mkswap /dev/${WWDEVDISK}2; then
     exit 255
 fi

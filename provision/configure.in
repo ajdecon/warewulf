@@ -76,6 +76,7 @@ AC_OUTPUT(Makefile
    initramfs/capabilities/transport-http/Makefile
    initramfs/capabilities/provision-adhoc/Makefile
    initramfs/capabilities/provision-kernelmodules/Makefile
+   initramfs/capabilities/provision-localdisk/Makefile
    initramfs/capabilities/provision-tmpfs/Makefile
    initramfs/capabilities/provision-unionfs/Makefile
    modules/Makefile
