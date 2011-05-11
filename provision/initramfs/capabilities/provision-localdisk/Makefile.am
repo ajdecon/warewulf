@@ -1,4 +1,4 @@
-METHODSCRIPTS = 10-sanitycheck 15-partition 16-format 20-mount 30-getvnfs 50-config 70-devtree 80-grubify 90-files
+METHODSCRIPTS = 10-sanitycheck 15-partition 16-format 20-mount 30-getvnfs 50-config 70-devtree 80-dracut 80-grubify 90-files
 INITSCRIPT = init
 
 PROVISION_NAME = localdisk

@@ -8,6 +8,18 @@
 #
 
 
-cd $NEWROOT
+if [ -z "$WWDEVDISK" ]; then
+    WWDEVDISK=`egrep ' .da' /proc/partitions | awk '{print $4}' | head -n 1`
+fi
 
-touch etc/fstab
+if [ -z "$WWFILESYSTEM" ]; then
+    WWFILESYSTEM=ext2
+fi
+
+
+cat <<EOF > $NEWROOT/etc/fstab
+/dev/${WWDEVDISK}1 / $WWFILESYSTEM defaults 1 1
+/dev/${WWDEVDISK}2 none swap defaults 0 0
+EOF
+
+cp /tmp/ifcfg-eth* $NEWROOT/etc/sysconfig/network-scripts/ 2>/dev/null

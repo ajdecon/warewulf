@@ -65,6 +65,12 @@ ifup() {
             RETVAL=$?
             msg_gray "$WWIP/$WWNETMASK"
             wwsuccess
+            echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
+            echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
+            echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
+            echo "IPADDR=$WWIP" >> /tmp/ifcfg-$DEVICE
+            echo "NETMASK=$WWNETMASK" >> /tmp/ifcfg-$DEVICE
+            echo "GATEWAY=$WWGW" >> /tmp/ifcfg-$DEVICE
         fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
@@ -76,6 +82,12 @@ ifup() {
                     . /etc/network.conf
                     msg_gray " DHCP/$IPADDR"
                     wwsuccess
+                    echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
+                    echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
+                    echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
+                    echo "IPADDR=$IPADDR" >> /tmp/ifcfg-$DEVICE
+                    echo "NETMASK=$NETMASK" >> /tmp/ifcfg-$DEVICE
+                    echo "GATEWAY=$GATEWAY" >> /tmp/ifcfg-$DEVICE
                     return 0
                 fi
                 msg_gray "."
@@ -167,9 +179,6 @@ while true; do
     fi
 
     if [ -x "/warewulf/init.$WWPROVISIONMETHOD" ]; then
-        msg_white "Calling init...\n"
-        sleep 2
-        clear
         exec /warewulf/init.$WWPROVISIONMETHOD
     fi
 

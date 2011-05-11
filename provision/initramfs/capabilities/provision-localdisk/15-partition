@@ -31,7 +31,7 @@ if [ $TOTAL_SIZE -gt $SIZE ]; then
 
 fi
 
-cat <<EOF | /sbin/fdisk /dev/$WWDEVDISK || exit 255
+cat <<EOF | /sbin/fdisk /dev/$WWDEVDISK >/dev/null || exit 255
 n
 p
 1

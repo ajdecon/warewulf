@@ -7,5 +7,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-
+echo "Calling /sbin/init"
+sleep 2
+clear
 exec switch_root $NEWROOT /sbin/init

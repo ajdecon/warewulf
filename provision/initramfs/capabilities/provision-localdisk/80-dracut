@@ -8,9 +8,8 @@
 #
 
 
-echo
-echo "Rebooting into new OS"
-echo
-umount /newroot
-sleep 5
-reboot -f
+KERNELVERSION=`ls $NEWROOT/boot/vmlinuz-* | tail -n 1 | sed -e 's@.*/boot/vmlinuz-@@'`
+
+chroot $NEWROOT /sbin/dracut --force $KERNELVERSION
+
+

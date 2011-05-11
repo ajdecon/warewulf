@@ -18,10 +18,10 @@ fi
 
 
 if [ -x "/sbin/mkfs.$WWFILESYSTEM" ]; then
-    if ! /sbin/mkfs.$WWFILESYSTEM /dev/${WWDEVDISK}1; then
+    if ! /sbin/mkfs.$WWFILESYSTEM /dev/${WWDEVDISK}1 >/dev/null ; then
         exit 255
     fi
 fi
-if ! /sbin/mkswap /dev/${WWDEVDISK}2; then
+if ! /sbin/mkswap /dev/${WWDEVDISK}2 >/dev/null ; then
     exit 255
 fi
