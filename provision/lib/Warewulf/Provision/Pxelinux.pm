@@ -90,6 +90,15 @@ setup()
                 &eprint("Could not locate Warewulf's internal gpxelinux.0! Go find one!\n");
             }
         }
+        if (! -f "$tftpdir/warewulf/chain.c32") {
+            if (-f "$datadir/warewulf/chain.c32") {
+                &iprint("Copying chain.c32 to the appropriate directory\n");
+                mkpath("$tftpdir/warewulf/");
+                system("cp $datadir/warewulf/chain.c32 $tftpdir/warewulf/chain.c32");
+            } else {
+                &eprint("Could not locate Warewulf's internal chain.c32! Go find one!\n");
+            }
+        }
     } else {
         &wprint("Not integrating with TFTP, no TFTP root directory was found.\n");
     }
@@ -151,7 +160,15 @@ update()
                         my $config = "01-". $hwaddr;
                         &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
                         open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
-                        print PXELINUX "DEFAULT bootstrap\n";
+                        if ($nodeobj->get("bootlocal")) {
+                            print PXELINUX "DEFAULT bootlocal\n";
+                        } else {
+                            print PXELINUX "DEFAULT bootstrap\n";
+                        }
+                        print PXELINUX "LABEL bootlocal\n";
+                        print PXELINUX "KERNEL chain.c32\n";
+                        print PXELINUX "APPEND hd0\n";
+
                         print PXELINUX "LABEL bootstrap\n";
                         print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrap\n";
                         print PXELINUX "KERNEL bootstrap/$bootstrap/kernel\n";
