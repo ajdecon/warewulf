@@ -87,15 +87,12 @@ help()
     $h .= "         --groups        Define the list of groups this node should be part of\n";
     $h .= "         --groupadd      Associate a group to this node\n";
     $h .= "         --groupdel      Remove a group association from this node\n";
-    $h .= "         --files         Define the files that should be associated to this node\n";
-    $h .= "         --fileadd       Associate a file to this node\n";
-    $h .= "         --filedel       Remove a file association from this node\n";
     $h .= "         --netdev        Define a network device to set for this node\n";
     $h .= "         --ipaddr        Set an IP address for the given network device\n";
     $h .= "         --netmask       Set a subnet mask for the given network device\n";
     $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
     $h .= "         --netdel        Remove a network device from the system\n";
-    $h .= "         --pool          Define the pool of nodes that this node is a part of\n";
+    $h .= "         --cluster          Define the cluster of nodes that this node is a part of\n";
     $h .= "         --name          Rename this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
@@ -103,9 +100,8 @@ help()
     $h .= "     Warewulf> node new n0000 --netdev=eth0 --hwaddr=xx:xx:xx:xx:xx:xx\n";
     $h .= "     Warewulf> node set n0000 --netdev=eth0 --ipaddr=10.0.0.10\n";
     $h .= "     Warewulf> node set n0000 --netdev=eth0 --netmask=255.255.255.0\n";
-    $h .= "     Warewulf> node set --groupadd=mygroup,hello,bye --pool=mycluster n0000\n";
+    $h .= "     Warewulf> node set --groupadd=mygroup,hello,bye --cluster=mycluster n0000\n";
     $h .= "     Warewulf> node set --groupdel=bye --set=vnfs=sl6.vnfs\n";
-    $h .= "     Warewulf> node set --fileadd=ifcfg-eth0 n00[00-99]\n";
     $h .= "     Warewulf> node set xx:xx:xx:xx:xx:xx --lookup=hwaddr\n";
     $h .= "     Warewulf> node print --lookup=groups --print=id,name,groups mygroup hello group123\n";
     $h .= "\n";
@@ -174,9 +170,7 @@ exec()
     my $opt_netmask;
     my $opt_netdev;
     my $opt_devremove;
-    my $opt_bootstrap;
-    my $opt_vnfs;
-    my $opt_pool;
+    my $opt_cluster;
     my $opt_name;
     my @opt_set;
     my @opt_add;
@@ -185,9 +179,6 @@ exec()
     my @opt_groups;
     my @opt_groupadd;
     my @opt_groupdel;
-    my @opt_files;
-    my @opt_fileadd;
-    my @opt_filedel;
     my $return_count;
     my $objSet;
     my @changes;
@@ -204,15 +195,12 @@ exec()
         'groups=s'      => \@opt_groups,
         'groupadd=s'    => \@opt_groupadd,
         'groupdel=s'    => \@opt_groupdel,
-        'files=s'       => \@opt_files,
-        'fileadd=s'     => \@opt_fileadd,
-        'filedel=s'     => \@opt_filedel,
         'netdev=s'      => \$opt_netdev,
         'remove'        => \$opt_devremove,
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
         'netmask=s'     => \$opt_netmask,
-        'pool=s'        => \$opt_pool,
+        'cluster=s'     => \$opt_cluster,
         'name=s'        => \$opt_name,
         'l|lookup=s'    => \$opt_lookup,
 
@@ -267,7 +255,7 @@ exec()
         if (scalar(@opt_print) > 0) {
             @opt_print = split(",", join(",", @opt_print));
         } else {
-            @opt_print = ("name", "pool", "groups", "hwaddr");
+            @opt_print = ("name", "cluster", "groups", "hwaddr");
         }
         if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
             my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
@@ -366,7 +354,7 @@ exec()
             }
         }
     } elsif ($command eq "set" or $command eq "new") {
-        &dprint("Entered 'set' loop\n");
+        &dprint("Entered 'set' codeblock\n");
         my $persist_bool;
 
         if ($opt_netdev) {
@@ -428,68 +416,23 @@ exec()
             }
         }
 
-#        if ($opt_bootstrap) {
-#            if (uc($opt_bootstrap) eq "UNDEF") {
-#                foreach my $obj ($objSet->get_list()) {
-#                    my $name = $obj->get("name") || "UNDEF";
-#                    $obj->del("bootstrap");
-#                    &dprint("Deleting bootstrap for node name: $name\n");
-#                    $persist_bool = 1;
-#                }
-#                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
-#            } else {
-#                foreach my $obj ($objSet->get_list()) {
-#                    my $name = $obj->get("name") || "UNDEF";
-#                    $obj->set("bootstrap", $opt_bootstrap);
-#                    &dprint("Setting bootstrap for node name: $name\n");
-#                    $persist_bool = 1;
-#                }
-#                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
-#            }
-#        }
-#
-#        if ($opt_vnfs) {
-#            if (uc($opt_vnfs) eq "UNDEF") {
-#                foreach my $obj ($objSet->get_list()) {
-#                    my $name = $obj->get("name") || "UNDEF";
-#                    $obj->del("vnfsid");
-#                    &dprint("Deleting vnfsid for node name: $name\n");
-#                    $persist_bool = 1;
-#                }
-#                push(@changes, sprintf("   UNSET: %-20s\n", "VNFS"));
-#            } else {
-#                my $vnfsObj = $db->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
-#                if ($vnfsObj and my $vnfsid = $vnfsObj->get("id")) {
-#                    foreach my $obj ($objSet->get_list()) {
-#                        my $name = $obj->get("name") || "UNDEF";
-#                        $obj->set("vnfsid", $vnfsid);
-#                        &dprint("Setting vnfsid for node name: $name\n");
-#                        $persist_bool = 1;
-#                    }
-#                    push(@changes, sprintf("     SET: %-20s = %s\n", "VNFS", $opt_vnfs));
-#                } else {
-#                    &eprint("No VNFS named: $opt_vnfs\n");
-#                }
-#            }
-#        }
-
-        if ($opt_pool) {
-            if (uc($opt_pool) eq "UNDEF") {
+        if ($opt_cluster) {
+            if (uc($opt_cluster) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("pool");
-                    &dprint("Deleting pool for node name: $name\n");
+                    $obj->del("cluster");
+                    &dprint("Deleting cluster for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "POOL", "UNDEF"));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", "UNDEF"));
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("pool", $opt_pool);
-                    &dprint("Setting pool for node name: $name\n");
+                    $obj->set("cluster", $opt_cluster);
+                    &dprint("Setting cluster for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "POOL", $opt_pool));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
             }
         }
 
@@ -537,38 +480,6 @@ exec()
                 $persist_bool = 1;
             }
         }
-
-        if (@opt_files) {
-            foreach my $obj ($objSet->get_list()) {
-                my $name = $obj->get("name") || "UNDEF";
-                $obj->set("files", split(",", join(",", @opt_files)));
-                &dprint("Setting files for node name: $name\n");
-                $persist_bool = 1;
-            }
-            push(@changes, sprintf("     SET: %-20s = %s\n", "FILES", join(",", @opt_files)));
-        }
-
-        if (@opt_fileadd) {
-            foreach my $opt (@opt_fileadd) {
-                &dprint("Adding file $opt to nodes\n");
-                foreach my $obj ($objSet->get_list()) {
-                    $obj->add("files", split(",", $opt));
-                }
-                push(@changes, sprintf("     ADD: %-20s = %s\n", "FILES", $opt));
-                $persist_bool = 1;
-            }
-        }
-        if (@opt_filedel) {
-            foreach my $opt (@opt_filedel) {
-                &dprint("Deleting file $opt from nodes\n");
-                foreach my $obj ($objSet->get_list()) {
-                    $obj->del("files", split(",", $opt));
-                }
-                push(@changes, sprintf("     DEL: %-20s = %s\n", "FILES", $opt));
-                $persist_bool = 1;
-            }
-        }
-
 
         if (@opt_set) {
             foreach my $setstring (@opt_set) {
