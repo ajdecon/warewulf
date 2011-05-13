@@ -8,4 +8,4 @@
 #
 
 
-cp -rap /dev/* $NEWROOT/dev/
+cp /tmp/ifcfg-eth* $NEWROOT/etc/sysconfig/network-scripts/ 2>/dev/null

@@ -178,8 +178,11 @@ while true; do
         /bin/sh
     fi
 
-    if [ -x "/warewulf/init.$WWPROVISIONMETHOD" ]; then
-        exec /warewulf/init.$WWPROVISIONMETHOD
+    if [ -x "$NEWROOT/sbin/init" ]; then
+        echo "Calling /sbin/init"
+        sleep 2
+        clear
+        exec switch_root $NEWROOT /sbin/init
     fi
 
     echo

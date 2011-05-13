@@ -75,10 +75,10 @@ AC_OUTPUT(Makefile
    initramfs/capabilities/Makefile
    initramfs/capabilities/transport-http/Makefile
    initramfs/capabilities/provision-adhoc/Makefile
-   initramfs/capabilities/provision-kernelmodules/Makefile
-   initramfs/capabilities/provision-localdisk/Makefile
-   initramfs/capabilities/provision-tmpfs/Makefile
+   initramfs/capabilities/provision-files/Makefile
+   initramfs/capabilities/provision-filesystems/Makefile
    initramfs/capabilities/provision-unionfs/Makefile
+   initramfs/capabilities/provision-vnfs/Makefile
    modules/Makefile
    share/Makefile
    lib/Makefile
@@ -90,4 +90,3 @@ AC_OUTPUT(Makefile
    lib/Warewulf/Provision/Makefile
    lib/Warewulf/Provision/Dhcp/Makefile
 )
-

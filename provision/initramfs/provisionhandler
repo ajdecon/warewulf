@@ -11,19 +11,10 @@
 . /etc/functions
 
 
-DIRNAME=`dirname $0`
-PROG=`basename $0`
-
-
-if [ -z "$WWPROVISIONMETHOD" ]; then
-    echo "ERROR: Provision method undefined!"
-    exit;
-fi
-
 if [ -d "/warewulf/provision/" ]; then
-    for i in `find /warewulf/provision/ -type f -name "*.all" -o -name "*.$WWPROVISIONMETHOD" | sort -n`; do
+    for i in `find /warewulf/provision/ -type f | sort -n`; do
         if [ -x "$i" -a -f "$i" ]; then
-            NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)\..*/\1/'`
+            NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)/\1/'`
             msg_white " * $NAME "
             sh $i
             RETVAL=$?

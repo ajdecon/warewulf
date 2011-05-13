@@ -1,5 +1,4 @@
-METHODSCRIPTS = 05-adhoc-pre 95-adhoc-post
-
+METHODSCRIPTS = 30-getvnfs 50-config 70-devtree 70-kernelmodules
 
 rootfs:
 	rm -rf rootfs
@@ -14,11 +13,11 @@ http.cpio: rootfs
 
 install: http.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-adhoc
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-vnfs
 
 clean:
 	rm -rf _work
 	rm -f unionfs
 
 
-EXTRA_DIST = $(METHODSCRIPTS)
+EXTRA_DIST = $(METHODSCRIPTS) $(INITSCRIPT)

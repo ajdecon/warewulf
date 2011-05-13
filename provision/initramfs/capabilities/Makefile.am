@@ -1,1 +1,1 @@
-SUBDIRS = provision-adhoc provision-tmpfs provision-kernelmodules provision-localdisk provision-unionfs transport-http
+SUBDIRS = provision-adhoc provision-files provision-filesystems provision-unionfs provision-vnfs transport-http

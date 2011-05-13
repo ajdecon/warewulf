@@ -1,4 +1,4 @@
-METHODSCRIPTS = 05-adhoc-pre 95-adhoc-post
+METHODSCRIPTS = 20-filesystems 80-mkbootable 99-reboot
 
 
 rootfs:
@@ -14,11 +14,11 @@ http.cpio: rootfs
 
 install: http.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-adhoc
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-filesystems
 
 clean:
 	rm -rf _work
 	rm -f unionfs
 
 
-EXTRA_DIST = $(METHODSCRIPTS)
+EXTRA_DIST = $(METHODSCRIPTS) $(INITSCRIPT)

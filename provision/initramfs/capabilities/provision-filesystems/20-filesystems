@@ -1,0 +1,126 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+if [ -z "$WWDISKLAYOUT" ]; then
+    WWDISKLAYOUT="none:/:tmpfs:512"
+#    WWDISKLAYOUT="sda1:/:ext2:768,sda2:none:swap:128,sda3:/scratch:ext2:"
+fi
+
+if [ "x$WWDISKPARTITION" == "xyes" ]; then
+    WWDISKFORMAT="yes"
+
+    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
+        DEV=`echo $string | awk -F : '{print $1}'`
+        DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+    done | sort | uniq | while read dev; do
+        dd if=/dev/zero of=/dev/$dev count=1 bs=512
+    done
+
+    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
+        DEV=`echo $string | awk -F : '{print $1}'`
+        MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
+        FILESYSTEM=`echo $string | awk -F : '{print $3}'`
+        SIZE=`echo $string | awk -F : '{print $4}'`
+        PARTNUM=`echo $DEV | sed -e 's@...\([0-9]\)@\1@'`
+        DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+        if [ -n "$SIZE" ]; then
+            SIZE="+${SIZE}M";
+        fi
+
+        case $FILESYSTEM in
+            ext2)
+#                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n"
+                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+            ;;
+            swap)
+#                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n"
+                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+            ;;
+        esac
+    done
+
+fi
+
+if [ "x$WWDISKFORMAT" == "xyes" ]; then
+    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
+        DEV=`echo $string | awk -F : '{print $1}'`
+        MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
+        FILESYSTEM=`echo $string | awk -F : '{print $3}'`
+        SIZE=`echo $string | awk -F : '{print $4}'`
+        if [ -n "$SIZE" ]; then
+            SIZE="size=${SIZE}M";
+        fi
+
+        case $FILESYSTEM in
+            ext2)
+                /sbin/mkfs.$FILESYSTEM /dev/$DEV
+            ;;
+            swap)
+                /sbin/mkswap /dev/$DEV
+            ;;
+            tmpfs)
+                /bin/true
+            ;;
+            *)
+                echo "UNKNOWN FILESYSTEM: '$FILESYSTEM'"
+            ;;
+        esac
+    done
+fi
+
+
+
+mkdir -p $NEWROOT
+> /tmp/filesystems
+
+for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
+    DEV=`echo $string | awk -F : '{print $1}'`
+    MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
+    FILESYSTEM=`echo $string | awk -F : '{print $3}'`
+    SIZE=`echo $string | awk -F : '{print $4}'`
+    DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+    if [ -n "$SIZE" ]; then
+        SIZE="size=${SIZE}M";
+    fi
+
+    if [ "x$MOUNTPOINT" == "x/" -a "x$FILESYSTEM" != "xtmpfs" ]; then
+        echo "$DEV $DISK" > /tmp/stateful-root
+    fi
+
+    case $FILESYSTEM in
+        ext2)
+            echo "$MOUNTPOINT $DEV $FILESYSTEM" >> /tmp/filesystems
+            mkdir -p $NEWROOT/$MOUNTPOINT
+        ;;
+        swap)
+            echo "none $DEV $FILESYSTEM" >> /tmp/filesystems
+        ;;
+        tmpfs)
+            echo "$MOUNTPOINT none $FILESYSTEM" >> /tmp/filesystems
+            mkdir -p $NEWROOT/$MOUNTPOINT
+        ;;
+    esac
+done
+
+# GMK: Still must figure out a way of dealing with the tmpfs size!
+
+sort -r /tmp/filesystems | while read MOUNTPOINT DEV FILESYSTEM; do
+    echo "/dev/$DEV $MOUNTPOINT $FILESYSTEM defaults 1 2" >> /tmp/fstab
+    if [ -n "$MOUNTPOINT" ]; then
+        if mount -t $FILESYSTEM /dev/$DEV $NEWROOT/$MOUNTPOINT; then
+            test -d $NEWROOT/etc || mkdir -p $NEWROOT/etc
+            echo "/dev/$DEV $MOUNTPOINT $FILESYSTEM rw 1 2" >> $NEWROOT/etc/mtab
+        else
+            echo
+            echo "ABORT: There was an error mounting the file system!"
+            exit 255
+        fi
+    fi
+done
+

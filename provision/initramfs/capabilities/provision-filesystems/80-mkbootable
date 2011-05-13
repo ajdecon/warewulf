@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+# If this is a stateful install...
+if [ -f "/tmp/stateful-root" ]; then
+    KERNELVERSION=`ls $NEWROOT/boot/vmlinuz-* 2>/dev/null | tail -n 1 | sed -e 's@.*/boot/vmlinuz-@@'`
+    if [ -n "$KERNELVERSION" ]; then
+        INITRD=`cd $NEWROOT; find ./boot/initr*-${KERNELVERSION}.img* 2>/dev/null`
+        KERNEL=`cd $NEWROOT; find ./boot/vmlinuz-${KERNELVERSION} 2>/dev/null`
+        if [ -x "$NEWROOT/sbin/dracut" ]; then
+            chroot $NEWROOT /sbin/dracut --force $KERNELVERSION
+        elif [ -x "$NEWROOT/sbin/mkinitrd" ]; then
+            chroot $NEWROOT /sbin/mkinitrd -f $INITRD $KERNELVERSION
+        fi
+        if [ -x "$NEWROOT/sbin/grub-install" ]; then
+            DEVDISK=`cat /tmp/stateful-root | awk '{print $1}'`
+            DEVPART=`cat /tmp/stateful-root | awk '{print $2}'`
+
+            if [ -n "$INITRD" -a -n "$KERNEL" ]; then
+                if [ -f "$NEWROOT/etc/redhat-release" ]; then
+                    OSVERSION=`sed -e 's@ (.*@@' $NEWROOT/etc/redhat-release`
+                elif [ -f "$NEWROOT/etc/release" ]; then
+                    OSVERSION=`cat $NEWROOT/etc/redhat-release | head -n 1`
+                else
+                    OSVERSION="Warewulf"
+                fi
+
+                echo "# This file was written by Warewulf bootstrap (capability provision-localdisk)" > $NEWROOT/boot/grub/device.map
+                echo "(hd0) /dev/$DEVDISK" >> $NEWROOT/boot/grub/device.map
+
+                echo "# This file was written by Warewulf bootstrap (capability provision-localdisk)" > $NEWROOT/boot/grub/grub.conf
+                echo "default 0" >>$NEWROOT/boot/grub/grub.conf
+                echo "timeout 10" >>$NEWROOT/boot/grub/grub.conf
+                echo "root (hd0,0)" >>$NEWROOT/boot/grub/grub.conf
+                echo "" >>$NEWROOT/boot/grub/grub.conf
+                echo "title $OSVERSION - $KERNELVERSION" >>$NEWROOT/boot/grub/grub.conf
+                echo "    kernel /boot/$KERNEL ro root=/dev/$DEVPART rhgb quiet" >>$NEWROOT/boot/grub/grub.conf
+                echo "    initrd /boot/$INITRD" >>$NEWROOT/boot/grub/grub.conf
+
+                mkdir $NEWROOT/dev/mapper
+                mknod $NEWROOT/dev/mapper/control c 10 58
+
+                chroot $NEWROOT /sbin/grub-install /dev/$DEVDISK >/dev/null
+            fi
+        fi
+    fi
+fi
