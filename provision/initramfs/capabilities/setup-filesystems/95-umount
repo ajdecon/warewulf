@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+> $NEWROOT/etc/mtab
+
+if [ -f "/tmp/filesystems" ]; then
+    sort -r /tmp/filesystems | while read MOUNTPOINT DEV FILESYSTEM SIZE; do
+        if [ -n "$MOUNTPOINT" -a "x$MOUNTPOINT" != "xnone" -a "x$DEV" != "xnone" ]; then
+            if [ "$MOUNTPOINT" == "/" ]; then
+                mount -o remount,ro $NEWROOT/
+            else
+                if ! umount $NEWROOT/$MOUNTPOINT; then
+                    mount -o remount,ro $NEWROOT/$MOUNTPOINT
+                fi
+            fi
+        fi
+    done
+fi
+

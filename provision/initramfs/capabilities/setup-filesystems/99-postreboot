@@ -9,15 +9,6 @@
 
 
 if [ "x$WWPOSTREBOOT" == "xyes" -a -f "/tmp/stateful-root" ]; then
-    sort /tmp/filesystems | while read MOUNTPOINT DEV FILESYSTEM; do
-        if [ -n "$MOUNTPOINT" ]; then
-            echo "Unmounting $MOUNTPOINT"
-            if ! umount $NEWROOT/$MOUNTPOINT; then
-                mount -o remount,ro $NEWROOT/$MOUNTPOINT
-            fi
-        fi
-    done
-
     echo
     echo
     echo "Rebooting in 5 seconds..."

@@ -12,16 +12,16 @@
 if [ -f "/tmp/stateful-root" ]; then
     KERNELVERSION=`ls $NEWROOT/boot/vmlinuz-* 2>/dev/null | tail -n 1 | sed -e 's@.*/boot/vmlinuz-@@'`
     if [ -n "$KERNELVERSION" ]; then
-        INITRD=`cd $NEWROOT; find ./boot/initr*-${KERNELVERSION}.img* 2>/dev/null`
-        KERNEL=`cd $NEWROOT; find ./boot/vmlinuz-${KERNELVERSION} 2>/dev/null`
+        INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* 2>/dev/null`
+        KERNEL=`cd $NEWROOT; find boot/vmlinuz-${KERNELVERSION} 2>/dev/null`
         if [ -x "$NEWROOT/sbin/dracut" ]; then
-            chroot $NEWROOT /sbin/dracut --force $KERNELVERSION
+            chroot $NEWROOT /sbin/dracut --force '' $KERNELVERSION
         elif [ -x "$NEWROOT/sbin/mkinitrd" ]; then
             chroot $NEWROOT /sbin/mkinitrd -f $INITRD $KERNELVERSION
         fi
         if [ -x "$NEWROOT/sbin/grub-install" ]; then
-            DEVDISK=`cat /tmp/stateful-root | awk '{print $1}'`
-            DEVPART=`cat /tmp/stateful-root | awk '{print $2}'`
+            DEVPART=`cat /tmp/stateful-root | awk '{print $1}'`
+            DEVDISK=`cat /tmp/stateful-root | awk '{print $2}'`
 
             if [ -n "$INITRD" -a -n "$KERNEL" ]; then
                 if [ -f "$NEWROOT/etc/redhat-release" ]; then
@@ -41,8 +41,8 @@ if [ -f "/tmp/stateful-root" ]; then
                 echo "root (hd0,0)" >>$NEWROOT/boot/grub/grub.conf
                 echo "" >>$NEWROOT/boot/grub/grub.conf
                 echo "title $OSVERSION - $KERNELVERSION" >>$NEWROOT/boot/grub/grub.conf
-                echo "    kernel /boot/$KERNEL ro root=/dev/$DEVPART rhgb quiet" >>$NEWROOT/boot/grub/grub.conf
-                echo "    initrd /boot/$INITRD" >>$NEWROOT/boot/grub/grub.conf
+                echo "    kernel /$KERNEL ro root=/dev/$DEVPART rhgb quiet" >>$NEWROOT/boot/grub/grub.conf
+                echo "    initrd /$INITRD" >>$NEWROOT/boot/grub/grub.conf
 
                 mkdir $NEWROOT/dev/mapper
                 mknod $NEWROOT/dev/mapper/control c 10 58

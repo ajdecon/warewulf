@@ -1,4 +1,4 @@
-METHODSCRIPTS = 20-filesystems 80-mkbootable 99-reboot
+METHODSCRIPTS = 20-filesystems 80-mkbootable 95-umount 99-postreboot
 
 
 rootfs:
@@ -14,7 +14,7 @@ http.cpio: rootfs
 
 install: http.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-filesystems
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/setup-filesystems
 
 clean:
 	rm -rf _work
