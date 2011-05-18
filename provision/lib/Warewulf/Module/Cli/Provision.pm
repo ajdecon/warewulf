@@ -106,7 +106,7 @@ summary()
 {
     my $output;
 
-    $output .= "Node manipulation commands";
+    $output .= "Node provision manipulation commands";
 
     return($output);
 }
@@ -179,7 +179,6 @@ exec()
         'bootstrap=s'   => \$opt_bootstrap,
         'vnfs=s'        => \$opt_vnfs,
         'method=s'      => \$opt_method,
-
     );
 
     if (scalar(@ARGV) > 0) {
@@ -205,30 +204,30 @@ exec()
     }
 
     if ($command eq "print") {
-        if (scalar(@opt_print) > 0) {
-            @opt_print = split(",", join(",", @opt_print));
-        } else {
-            @opt_print = ("name", "pool", "groups", "hwaddr");
-        }
-        if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-            my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
-            &nprint($string ."\n");
-            &nprint("=" x length($string) ."\n");
-        }
+        &nprintf("%-15s %-28s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
         foreach my $o ($objSet->get_list()) {
-            my @values;
-            foreach my $h (@opt_print) {
-                if (my $val = $o->get($h)) {
-                    if(ref($val) =~ /^ARRAY/) {
-                        push(@values, join(",", sort @{$val}));
-                    } else {
-                        push(@values, $val);
-                    }
-                } else {
-                    push(@values, "UNDEF");
+            my $fileObjSet = $db->get_objects("file", "id", $o->get("fileids"));
+            my @files;
+            if ($fileObjSet) {
+                foreach my $f ($fileObjSet->get_list()) {
+                    push(@files, $f->get("name"));
                 }
+            } else {
+                push(@files, "UNDEF");
             }
-            printf("%-17s " x (scalar @values) ."\n", @values);
+            my $vnfsObj = $db->get_objects("vnfs", "id", $o->get("vnfsid"))->get_object(0);
+            my $vnfs;
+            if ($vnfsObj) {
+                $vnfs = $vnfsObj->get("name");
+            } else {
+                $vnfs = "UNDEF";
+            }
+            printf("%-15s %-28s %-15s %-15s\n",
+                $o->get("name") || "UNDEF",
+                $o->get("bootstrap") || "UNDEF",
+                $vnfs || "UNDEF",
+                join(",", @files)
+            );
         }
     } elsif ($command eq "set") {
         &dprint("Entered 'set' codeblock\n");
@@ -300,33 +299,95 @@ exec()
         }
 
         if (@opt_files) {
-            foreach my $obj ($objSet->get_list()) {
-                my $name = $obj->get("name") || "UNDEF";
-                $obj->set("files", split(",", join(",", @opt_files)));
-                &dprint("Setting files for node name: $name\n");
-                $persist_bool = 1;
+            my @file_ids;
+            my @file_names;
+            foreach my $filename (split(",", join(",", @opt_files))) {
+                &dprint("Building file ID's for: $filename\n");
+                my @objList = $db->get_objects("file", "name", $filename)->get_list();
+                if (@objList) {
+                    foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
+                        if ($fileObj->get("id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                            push(@file_names, $fileObj->get("name"));
+                            push(@file_ids, $fileObj->get("id"));
+                        } else {
+                            &eprint("No file ID found for: $filename\n");
+                        }
+                    }
+                } else {
+                    &eprint("No file found for name: $filename\n");
+                }
             }
-            push(@changes, sprintf("     SET: %-20s = %s\n", "FILES", join(",", @opt_files)));
+            if (@file_ids) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("fileids", @file_ids);
+                    &dprint("Setting file IDs for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "FILES", join(",", @file_names)));
+            }
         }
 
         if (@opt_fileadd) {
-            foreach my $opt (@opt_fileadd) {
-                &dprint("Adding file $opt to nodes\n");
-                foreach my $obj ($objSet->get_list()) {
-                    $obj->add("files", split(",", $opt));
+            my @file_ids;
+            my @file_names;
+            foreach my $filename (split(",", join(",", @opt_fileadd))) {
+                &dprint("Building file ID's for: $filename\n");
+                my @objList = $db->get_objects("file", "name", $filename)->get_list();
+                if (@objList) {
+                    foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
+                        if ($fileObj->get("id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                            push(@file_names, $fileObj->get("name"));
+                            push(@file_ids, $fileObj->get("id"));
+                        } else {
+                            &eprint("No file ID found for: $filename\n");
+                        }
+                    }
+                } else {
+                    &eprint("No file found for name: $filename\n");
                 }
-                push(@changes, sprintf("     ADD: %-20s = %s\n", "FILES", $opt));
-                $persist_bool = 1;
+            }
+            if (@file_ids) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->add("fileids", @file_ids);
+                    &dprint("Setting file IDs for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     ADD: %-20s = %s\n", "FILES", join(",", @file_names)));
             }
         }
+
         if (@opt_filedel) {
-            foreach my $opt (@opt_filedel) {
-                &dprint("Deleting file $opt from nodes\n");
-                foreach my $obj ($objSet->get_list()) {
-                    $obj->del("files", split(",", $opt));
+            my @file_ids;
+            my @file_names;
+            foreach my $filename (split(",", join(",", @opt_filedel))) {
+                &dprint("Building file ID's for: $filename\n");
+                my @objList = $db->get_objects("file", "name", $filename)->get_list();
+                if (@objList) {
+                    foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
+                        if ($fileObj->get("id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                            push(@file_names, $fileObj->get("name"));
+                            push(@file_ids, $fileObj->get("id"));
+                        } else {
+                            &eprint("No file ID found for: $filename\n");
+                        }
+                    }
+                } else {
+                    &eprint("No file found for name: $filename\n");
                 }
-                push(@changes, sprintf("     DEL: %-20s = %s\n", "FILES", $opt));
-                $persist_bool = 1;
+            }
+            if (@file_ids) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->del("fileids", @file_ids);
+                    &dprint("Setting file IDs for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     DEL: %-20s = %s\n", "FILES", join(",", @file_names)));
             }
         }
 
