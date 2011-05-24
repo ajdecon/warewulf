@@ -7,10 +7,117 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-if [ -z "$WWDISKLAYOUT" ]; then
-    WWDISKLAYOUT="none:/:tmpfs:512"
-#    WWDISKLAYOUT="sda1:/:ext2:768,sda2:none:swap:128,sda3:/scratch:ext2:"
+if [ -z "$WWMOUNT" ]; then
+    WWMOUNT="dev=none:mountpoint=/:type=tmpfs:options=size=512M"
 fi
+
+#WWPART="sda"
+#WWFORMAT="sda1 sda2 sda3"
+#WWMOUNT="dev=sda1:mountpoint=/:type=ext2:size=768 dev=sda2:type=swap:size=1024 dev=sda3:mountpoint=/foo:type=ext2:size=10240"
+
+TMPDIR=`mktemp -d`
+mkdir $TMPDIR/wwfs
+> /tmp/fstab
+> /tmp/mptab
+> /tmp/mtab
+
+
+for FSYS in `echo $WWMOUNT | sed 's/,/ /g'` ; do
+    ( 
+        TMPFILE=`mktemp`
+        for SETVAR in `echo $FSYS | sed 's/:/ /g'` ; do
+            VAR=`echo $SETVAR | cut -d= -f1 | tr '[a-z]' '[A-Z]'`
+            VAL=`echo $SETVAR | cut -d= -f2-`
+            eval "WWFS_$VAR=$VAL"
+            echo "WWFS_$VAR=$VAL" >> $TMPFILE
+            echo "export WWFS_$VAR" >> $TMPFILE
+        done
+        if [ -n "$WWFS_DEV" ]; then
+            DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+            mv $TMPFILE $TMPDIR/wwfs/$WWFS_DEV
+            if [ -n "$DISK" ]; then
+                echo "$WWFS_DEV" >> $TMPDIR/$DISK
+            fi
+            if [ -n "$WWFS_DEV" -o "$WWFS_DEV" == "none" ]; then
+                DEV="none"
+            else
+                DEV="/dev/$WWFS_DEV"
+            fi
+            if [ -n "$WWFS_TYPE" ]; then
+                if [ "x$WWFS_MOUNTPOINT" == "x/" ]; then
+                    echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 0 0" >> /tmp/mptab
+                else
+                    echo "${WWFS_MOUNTPOINT:-none} $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/mptab
+                fi
+            fi
+        else
+            rm -f $TMPFILE
+        fi
+    )
+done
+
+for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
+    (
+        if [ -f "$TMPDIR/$DEV" ]; then
+            cat $TMPDIR/$DEV | while read part; do
+                if [ -f "$TMPDIR/wwfs/$part" ]; then
+                    . $TMPDIR/wwfs/$part
+                    if [ -n "$WWFS_DEV" ]; then
+                        PARTNUM=`echo $WWFS_DEV | sed -e 's@...\([0-9]\)@\1@'`
+                        DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+                        if [ -n "$WWFS_SIZE" ]; then
+                            echo "PARTITIONING: $DISK"
+                            case $WWFS_TYPE in
+                                swap)
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
+#                                    echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                ;;
+                                *)
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n"
+#                                    echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                ;;
+                            esac
+                        fi
+                    fi
+                fi
+            done
+        fi
+    )
+done
+
+for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
+    (
+        if [ -f "$TMPDIR/wwfs/$DEV" ]; then
+            . $TMPDIR/wwfs/$DEV
+            case $WWFS_TYPE in
+                swap)
+                    echo /sbin/mkswap /dev/$WWFS_DEV
+                ;;
+                ext2)
+                    echo /sbin/mkfs.ext2 /dev/$WWFS_DEV
+                ;;
+            esac
+        fi
+    )
+done
+
+
+sort /tmp/mptab | while read dev mp type opts freq passno; do
+    echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
+    if echo "mount -o $opts -t $type $dev $NEWROOT/$mp"; then
+        echo "$dev $mp $type $opts $freq $passno" >> /tmp/mtab
+    fi
+done
+
+cat <<EOF >> /tmp/fstab
+none /dev/shm tmpfs defaults 0 0
+devpts /dev/pts devpts gid=5,mode=620 0 0
+sysfs /sys sysfs defaults 0 0
+proc /proc proc defaults 0 0
+EOF
+
+rm -rf $TMPDIR
+exit;
 
 if [ "x$WWDISKPARTITION" == "xyes" ]; then
     WWDISKFORMAT="yes"
