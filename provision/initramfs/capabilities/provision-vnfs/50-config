@@ -10,6 +10,3 @@
 
 cp /tmp/ifcfg-eth* $NEWROOT/etc/sysconfig/network-scripts/ 2>/dev/null
 
-if [ -f "/tmp/fstab" ]; then
-    cp /tmp/fstab $NEWROOT/etc/fstab
-fi

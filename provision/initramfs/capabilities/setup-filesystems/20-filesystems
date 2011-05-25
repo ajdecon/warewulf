@@ -8,7 +8,7 @@
 #
 
 if [ -z "$WWMOUNT" ]; then
-    WWMOUNT="dev=none:mountpoint=/:type=tmpfs:options=size=512M"
+    WWMOUNT="dev=none:mountpoint=/:type=tmpfs:options=size=768M"
 fi
 
 #WWPART="sda"
@@ -20,6 +20,12 @@ mkdir $TMPDIR/wwfs
 > /tmp/fstab
 > /tmp/mptab
 > /tmp/mtab
+
+if [ -n "$NEWROOT" ]; then
+    if [ ! -d $NEWROOT ]; then
+        mkdir -p $NEWROOT
+    fi
+fi
 
 
 for FSYS in `echo $WWMOUNT | sed 's/,/ /g'` ; do
@@ -66,15 +72,14 @@ for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
                         PARTNUM=`echo $WWFS_DEV | sed -e 's@...\([0-9]\)@\1@'`
                         DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
                         if [ -n "$WWFS_SIZE" ]; then
-                            echo "PARTITIONING: $DISK"
                             case $WWFS_TYPE in
                                 swap)
-                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
-#                                    echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+#                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
                                 ;;
                                 *)
-                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n"
-#                                    echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+#                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n"
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
                                 ;;
                             esac
                         fi
@@ -91,10 +96,10 @@ for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
             . $TMPDIR/wwfs/$DEV
             case $WWFS_TYPE in
                 swap)
-                    echo /sbin/mkswap /dev/$WWFS_DEV
+                    /sbin/mkswap /dev/$WWFS_DEV
                 ;;
                 ext2)
-                    echo /sbin/mkfs.ext2 /dev/$WWFS_DEV
+                    /sbin/mkfs.ext2 /dev/$WWFS_DEV
                 ;;
             esac
         fi
@@ -102,11 +107,15 @@ for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
 done
 
 
-sort /tmp/mptab | while read dev mp type opts freq passno; do
+grep -v "^none" /tmp/mptab | sort -r | while read mp dev type opts freq passno; do
     echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
-    if echo "mount -o $opts -t $type $dev $NEWROOT/$mp"; then
+    if mount -o $opts -t $type $dev $NEWROOT/$mp; then
         echo "$dev $mp $type $opts $freq $passno" >> /tmp/mtab
     fi
+done
+
+grep "^none" /tmp/mptab | sort -r | while read mp dev type opts freq passno; do
+    echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
 done
 
 cat <<EOF >> /tmp/fstab
@@ -117,133 +126,3 @@ proc /proc proc defaults 0 0
 EOF
 
 rm -rf $TMPDIR
-exit;
-
-if [ "x$WWDISKPARTITION" == "xyes" ]; then
-    WWDISKFORMAT="yes"
-
-    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
-        DEV=`echo $string | awk -F : '{print $1}'`
-        DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-        if [ "x$DISK" != "xnone" ]; then
-            echo $DISK
-        fi
-    done | sort | uniq | while read dev; do
-        dd if=/dev/zero of=/dev/$dev count=1 bs=512 >/dev/null 2>&1
-    done
-
-    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
-        DEV=`echo $string | awk -F : '{print $1}'`
-        MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
-        FILESYSTEM=`echo $string | awk -F : '{print $3}'`
-        SIZE=`echo $string | awk -F : '{print $4}'`
-        PARTNUM=`echo $DEV | sed -e 's@...\([0-9]\)@\1@'`
-        DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-        if [ ${SIZE:-0} -gt 0 ]; then
-            SIZE="+${SIZE}M";
-        fi
-
-        case $FILESYSTEM in
-            ext2)
-#                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n"
-                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
-            ;;
-            swap)
-#                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n"
-                echo -ne "n\np\n$PARTNUM\n\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
-            ;;
-        esac
-    done
-
-fi
-
-if [ "x$WWDISKFORMAT" == "xyes" ]; then
-    for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
-        DEV=`echo $string | awk -F : '{print $1}'`
-        MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
-        FILESYSTEM=`echo $string | awk -F : '{print $3}'`
-
-        case $FILESYSTEM in
-            ext2)
-                /sbin/mkfs.$FILESYSTEM /dev/$DEV >/dev/null
-            ;;
-            swap)
-                /sbin/mkswap /dev/$DEV >/dev/null
-            ;;
-            tmpfs)
-                /bin/true
-            ;;
-            *)
-                echo "UNKNOWN FILESYSTEM: '$FILESYSTEM'"
-            ;;
-        esac
-    done
-fi
-
-
-
-mkdir -p $NEWROOT
-> /tmp/filesystems
-> /tmp/fstab
-
-for string in `echo $WWDISKLAYOUT | sed -e 's@,@ @g'`; do
-    DEV=`echo $string | awk -F : '{print $1}'`
-    MOUNTPOINT=`echo $string | awk -F : '{print $2}'`
-    FILESYSTEM=`echo $string | awk -F : '{print $3}'`
-    SIZE=`echo $string | awk -F : '{print $4}'`
-    DISK=`echo $DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-
-    if [ "x$MOUNTPOINT" == "x/" -a "x$FILESYSTEM" != "xtmpfs" ]; then
-        echo "$DEV $DISK" > /tmp/stateful-root
-    fi
-
-    case $FILESYSTEM in
-        ext2)
-            echo "${MOUNTPOINT:-none} $DEV $FILESYSTEM ${SIZE:-0}" >> /tmp/filesystems
-        ;;
-        swap)
-            echo "none $DEV $FILESYSTEM" >> /tmp/filesystems
-        ;;
-        tmpfs)
-            echo "${MOUNTPOINT:-none} none $FILESYSTEM ${SIZE:-0}" >> /tmp/filesystems
-        ;;
-    esac
-done
-
-# GMK: Still must figure out a way of dealing with the tmpfs size!
-
-sort /tmp/filesystems | while read MOUNTPOINT DEV FILESYSTEM SIZE; do
-    if [ "x$DEV" == "xnone" ]; then
-        DEV=$FILESYSTEM
-    else
-        DEV="/dev/$DEV"
-    fi
-    if [ "x$MOUNTPOINT" == "xnone" ]; then
-        echo "$DEV $MOUNTPOINT $FILESYSTEM defaults 0 0" >> /tmp/fstab
-    else
-        echo "$DEV $MOUNTPOINT $FILESYSTEM defaults 1 2" >> /tmp/fstab
-    fi
-    if [ -n "$MOUNTPOINT" -a "x$MOUNTPOINT" != "xnone" ]; then
-        mkdir -p $NEWROOT/$MOUNTPOINT
-        if [ $FILESYSTEM == "tmpfs" -a ${SIZE:-0} -gt 0 ]; then
-            OPTS="-o size=${SIZE}M "
-        else
-            OPTS=""
-        fi
-        if mount -t $FILESYSTEM $OPTS $DEV $NEWROOT/$MOUNTPOINT; then
-            test -d $NEWROOT/etc || mkdir -p $NEWROOT/etc
-            echo "$DEV $MOUNTPOINT $FILESYSTEM rw 1 2" >> $NEWROOT/etc/mtab
-        else
-            echo
-            echo "ABORT: There was an error mounting the file system!"
-            exit 255
-        fi
-    fi
-done
-
-cat <<EOF >> /tmp/fstab
-none /dev/shm tmpfs defaults 0 0
-devpts /dev/pts devpts gid=5,mode=620 0 0
-sysfs /sys sysfs defaults 0 0
-proc /proc proc defaults 0 0
-EOF

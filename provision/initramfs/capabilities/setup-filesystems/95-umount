@@ -10,17 +10,31 @@
 
 > $NEWROOT/etc/mtab
 
-if [ -f "/tmp/filesystems" ]; then
-    sort -r /tmp/filesystems | while read MOUNTPOINT DEV FILESYSTEM SIZE; do
-        if [ -n "$MOUNTPOINT" -a "x$MOUNTPOINT" != "xnone" -a "x$DEV" != "xnone" ]; then
-            if [ "$MOUNTPOINT" == "/" ]; then
-                mount -o remount,ro $NEWROOT/
-            else
-                if ! umount $NEWROOT/$MOUNTPOINT; then
-                    mount -o remount,ro $NEWROOT/$MOUNTPOINT
-                fi
-            fi
-        fi
-    done
+
+if [ -z "$WWNOFSTABUPDATE" ]; then
+    if [ -f "$NEWROOT/etc/fstab" ]; then
+        cat /tmp/fstab > $NEWROOT/etc/fstab_
+        echo "# The following was added by Warewulf provision (setup-filesystem)" > $NEWROOT/etc/fstab_
+        echo >> $NEWROOT/etc/fstab_
+        cat $NEWROOT/etc/fstab >> $NEWROOT/etc/fstab_
+        echo "# Below is the original fstab content in the VNFS image" >> $NEWROOT/etc/fstab_
+        echo >> $NEWROOT/etc/fstab_
+        cat $NEWROOT/etc/fstab >> $NEWROOT/etc/fstab_
+        cat $NEWROOT/etc/fstab_ > $NEWROOT/etc/fstab
+        rm -f $NEWROOT/etc/fstab_
+    else
+        cp /tmp/fstab $NEWROOT/etc/fstab
+    fi
 fi
+
+
+grep -v "^none" /tmp/mptab | sort | while read mp dev type opts freq passno; do
+    if [ "x$mp" == "x/" ]; then
+        mount -o remount,ro $NEWROOT/
+    else
+        if ! umount $NEWROOT/$mp; then
+            mount -o remount,ro $NEWROOT/$mp
+        fi
+    fi
+done
 
