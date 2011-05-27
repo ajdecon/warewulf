@@ -118,11 +118,4 @@ grep "^none" /tmp/mptab | sort -r | while read mp dev type opts freq passno; do
     echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
 done
 
-cat <<EOF >> /tmp/fstab
-none /dev/shm tmpfs defaults 0 0
-devpts /dev/pts devpts gid=5,mode=620 0 0
-sysfs /sys sysfs defaults 0 0
-proc /proc proc defaults 0 0
-EOF
-
 rm -rf $TMPDIR

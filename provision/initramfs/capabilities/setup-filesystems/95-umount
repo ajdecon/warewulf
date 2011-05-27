@@ -13,13 +13,15 @@
 
 if [ -z "$WWNOFSTABUPDATE" ]; then
     if [ -f "$NEWROOT/etc/fstab" ]; then
-        cat /tmp/fstab > $NEWROOT/etc/fstab_
-        echo "# The following was added by Warewulf provision (setup-filesystem)" > $NEWROOT/etc/fstab_
-        echo >> $NEWROOT/etc/fstab_
-        cat $NEWROOT/etc/fstab >> $NEWROOT/etc/fstab_
-        echo "# Below is the original fstab content in the VNFS image" >> $NEWROOT/etc/fstab_
-        echo >> $NEWROOT/etc/fstab_
-        cat $NEWROOT/etc/fstab >> $NEWROOT/etc/fstab_
+        > $NEWROOT/etc/fstab_
+        cat $NEWROOT/etc/fstab | while read i; do
+            if [ "x$i" == "x#GENERATED_ENTRIES#" ]; then
+                cat /tmp/fstab >> $NEWROOT/etc/fstab_
+            else
+                echo "$i" >> $NEWROOT/etc/fstab_
+            fi
+
+        done
         cat $NEWROOT/etc/fstab_ > $NEWROOT/etc/fstab
         rm -f $NEWROOT/etc/fstab_
     else
