@@ -41,7 +41,7 @@ fi
 
 echo
 echo "Creating default fstab"
-echo "root / tmpfs defaults 1 1" > $VNFSDIR/etc/fstab
+echo "#GENERATED_ENTRIES#" > $VNFSDIR/etc/fstab
 echo "tmpfs /dev/shm tmpfs defaults 0 0" >> $VNFSDIR/etc/fstab
 echo "devpts /dev/pts devpts gid=5,mode=620 0 0" >> $VNFSDIR/etc/fstab
 echo "sysfs /sys sysfs defaults 0 0" >> $VNFSDIR/etc/fstab
