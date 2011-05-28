@@ -16,7 +16,8 @@ fi
 #WWMOUNT="dev=sda1:mountpoint=/:type=ext2:size=768 dev=sda2:type=swap:size=1024 dev=sda3:mountpoint=/foo:type=ext2:size=10240"
 
 TMPDIR=`mktemp -d`
-mkdir $TMPDIR/wwfs
+mkdir $TMPDIR/parts
+mkdir $TMPDIR/disks
 > /tmp/fstab
 > /tmp/mptab
 > /tmp/mtab
@@ -38,23 +39,25 @@ for FSYS in `echo $WWMOUNT | sed 's/,/ /g'` ; do
             echo "WWFS_$VAR=$VAL" >> $TMPFILE
             echo "export WWFS_$VAR" >> $TMPFILE
         done
-        if [ -n "$WWFS_DEV" ]; then
+        if [ -n "$WWFS_DEV" -a -n "$WWFS_TYPE" ]; then
             DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-            mv $TMPFILE $TMPDIR/wwfs/$WWFS_DEV
+            mv $TMPFILE $TMPDIR/parts/$WWFS_DEV
             if [ -n "$DISK" ]; then
-                echo "$WWFS_DEV" >> $TMPDIR/$DISK
+                echo "$WWFS_DEV" >> $TMPDIR/disks/$DISK
             fi
-            if [ -n "$WWFS_DEV" -o "$WWFS_DEV" == "none" ]; then
+            if [ "$WWFS_DEV" == "none" ]; then
                 DEV="none"
             else
                 DEV="/dev/$WWFS_DEV"
             fi
-            if [ -n "$WWFS_TYPE" ]; then
-                if [ "x$WWFS_MOUNTPOINT" == "x/" ]; then
-                    echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 0 0" >> /tmp/mptab
-                else
-                    echo "${WWFS_MOUNTPOINT:-none} $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/mptab
-                fi
+            if [ "x$WWFS_MOUNTPOINT" == "x/" ]; then
+                echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
+                echo "$DEV $WWFS_MOUNTPOINT $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 0 0" >> /tmp/fstab
+            elif [ "x$WWFS_MOUNTPOINT" == "xnone" ]; then
+                echo "$DEV ${WWFS_MOUNTPOINT:-none} $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/fstab
+            else
+                echo "${WWFS_MOUNTPOINT:-none} $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
+                echo "$DEV ${WWFS_MOUNTPOINT:-none} $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/fstab
             fi
         else
             rm -f $TMPFILE
@@ -64,14 +67,18 @@ done
 
 for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
     (
-        if [ -f "$TMPDIR/$DEV" ]; then
-            cat $TMPDIR/$DEV | while read part; do
-                if [ -f "$TMPDIR/wwfs/$part" ]; then
-                    . $TMPDIR/wwfs/$part
-                    if [ -n "$WWFS_DEV" ]; then
-                        PARTNUM=`echo $WWFS_DEV | sed -e 's@...\([0-9]\)@\1@'`
-                        DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-                        if [ -n "$WWFS_SIZE" ]; then
+        if [ -f "$TMPDIR/disks/$DEV" ]; then
+            (
+                for part in `cat $TMPDIR/disks/$DEV`; do
+                    if [ -f "$TMPDIR/parts/$part" ]; then
+                        . $TMPDIR/parts/$part
+                        if [ -n "$WWFS_DEV" ]; then
+                            PARTNUM=`echo $WWFS_DEV | sed -e 's@...\([0-9]\)@\1@'`
+                            DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+                            if [ -z "$PARTED" ]; then
+                                dd if=/dev/zero of=/dev/$DISK count=1 bs=512 >/dev/null 2>&1
+                                PARTED=1
+                            fi
                             case $WWFS_TYPE in
                                 swap)
 #                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
@@ -84,22 +91,22 @@ for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
                             esac
                         fi
                     fi
-                fi
-            done
+                done
+            )
         fi
     )
 done
 
 for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
     (
-        if [ -f "$TMPDIR/wwfs/$DEV" ]; then
-            . $TMPDIR/wwfs/$DEV
+        if [ -f "$TMPDIR/parts/$DEV" ]; then
+            . $TMPDIR/parts/$DEV
             case $WWFS_TYPE in
                 swap)
-                    /sbin/mkswap /dev/$WWFS_DEV
+                    /sbin/mkswap /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
                 ext2)
-                    /sbin/mkfs.ext2 /dev/$WWFS_DEV
+                    /sbin/mkfs.ext2 /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
             esac
         fi
@@ -107,15 +114,16 @@ for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
 done
 
 
-grep -v "^none" /tmp/mptab | sort -r | while read mp dev type opts freq passno; do
-    echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
-    if mount -o $opts -t $type $dev $NEWROOT/$mp; then
-        echo "$dev $mp $type $opts $freq $passno" >> /tmp/mtab
+sort /tmp/mptab | while read mp dev type opts; do
+    if [ ! -d "$NEWROOT/$mp" ]; then
+        mkdir -p $NEWROOT/$mp
     fi
-done
-
-grep "^none" /tmp/mptab | sort -r | while read mp dev type opts freq passno; do
-    echo "$dev $mp $type $opts $freq $passno" >> /tmp/fstab
+    if mount -o $opts -t $type $dev $NEWROOT/$mp; then
+        if [ $mp == "/" -a $dev != "none" ]; then
+            echo $dev > /tmp/rootdev
+        fi
+        echo "$dev $mp $type $opts 0 0" >> /tmp/mtab
+    fi
 done
 
 rm -rf $TMPDIR

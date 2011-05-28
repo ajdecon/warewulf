@@ -12,11 +12,14 @@
 
 
 if [ -d "/warewulf/provision/" ]; then
+    if [ ! -d /var/log/provision ]; then
+        mkdir -p /var/log/provision
+    fi
     for i in `find /warewulf/provision/ -type f | sort -n`; do
         if [ -x "$i" -a -f "$i" ]; then
             NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)/\1/'`
             msg_white " * $NAME "
-            sh $i
+            sh -x $i 2>/var/log/provision/$NAME.log
             RETVAL=$?
             if [ $RETVAL -eq 0 ]; then
                 wwsuccess

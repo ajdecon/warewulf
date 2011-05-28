@@ -30,7 +30,7 @@ if [ -z "$WWNOFSTABUPDATE" ]; then
 fi
 
 
-grep -v "^none" /tmp/mptab | sort | while read mp dev type opts freq passno; do
+sort -r /tmp/mptab | while read mp dev type opts; do
     if [ "x$mp" == "x/" ]; then
         mount -o remount,ro $NEWROOT/
     else
