@@ -10,28 +10,9 @@
 
 > $NEWROOT/etc/mtab
 
-
-if [ -z "$WWNOFSTABUPDATE" ]; then
-    if [ -f "$NEWROOT/etc/fstab" ]; then
-        > $NEWROOT/etc/fstab_
-        cat $NEWROOT/etc/fstab | while read i; do
-            if [ "x$i" == "x#GENERATED_ENTRIES#" ]; then
-                cat /tmp/fstab >> $NEWROOT/etc/fstab_
-            else
-                echo "$i" >> $NEWROOT/etc/fstab_
-            fi
-
-        done
-        cat $NEWROOT/etc/fstab_ > $NEWROOT/etc/fstab
-        rm -f $NEWROOT/etc/fstab_
-    else
-        cp /tmp/fstab $NEWROOT/etc/fstab
-    fi
-fi
-
-
 sort -r /tmp/mptab | while read mp dev type opts; do
     if [ "x$mp" == "x/" ]; then
+        echo "$dev $mp $type $opts 0 0" > $NEWROOT/etc/mtab
         mount -o remount,ro $NEWROOT/
     else
         if ! umount $NEWROOT/$mp; then

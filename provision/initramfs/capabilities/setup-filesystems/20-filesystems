@@ -7,13 +7,13 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-if [ -z "$WWMOUNT" ]; then
-    WWMOUNT="dev=none:mountpoint=/:type=tmpfs:options=size=768M"
+if [ -z "$WWMOUNTPOINTS" ]; then
+    WWMOUNTPOINTS="mountpoint=/:type=tmpfs"
 fi
 
-#WWPART="sda"
-#WWFORMAT="sda1 sda2 sda3"
-#WWMOUNT="dev=sda1:mountpoint=/:type=ext2:size=768 dev=sda2:type=swap:size=1024 dev=sda3:mountpoint=/foo:type=ext2:size=10240"
+#WWDISKPARTITION="sda"
+#WWDISKFORMAT="sda1 sda2 sda3"
+#WWMOUNTPOINTS="dev=sda1:mountpoint=/:type=ext2:size=768 dev=sda2:type=swap:size=1024 dev=sda3:mountpoint=/foo:type=ext2:size=10240"
 
 TMPDIR=`mktemp -d`
 mkdir $TMPDIR/parts
@@ -29,26 +29,26 @@ if [ -n "$NEWROOT" ]; then
 fi
 
 
-for FSYS in `echo $WWMOUNT | sed 's/,/ /g'` ; do
+for FSYS in `echo $WWMOUNTPOINTS | sed 's/,/ /g'` ; do
     ( 
         TMPFILE=`mktemp`
         for SETVAR in `echo $FSYS | sed 's/:/ /g'` ; do
             VAR=`echo $SETVAR | cut -d= -f1 | tr '[a-z]' '[A-Z]'`
             VAL=`echo $SETVAR | cut -d= -f2-`
-            eval "WWFS_$VAR=$VAL"
-            echo "WWFS_$VAR=$VAL" >> $TMPFILE
+            eval "WWFS_$VAR=\"$VAL\""
+            echo "WWFS_$VAR=\"$VAL\"" >> $TMPFILE
             echo "export WWFS_$VAR" >> $TMPFILE
         done
-        if [ -n "$WWFS_DEV" -a -n "$WWFS_TYPE" ]; then
-            DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
-            mv $TMPFILE $TMPDIR/parts/$WWFS_DEV
-            if [ -n "$DISK" ]; then
-                echo "$WWFS_DEV" >> $TMPDIR/disks/$DISK
-            fi
-            if [ "$WWFS_DEV" == "none" ]; then
-                DEV="none"
-            else
+        if [ -n "$WWFS_TYPE" ]; then
+            if [ -n "$WWFS_DEV" -a "$WWFS_DEV" != "none" ]; then
+                DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
+                if [ -n "$DISK" ]; then
+                    echo "$WWFS_DEV" >> $TMPDIR/disks/$DISK
+                fi
                 DEV="/dev/$WWFS_DEV"
+                mv $TMPFILE $TMPDIR/parts/$WWFS_DEV
+            else
+                DEV="none"
             fi
             if [ "x$WWFS_MOUNTPOINT" == "x/" ]; then
                 echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
@@ -65,7 +65,7 @@ for FSYS in `echo $WWMOUNT | sed 's/,/ /g'` ; do
     )
 done
 
-for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
+for DEV in `echo $WWDISKPARTITION | sed 's/,/ /g'` ; do
     (
         if [ -f "$TMPDIR/disks/$DEV" ]; then
             (
@@ -97,7 +97,7 @@ for DEV in `echo $WWPART | sed 's/,/ /g'` ; do
     )
 done
 
-for DEV in `echo $WWFORMAT | sed 's/,/ /g'` ; do
+for DEV in `echo $WWDISKFORMAT | sed 's/,/ /g'` ; do
     (
         if [ -f "$TMPDIR/parts/$DEV" ]; then
             . $TMPDIR/parts/$DEV
