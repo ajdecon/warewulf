@@ -283,11 +283,11 @@ exec()
         } else {
             foreach my $obj ($objSet->get_list()) {
                 my $name = $obj->get("name") || "UNDEF";
-                $obj->set("provisionmethod", $opt_pool);
+                $obj->set("provisionmethod", $opt_method);
                 &dprint("Setting provisionmethod for node name: $name\n");
                 $persist_bool = 1;
             }
-            push(@changes, sprintf("     SET: %-20s = %s\n", "PROVISIONMETHOD", $opt_pool));
+            push(@changes, sprintf("     SET: %-20s = %s\n", "PROVISIONMETHOD", $opt_method));
         }
     }
 
