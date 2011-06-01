@@ -92,7 +92,7 @@ help()
     $h .= "         --netmask       Set a subnet mask for the given network device\n";
     $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
     $h .= "         --netdel        Remove a network device from the system\n";
-    $h .= "         --cluster          Define the cluster of nodes that this node is a part of\n";
+    $h .= "         --cluster       Define the cluster of nodes that this node is a part of\n";
     $h .= "         --name          Rename this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
