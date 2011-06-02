@@ -92,7 +92,7 @@ help()
     $h .= "     Warewulf> provision node n000[0-4] --bootstrap=2.6.30-12.x86_64\n";
     $h .= "     Warewulf> provision node n00[00-99] --fileadd=ifcfg-eth0\n";
     $h .= "     Warewulf> provision cluster mycluster --vnfs=rhel-6.0\n";
-    $h .= "     Warewulf> provision group mygroup hello group123 --print\n";
+    $h .= "     Warewulf> provision group mygroup hello group123\n";
     $h .= "\n";
 
     return($h);
