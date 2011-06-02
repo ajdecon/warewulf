@@ -37,14 +37,8 @@ export WWDEV
 WWMTU=`sed -e '/ wwmtu=/!d;s/.*wwmtu=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMTU
 
-TMPPROVISIONMETHOD=`sed -e '/ wwprovisionmethod=/!d;s/.*wwprovisionmethod=\([^ ]*\).*/\1/' /proc/cmdline`
-if [ -n "$TMPPROVISIONMETHOD" ]; then
-    WWPROVISIONMETHOD=$TMPPROVISIONMETHOD
-fi
-if [ -z "$WWPROVISIONMETHOD" ]; then
-    WWPROVISIONMETHOD="tmpfs"
-fi
-export WWPROVISIONMETHOD
+WWTRANSPORT=`sed -e '/ wwtransport=/!d;s/.*wwtransport=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWTRANSPORT
 
 
 if [ -z "$WWPORT" ]; then
