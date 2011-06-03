@@ -68,6 +68,6 @@ foreach my $key (@VARS) {
     } elsif ($opt_csh) {
         print "setenv WAREWULF_$key \"$val\"\n";
     } else {
-        print "$key: $val\n";
+        print ((scalar(@ARGV) == 1) ? ("") : ("$key: ")) . "$val\n";
     }
 }

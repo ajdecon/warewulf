@@ -138,3 +138,7 @@ Clean up wwconfig.
 
 Add support for --datarootdir to silence warnings from configure.
 ----------------------------------------------------------------------
+Fri Jun  3 12:48:14 2011                        Michael Jennings (mej)
+
+Oops.
+----------------------------------------------------------------------

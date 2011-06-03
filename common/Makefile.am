@@ -1,7 +1,6 @@
 SUBDIRS = lib share etc bin
-ACLOCAL_AMFLAGS = -I .
 
-MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.*
 DISTCLEANFILES = 
 CLEANFILES = 
 EXTRA_DIST = warewulf-common.spec LICENSE
