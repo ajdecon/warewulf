@@ -142,6 +142,27 @@ sub network {
 
 
 
+=item calc_network($ipaddr, $netmask)
+
+Return the IPv4 network for agiven IPv4 address and netmask
+
+=cut
+sub calc_network {
+    my ($self, $ipaddr, $netmask) = @_;
+
+    if ($ipaddr and $netmask) {
+        my $net_bin = unpack("N", inet_aton($ipaddr));
+        my $mask_bin = unpack("N", inet_aton($netmask));
+        my $net = ( $net_bin & $mask_bin ) | ( 0 & ~$mask_bin );
+
+        return(inet_ntoa(pack('N',$net)));
+    }
+
+    return();
+}
+
+
+
 =item list_devices()
 
 Return a list of all supported network devices
