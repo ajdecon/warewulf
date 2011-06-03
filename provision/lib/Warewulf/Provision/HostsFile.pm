@@ -126,7 +126,6 @@ generate()
         foreach my $d ($n->get("netdevs")) {
             if (ref($d) eq "Warewulf::DSO::Netdev") {
                 my ($netdev) = $d->get("name");
-                my ($hwaddr) = $d->get("hwaddr");
                 my ($ipv4_bin) = $d->get("ipaddr");
                 my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
                 my $node_network = $netobj->calc_network($ipv4_addr, $netmask);
@@ -145,8 +144,6 @@ generate()
                     $name_eth = "$nodename-$netdev";
                 }
 
-                &dprint("Adding a host entry for: $nodename-$netdev\n");
-
                 if (defined($cluster) and defined($domain)) {
                     push(@name_entries, sprintf("%-18s", "$name_eth.$cluster.$domain"));
                 }
@@ -159,7 +156,9 @@ generate()
                     push(@name_entries, sprintf("%-18s", "$name_eth.$domain"));
                 }
 
-                if ($nodename and $ipv4_addr and $hwaddr) {
+                if ($nodename and $ipv4_addr) {
+                    &dprint("Adding a host entry for: $nodename-$netdev\n");
+
                     $hosts .= sprintf("%-23s %s\n", $ipv4_addr, join(" ", @name_entries));
                 }
 
