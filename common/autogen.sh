@@ -5,10 +5,8 @@ if autoreconf -V >/dev/null 2>&1 ; then
     autoreconf -f -i
 else
     set -x
-    libtoolize -f -c
     aclocal
     autoconf
-    autoheader
     automake -ca -Wno-portability
 fi
 

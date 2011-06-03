@@ -12,58 +12,62 @@ use Getopt::Long;
 
 Getopt::Long::Configure ("bundling");
 
+my @VARS;
 my $opt_help;
 my $opt_shell;
 my $opt_all;
 
 GetOptions(
     'h|help'        => \$opt_help,
-    's|shell'       => \$opt_shell,
+    's|sh'          => \$opt_sh,
+    'c|csh'         => \$opt_csh,
     'a|all'         => \$opt_all,
 );
+
+if ($opt_all) {
+    @VARS = keys(%Warewulf::Include::wwconfig);
+} elsif (@ARGV) {
+    @VARS = @ARGV;
+} else {
+    $opt_help = 1;
+}
 
 if ($opt_help) {
     print "USAGE: $0 [options] [paramaters]\n";
     print "\n";
     print "   Options:\n";
     print "      -h, --help     Show this help summary\n";
-    print "      -s, --shell    Print output in a bourne shell compatible format\n";
+    print "      -s, --sh       Print output in Bourne shell format\n";
+    print "      -c, --csh      Print output in C shell format\n";
     print "\n";
     print "   Paramaters:\n";
     print "\n";
     print "      VERSION        Program version\n";
-    print "      PREFIX         The prefix this was built with\n";
-    print "      DATADIR        The data directory this was built with\n";
-    print "      LIBDIR         The lib directory this was built with\n";
-    print "      LIBEXECDIR     The libexec directory this was built with\n";
-    print "      PERLMODDIR     The Perl module directory this was built with\n";
-    print "      STATEDIR       The local state directory this was built with\n";
-    print "      SYSCONFDIR     The system configuration directory this was built with\n";
+    print "      PREFIX         The compile-time prefix\n";
+    print "      DATAROOTDIR    The compile-time data root directory\n";
+    print "      DATADIR        The compile-time data directory\n";
+    print "      LIBDIR         The compile-time lib directory\n";
+    print "      LIBEXECDIR     The compile-time libexec directory\n";
+    print "      PERLMODDIR     The compile-time Perl module directory\n";
+    print "      STATEDIR       The compile-time local state directory\n";
+    print "      SYSCONFDIR     The compile-time system configuration directory\n";
     print "\n";
 
     exit;
 }
 
-if ($opt_all) {
-    foreach my $key ( keys %Warewulf::Include::wwconfig) {
-        $key = uc($key);
-        if ($opt_shell) {
-            print "WAREWULF_$key=\"$Warewulf::Include::wwconfig{$key}\"\n";
-            print "export $key\n";
-        } else {
-            print "$key: $Warewulf::Include::wwconfig{$key}\n";
-        }
-    }
-} elsif (@ARGV) {
-    foreach my $key (@ARGV) {
-        $key = uc($key);
-        if ($opt_shell) {
-            print "WAREWULF_$key=\"". &wwconfig($key) ."\"\n";
-            print "export $key\n";
-        } else {
-            print &wwconfig($key) ."\n";
-        }
-    }
+foreach my $key (@VARS) {
+    my $val;
 
+    $key = uc($key);
+    $val = &wwconfig($key);
+
+    if ($opt_sh) {
+        print "WAREWULF_$key=\"$val\"\n";
+        print "export $key\n";
+    } elsif ($opt_csh) {
+        print "setenv WAREWULF_$key \"$val\"\n";
+    } else {
+        print "$key: $val\n";
+    }
 }
-

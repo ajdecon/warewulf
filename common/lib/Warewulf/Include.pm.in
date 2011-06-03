@@ -38,6 +38,7 @@ values.
     STATEDIR
     SYSCONFDIR
     LIBDIR
+    DATAROOTDIR
     DATADIR
     PERLMODDIR
 
@@ -45,6 +46,7 @@ values.
 
 my $prefix = "@prefix@";
 my $exec_prefix = "@exec_prefix@";
+my $datarootdir = "@datarootdir@";
 
 $wwconfig{"PROGNAME"}                        = basename($0);
 $wwconfig{"VERSION"}                         = $VERSION;
@@ -52,6 +54,7 @@ $wwconfig{"PREFIX"}                          = "@prefix@";
 $wwconfig{"STATEDIR"}                        = "@localstatedir@";
 $wwconfig{"SYSCONFDIR"}                      = "@sysconfdir@";
 $wwconfig{"LIBDIR"}                          = "@libdir@";
+$wwconfig{"DATAROOTDIR"}                     = "@datarootdir@";
 $wwconfig{"DATADIR"}                         = "@datadir@";
 $wwconfig{"LIBEXECDIR"}                      = "@libexecdir@";
 $wwconfig{"PERLMODDIR"}                      = "@PERL_VENDORLIB@";
