@@ -14,11 +14,22 @@ if test -z "$WWCONFIGBIN"; then
 fi
 AC_SUBST(WWCONFIGBIN)
 
-AC_MSG_CHECKING(for Warewulf's configuration for statedir)
+WAREWULF_PREFIX=`$WWCONFIGBIN PREFIX`
+force_prefix=""
+AC_MSG_CHECKING([warewulf-common prefix vs. current prefix])
+if test "${prefix}" = "$WAREWULF_PREFIX"; then
+   AC_MSG_RESULT([identical (${prefix})])
+else
+   AC_MSG_RESULT([MISMATCH (${prefix} vs. $WAREWULF_PREFIX), forcing install prefix on all paths])
+   force_prefix="${prefix}"
+fi
+
+AC_MSG_CHECKING([for Warewulf's configuration for statedir])
 eval `$WWCONFIGBIN -s statedir`
 if test -z "$WAREWULF_STATEDIR"; then
     AC_MSG_ERROR([Warewulf statedir not found])
 fi
+WAREWULF_STATEDIR="$force_prefix$WAREWULF_STATEDIR"
 AC_MSG_RESULT($WAREWULF_STATEDIR)
 AC_SUBST(WAREWULF_STATEDIR)
 
@@ -29,7 +40,7 @@ if test -z "$PERLBIN"; then
 fi
 AC_SUBST(PERLBIN)
 
-AC_MSG_CHECKING(for Perl vendor lib path)
+AC_MSG_CHECKING([for Perl vendor lib path])
 eval `$PERLBIN -V:installvendorlib`
 PERL_VENDORLIB=$installvendorlib
 AC_ARG_WITH(perllibdir, [  --with-perllibdir=path  Manually specify where the perl modules should go], [
@@ -37,6 +48,7 @@ if test -n "$withval" -a "x$withval" != "xno" ; then
    PERL_VENDORLIB=$withval
 fi
 ])
+PERL_VENDORLIB="$force_prefix$PERL_VENDORLIB"
 AC_MSG_RESULT($PERL_VENDORLIB)
 AC_SUBST(PERL_VENDORLIB)
 

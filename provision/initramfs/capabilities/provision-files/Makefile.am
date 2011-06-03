@@ -8,16 +8,18 @@ rootfs:
 		install -m 755 $(srcdir)/$$i rootfs/warewulf/provision/$$i; \
 	done
 
-http.cpio: rootfs
+capability.cpio: rootfs
 	cd rootfs/; find . | cpio -o -H newc -F ../capability.cpio
 
-install: http.cpio
+install-data-local: capability.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
 	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-files
 
-clean:
-	rm -rf _work
-	rm -f unionfs
+uninstall-local:
+	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-files
+
+clean-local:
+	rm -rf rootfs capability.cpio
 
 
 EXTRA_DIST = $(METHODSCRIPTS) $(INITSCRIPT)

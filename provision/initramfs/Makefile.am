@@ -63,16 +63,17 @@ initramfs.cpio: rootfs
 	install -m 644 $(srcdir)/devs.cpio initramfs.cpio
 	cd rootfs/; find . | cpio -o -H newc -A -F ../initramfs.cpio
 
-install: install-recursive initramfs.cpio
+install-data-local: initramfs.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
 	install -m 644 initramfs.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/base
 
-clean:
-	rm -rf _work
-	rm -rf rootfs
-	rm -rf initramfs
+uninstall-local:
+	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/base
+
+clean-local:
+	rm -rf _work rootfs initramfs.cpio
 
 
 
-EXTRA_DIST = *.config init devs.cpio functions dhcp-script detect hwaddr transporthandler provisionhandler
+EXTRA_DIST = busybox.config init devs.cpio functions dhcp-script detect hwaddr transporthandler provisionhandler
 

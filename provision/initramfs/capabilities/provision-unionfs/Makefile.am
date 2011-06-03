@@ -31,14 +31,15 @@ rootfs: unionfs
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	find rootfs -type f -perm -o+x -print | xargs strip -g
 
-statelite.cpio: rootfs
+capability.cpio: rootfs
 	cd rootfs/; find . | cpio -o -H newc -F ../capability.cpio
 
-install: statelite.cpio
+install-data-local: capability.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
 	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-unionfs
 
-clean:
-	rm -rf _work
-	rm -f unionfs
+uninstall-local:
+	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/provision-unionfs
 
+clean-local:
+	rm -rf _work rootfs unionfs capability.cpio

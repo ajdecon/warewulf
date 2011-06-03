@@ -23,11 +23,13 @@ gpxelinux.0:
 	fi
 	cp _work/$(SYSLINUX_DIR)/gpxe/gpxelinux.0 .
 
-install: install-recursive gpxelinux.0 chain.c32
+install-data-local: gpxelinux.0 chain.c32
 	mkdir -p $(DESTDIR)/$(datadir)/warewulf/
 	install -m 644 gpxelinux.0 $(DESTDIR)/$(datadir)/warewulf/
 	install -m 644 chain.c32 $(DESTDIR)/$(datadir)/warewulf/
 
-clean:
-	rm -rf _work
-	rm -f gpxelinux.0
+uninstall-local:
+	rm -rf $(DESTDIR)/$(datadir)/warewulf/gpxelinux.0 $(DESTDIR)/$(datadir)/warewulf/chain.c32
+
+clean-local:
+	rm -rf _work gpxelinux.0 chain.c32
