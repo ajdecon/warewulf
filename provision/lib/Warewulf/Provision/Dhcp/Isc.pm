@@ -16,6 +16,7 @@ use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
+use Warewulf::Include;
 use Warewulf::DSOFactory;
 use Socket;
 use Digest::file qw(digest_file_hex);
@@ -121,6 +122,7 @@ sub
 persist()
 {
     my $self = shift;
+    my $sysconfdir = &wwconfig("sysconfdir");
 
     if (&uid_test(0)) {
         my $datastore = Warewulf::DataStore->new();
@@ -130,8 +132,8 @@ persist()
         my $config_template;
         my $dhcpd_contents;
 
-        if (-f "/etc/warewulf/dhcpd-template.conf") {
-            open(DHCP, "/etc/warewulf/dhcpd-template.conf");
+        if (-f "$sysconfdir/warewulf/dhcpd-template.conf") {
+            open(DHCP, "$sysconfdir/warewulf/dhcpd-template.conf");
             while($line = <DHCP>) {
                 $config_template .= $line;
             }
@@ -160,7 +162,7 @@ persist()
             $config_template .= "# Node entries will follow below\n";
             $config_template .= "\n";
 
-            if (! open(DHCP, "> /etc/warewulf/dhcpd-template.conf")) {
+            if (! open(DHCP, "> $sysconfdir/warewulf/dhcpd-template.conf")) {
                 &eprint("Could not save DHCP template file: $!\n");
                 return();
             }
