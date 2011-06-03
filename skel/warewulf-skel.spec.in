@@ -2,7 +2,7 @@ Name: warewulf-skel
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: 1
-License: GPL
+License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 BuildRoot: /var/tmp/%{name}-buildroot

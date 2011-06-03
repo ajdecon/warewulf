@@ -5,7 +5,7 @@ Name: warewulf-vnfs
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: %{_rel}
-License: GPL
+License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 BuildRoot: /var/tmp/%{name}-buildroot
