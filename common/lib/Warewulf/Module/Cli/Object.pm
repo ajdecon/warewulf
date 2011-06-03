@@ -59,7 +59,7 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
-    $h .= "     -t, --type      What type of object should we be limit by\n";
+    $h .= "     -t, --type      By what type of object should we be limited\n";
     $h .= "     -p, --print     Define what fields are printed (':all' is a special tag)\n";
     $h .= "     -s, --set       Set a given attribute\n";
     $h .= "     -a, --add       Add an attribute to an existing key (otherwise create the key)\n";
@@ -255,7 +255,7 @@ exec()
             if ($opt_obj_delete) {
     
                 if ($term->interactive()) {
-                    print "\nAre you sure you wish to make the delete the above objects?\n\n";
+                    print "\nAre you sure you wish to delete the above objects?\n\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes") {
                         &nprint("No update performed\n");
