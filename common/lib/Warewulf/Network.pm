@@ -126,18 +126,8 @@ Return the IPv4 network of the given device name
 =cut
 sub network {
     my ($self, $device) = @_;
-    my $ipaddr = $self->ipaddr($device);
-    my $netmask = $self->netmask($device);
 
-    if ($ipaddr and $netmask) {
-        my $net_bin = unpack("N", inet_aton($ipaddr));
-        my $mask_bin = unpack("N", inet_aton($netmask));
-        my $net = ( $net_bin & $mask_bin ) | ( 0 & ~$mask_bin );
-
-        return(inet_ntoa(pack('N',$net)));
-    }
-
-    return();
+    return($self->calc_network($self->ipaddr($device), $self->netmask($device)));
 }
 
 
@@ -153,7 +143,7 @@ sub calc_network {
     if ($ipaddr and $netmask) {
         my $net_bin = unpack("N", inet_aton($ipaddr));
         my $mask_bin = unpack("N", inet_aton($netmask));
-        my $net = ( $net_bin & $mask_bin ) | ( 0 & ~$mask_bin );
+        my $net = $net_bin & $mask_bin;
 
         return(inet_ntoa(pack('N',$net)));
     }
