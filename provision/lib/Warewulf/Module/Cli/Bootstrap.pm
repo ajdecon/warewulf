@@ -197,7 +197,7 @@ exec()
         open(DEP, "./lib/modules/$opt_kversion/modules.dep");
         while (my $line = <DEP>) {
             chomp($line);
-            if ($line =~ /^([a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
+            if ($line =~ /^.*(kernel\/[a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
                 my $path = $1;
                 my @deps = split(/\s+/, $2);
                 my $name = basename($path);
@@ -259,6 +259,7 @@ exec()
         }
         if ($module_count > 0) {
             &nprint("Number of drivers included in bootstrap: $module_count\n");
+            &dprint("Running depmod\n");
             system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $opt_kversion");
         }
     }
