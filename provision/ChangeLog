@@ -14,3 +14,8 @@ Thu Apr 21 16:55:02 2011                        Michael Jennings (mej)
 
 Another attempt to improve --root regexp.
 ----------------------------------------------------------------------
+Fri Jun  3 20:12:58 2011                        Michael Jennings (mej)
+
+Initial work on cleaning up the autotools stuff.  Still more can be
+done here though.
+----------------------------------------------------------------------

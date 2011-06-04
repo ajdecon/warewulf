@@ -1,6 +1,6 @@
 SUBDIRS = lib initramfs modules etc bin cgi-bin share 3rd_party
 
-MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 configure compile config.* ltmain.sh
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.*
 DISTCLEANFILES = 
 CLEANFILES = 
 EXTRA_DIST = warewulf-provision.spec LICENSE
