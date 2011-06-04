@@ -402,17 +402,17 @@ exec()
             } else {
                 push(@files, "UNDEF");
             }
-            my $vnfsObj = $db->get_objects("vnfs", "id", $o->get("vnfsid"))->get_object(0);
-            my $vnfs;
+            my $vnfs = "UNDEF";
+            if (my $vnfsid = $o->get("vnfsid")) {
+                my $vnfsObj = $db->get_objects("vnfs", "id", $vnfsid)->get_object(0);
                 if ($vnfsObj) {
-                $vnfs = $vnfsObj->get("name");
-            } else {
-                $vnfs = "UNDEF";
+                    $vnfs = $vnfsObj->get("name");
+                }
             }
             printf("%-15s %-28s %-15s %-15s\n",
                 $o->get("name") || "UNDEF",
                 $o->get("bootstrap") || "UNDEF",
-                $vnfs || "UNDEF",
+                $vnfs,
                 join(",", @files)
             );
         }
