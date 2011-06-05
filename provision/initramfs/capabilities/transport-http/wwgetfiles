@@ -16,7 +16,7 @@ while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
         if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR" 2>/dev/null; then
             cat $TMPFILE | while read id name uid gid mode path; do
-                if wget -q -O - "http://$master/WW/file?fileid=$id" > $NEWROOT/$path; then
+                if wget -q -O - "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id" > $NEWROOT/$path; then
                     chown $uid $NEWROOT/$path
                     chgrp $gid $NEWROOT/$path
                     chmod $mode $NEWROOT/$path

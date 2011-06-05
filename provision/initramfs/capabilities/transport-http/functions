@@ -11,14 +11,26 @@ if [ -f "/etc/network.conf" ]; then
     . /etc/network.conf
 fi
 
+if [ -f "/warewulf/config" ]; then
+    . /warewulf/config
+fi
+
+PATH=${PATH}:/warewulf/bin
+export PATH
+
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/warewulf/lib:/warewulf/lib64
+export LD_LIBRARY_PATH
+
 START=0
 BACKOFF=2
 INTERVALS=30
 COUNT=1
 export START BACKOFF INTERVALS COUNT
 
-WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWMASTER
+if [ -z "$WWMASTER" ]; then
+    WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
+    export WWMASTER
+fi
 
 if [ -z "$WWMASTER" ]; then
     if [ -n "$DHCP_SERVER" ]; then
@@ -31,11 +43,11 @@ fi
 
 
 throttled_sleep() {
-    sleep $START
     if [ $COUNT -ge $INTERVALS ]; then
         exit 1
     fi
     COUNT=`expr $COUNT + 1`
     START=`expr $START + $BACKOFF`
+    sleep $START
 }
 

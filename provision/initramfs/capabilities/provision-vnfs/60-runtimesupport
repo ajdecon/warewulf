@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+. /etc/functions
+
+if [ -f "/etc/network.conf" ]; then
+    . /etc/network.conf
+fi
+
+if [ -z "$WWTRANSPORT" ]; then
+    WWTRANSPORT="http"
+fi
+
+WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWMASTER
+
+if [ -z "$WWMASTER" ]; then
+    if [ -n "$DHCP_SERVER" ]; then
+        WWMASTER=$DHCP_SERVER
+    else
+        echo "ERROR: Could not identify master node!"
+        exit 1
+    fi
+fi
+
+if [ -z "$WWNORUNTIMESERVICES" ]; then
+    mkdir -p $NEWROOT/warewulf/transports
+    mkdir -p $NEWROOT/warewulf/bin
+    mkdir -p $NEWROOT/warewulf/lib
+    mkdir -p $NEWROOT/warewulf/lib64
+    mkdir -p $NEWROOT/etc/cron.d/
+    cp -rap /warewulf/transports/$WWTRANSPORT $NEWROOT/warewulf/transports/
+    cp -a /bin/busybox $NEWROOT/warewulf/bin/busybox
+    ln -s busybox $NEWROOT/warewulf/bin/wget
+    ln -s ../transports/$WWTRANSPORT/wwgetfiles $NEWROOT/warewulf/bin/wwgetfiles
+    ln -s ../transports/$WWTRANSPORT/wwgetscript $NEWROOT/warewulf/bin/wwgetscript
+    cp -a /lib/lib*.so* $NEWROOT/warewulf/lib/ 2>/dev/null
+    cp -a /lib64/lib*.so* $NEWROOT/warewulf/lib64/ 2>/dev/null
+
+    echo "WWMASTER=$WWMASTER" >> $NEWROOT/warewulf/config
+    echo "export WWMASTER" >> $NEWROOT/warewulf/config
+
+    echo "WWTRANSPORT=$WWTRANSPORT" >> $NEWROOT/warewulf/config
+    echo "export WWTRANSPORT" >> $NEWROOT/warewulf/config
+
+    echo "HWADDR=$HWADDR" >> $NEWROOT/warewulf/config
+    echo "export HWADDR" >> $NEWROOT/warewulf/config
+
+    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * /warewulf/bin/wwgetfiles >/var/log/wwgetfiles.log 2>&1" > $NEWROOT/etc/cron.d/wwgetfiles
+    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * /warewulf/bin/wwgetscript runtime 2>/var/log/wwgetfiles.log | /bin/sh" > $NEWROOT/etc/cron.d/wwgetfiles
+fi

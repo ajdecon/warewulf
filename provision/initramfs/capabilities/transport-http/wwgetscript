@@ -17,6 +17,9 @@ case $1 in
     post)
         TYPE="post"
     ;;
+    runtime)
+        TYPE="runtime"
+    ;;
     *)
         echo "What type of script do you wish to download? ('pre' or 'post)"
         exit 1
