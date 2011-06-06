@@ -52,6 +52,6 @@ if [ -z "$WWNORUNTIMESERVICES" ]; then
     echo "HWADDR=$HWADDR" >> $NEWROOT/warewulf/config
     echo "export HWADDR" >> $NEWROOT/warewulf/config
 
-    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * /warewulf/bin/wwgetfiles >/var/log/wwgetfiles.log 2>&1" > $NEWROOT/etc/cron.d/wwgetfiles
-    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * /warewulf/bin/wwgetscript runtime 2>/var/log/wwgetfiles.log | /bin/sh" > $NEWROOT/etc/cron.d/wwgetfiles
+    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * root /warewulf/bin/wwgetfiles >/var/log/wwgetfiles.log 2>&1" > $NEWROOT/etc/cron.d/wwupdatefiles
+    echo "0,5,10,15,20,25,30,35,40,45,50,55 * * * * root /warewulf/bin/wwgetscript runtime 2>/var/log/wwgetfiles.log | /bin/sh" > $NEWROOT/etc/cron.d/wwrunscript
 fi
