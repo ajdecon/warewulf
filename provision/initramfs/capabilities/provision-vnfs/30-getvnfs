@@ -10,7 +10,7 @@
 
 cd $NEWROOT
 
-if ! wwgetvnfs | gunzip 2>/dev/null | cpio -uid --quiet 2>/dev/null; then
+if ! wwgetvnfs; then
     exit 255
 fi
 

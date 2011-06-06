@@ -11,9 +11,11 @@
 
 TMPFILE=`mktemp`
 
+cd ${NEWROOT:-/}
+
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O - "http://$master/WW/vnfs?hwaddr=$HWADDR" 2>/dev/null; then
+        if wget -q -O - "http://$master/WW/vnfs?hwaddr=$HWADDR" 2>/dev/null | gunzip 2>/dev/null | cpio -uid --quiet 2>/dev/null; then
             exit 0
         fi
     done

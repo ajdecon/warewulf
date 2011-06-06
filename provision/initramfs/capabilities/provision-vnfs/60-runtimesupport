@@ -38,8 +38,11 @@ if [ -z "$WWNORUNTIMESERVICES" ]; then
     cp -rap /warewulf/transports/$WWTRANSPORT $NEWROOT/warewulf/transports/
     cp -a /bin/busybox $NEWROOT/warewulf/bin/busybox
     ln -s busybox $NEWROOT/warewulf/bin/wget
+    ln -s busybox $NEWROOT/warewulf/bin/cpio
+    ln -s busybox $NEWROOT/warewulf/bin/gzip
     ln -s ../transports/$WWTRANSPORT/wwgetfiles $NEWROOT/warewulf/bin/wwgetfiles
     ln -s ../transports/$WWTRANSPORT/wwgetscript $NEWROOT/warewulf/bin/wwgetscript
+    ln -s ../transports/$WWTRANSPORT/wwgetvnfs $NEWROOT/warewulf/bin/wwgetvnfs
     cp -a /lib/lib*.so* $NEWROOT/warewulf/lib/ 2>/dev/null
     cp -a /lib64/lib*.so* $NEWROOT/warewulf/lib64/ 2>/dev/null
 

@@ -124,7 +124,7 @@ fi
 if [ $WWDEBUG -ge 3 ]; then
     echo
     echo "Spawning a debug shell. Exit to continue provisioning."
-    /bin/sh
+    setsid cttyhack sh
     echo "Continuing provisioning process."
     echo
 fi
@@ -164,7 +164,7 @@ while true; do
         echo "This node is configured to run a shell before the provision process"
         echo "due to the 'preshell' Warewulf node configuration... So be it!"
         echo
-        /bin/sh
+        setsid cttyhack sh
     fi
 
 
@@ -176,7 +176,7 @@ while true; do
         echo "This node is configured to run a shell after the provision process"
         echo "due to the 'postshell' Warewulf node configuration... So be it!"
         echo
-        /bin/sh
+        setsid cttyhack sh
     fi
 
     if [ -x "$NEWROOT/sbin/init" ]; then
