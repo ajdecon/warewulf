@@ -21,8 +21,6 @@ use Text::ParseWords;
 
 our @ISA = ('Warewulf::Module::Cli');
 
-Getopt::Long::Configure ("bundling");
-
 my $entity_type = "node";
 
 sub
@@ -169,6 +167,8 @@ exec()
 
     @ARGV = ();
     push(@ARGV, @_);
+
+    Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
         'files=s'       => \@opt_files,

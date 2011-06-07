@@ -21,8 +21,6 @@ use Text::ParseWords;
 
 our @ISA = ('Warewulf::Module::Cli');
 
-Getopt::Long::Configure ("bundling");
-
 my $entity_type = "node";
 
 sub
@@ -141,7 +139,7 @@ complete()
         }
     }
 
-    Getopt::Long::Configure ("bundling");
+    Getopt::Long::Configure ("bundling", "passthrough");
 
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
@@ -186,6 +184,8 @@ exec()
 
     @ARGV = ();
     push(@ARGV, @_);
+
+    Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
         'p|print=s'     => \@opt_print,

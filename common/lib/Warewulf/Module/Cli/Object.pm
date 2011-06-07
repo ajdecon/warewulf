@@ -143,7 +143,7 @@ exec()
     @ARGV = ();
     push(@ARGV, &quotewords('\s+', 0, @_));
 
-    Getopt::Long::Configure ("bundling");
+    Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
         'n|new'         => \$opt_new,
