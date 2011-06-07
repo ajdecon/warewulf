@@ -1,6 +1,6 @@
 SUBDIRS = lib share etc bin
 
-MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.*
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* install-sh missing
 DISTCLEANFILES = 
 CLEANFILES = 
 EXTRA_DIST = warewulf-common.spec LICENSE
