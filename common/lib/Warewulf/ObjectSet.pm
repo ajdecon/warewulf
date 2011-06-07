@@ -169,13 +169,25 @@ sub
 get_list($$)
 {
     my $self = shift;
-    my $sortby = shift;
 
     if (exists($self->{"ARRAY"})) {
         return (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}});
     } else {
         return;
     }
+}
+
+=item count()
+
+Return the number of entities in the ObjectSet
+
+=cut
+sub
+count()
+{
+    my $self = shift;
+
+    return (scalar @{$self->{"ARRAY"}} || 0);
 }
 
 

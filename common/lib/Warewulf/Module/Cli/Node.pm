@@ -61,6 +61,7 @@ help()
     $h .= "\n";
     $h .= "         new             Create a new node configuration defined by the 'target'\n";
     $h .= "         set             Modify an existing node configuration\n";
+    $h .= "         list            List a summary of nodes\n";
     $h .= "         print           Print the node configuration\n";
     $h .= "         delete          Remove a node configuration from the data store\n";
     $h .= "\n";
@@ -234,7 +235,7 @@ exec()
         $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
     }
 
-    my $object_count = scalar($objSet->get_list()) || 0;
+    my $object_count = $objSet->count();
 
     if ($object_count == 0 ) {
         &nprint("No nodes found\n");
@@ -251,11 +252,27 @@ exec()
             }
         }
         $db->del_object($objSet);
+    } elsif ($command eq "list") {
+        &nprintf("%-19s %-19s %-19s %-19s\n",
+            "NAME",
+            "CLUSTER",
+            "GROUPS",
+            "HWADDR"
+        );
+        &nprint("================================================================================\n");
+        foreach my $o ($objSet->get_list()) {
+            printf("%-19s %-19s %-19s %-19s\n",
+                $o->get("name") || "UNDEF",
+                $o->get("cluster") || "UNDEF",
+                join(",", $o->get("groups")) || "UNDEF",
+                join(",", $o->get("hwaddr")) || "UNDEF"
+            );
+        }
     } elsif ($command eq "print") {
         if (scalar(@opt_print) > 0) {
             @opt_print = split(",", join(",", @opt_print));
         } else {
-            @opt_print = ("name", "cluster", "groups", "hwaddr");
+            @opt_print = (":all");
         }
         if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
             my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
@@ -265,7 +282,6 @@ exec()
         foreach my $o ($objSet->get_list()) {
             if (@opt_print and $opt_print[0] eq ":all") {
                 my %hash = $o->get_hash();
-                my $id = $o->get("id");
                 my $name = $o->get("name");
                 &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                 foreach my $h (keys %hash) {
@@ -286,7 +302,7 @@ exec()
                             }
                         }
                         if (scalar(@scalars) > 0) {
-                            printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
+                            printf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
                         } else {
                             push(@values, "UNDEF");
                         }
@@ -300,9 +316,9 @@ exec()
                                     push(@s, $l ."=". $string);
                                 }
                             }
-                            printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
+                            printf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
                         } else {
-                            printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                            printf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
                         }
                     }
                 }
