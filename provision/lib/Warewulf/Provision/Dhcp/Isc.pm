@@ -124,6 +124,11 @@ persist()
     my $self = shift;
     my $sysconfdir = &wwconfig("sysconfdir");
 
+    if (! $self->get("FILE")) {
+        &dprint("No configuration file present, so no DHCP configuration to persist\n");
+        return;
+    }
+
     if (&uid_test(0)) {
         my $datastore = Warewulf::DataStore->new();
         my $netobj = Warewulf::Network->new();
