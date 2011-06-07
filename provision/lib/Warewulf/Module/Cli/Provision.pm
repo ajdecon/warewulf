@@ -213,7 +213,7 @@ exec()
         return();
     }
 
-    my $object_count = scalar($objSet->get_list()) || 0;
+    my $object_count = $objSet->count();
 
     if ($object_count == 0 ) {
         &nprint("No nodes found\n");
