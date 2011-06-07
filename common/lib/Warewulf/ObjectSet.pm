@@ -35,6 +35,15 @@ Warewulf::ObjectSet - Warewulf's object set interface.
 =cut
 
 
+
+sub
+sort_byname($)
+{
+    return($a->get("name") cmp $b->get("name"));
+}
+
+
+
 =item new()
 
 The new constructor will create the object that references configuration the
@@ -133,6 +142,7 @@ get_object($)
     }
 }
 
+
 =item get_list_entries($index)
 
 Return an array of list entries found in the current set.
@@ -145,7 +155,7 @@ get_list_entries($$)
     my $key = shift;
     my @ret;
 
-    foreach my $obj (@{$self->{"ARRAY"}}) {
+    foreach my $obj ( sort sort_byname @{$self->{"ARRAY"}}) {
         if (my $value = $obj->get($key)) {
             push(@ret, $value);
         }
@@ -165,12 +175,13 @@ Return an array of all objects in this ObjectSet.
 
 =cut
 sub
-get_list($)
+get_list($$)
 {
     my $self = shift;
+    my $sortby = shift;
 
     if (exists($self->{"ARRAY"})) {
-        return (@{$self->{"ARRAY"}});
+        return (sort sort_byname @{$self->{"ARRAY"}});
     } else {
         return;
     }
