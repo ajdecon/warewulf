@@ -223,31 +223,100 @@ exec()
             if (@opt_print) {
 
                 if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-                    &nprintf("%-20s " x (scalar @opt_print) ."\n", map {uc($_);}@opt_print);
+                    my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
+                    &nprint($string ."\n");
+                    &nprint("=" x length($string) ."\n");
                 }
+
                 foreach my $o ($objectSet->get_list()) {
-                    my @values;
                     if (@opt_print and $opt_print[0] eq ":all") {
                         my %hash = $o->get_hash();
                         my $id = $o->get("id");
                         my $name = $o->get("name");
-                        &nprintf("#### %s %s#\n", $name || "UNDEF", "#" x (72 - length($name)));
+                        &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                         foreach my $h (keys %hash) {
                             if(ref($hash{$h}) =~ /^ARRAY/) {
-                                &nprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @{$hash{$h}}));
+                                my @scalars;
+                                foreach my $e (@{$hash{$h}}) {
+                                    if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                        my $type = lc($1);
+                                        my @s;
+                                        foreach my $l ($e->lookups()) {
+                                            if (my $string = $e->get($l)) {
+                                                push(@s, $l ."=". $string);
+                                            }
+                                        }
+                                        push(@scalars, $type ."(". join(",", @s) .")");
+                                    } else {
+                                        push(@scalars, $e);
+                                    }
+                                }
+                                if (scalar(@scalars) > 0) {
+                                    printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
+                                } else {
+                                    push(@values, "UNDEF");
+                                }
                             } else {
-                                &nprintf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                    my @scalars;
+                                    my $type = lc($1);
+                                    my @s;
+                                    foreach my $l ($e->lookups()) {
+                                        if (my $string = $e->get($l)) {
+                                            push(@s, $l ."=". $string);
+                                        }
+                                    }
+                                    printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
+                                } else {
+                                    printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                }
                             }
                         }
                     } else {
-                        foreach my $g (@opt_print) {
-                            if(ref($o->get($g)) =~ /^ARRAY/) {
-                                push(@values, join(",", sort $o->get($g)));
+                        my @values;
+                        foreach my $h (@opt_print) {
+                            if (my $val = $o->get($h)) {
+                                if(ref($val) =~ /^ARRAY/) {
+                                    my @scalars;
+                                    foreach my $e (@{$val}) {
+                                        if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                            my $type = lc($1);
+                                            my @s;
+                                            foreach my $l ($e->lookups()) {
+                                                if (my $string = $e->get($l)) {
+                                                    push(@s, $l ."=". $string);
+                                                }
+                                            }
+                                            push(@scalars, $type ."(". join(",", @s) .")");
+                                        } else {
+                                            push(@scalars, $e);
+                                        }
+                                    }
+                                    if (scalar(@scalars) > 0) {
+                                        push(@values, join(",", sort @scalars));
+                                    } else {
+                                        push(@values, "UNDEF");
+                                    }
+                                } else {
+                                    if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
+                                        my @scalars;
+                                        my $type = lc($1);
+                                        my @s;
+                                        foreach my $l ($e->lookups()) {
+                                            if (my $string = $e->get($l)) {
+                                                push(@s, $l ."=". $string);
+                                            }
+                                        }
+                                        push(@values, $type ."(". join(",", @s) .")");
+                                    } else {
+                                        push(@values, $val);
+                                    }
+                                }
                             } else {
-                                push(@values, $o->get($g) || "UNDEF");
+                                push(@values, "UNDEF");
                             }
                         }
-                        &nprintf("%-20s " x (scalar @values) ."\n", @values);
+                        printf("%-17s " x (scalar @values) ."\n", @values);
                     }
                 }
             }
