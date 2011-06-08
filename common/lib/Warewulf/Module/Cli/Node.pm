@@ -197,7 +197,7 @@ exec()
         'groupadd=s'    => \@opt_groupadd,
         'groupdel=s'    => \@opt_groupdel,
         'netdev=s'      => \$opt_netdev,
-        'remove'        => \$opt_devremove,
+        'netdel'        => \$opt_devremove,
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
         'netmask=s'     => \$opt_netmask,
@@ -371,64 +371,73 @@ exec()
         }
     } elsif ($command eq "set" or $command eq "new") {
         &dprint("Entered 'set' codeblock\n");
-        my $persist_bool;
+        my $persist_count = 0;
 
-        if ($opt_netdev) {
-            &dprint("Working on network device: $opt_netdev\n");
+        if ($opt_ipaddr or $opt_hwaddr or $opt_netmask or $opt_fqdn) {
             foreach my $obj ($objSet->get_list()) {
-                my $netobject;
-                &dprint("looking for an existing network device name: $opt_netdev\n");
-                foreach my $nobj ($obj->get("netdevs")) {
-                    &dprint("testing match for: ". $nobj->get("name") ."\n");
-                    if ($nobj->get("name") eq $opt_netdev) {
-                        &dprint("Using existing netdev object: $nobj\n");
-                        $netobject = $nobj;
-                        last;
+                my $name = $obj->get("name") || "UNDEF";
+                my $netobj;
+                if ($opt_netdev) {
+                    foreach my $nobj ($obj->get("netdevs")) {
+                        if ($nobj->get("name") eq $opt_netdev) {
+                            &dprint("Using existing netdev object: $nobj\n");
+                            $netobj = $nobj;
+                            last;
+                        }
+                    }
+                    if (! $netobj) {
+                        &dprint("Creating a new netdev object\n");
+                        $netobj = Warewulf::DSOFactory->new("netdev");
+                        $netobj->set("name", $opt_netdev);
+                        $obj->add("netdevs", $netobj);
                     }
                 }
-                if ($opt_devremove) {
-                    if ($netobject) {
-                        $obj->del("hwaddr", $netobject->get("hwaddr"));
-                        $obj->del("netdevs", $netobject);
-                        $persist_bool = 1;
+                if (! $netobj) {
+                    my @netobjs = $obj->get("netdevs");
+                    if (scalar(@netobjs) == 1) {
+                        $netobj = shift(@netobjs);
                     } else {
-                        &wprint("No device named '$opt_netdev' found\n");
+                        &eprint("Could not set network configuration for node '$name' (include --netdev!)\n");
+                        next;
                     }
-                } else {
-                    if (! $netobject) {
-                        &dprint("Creating new netdev object\n");
-                        $netobject = Warewulf::DSOFactory->new("netdev");
-                        $netobject->set("name", $opt_netdev);
-                        $obj->add("netdevs", $netobject);
-                    }
-                    if ($opt_ipaddr) {
-                        $netobject->set("ipaddr", $opt_ipaddr);
-                        $persist_bool = 1;
-                    }
-                    if ($opt_netmask) {
-                        $netobject->set("netmask", $opt_netmask);
-                        $persist_bool = 1;
-                    }
-                    if ($opt_hwaddr) {
-                        $netobject->set("hwaddr", $opt_hwaddr);
-                        $obj->add("hwaddr", $opt_hwaddr);
-                        $persist_bool = 1;
-                    }
-                }
-            }
-
-            if ($opt_devremove) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
-            } else {
-                if ($opt_ipaddr) {
-                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
-                }
-                if ($opt_netmask) {
-                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
                 }
                 if ($opt_hwaddr) {
-                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
+                    $netobj->set("hwaddr", $opt_hwaddr);
+                    $obj->add("hwaddr", $opt_hwaddr);
+                    $persist_count++;
                 }
+                if ($opt_ipaddr) {
+                    $netobj->set("ipaddr", $opt_ipaddr);
+                    $persist_count++;
+                }
+                if ($opt_netmask) {
+                    $netobj->set("netmask", $opt_netmask);
+                    $persist_count++;
+                }
+                if ($opt_fqdn) {
+                    $netobj->set("fqdn", $opt_fqdn);
+                    $persist_count++;
+                }
+                if ($opt_devremove) {
+                    $obj->del("hwaddr", $netobj->get("hwaddr"));
+                    $obj->del("netdevs", $netobj);
+                    $persist_count++;
+                }
+            }
+            if ($opt_ipaddr) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "IPADDR", $opt_ipaddr));
+            }
+            if ($opt_netmask) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "NETMASK", $opt_netmask));
+            }
+            if ($opt_hwaddr) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "HWADDR", $opt_hwaddr));
+            }
+            if ($opt_fqdn) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "FQDN", $opt_fqdn));
+            }
+            if ($opt_devremove) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
             }
         }
 
@@ -438,7 +447,7 @@ exec()
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->del("cluster");
                     &dprint("Deleting cluster for node name: $name\n");
-                    $persist_bool = 1;
+                    $persist_count++;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", "UNDEF"));
             } else {
@@ -446,7 +455,7 @@ exec()
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->set("cluster", $opt_cluster);
                     &dprint("Setting cluster for node name: $name\n");
-                    $persist_bool = 1;
+                    $persist_count++;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
             }
@@ -460,7 +469,7 @@ exec()
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->set("name", $opt_name);
                     &dprint("Setting name for node name: $name\n");
-                    $persist_bool = 1;
+                    $persist_count++;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "NAME", $opt_name));
             }
@@ -471,7 +480,7 @@ exec()
                 my $name = $obj->get("name") || "UNDEF";
                 $obj->set("groups", split(",", join(",", @opt_groups)));
                 &dprint("Setting groups for node name: $name\n");
-                $persist_bool = 1;
+                $persist_count++;
             }
             push(@changes, sprintf("     SET: %-20s = %s\n", "GROUPS", join(",", @opt_groups)));
         }
@@ -483,7 +492,7 @@ exec()
                     $obj->add("groups", split(",", $opt));
                 }
                 push(@changes, sprintf("     ADD: %-20s = %s\n", "GROUPS", $opt));
-                $persist_bool = 1;
+                $persist_count++;
             }
         }
         if (@opt_groupdel) {
@@ -493,7 +502,7 @@ exec()
                     $obj->del("groups", split(",", $opt));
                 }
                 push(@changes, sprintf("     DEL: %-20s = %s\n", "GROUPS", $opt));
-                $persist_bool = 1;
+                $persist_count++;
             }
         }
 
@@ -506,7 +515,7 @@ exec()
                     $obj->set($key, &quotewords(',', 0, @vals));
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", @vals)));
-                $persist_bool = 1;
+                $persist_count++;
             }
         }
         if (@opt_add) {
@@ -518,7 +527,7 @@ exec()
                         $obj->add($key, split(",", $val));
                     }
                     push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $opt));
-                    $persist_bool = 1;
+                    $persist_count++;
                 }
             }
 
@@ -532,7 +541,7 @@ exec()
                         foreach my $obj ($objSet->get_list()) {
                             $obj->del($key, split(",", $val));
                         }
-                        $persist_bool = 1;
+                        $persist_count++;
                         push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $opt));
                     }
                 } elsif ($key) {
@@ -540,15 +549,15 @@ exec()
                     foreach my $obj ($objSet->get_list()) {
                         $obj->del($key);
                     }
-                    $persist_bool = 1;
+                    $persist_count++;
                     push(@changes, sprintf("   UNSET: %-20s\n", $key));
                 }
             }
         }
 
-        if ($persist_bool) {
+        if ($persist_count > 0) {
             if ($command ne "new" and $term->interactive()) {
-                print "Are you sure you want to make the following changes to ". scalar($objSet->get_list()) ." node(s):\n\n";
+                print "Are you sure you want to make the following changes to $persist_count node(s):\n\n";
                 foreach my $change (@changes) {
                     print $change;
                 }
