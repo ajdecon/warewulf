@@ -61,7 +61,7 @@ help()
     $h .= "     This is the base file interface for dealing with Warewulf. It allows you to\n";
     $h .= "     import, export, create and modify files within the Warewulf datastore. Some\n";
     $h .= "     examples of this would be if you wanted to use a specific file as a node\n";
-    $h .= "     gets provisioned\n";
+    $h .= "     gets provisioned.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
@@ -102,7 +102,7 @@ summary()
 {
     my $output;
 
-    $output .= "Manage files within the Warewulf datastore.";
+    $output .= "Manage files within the Warewulf datastore";
 
     return($output);
 }

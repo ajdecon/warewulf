@@ -85,7 +85,7 @@ summary()
 {
     my $output;
 
-    $output .= "Manage your VNFS images.";
+    $output .= "Manage your VNFS images";
 
     return($output);
 }

@@ -34,7 +34,7 @@ description()
 {
     my $output;
 
-    $output .= "Reconfigure DHCP services for this host manually";
+    $output .= "Reconfigure DHCP services manually";
 
     return($output);
 }
@@ -57,7 +57,8 @@ help()
     my ($self, $keyword) = @_;
     my $output;
 
-    $output .= "        The DHCP command will reconfigure the DHCP service for this host\n";
+    $output .= "SUMMARY:\n";
+    $output .= "        The DHCP command configures/reconfigures the DHCP services.\n";
 
     return($output);
 }

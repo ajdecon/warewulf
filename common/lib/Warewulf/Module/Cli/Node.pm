@@ -80,9 +80,9 @@ help()
     $h .= "\n";
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
     $h .= "     -p, --print         Define what fields are printed (':all' prints all)\n";
-    $h .= "     -s, --set           Set an arbituary key=value(s) pair\n";
-    $h .= "     -a, --add           Add a value to an arbituary key\n";
-    $h .= "     -d, --del           Delete a value from an arbituary key, or the entire key\n";
+    $h .= "     -s, --set           Set an arbitrary key=value(s) pair\n";
+    $h .= "     -a, --add           Add a value to an arbitrary key\n";
+    $h .= "     -d, --del           Delete a value from an arbitrary key, or the entire key\n";
     $h .= "         --groups        Define the list of groups this node should be part of\n";
     $h .= "         --groupadd      Associate a group to this node\n";
     $h .= "         --groupdel      Remove a group association from this node\n";
