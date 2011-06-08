@@ -373,7 +373,7 @@ exec()
         &dprint("Entered 'set' codeblock\n");
         my $persist_count = 0;
 
-        if ($opt_ipaddr or $opt_hwaddr or $opt_netmask or $opt_fqdn) {
+        if ($opt_ipaddr or $opt_hwaddr or $opt_netmask or $opt_fqdn or $opt_devremove) {
             foreach my $obj ($objSet->get_list()) {
                 my $name = $obj->get("name") || "UNDEF";
                 my $netobj;

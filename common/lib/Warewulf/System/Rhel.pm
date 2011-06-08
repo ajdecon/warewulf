@@ -96,12 +96,13 @@ chkconfig($$$)
     my ($self, $service, $command) = @_;
 
     if (-x "/sbin/chkconfig") {
-        $self->{"OUTPUT"} = ();
         open(CHKCONFIG, "/sbin/chkconfig $service $command 2>&1|");
         while(<CHKCONFIG>) {
             $self->{"OUTPUT"} .= $_;
         }
-        chomp($self->{"OUTPUT"});
+        if (defined($self->{"OUTPUT"})) {
+            chomp($self->{"OUTPUT"});
+        }
         if (close CHKCONFIG) {
             &dprint("Chkconfig command ran successfully\n");
             return(1);

@@ -202,10 +202,12 @@ ip_serialize()
 {
     my ($self, $string) = @_;
 
-    if ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
-        return(unpack("N", inet_aton($string)));
-    } elsif ($string =~ /^\d+$/) {
-        return($string)
+    if (defined($string)) {
+        if ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
+            return(unpack("N", inet_aton($string)));
+        } elsif ($string =~ /^\d+$/) {
+            return($string)
+        }
     }
 
     return();
@@ -222,10 +224,12 @@ ip_unserialize()
 {
     my ($self, $string) = @_;
 
-    if ( $string =~ /^\d+$/ ) {
-        return(inet_ntoa(pack('N', $string)));
-    } elsif ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
-        return($string);
+    if (defined($string)) {
+        if ( $string =~ /^\d+$/ ) {
+            return(inet_ntoa(pack('N', $string)));
+        } elsif ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
+            return($string);
+        }
     }
 
     return();
