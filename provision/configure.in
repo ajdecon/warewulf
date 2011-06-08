@@ -5,11 +5,11 @@ AC_CONFIG_SRCDIR([.])
 AC_PROG_INSTALL
 AM_INIT_AUTOMAKE([foreign -Wno-portability])
 
-AC_PATH_PROG(WWCONFIGBIN, wwconfig)
-if test -z "$WWCONFIGBIN"; then
-   AC_MSG_ERROR([wwconfig not found! (Warewulf common component)])
-fi
-AC_SUBST(WWCONFIGBIN)
+#AC_PATH_PROG(WWCONFIGBIN, wwconfig)
+#if test -z "$WWCONFIGBIN"; then
+#   AC_MSG_ERROR([wwconfig not found! (Warewulf common component)])
+#fi
+#AC_SUBST(WWCONFIGBIN)
 
 AC_EXPAND_DIR(prefix, "${prefix}")
 WAREWULF_PREFIX=`$WWCONFIGBIN PREFIX`
