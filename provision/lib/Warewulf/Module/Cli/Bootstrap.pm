@@ -37,26 +37,29 @@ new()
 
 
 sub
-options()
+help()
 {
-    my %hash;
+    my $h;
 
-    $hash{"-r, --root"} = "Look into this chroot directory to find the kernel";
-    $hash{"-n, --name"} = "Override the default name of the kernel version with the given string";
+    $h .= "SUMMARY:\n";
+    $h .= "     This command will create the bootstrap images that nodes use to\n";
+    $h .= "     bootstrap the provisioning process.\n";
+    $h .= "\n";
+    $h .= "OPTIONS:\n";
+    $h .= "\n";
+    $h .= "     -r, --root      Look into this chroot directory to find the kernel\n";
+    $h .= "     -n, --name      Override the default name of the kernel version with the given string\n";
+    $h .= "\n";
+    $h .= "EXAMPLES:\n";
+    $h .= "\n";
+    $h .= "     Warewulf> bootstrap 2.6.32-71.el6.x86_64\n";
+    $h .= "     Warewulf> bootstrap --name testbootstrap 2.6.32-71.el6.x86_64\n";
+    $h .= "     Warewulf> bootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64\n";
+    $h .= "\n";
 
-    return(%hash);
+    return($h);
 }
 
-sub
-description()
-{
-    my $output;
-
-    $output .= "This command will create the bootstrap images that nodes use to\n";
-    $output .= "bootstrap the provisioning process.\n";
-
-    return($output);
-}
 
 sub
 summary()
@@ -66,19 +69,6 @@ summary()
     $output .= "Build provisioning bootstrap images";
 
     return($output);
-}
-
-
-sub
-examples()
-{
-    my @output;
-
-    push(@output, "bootstrap 2.6.32-71.el6.x86_64");
-    push(@output, "bootstrap --name testbootstrap 2.6.32-71.el6.x86_64");
-    push(@output, "bootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64");
-
-    return(@output);
 }
 
 
