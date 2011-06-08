@@ -70,7 +70,7 @@ new($$)
 
                         &dprint("Module load file: $file_clean\n");
                         eval {
-                            $SIG{"__WARN__"} = sub { 1; };
+                            local $SIG{"__WARN__"} = sub { 1; };
                             require $file_clean;
                         };
                         if ($@) {

@@ -26,8 +26,6 @@ use POSIX;
 
 our @ISA = ('Warewulf::Module::Cli');
 
-Getopt::Long::Configure ("bundling");
-
 my $entity_type = "file";
 
 sub
@@ -160,6 +158,8 @@ exec()
 
     @ARGV = ();
     push(@ARGV, @_);
+
+    Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
         'n|name=s'      => \$opt_name,

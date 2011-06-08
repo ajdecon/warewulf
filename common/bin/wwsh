@@ -64,7 +64,7 @@ my $opt_verbose;
 my $opt_quiet;
 my $opt_noask;
 
-Getopt::Long::Configure ("bundling", "pass_through");
+Getopt::Long::Configure ("bundling", "nopassthrough");
 
 GetOptions(
     'debug'         => \$opt_debug,
@@ -74,11 +74,11 @@ GetOptions(
 );
 
 
-&set_log_level("NOTICE");
-
 $modules = Warewulf::ModuleLoader->new("Cli");
 $db = Warewulf::DataStore->new();
 $term = Warewulf::Term->new();
+
+&set_log_level("NOTICE");
 
 if ($opt_debug) {
     &set_log_level("DEBUG");

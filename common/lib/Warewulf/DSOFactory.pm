@@ -32,7 +32,7 @@ BEGIN {
                 } else {
                     eval {
                         no warnings;
-                        $SIG{__WARN__} = sub { 1; };
+                        local $SIG{__WARN__} = sub { 1; };
                         require $file;
                     };
 

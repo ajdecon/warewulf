@@ -21,9 +21,6 @@ use Text::ParseWords;
 
 our @ISA = ('Warewulf::Module::Cli');
 
-Getopt::Long::Configure ("bundling");
-
-
 sub
 new()
 {
