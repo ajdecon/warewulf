@@ -112,7 +112,6 @@ sub
 complete()
 {
     my $self = shift;
-    my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my @ret;
 
@@ -151,7 +150,6 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $opt_lookup;
     my $opt_bootstrap;
     my $opt_vnfs;
     my $opt_method;
@@ -180,8 +178,7 @@ exec()
     );
 
     if (scalar(@ARGV) > 0) {
-        $opt_lookup = shift(@ARGV);
-        $command = $opt_lookup;
+        $command = shift(@ARGV);
         &dprint("Running command: $command\n");
     } else {
         &dprint("Returning with nothing to do\n");
@@ -193,16 +190,16 @@ exec()
         return();
     }
 
-    if ($opt_lookup eq "node") {
+    if ($command eq "node") {
         $objSet = $db->get_objects("node", "name", &expand_bracket(@ARGV));
-    } elsif ($opt_lookup eq "group") {
+    } elsif ($command eq "group") {
         if (@ARGV) {
             $objSet = $db->get_objects("node", "groups", &expand_bracket(@ARGV));
         } else {
             &eprint("Need a list of groups to operate on\n");
             return();
         }
-    } elsif ($opt_lookup eq "cluster") {
+    } elsif ($command eq "cluster") {
         if (@ARGV) {
             $objSet = $db->get_objects("node", "cluster", &expand_bracket(@ARGV));
         } else {
