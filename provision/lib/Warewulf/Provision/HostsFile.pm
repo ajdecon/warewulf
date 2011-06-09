@@ -127,43 +127,43 @@ generate()
             if (ref($d) eq "Warewulf::DSO::Netdev") {
                 my ($netdev) = $d->get("name");
                 my ($ipv4_bin) = $d->get("ipaddr");
-                my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
-                my $node_network = $netobj->calc_network($ipv4_addr, $netmask);
-                my $fqdn_eth = $d->get("fqdn");
-                my @name_entries;
-                my $name_eth;
+                if ($netdev and $ipv4_bin) {
+                    my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
+                    my $node_network = $netobj->calc_network($ipv4_addr, $netmask);
+                    my $fqdn = $d->get("fqdn");
+                    my @name_entries;
+                    my $name_eth;
 
-                if ($fqdn) {
-                    $nodename = $fqdn;
-                }
+                    if ($fqdn) {
+                        $name_eth = $fqdn;
+                    } elsif (($node_network eq $network) and ! defined($default_name)) {
+                        $name_eth = $nodename;
+                        $default_name = 1;
+                    } else {
+                        $name_eth = "$nodename-$netdev";
+                    }
 
-                if (($node_network eq $network) and ! defined($default_name)) {
-                    $name_eth = $nodename;
-                    $default_name = 1;
+                    if (defined($cluster) and defined($domain)) {
+                        push(@name_entries, sprintf("%-18s", "$name_eth.$cluster.$domain"));
+                    }
+                    if (defined($cluster)) {
+                        push(@name_entries, sprintf("%-18s", "$name_eth.$cluster"));
+                    } else {
+                        push(@name_entries, sprintf("%-18s", $name_eth));
+                    }
+                    if (defined($domain)) {
+                        push(@name_entries, sprintf("%-18s", "$name_eth.$domain"));
+                    }
+
+                    if ($nodename and $ipv4_addr) {
+                        &dprint("Adding a host entry for: $nodename-$netdev\n");
+
+                        $hosts .= sprintf("%-23s %s\n", $ipv4_addr, join(" ", @name_entries));
+                    }
+
                 } else {
-                    $name_eth = "$nodename-$netdev";
+                    &eprint("Node '$nodename' has an invalid netdevs entry!\n");
                 }
-
-                if (defined($cluster) and defined($domain)) {
-                    push(@name_entries, sprintf("%-18s", "$name_eth.$cluster.$domain"));
-                }
-                if (defined($cluster)) {
-                    push(@name_entries, sprintf("%-18s", "$name_eth.$cluster"));
-                } else {
-                    push(@name_entries, sprintf("%-18s", $name_eth));
-                }
-                if (defined($domain)) {
-                    push(@name_entries, sprintf("%-18s", "$name_eth.$domain"));
-                }
-
-                if ($nodename and $ipv4_addr) {
-                    &dprint("Adding a host entry for: $nodename-$netdev\n");
-
-                    $hosts .= sprintf("%-23s %s\n", $ipv4_addr, join(" ", @name_entries));
-                }
-
-            } else {
-                &eprint("Node '$nodename' has an invalid netdevs entry!\n");
             }
         }
     }
