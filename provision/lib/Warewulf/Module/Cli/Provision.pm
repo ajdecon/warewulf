@@ -181,6 +181,7 @@ exec()
 
     if (scalar(@ARGV) > 0) {
         $opt_lookup = shift(@ARGV);
+        $command = $opt_lookup;
         &dprint("Running command: $command\n");
     } else {
         &dprint("Returning with nothing to do\n");
@@ -240,7 +241,7 @@ exec()
                 &dprint("Setting bootstrap for node name: $name\n");
                 $persist_bool = 1;
             }
-            push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
+            push(@changes, sprintf("     SET: %-20s\n", "BOOTSTRAP"));
         }
     }
 
@@ -421,7 +422,7 @@ exec()
 
     if ($persist_bool) {
         if ($command ne "new" and $term->interactive()) {
-            print "Are you sure you want to make the following changes to ". scalar($objSet->get_list()) ." node(s):\n\n";
+            print "Are you sure you want to make the following changes to ". $object_count ." node(s):\n\n";
             foreach my $change (@changes) {
                 print $change;
             }
