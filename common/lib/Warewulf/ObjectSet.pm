@@ -11,6 +11,7 @@
 package Warewulf::ObjectSet;
 
 use Warewulf::Object;
+use Warewulf::Logger;
 use Warewulf::DSOFactory;
 
 our @ISA = ('Warewulf::Object');
@@ -186,8 +187,17 @@ sub
 count()
 {
     my $self = shift;
+    my $count;
 
-    return (scalar @{$self->{"ARRAY"}} || 0);
+    &dprint("Counting objects in set\n");
+    if (exists($self->{"ARRAY"})) {
+        $count = scalar @{$self->{"ARRAY"}} || 0;
+    } else {
+        $count = 0;
+    }
+    &dprint("Found '$count' objects in Set\n");
+
+    return($count);
 }
 
 
