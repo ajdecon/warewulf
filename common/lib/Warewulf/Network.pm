@@ -14,7 +14,11 @@ use Warewulf::Logger;
 use Warewulf::Object;
 use File::Basename;
 use Socket;
+
+# Suppress a stupid warning from ioctl.ph
+local $SIG{__WARN__} = sub { 1; };
 require 'sys/ioctl.ph';
+local $SIG{__WARN__} = __DEFAULT__;
 
 our @ISA = ('Warewulf::Object');
 
