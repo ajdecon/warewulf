@@ -19,6 +19,7 @@ use Warewulf::Util;
 use Warewulf::DSOFactory;
 use Getopt::Long;
 use File::Basename;
+use Text::ParseWords;
 use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
@@ -72,6 +73,7 @@ help()
     $h .= "EXAMPLES:\n";
     $h .= "\n";
     $h .= "     Warewulf> vnfs import /path/to/name.vnfs --name=vnfs1\n";
+    $h .= "     Warewulf> vnfs export vnfs1 vnfs2 /tmp/exported_vnfs/\n";
     $h .= "     Warewulf> vnfs print\n";
     $h .= "\n";
 
@@ -94,17 +96,39 @@ summary()
 sub
 complete()
 {
-    my ($self, $text) = @_;
+    my $self = shift;
+    my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my @ret;
 
-    if ($text =~ /^\S+\s+\S+\s+/) {
-        @ret = $db->get_lookups("vnfs");
+    if (! $db) {
+        return();
+    }
+
+    @ARGV = ();
+
+    foreach (&quotewords('\s+', 0, @_)) {
+        if (defined($_)) {
+            push(@ARGV, $_);
+        }
+    }
+
+    Getopt::Long::Configure ("bundling", "passthrough");
+
+    GetOptions(
+        'l|lookup=s'    => \$opt_lookup,
+    );
+
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "export" or $ARGV[1] eq "delete")) {
+        @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
         @ret = ("print", "import", "export", "delete");
     }
 
+    @ARGV = ();
+
     return(@ret);
+
 }
 
 sub
@@ -113,6 +137,7 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $opt_lookup = "name";
     my $opt_name;
     my $command;
 
@@ -123,6 +148,7 @@ exec()
 
     GetOptions(
         'n|name=s'      => \$opt_name,
+        'l|lookup=s'    => \$opt_lookup,
     );
 
     if (scalar(@ARGV) > 0) {
@@ -140,7 +166,7 @@ exec()
 
     if ($command eq "import") {
         my $import = shift(@ARGV);
-        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
             my $path = $1;
             if (-f $path) {
                 my $name;
@@ -150,7 +176,7 @@ exec()
                     $name = basename($path);
                 }
                 my $digest = digest_file_hex($path, "MD5");
-                $objectSet = $db->get_objects($entity_type, "name", $name);
+                $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
                 my @objList = $objectSet->get_list();
                 if (scalar(@objList) == 1) {
                     if ($term->interactive()) {
@@ -180,10 +206,12 @@ exec()
                     $db->persist($obj);
                     &nprint("Imported $name into existing object\n");
                 } elsif (scalar(@objList) == 0) {
+                    my $vnfsname = $name;
+                    $vnfsname =~ s/\.vnfs$//;
                     &nprint("Creating new Vnfs Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("vnfs");
                     $db->persist($obj);
-                    $obj->set("name", $name);
+                    $obj->set("name", $vnfsname);
                     $obj->set("checksum", digest_file_hex($path, "MD5"));
                     my $binstore = $db->binstore($obj->get("id"));
                     my $size;
@@ -212,13 +240,22 @@ exec()
         }
 
     } elsif ($command eq "export") {
-        $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
+        if (scalar(@ARGV) <= 1) {
+            &eprint("You must supply a vnfs name to export, and a local path to export to\n");
+            return();
+        }
+        my $opt_export = pop(@ARGV);
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
 
         if (-d $opt_export) {
             foreach my $obj (@objList) {
                 my $name = $obj->get("name");
                 my $binstore = $db->binstore($obj->get("id"));
+
+                if ($name !~ /\.vnfs$/) {
+                    $name .= ".vnfs";
+                }
 
                 if (-f "$opt_export/$name" and $term->interactive()) {
                     print "Are you sure you wish to overwrite $opt_export/$name?\n\n";
@@ -237,15 +274,15 @@ exec()
                 &nprint("Exported: $opt_export/$name\n");
             }
         } elsif (-f $opt_export) {
-            if ($term->interactive()) {
-                print "Are you sure you wish to overwrite $opt_export?\n\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    &nprint("No export performed\n");
-                    return();
-                }
-            }
             if (scalar(@objList) == 1) {
+                if ($term->interactive()) {
+                    print "Are you sure you wish to overwrite $opt_export?\n\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        &nprint("No export performed\n");
+                        return();
+                    }
+                }
                 my $obj = $objList[0];
                 my $binstore = $db->binstore($obj->get("id"));
                 open(SCRIPT, "> $opt_export");
@@ -270,21 +307,20 @@ exec()
         }
 
     } elsif ($command eq "print" or $command eq "delete") {
-        $objectSet = $db->get_objects($entity_type, "name", &expand_bracket(@ARGV));
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
-        &nprint("#NODES    SIZE (M)    VNFS NAME\n");
+        &nprint("VNFS NAME                 SIZE (M)\n");
         foreach my $obj (@objList) {
-            my @nodeObjects = $db->get_objects("node", "vnfsid", $obj->get("id"))->get_list();
-            printf("%-5s     %-8.1f    %s\n",
-                scalar(@nodeObjects),
-                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0",
-                $obj->get("name") || "UNDEF");
+            printf("%-25s %-8.1f\n",
+                $obj->get("name") || "UNDEF",
+                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
+            );
         }
 
         if ($command eq "delete") {
 
             if ($term->interactive()) {
-                print "\nAre you sure you wish to make the delete the above Vnfs image?\n\n";
+                print "\nAre you sure you wish to delete the above Vnfs image?\n\n";
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     &nprint("No update performed\n");
