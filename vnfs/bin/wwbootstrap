@@ -1,0 +1,242 @@
+#!/usr/bin/perl -Tw
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+use Warewulf::Config;
+use Warewulf::Logger;
+use Warewulf::Util;
+use Getopt::Long;
+use File::Path;
+use File::Basename;
+use File::Copy;
+
+
+&set_log_level("NOTICE");
+
+$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
+
+my $config = Warewulf::Config->new("bootstrap.conf");
+my $randstring = &rand_string("12");
+my $tmpdir = "/var/tmp/wwinitrd.$randstring";
+my $opt_debug;
+my $opt_verbose;
+my $opt_help;
+my $opt_root = "";
+my $opt_name;
+my $opt_file;
+my $kversion;
+
+my $help = "USAGE: $0 [options] nodes....
+    SUMMARY:
+        This command will create the bootstrap images that nodes use to
+        bootstrap the provisioning process.
+
+    OPTIONS:
+        -r, --root      Look into this chroot directory to find the kernel
+        -n, --name      Override the default name of the kernel version with
+                        the given string
+        -f, --file      Write the bootstrap image to a file instead of
+                        importing it into data store
+
+    EXAMPLES:
+        # wwbootstrap 2.6.32-71.el6.x86_64
+        # wwbootstrap --name testbootstrap 2.6.32-71.el6.x86_64
+        # wwbootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64
+
+";
+
+Getopt::Long::Configure ("bundling");
+
+GetOptions(
+    'h|help'        => \$opt_help,
+    'd|debug'       => \$opt_debug,
+    'v|verbose'     => \$opt_verbose,
+    'r|root=s'      => \$opt_root,
+    'n|name=s'      => \$opt_name,
+    'f|file=s'      => \$opt_file,
+);
+
+
+if ($opt_help or ! @ARGV) {
+    print $help;
+    exit;
+}
+
+$opt_kversion = shift(@ARGV);
+
+
+&dprint("Checking for bootstrap kernel version\n");
+if (! $opt_kversion) {
+    &eprint("What is the kernel version for the bootstrap you wish to create?\n");
+    exit 1;
+} elsif ($opt_kversion =~ /^([a-zA-Z0-9_\-\.]+)$/) {
+    &dprint("Got kernel version: $opt_kversion\n");
+    $opt_kversion = $1;
+} else {
+    &eprint("Illegal characters in kernel version!\n");
+    exit 1;
+}
+
+if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
+    $opt_root = "$1/";
+    &iprint("Using root directory: $opt_root\n");
+} elsif ($opt_root) {
+    &eprint("Root directory name contains illegal characters!\n");
+    exit 1;
+}
+
+if ($opt_name and $opt_name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
+    $opt_name = $1;
+    &iprint("Using bootstrap name: $opt_name\n");
+} elsif ($opt_name) {
+    &eprint("Bootstrap name contains illegal characters!\n");
+    exit 1;
+} else {
+    $opt_name = $opt_kversion;
+}
+
+if (! $opt_file) {
+    $opt_file = $opt_name .".wwbs";
+}
+
+
+mkpath("$tmpdir/initramfs");
+
+if (! -f "$opt_root/boot/vmlinuz-$opt_kversion") {
+    &eprint("Can't locate the boot kernel: ". $opt_root ."/boot/vmlinuz-$opt_kversion\n");
+    exit 1;
+}
+
+
+
+if ($config->get("drivers")) {
+    my @drivers = $config->get("drivers");
+    my $depmod_map_arg = "";
+    my %mod_path;
+    my %mod_deps;
+    my @mod_files;
+    my %included_files;
+    my @driver_files;
+
+    mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion");
+
+    if (-f "$opt_root/lib/modules/$opt_kversion/modules.dep") {
+        open(DEP, "$opt_root/lib/modules/$opt_kversion/modules.dep");
+        while (my $line = <DEP>) {
+            chomp($line);
+            if ($line =~ /^.*(kernel\/[a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
+                my $path = $1;
+                my @deps = split(/\s+/, $2);
+                my $name = basename($path);
+                $name =~ s/\.ko$//;
+                $mod_path{"$name"} = $path;
+                push(@mod_files, $path);
+                if (@deps) {
+                    @{$mod_deps{"$path"}} = @deps;
+                }
+            }
+        }
+        close(DEP);
+    }
+
+    foreach my $d (@drivers) {
+        &dprint("Looking for matches to: $d\n");
+        if (exists($mod_path{"$d"})) {
+            &dprint("Including requested driver: $d @ ". $mod_path{"$d"});
+            push(@driver_files, $mod_path{"$d"});
+        } elsif (my @tmp = grep(/^\Q$d\E/, @mod_files)) {
+            &dprint("Including requested path: $d\n");
+            push(@driver_files, @tmp);
+        } else {
+            &dprint("Could not find path to requested driver: $d\n");
+        }
+    }
+
+    # Bootstrapping the included files hash so that dependencies don't get
+    # automatically added if they are already in the list.
+    foreach my $file (@driver_files) {
+        $included_files{"$file"} = 1;
+    }
+
+    foreach my $file (@driver_files) {
+        my $path = dirname($file);
+        if (! -d "$tmpdir/initramfs/lib/modules/$opt_kversion/$path") {
+            mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion/$path");
+        }
+        if (copy("$opt_root/lib/modules/$opt_kversion/$file", "$tmpdir/initramfs/lib/modules/$opt_kversion/$file")) {
+            &dprint("Integrated driver: $tmpdir/initramfs/lib/modules/$opt_kversion/$file\n");
+            $module_count++;
+            if (exists($mod_deps{"$file"})) {
+                foreach my $dep (@{$mod_deps{"$file"}}) {
+                    if (! exists($included_files{"$dep"})) {
+                        $included_files{"$dep"} = 1;
+                        &dprint("Including driver dependency: $dep\n");
+                        push(@driver_files, $dep);
+                    }
+                }
+            }
+
+        }
+
+    }
+
+    &dprint("Check for depmod option to create mapfiles\n");
+    open(DEPMOD, "/sbin/depmod --help 2>&1 |");
+    while (my $line = <DEPMOD>) {
+        chomp $line;
+        if ( $line =~ /^\s*-m\s+/ ) {
+            $depmod_map_arg = "-m";
+            &iprint("Will use the \"-m\" depmod option to trigger map file generation\n");
+        }
+    }
+    close DEPMOD;
+
+    if ($module_count > 0) {
+        &nprint("Number of drivers included in bootstrap: $module_count\n");
+        &dprint("Running depmod\n");
+        system("/sbin/depmod $depmod_map_arg -a -b $tmpdir/initramfs $opt_kversion");
+    }
+}
+
+
+if ($config->get("firmware")) {
+    mkpath("$tmpdir/initramfs/lib/firmware");
+    foreach my $f ($config->get("firmware")) {
+        if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
+            my $f_clean = $1;
+            open(FIND, "find $opt_root/lib/firmware/$f_clean -type f 2>/dev/null |");
+            while(my $firmware = <FIND>) {
+                chomp($firmware);
+                if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
+                    $firmware = $1;
+                    my $path = dirname($firmware);
+                    &dprint("Including firmware: $firmware\n");
+                    if (! -d "$tmpdir/initramfs/$path") {
+                        mkpath("$tmpdir/initramfs/$path");
+                    }
+                    if (copy($firmware, "$tmpdir/initramfs/$path")) {
+                        $firmware_count++;
+                    }
+                }
+            }
+            close FIND;
+        }
+    }
+
+    if ($firmware_count > 0) {
+        &nprint("Number of firmware images included in bootstrap: $firmware_count\n");
+    }
+}
+
+copy("$opt_root/boot/vmlinuz-$opt_kversion", "$tmpdir/kernel");
+
+system("rm -rf $tmpdir");
+
+system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $opt_file");
+
