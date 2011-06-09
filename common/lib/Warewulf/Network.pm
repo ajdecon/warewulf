@@ -18,7 +18,7 @@ use Socket;
 # Suppress a stupid warning from ioctl.ph
 local $SIG{__WARN__} = sub { 1; };
 require 'sys/ioctl.ph';
-local $SIG{__WARN__} = __DEFAULT__;
+$SIG{__WARN__} = __DEFAULT__;
 
 our @ISA = ('Warewulf::Object');
 
