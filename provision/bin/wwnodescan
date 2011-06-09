@@ -8,11 +8,11 @@
 #
 
 use Warewulf::Logger;
+use Warewulf::Network;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
 use Warewulf::Util;
 use Warewulf::Config;
-use Warewulf::Network;
 use Getopt::Long;
 
 
@@ -32,6 +32,7 @@ my $opt_bootstrap;
 my $opt_groups;
 my $opt_help;
 my $ipaddr_bin;
+my $opt_scriptfile;
 my @nodenames;
 my %seen;
 my $vnfsid;
@@ -44,6 +45,7 @@ my $help = "USAGE: $0 [options] nodes....
         -h, --help          Show the help/utilization summary
         -d, --debug         Display debugging information
         -v, --verbose       Be more verbose in output
+            --file          Create a Warewulf script instead of auto-import
             --netdev        Define the network device for the new nodes
             --ipaddr        IP address for the new node(s)
             --netmask       Netmask for the new node(s)
@@ -84,6 +86,7 @@ GetOptions(
     'vnfs=s'        => \$opt_vnfs,
     'bootstrap=s'   => \$opt_bootstrap,
     'groups=s'      => \$opt_groups,
+    'file=s'        => \$opt_scriptfile,
 );
 
 if ($opt_help or ! @ARGV) {
@@ -132,6 +135,15 @@ if (@ARGV) {
     exit 1;
 }
 
+if ($opt_scriptfile) {
+    if ($opt_scriptfile =~ /^([a-zA-Z0-9_\.\-\/]+)$/) {
+        open(SCRIPTFILE, "> $1") or die "Could not write to $1: $!\n";
+        print SCRIPTFILE "#!/bin/env wwsh\n\n";
+    } else {
+        &eprint("File script has illegal characters\n");
+        exit 1;
+    }
+}
 
 open(FILE, "/var/log/messages");
 
@@ -150,23 +162,41 @@ while(1) {
             } else {
                 my $name = shift(@nodenames);
                 my $ip = $netObj->ip_unserialize($ipaddr_bin);
-                my $newNodeObj = Warewulf::DSOFactory->new("node");
-                my $newEthObj = Warewulf::DSOFactory->new("netdev");
+                if ($opt_scriptfile) {
+                    my @opts;
+                    if ($netmask) {
+                        push(@opts, "--netmask=$netmask");
+                    }
+                    if ($opt_groups) {
+                        push(@opts, "--groups=$opt_groups");
+                    }
+                    if ($opt_bootstrap) {
+                        push(@opts, "-s bootstrap=$opt_bootstrap");
+                    }
+                    if ($opt_vnfs) {
+                        push(@opts, "-s vnfsid=$vnfsid");
+                    }
+                    print SCRIPTFILE "node new $name --netdev=$opt_netdev --ipaddr=$ip --hwaddr=$hwaddr ". join(" ", @opts) ."\n";
+                    print "Added to script file: $name: $ip/$opt_netmask/$hwaddr\n";
+                } else {
+                    my $newNodeObj = Warewulf::DSOFactory->new("node");
+                    my $newEthObj = Warewulf::DSOFactory->new("netdev");
 
-                $newNodeObj->set("name", $name);
-                $newEthObj->set("name", $opt_netdev);
-                $newEthObj->set("hwaddr", $hwaddr);
-                $newEthObj->set("ipaddr", $ip);
-                $newEthObj->set("netmask", $netmask);
-                $newNodeObj->add("netdevs", $newEthObj);
-                $newNodeObj->add("hwaddr", $hwaddr);
-                $newNodeObj->set("bootstrap", $opt_bootstrap);
-                $newNodeObj->set("vnfsid", $vnfsid);
-                $newNodeObj->set("groups", split(",", $opt_groups));
+                    $newNodeObj->set("name", $name);
+                    $newEthObj->set("name", $opt_netdev);
+                    $newEthObj->set("hwaddr", $hwaddr);
+                    $newEthObj->set("ipaddr", $ip);
+                    $newEthObj->set("netmask", $netmask);
+                    $newNodeObj->add("netdevs", $newEthObj);
+                    $newNodeObj->add("hwaddr", $hwaddr);
+                    $newNodeObj->set("bootstrap", $opt_bootstrap);
+                    $newNodeObj->set("vnfsid", $vnfsid);
+                    $newNodeObj->set("groups", split(",", $opt_groups));
 
-                $datastore->persist($newNodeObj);
+                    $datastore->persist($newNodeObj);
 
-                print "Added: $name: $ip/$opt_netmask/$hwaddr\n";
+                    print "Added to data store: $name: $ip/$opt_netmask/$hwaddr\n";
+                }
 
                 if (scalar(@nodenames) == 0) {
                     print "Done.\n";
@@ -184,4 +214,5 @@ while(1) {
 
 
 close(FILE);
+close(SCRIPTFILE);
 
