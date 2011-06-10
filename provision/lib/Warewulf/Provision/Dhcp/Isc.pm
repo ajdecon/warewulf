@@ -190,11 +190,10 @@ persist()
         # Get all nodes that either have no master lookup set, or if they are set to any of the
         # local IP addresses on this system
         foreach my $n ($datastore->get_objects("node", "master", "UNDEF", $netobj->list_ipaddrs())->get_list()) {
-            my $nodename = $n->get("name");
-            my $cluster = $n->get("cluster");
-            my $domain = $n->get("domain");
-            my $master = $n->get("master");
-            my $master_ipv4_bin = $n->get("master");
+            my ($nodename) = $n->get("name");
+            my ($cluster) = $n->get("cluster");
+            my ($domain) = $n->get("domain");
+            my ($master_ipv4_bin) = $n->get("master");
             my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
 
             foreach my $d ($n->get("netdevs")) {
@@ -211,7 +210,7 @@ persist()
                         $dhcpd_contents .= "      option host-name $nodename;\n";
                         $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
                         $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
-                        if ($master) {
+                        if ($master_ipv4_bin) {
                             $dhcpd_contents .= "      next-server $master_ipv4_addr;\n";
                         }
                         $dhcpd_contents .= "   }\n";
