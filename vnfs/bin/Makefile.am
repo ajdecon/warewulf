@@ -1,5 +1,5 @@
 
-dist_bin_SCRIPTS = mkchroot-rh.sh wwvnfs wwhybridize wwcreatevnfs wwbuildroot
+dist_bin_SCRIPTS = mkchroot-rh.sh wwvnfs wwbootstrap
 
 
 MAINTAINERCLEANFILES = Makefile.in
