@@ -193,6 +193,7 @@ persist()
             my $nodename = $n->get("name");
             my $cluster = $n->get("cluster");
             my $domain = $n->get("domain");
+            my $master = $n->get("master");
             my $master_ipv4_bin = $n->get("master");
             my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
 
@@ -210,8 +211,8 @@ persist()
                         $dhcpd_contents .= "      option host-name $nodename;\n";
                         $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
                         $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
-                        if ($master[0]) {
-                            $dhcpd_contents .= "      next-server $master_ipv4;\n";
+                        if ($master) {
+                            $dhcpd_contents .= "      next-server $master_ipv4_addr;\n";
                         }
                         $dhcpd_contents .= "   }\n";
                     } else {
