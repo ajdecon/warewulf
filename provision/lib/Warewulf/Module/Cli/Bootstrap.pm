@@ -8,20 +8,23 @@
 
 
 
+
 package Warewulf::Module::Cli::Bootstrap;
 
-use Warewulf::Include;
-use Warewulf::Config;
 use Warewulf::Logger;
+use Warewulf::Module::Cli;
+use Warewulf::Term;
+use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Provision::Tftp;
+use Warewulf::DSOFactory;
 use Getopt::Long;
-use File::Path;
 use File::Basename;
-use File::Copy;
+use Text::ParseWords;
+use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
 
+my $entity_type = "bootstrap";
 
 sub
 new()
@@ -32,7 +35,17 @@ new()
 
     bless($self, $class);
 
+    $self->init();
+
     return $self;
+}
+
+sub
+init()
+{
+    my ($self) = @_;
+
+    $self->{"DB"} = Warewulf::DataStore->new();
 }
 
 
@@ -42,23 +55,31 @@ help()
     my $h;
 
     $h .= "SUMMARY:\n";
-    $h .= "     This command will create the bootstrap images that nodes use to\n";
-    $h .= "     bootstrap the provisioning process.\n";
+    $h .= "     This interface allows you to manage your bootstrap images within the Warewulf\n";
+    $h .= "     data store.\n";
+    $h .= "\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     import          Import a bootstrap image into Warewulf\n";
+    $h .= "     export          Export a bootstrap image to the local file system\n";
+    $h .= "     delete          Delete a bootstrap image from Warewulf\n";
+    $h .= "     print           Show all of the currently imported bootstrap images\n";
+    $h .= "\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
-    $h .= "     -r, --root      Look into this chroot directory to find the kernel\n";
-    $h .= "     -n, --name      Override the default name of the kernel version with the given string\n";
+    $h .= "     -n, --name      When importing a bootstrap use this name instead of the file name\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
-    $h .= "     Warewulf> bootstrap 2.6.32-71.el6.x86_64\n";
-    $h .= "     Warewulf> bootstrap --name testbootstrap 2.6.32-71.el6.x86_64\n";
-    $h .= "     Warewulf> bootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64\n";
+    $h .= "     Warewulf> bootstrap import /path/to/name.wwbs --name=bootstrap\n";
+    $h .= "     Warewulf> bootstrap export bootstrap1 bootstrap2 /tmp/exported_bootstrap/\n";
+    $h .= "     Warewulf> bootstrap print\n";
     $h .= "\n";
 
     return($h);
 }
+
 
 
 sub
@@ -66,269 +87,259 @@ summary()
 {
     my $output;
 
-    $output .= "Build provisioning bootstrap images";
+    $output .= "Manage your bootstrap images";
 
     return($output);
 }
 
 
 sub
-exec()
+complete()
 {
-    my ($self, @args) = @_;
+    my $self = shift;
+    my $opt_lookup = "name";
+    my $db = $self->{"DB"};
+    my @ret;
 
-    my $kversion;
-    my $modules;
-    my $depmod_map_arg = "";
-    my $randstring = &rand_string("12");
-    my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-    my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
-    my $initramfsdefault = "base";
-    my $config = Warewulf::Config->new("bootstrap.conf");
-    my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
-    my $opt_root;
-    my $opt_name;
-    my $opt_kversion;
-    my $module_count = 0;
-    my $firmware_count = 0;
-
-    if (! &uid_test(0)) {
-        &eprint("This command can only be run by the superuser!\n");
+    if (! $db) {
         return();
     }
-
-    @ARGV = @args;
-
-    GetOptions(
-        'r|root=s'   => \$opt_root,
-        'n|name=s'   => \$opt_name,
-    );
-
-    $opt_kversion = shift(@ARGV);
-
-    &dprint("Checking for bootstrap kernel version\n");
-    if (! $opt_kversion) {
-        &eprint("What is the kernel version for the bootstrap you wish to create?\n");
-        return();
-    } elsif ($opt_kversion =~ /^([a-zA-Z0-9_\-\.]+)$/) {
-        &dprint("Got kernel version: $opt_kversion\n");
-        $opt_kversion = $1;
-    } else {
-        &eprint("Illegal characters in kernel version!\n");
-        return();
-    }
-
-    if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
-        $opt_root = "$1/";
-        &iprint("Using root directory: $opt_root\n");
-    } elsif ($opt_root) {
-        &eprint("Root directory name contains illegal characters!\n");
-        return();
-    } else {
-        $opt_root = "/";
-    }
-
-    if ($opt_name and $opt_name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
-        $opt_name = $1;
-        &iprint("Using bootstrap name: $opt_name\n");
-    } elsif ($opt_name) {
-        &eprint("Bootstrap name contains illegal characters!\n");
-        return();
-    } else {
-        $opt_name = $opt_kversion;
-    }
-
-
-
-    &dprint("Checking for tftpboot directory name name '$opt_name'\n");
-    if (! -d "$tftpboot/warewulf/bootstrap/$opt_name") {
-        mkpath("$tftpboot/warewulf/bootstrap/$opt_name");
-        &iprint("Created TFTP directory: $tftpboot/warewulf/bootstrap/$opt_name\n");
-    }
-
-    &dprint("Building list of drivers to include from configuration file\n");
-    foreach my $m ($config->get("drivers")) {
-        if ($m =~ /^([a-zA-Z0-9\/\*_\-]+)/) {
-            $modules .= "$1 ";
-        }
-    }
-
-    &dprint("Checking for base Warewulf initramfs archive\n");
-    if (! -f "$initramfsdir/$initramfsdefault") {
-        die "Could not locate the Warewulf CPIO archive at: $initramfsdir/$initramfsdefault!\n";
-    }
-
-    &dprint("Check for depmod option to create mapfiles\n");
-    open(DEPMOD, "/sbin/depmod --help 2>&1 |");
-    while (my $line = <DEPMOD>) {
-        chomp $line;
-        if ( $line =~ /^\s*-m\s+/ ) {
-            $depmod_map_arg = "-m";
-            &iprint("Will use the \"-m\" depmod option to trigger map file generation\n");
-        }
-    }
-    close DEPMOD;
-
-
-
-    mkpath($tmpdir);
-    chdir($opt_root);
-
-    if (! -f "./boot/vmlinuz-$opt_kversion") {
-        &eprint("Can't locate the boot kernel: ". $opt_root ."boot/vmlinuz-$opt_kversion\n");
-        return();
-    }
-
-    my %mod_path;
-    my %mod_deps;
-    my @mod_files;
-
-    if (-f "./lib/modules/$opt_kversion/modules.dep") {
-        open(DEP, "./lib/modules/$opt_kversion/modules.dep");
-        while (my $line = <DEP>) {
-            chomp($line);
-            if ($line =~ /^.*(kernel\/[a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
-                my $path = $1;
-                my @deps = split(/\s+/, $2);
-                my $name = basename($path);
-                $name =~ s/\.ko$//;
-                $mod_path{"$name"} = $path;
-                push(@mod_files, $path);
-                if (@deps) {
-                    @{$mod_deps{"$path"}} = @deps;
-                }
-            }
-        }
-        close(DEP);
-    }
-
-    if ($config->get("drivers")) {
-        my %included_files;
-        my @driver_files;
-        mkpath("$tmpdir/lib/modules/$opt_kversion");
-        my @drivers = $config->get("drivers");
-        foreach my $d (@drivers) {
-            &dprint("Looking for matches to: $d\n");
-            if (exists($mod_path{"$d"})) {
-                &dprint("Including requested driver: $d @ ". $mod_path{"$d"});
-                push(@driver_files, $mod_path{"$d"});
-            } elsif (my @tmp = grep(/^\Q$d\E/, @mod_files)) {
-                &dprint("Including requested path: $d\n");
-                push(@driver_files, @tmp);
-            } else {
-                &dprint("Could not find path to requested driver: $d\n");
-            }
-        }
-
-        # Bootstrapping the included files hash so that dependencies don't get
-        # automatically added if they are already in the list.
-        foreach my $file (@driver_files) {
-            $included_files{"$file"} = 1;
-        }
-
-        foreach my $file (@driver_files) {
-            my $path = dirname($file);
-            if (! -d "$tmpdir/lib/modules/$opt_kversion/$path") {
-                mkpath("$tmpdir/lib/modules/$opt_kversion/$path");
-            }
-            if (copy("./lib/modules/$opt_kversion/$file", "$tmpdir/lib/modules/$opt_kversion/$file")) {
-                &dprint("Integrated driver: $tmpdir/lib/modules/$opt_kversion/$file\n");
-                $module_count++;
-                if (exists($mod_deps{"$file"})) {
-                    foreach my $dep (@{$mod_deps{"$file"}}) {
-                        if (! exists($included_files{"$dep"})) {
-                            $included_files{"$dep"} = 1;
-                            &dprint("Including driver dependency: $dep\n");
-                            push(@driver_files, $dep);
-                        }
-                    }
-                }
-
-            }
-
-        }
-        if ($module_count > 0) {
-            &nprint("Number of drivers included in bootstrap: $module_count\n");
-            &dprint("Running depmod\n");
-            system("/sbin/depmod $depmod_map_arg -a -b $tmpdir $opt_kversion");
-        }
-    }
-
-    if ($config->get("firmware")) {
-        mkpath("$tmpdir/lib/firmware");
-        foreach my $f ($config->get("firmware")) {
-            if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
-                my $f_clean = $1;
-                open(FIND, "find ./lib/firmware/$f_clean -type f 2>/dev/null |");
-                while(my $firmware = <FIND>) {
-                    chomp($firmware);
-                    if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
-                        $firmware = $1;
-                        my $path = dirname($firmware);
-                        &dprint("Including firmware: $firmware\n");
-                        if (! -d "$tmpdir/$path") {
-                            mkpath("$tmpdir/$path");
-                        }
-                        if (copy($firmware, "$tmpdir/$path")) {
-                            $firmware_count++;
-                        }
-                    }
-                }
-                close FIND;
-            }
-        }
-
-        if ($firmware_count > 0) {
-            &nprint("Number of firmware images included in bootstrap: $firmware_count\n");
-        }
-    }
-
-    foreach my $module ($config->get("capabilities")) {
-        &dprint("Searching to include module: $module\n");
-        if ($module =~ /^([a-zA-Z0-9\.\_-]+)$/) {
-            $module = $1;
-            my $file = "$initramfsdir/$module";
-            if (-f $file) {
-                &nprint("Including capability: $module\n");
-                system("cd $tmpdir; cpio -i -u --quiet < $file");
-            } else {
-                &dprint("Defined module not found: $module\n");
-            }
-        }
-    }
-
-    my $tmpinitramfs = "$tftpboot/warewulf/bootstrap/$opt_name/initfs";
-    system("cp $initramfsdir/$initramfsdefault $tmpinitramfs");
-    &nprint("Finding and cleaning duplicate files\n");
-    open(LIST, "cpio -it --quiet < $tmpinitramfs |");
-    while(my $file = <LIST>) {
-        chomp($file);
-        if (-f "$tmpdir/$file") {
-            dprint "Removing redundant file: $file\n";
-            if ($file =~ /^([a-zA-Z0-9_\-\.\/]+)$/ ) {
-                unlink("$tmpdir/$1");
-            }
-        }
-    }
-    close LIST;
-
-    system("cd $tmpdir; find . | cpio -o --quiet -H newc -A -F $tmpinitramfs");
-    &nprint("Compressing the initramfs\n");
-    system("gzip -f -9 $tmpinitramfs");
-    &nprint("Locating the kernel object\n");
-    system("cp ./boot/vmlinuz-$opt_kversion $tftpboot/warewulf/bootstrap/$opt_name/kernel");
-    system("rm -rf $tmpdir");
-    &nprint("Bootstrap image '$opt_name' is ready\n");
 
     @ARGV = ();
+
+    foreach (&quotewords('\s+', 0, @_)) {
+        if (defined($_)) {
+            push(@ARGV, $_);
+        }
+    }
+
+    Getopt::Long::Configure ("bundling", "passthrough");
+
+    GetOptions(
+        'l|lookup=s'    => \$opt_lookup,
+    );
+
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "export" or $ARGV[1] eq "delete")) {
+        @ret = $db->get_lookups($entity_type, $opt_lookup);
+    } else {
+        @ret = ("print", "import", "export", "delete");
+    }
+
+    @ARGV = ();
+
+    return(@ret);
+
+}
+
+sub
+exec()
+{
+    my $self = shift;
+    my $db = $self->{"DB"};
+    my $term = Warewulf::Term->new();
+    my $opt_lookup = "name";
+    my $opt_name;
+    my $command;
+
+    @ARGV = ();
+    push(@ARGV, @_);
+
+    Getopt::Long::Configure ("bundling", "nopassthrough");
+
+    GetOptions(
+        'n|name=s'      => \$opt_name,
+        'l|lookup=s'    => \$opt_lookup,
+    );
+
+    if (scalar(@ARGV) > 0) {
+        $command = shift(@ARGV);
+        &dprint("Running command: $command\n");
+    } else {
+        &dprint("Returning with nothing to do\n");
+        return();
+    }
+
+    if (! $db) {
+        &eprint("Database object not avaialble!\n");
+        return();
+    }
+
+    if ($command eq "import") {
+        my $import = shift(@ARGV);
+        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
+            my $path = $1;
+            if (-f $path) {
+                my $name;
+                if (defined($opt_name)) {
+                    $name = $opt_name;
+                } else {
+                    $name = basename($path);
+                }
+                my $digest = digest_file_hex($path, "MD5");
+                $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
+                my @objList = $objectSet->get_list();
+                if (scalar(@objList) == 1) {
+                    if ($term->interactive()) {
+                        print "Are you sure you wish to overwrite the Warewulf Bootstrap Image '$name'?\n\n";
+                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                        if ($yesno ne "y" and $yesno ne "yes" ) {
+                            &nprint("No import performed\n");
+                            return();
+                        }
+                    }
+                    my $obj = $objList[0];
+                    $obj->set("checksum", $digest);
+                    my $binstore = $db->binstore($obj->get("id"));
+                    my $size;
+                    my $buffer;
+                    open(SCRIPT, $path);
+                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
+                        &dprint("Chunked $length bytes of $path\n");
+                        if (! $binstore->put_chunk($buffer)) {
+                            &eprint("Bootstrap import failure!\n");
+                            return();
+                        }
+                        $size += $length;
+                    }
+                    close SCRIPT;
+                    $obj->set("size", $size);
+                    $db->persist($obj);
+                    &nprint("Imported $name into existing object\n");
+                } elsif (scalar(@objList) == 0) {
+                    my $boostrapname = $name;
+                    $boostrapname =~ s/\.wwbs$//;
+                    &nprint("Creating new Bootstrap Object: $name\n");
+                    my $obj = Warewulf::DSOFactory->new("bootstrap");
+                    $db->persist($obj);
+                    $obj->set("name", $bootstrapname);
+                    $obj->set("checksum", digest_file_hex($path, "MD5"));
+                    my $binstore = $db->binstore($obj->get("id"));
+                    my $size;
+                    my $buffer;
+                    &dprint("Persisting new Bootstrap Object\n");
+                    open(SCRIPT, $path);
+                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
+                        &dprint("Chunked $length bytes of $path\n");
+                        if (! $binstore->put_chunk($buffer)) {
+                            $db->del_object($obj);
+                            &eprint("Bootstrap import failure!\n");
+                            return();
+                        }
+                        $size += $length;
+                    }
+                    close SCRIPT;
+                    $obj->set("size", $size);
+                    $db->persist($obj);
+                    &nprint("Imported $name into a new object\n");
+                } else {
+                    &wprint("Import into one object at a time please!\n");
+                }
+            } else {
+                &eprint("Could not import '$path' (file not found)\n");
+            }
+        }
+
+    } elsif ($command eq "export") {
+        if (scalar(@ARGV) <= 1) {
+            &eprint("You must supply a bootstrap name to export, and a local path to export to\n");
+            return();
+        }
+        my $opt_export = pop(@ARGV);
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+        my @objList = $objectSet->get_list();
+
+        if (-d $opt_export) {
+            foreach my $obj (@objList) {
+                my $name = $obj->get("name");
+                my $binstore = $db->binstore($obj->get("id"));
+
+                if ($name !~ /\.wwbs$/) {
+                    $name .= ".wwbs";
+                }
+
+                if (-f "$opt_export/$name" and $term->interactive()) {
+                    print "Are you sure you wish to overwrite $opt_export/$name?\n\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        &nprint("Skipped export of $opt_export/$name\n");
+                        next;
+                    }
+                }
+                open(SCRIPT, "> $opt_export/$name");
+                while(my $buffer = $binstore->get_chunk()) {
+                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
+                    print SCRIPT $buffer;
+                }
+                close SCRIPT;
+                &nprint("Exported: $opt_export/$name\n");
+            }
+        } elsif (-f $opt_export) {
+            if (scalar(@objList) == 1) {
+                if ($term->interactive()) {
+                    print "Are you sure you wish to overwrite $opt_export?\n\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        &nprint("No export performed\n");
+                        return();
+                    }
+                }
+                my $obj = $objList[0];
+                my $binstore = $db->binstore($obj->get("id"));
+                open(SCRIPT, "> $opt_export");
+                while(my $buffer = $binstore->get_chunk()) {
+                    print SCRIPT $buffer;
+                }
+                close SCRIPT;
+                &nprint("Exported: $opt_export\n");
+            } else {
+                &eprint("Can only export 1 Bootstrap image into a file, perhaps export to a directory?\n");
+            }
+        } else {
+            my $obj = $objList[0];
+            my $binstore = $db->binstore($obj->get("id"));
+            my $dirname = dirname($opt_export);
+            open(SCRIPT, "> $opt_export");
+            while(my $buffer = $binstore->get_chunk()) {
+                print SCRIPT $buffer;
+            }
+            close SCRIPT;
+            &nprint("Exported: $opt_export\n");
+        }
+
+    } elsif ($command eq "print" or $command eq "delete") {
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+        my @objList = $objectSet->get_list();
+        &nprint("BOOTSTRAP NAME            SIZE (M)\n");
+        foreach my $obj (@objList) {
+            printf("%-25s %-8.1f\n",
+                $obj->get("name") || "UNDEF",
+                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
+            );
+        }
+
+        if ($command eq "delete") {
+
+            if ($term->interactive()) {
+                print "\nAre you sure you wish to delete the above Bootstrap image?\n\n";
+                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                if ($yesno ne "y" and $yesno ne "yes" ) {
+                    &nprint("No update performed\n");
+                    return();
+                }
+            }
+
+            my $return_count = $db->del_object($objectSet);
+
+            &nprint("Deleted $return_count objects\n");
+        }
+    }
+
+
+    # We are done with ARGV, and it was internally modified, so lets reset
+    @ARGV = ();
+
+    return($return_count);
 }
 
 
-
 1;
-
-
-
-
-
-
