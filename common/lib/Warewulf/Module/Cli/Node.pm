@@ -508,20 +508,20 @@ exec()
 
         if (@opt_set) {
             foreach my $setstring (@opt_set) {
-                my ($key, @vals) = &quotewords('=', 1, $setstring);
-                &dprint("Set: setting $key to ". join("=", @vals) ."\n");
+                my ($key, $string) = split('=', $setstring, 2);
+                &dprint("Set: setting $key to $string\n");
                 foreach my $obj ($objSet->get_list()) {
                     #$obj->set($key, &quotewords(',', 0, join("=", @vals)));
-                    $obj->set($key, &quotewords(',', 0, @vals));
+                    $obj->set($key, &quotewords(',', 0, $string));
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", @vals)));
+                push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", &quotewords(',', 0, $string))));
                 $persist_count++;
             }
         }
         if (@opt_add) {
             foreach my $setstring (@opt_add) {
-                my ($key, @vals) = &quotewords('=', 1, $setstring);
-                foreach my $val (&quotewords(',', 0, join("=", @vals))) {
+                my ($key, $string) = split('=', $setstring, 2);
+                foreach my $val (&quotewords(',', 0, $string)) {
                     &dprint("Set: adding $key to $val\n");
                     foreach my $obj ($objSet->get_list()) {
                         $obj->add($key, split(",", $val));
@@ -534,9 +534,9 @@ exec()
         }
         if (@opt_del) {
             foreach my $setstring (@opt_del) {
-                my ($key, @vals) = &quotewords('=', 1, $setstring);
-                if ($key and @vals) {
-                    foreach my $val (&quotewords(',', 0, join("=", @vals))) {
+                my ($key, $string) = split('=', $setstring, 2);
+                if ($key and $string) {
+                    foreach my $val (&quotewords(',', 0, $string)) {
                         &dprint("Set: deleting $val from $key\n");
                         foreach my $obj ($objSet->get_list()) {
                             $obj->del($key, split(",", $val));
