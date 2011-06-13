@@ -80,7 +80,6 @@ help()
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
     $h .= "         --bootstrap     Define the bootstrap image should this node use\n";
     $h .= "         --vnfs          Define the VNFS that this node should use\n";
-    $h .= "         --method        What provision method should be used\n";
     $h .= "         --files         Define the files that should be provisioned to this node\n";
     $h .= "         --fileadd       Add a file to be provisioned this node\n";
     $h .= "         --filedel       Remove a file to be provisioned from this node\n";
@@ -154,7 +153,6 @@ exec()
     my $opt_lookup = "name";
     my $opt_bootstrap;
     my $opt_vnfs;
-    my $opt_method;
     my @opt_files;
     my @opt_fileadd;
     my @opt_filedel;
@@ -175,7 +173,6 @@ exec()
         'filedel=s'     => \@opt_filedel,
         'bootstrap=s'   => \$opt_bootstrap,
         'vnfs=s'        => \$opt_vnfs,
-        'method=s'      => \$opt_method,
         'l|lookup=s'    => \$opt_lookup,
     );
 
@@ -245,26 +242,6 @@ exec()
                 } else {
                     &eprint("No VNFS named: $opt_vnfs\n");
                 }
-            }
-        }
-
-        if ($opt_method) {
-            if (uc($opt_method) eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("provisionmethod");
-                    &dprint("Deleting provisionmethod for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "PROVISIONMETHOD", "UNDEF"));
-            } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("provisionmethod", $opt_method);
-                    &dprint("Setting provisionmethod for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "PROVISIONMETHOD", $opt_method));
             }
         }
 
