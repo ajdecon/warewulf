@@ -64,7 +64,7 @@ my $opt_verbose;
 my $opt_quiet;
 my $opt_noask;
 
-Getopt::Long::Configure ("bundling", "nopassthrough");
+Getopt::Long::Configure ("bundling", "passthrough");
 
 GetOptions(
     'debug'         => \$opt_debug,
