@@ -7,13 +7,13 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-if [ -z "$WWMOUNTPOINTS" ]; then
-    WWMOUNTPOINTS="mountpoint=/:type=tmpfs"
+if [ -z "$WWFILESYSTEMS" ]; then
+    WWFILESYSTEMS="mountpoint=/:type=tmpfs"
 fi
 
 #WWDISKPARTITION="sda"
-#WWDISKFORMAT="sda1 sda2 sda3"
-#WWMOUNTPOINTS="dev=sda1:mountpoint=/:type=ext2:size=768 dev=sda2:type=swap:size=1024 dev=sda3:mountpoint=/foo:type=ext2:size=10240"
+#WWDISKFORMAT="sda1 sda2"
+#WWFILESYSTEMS="mountpoint=/:type=tmpfs,dev=sda1:type=swap:size=1024,dev=sda2:mountpoint=/tmp:type=ext2:size=4096"
 
 TMPDIR=`mktemp -d`
 mkdir $TMPDIR/parts
@@ -29,7 +29,7 @@ if [ -n "$NEWROOT" ]; then
 fi
 
 
-for FSYS in `echo $WWMOUNTPOINTS | sed 's/,/ /g'` ; do
+for FSYS in `echo $WWFILESYSTEMS | sed 's/,/ /g'` ; do
     ( 
         TMPFILE=`mktemp`
         for SETVAR in `echo $FSYS | sed 's/:/ /g'` ; do
@@ -79,14 +79,19 @@ for DEV in `echo $WWDISKPARTITION | sed 's/,/ /g'` ; do
                                 dd if=/dev/zero of=/dev/$DISK count=1 bs=512 >/dev/null 2>&1
                                 PARTED=1
                             fi
+                            if [ -n "$WWFS_SIZE" ]; then
+                                SIZE="+${WWFS_SIZE}M"
+                            elif [ -n "$WWFS_END" ]; then
+                                SIZE=$WWFS_END
+                            fi
                             case $WWFS_TYPE in
                                 swap)
 #                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
-                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
                                 ;;
                                 *)
 #                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n"
-                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$SIZE\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
                                 ;;
                             esac
                         fi
