@@ -63,7 +63,7 @@ help()
     $h .= "     import          Import a VNFS image into Warewulf\n";
     $h .= "     export          Export a VNFS image to the local file system\n";
     $h .= "     delete          Delete a VNFS image from Warewulf\n";
-    $h .= "     print           Show all of the currently imported VNFS images\n";
+    $h .= "     list            Show all of the currently imported VNFS images\n";
     $h .= "\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
@@ -74,7 +74,7 @@ help()
     $h .= "\n";
     $h .= "     Warewulf> vnfs import /path/to/name.vnfs --name=vnfs1\n";
     $h .= "     Warewulf> vnfs export vnfs1 vnfs2 /tmp/exported_vnfs/\n";
-    $h .= "     Warewulf> vnfs print\n";
+    $h .= "     Warewulf> vnfs list\n";
     $h .= "\n";
 
     return($h);
@@ -122,7 +122,7 @@ complete()
     if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "export" or $ARGV[1] eq "delete")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "import", "export", "delete");
+        @ret = ("list", "import", "export", "delete");
     }
 
     @ARGV = ();
@@ -245,6 +245,12 @@ exec()
             return();
         }
         my $opt_export = pop(@ARGV);
+        if ($opt_export =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+            $opt_export = $1;
+        } else {
+            &eprint("Illegal characters in export path\n");
+            return();
+        }
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
 
@@ -306,7 +312,7 @@ exec()
             &nprint("Exported: $opt_export\n");
         }
 
-    } elsif ($command eq "print" or $command eq "delete") {
+    } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         &nprint("VNFS NAME                 SIZE (M)\n");

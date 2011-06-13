@@ -63,7 +63,7 @@ help()
     $h .= "     import          Import a bootstrap image into Warewulf\n";
     $h .= "     export          Export a bootstrap image to the local file system\n";
     $h .= "     delete          Delete a bootstrap image from Warewulf\n";
-    $h .= "     print           Show all of the currently imported bootstrap images\n";
+    $h .= "     list            Show all of the currently imported bootstrap images\n";
     $h .= "\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
@@ -74,7 +74,7 @@ help()
     $h .= "\n";
     $h .= "     Warewulf> bootstrap import /path/to/name.wwbs --name=bootstrap\n";
     $h .= "     Warewulf> bootstrap export bootstrap1 bootstrap2 /tmp/exported_bootstrap/\n";
-    $h .= "     Warewulf> bootstrap print\n";
+    $h .= "     Warewulf> bootstrap list\n";
     $h .= "\n";
 
     return($h);
@@ -119,10 +119,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "export" or $ARGV[1] eq "delete")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "list" or $ARGV[1] eq "export" or $ARGV[1] eq "delete")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "import", "export", "delete");
+        @ret = ("list", "import", "export", "delete");
     }
 
     @ARGV = ();
@@ -175,6 +175,7 @@ exec()
                 } else {
                     $name = basename($path);
                 }
+                $name =~ s/\.wwbs$//;
                 my $digest = digest_file_hex($path, "MD5");
                 $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
                 my @objList = $objectSet->get_list();
@@ -206,12 +207,10 @@ exec()
                     $db->persist($obj);
                     &nprint("Imported $name into existing object\n");
                 } elsif (scalar(@objList) == 0) {
-                    my $boostrapname = $name;
-                    $boostrapname =~ s/\.wwbs$//;
                     &nprint("Creating new Bootstrap Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("bootstrap");
                     $db->persist($obj);
-                    $obj->set("name", $bootstrapname);
+                    $obj->set("name", $name);
                     $obj->set("checksum", digest_file_hex($path, "MD5"));
                     my $binstore = $db->binstore($obj->get("id"));
                     my $size;
@@ -245,6 +244,12 @@ exec()
             return();
         }
         my $opt_export = pop(@ARGV);
+        if ($opt_export =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+            $opt_export = $1;
+        } else {
+            &eprint("Illegal characters in export path\n");
+            return();
+        }
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
 
@@ -306,12 +311,12 @@ exec()
             &nprint("Exported: $opt_export\n");
         }
 
-    } elsif ($command eq "print" or $command eq "delete") {
+    } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
-        &nprint("BOOTSTRAP NAME            SIZE (M)\n");
+        &nprint("BOOTSTRAP NAME                      SIZE (M)\n");
         foreach my $obj (@objList) {
-            printf("%-25s %-8.1f\n",
+            printf("%-35s %-8.1f\n",
                 $obj->get("name") || "UNDEF",
                 $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
             );
