@@ -96,7 +96,8 @@ build_bootstrap()
                 chomp (my $cookie = <COOKIE>);
                 close COOKIE;
                 if ($cookie eq $bootstrapObj->get("checksum")) {
-                    return;
+# Lets not return yet, because we don't have a way to force it yet...
+#                    return;
                 }
             }
 
@@ -145,14 +146,6 @@ build_bootstrap()
     }
 
 }
-
-
-#&set_log_level("DEBUG");
-
-my $ds = Warewulf::DataStore->new();
-my $obj = Warewulf::Provision::Bootstrap->new();
-$obj->build_bootstrap($ds->get_objects("bootstrap", "name", "2.6.32-71.18.2.el6.x86_64")->get_object(0));
-
 
 
 

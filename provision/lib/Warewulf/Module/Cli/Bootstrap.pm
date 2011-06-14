@@ -17,6 +17,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::DSOFactory;
+use Warewulf::Provision::Bootstrap;
 use Getopt::Long;
 use File::Basename;
 use Text::ParseWords;
@@ -137,9 +138,11 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $bootstrapObj = Warewulf::Provision::Bootstrap->new();
     my $opt_lookup = "name";
     my $opt_name;
     my $command;
+
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -206,6 +209,7 @@ exec()
                     $obj->set("size", $size);
                     $db->persist($obj);
                     &nprint("Imported $name into existing object\n");
+                    $bootstrapObj->build_bootstrap($obj);
                 } elsif (scalar(@objList) == 0) {
                     &nprint("Creating new Bootstrap Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("bootstrap");
@@ -230,6 +234,7 @@ exec()
                     $obj->set("size", $size);
                     $db->persist($obj);
                     &nprint("Imported $name into a new object\n");
+                    $bootstrapObj->build_bootstrap($obj);
                 } else {
                     &wprint("Import into one object at a time please!\n");
                 }
