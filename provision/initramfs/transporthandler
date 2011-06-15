@@ -19,7 +19,7 @@ PROG=`basename $0`
 
 if [ -f "/warewulf/transports/$WWTRANSPORT/register" ]; then
     if [ -x "/warewulf/transports/$WWTRANSPORT/$PROG" ]; then
-        exec /warewulf/transports/$WWTRANSPORT/$PROG $@
+        exec /warewulf/transports/$WWTRANSPORT/$PROG "$@"
     elif [ -f "/warewulf/transports/$WWTRANSPORT/$PROG" ]; then
         echo "WARNING: /warewulf/transports/$WWTRANSPORT/$PROG is not executable"
     fi

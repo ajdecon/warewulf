@@ -12,6 +12,7 @@ ScriptAlias /WW/file @fulllibexecdir@/warewulf/cgi-bin/file.pl
 ScriptAlias /WW/script @fulllibexecdir@/warewulf/cgi-bin/script.pl
 ScriptAlias /WW/nodeconfig @fulllibexecdir@/warewulf/cgi-bin/nodeconfig.pl
 ScriptAlias /WW/vnfs @fulllibexecdir@/warewulf/cgi-bin/vnfs.pl
+ScriptAlias /WW/logger @fulllibexecdir@/warewulf/cgi-bin/logger.pl
 
 <Directory @fulllibexecdir@/warewulf/cgi-bin>
     SetHandler perl-script

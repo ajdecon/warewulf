@@ -8,13 +8,12 @@
 #
 
 use Warewulf::Logger;
-use Warewulf::Network;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
 use Warewulf::Util;
 use Warewulf::Config;
 use Getopt::Long;
-
+use Warewulf::Network;
 
 &set_log_level("NOTICE");
 

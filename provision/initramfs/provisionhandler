@@ -18,6 +18,7 @@ if [ -d "/warewulf/provision/" ]; then
     for i in `find /warewulf/provision/ -type f | sort -n`; do
         if [ -x "$i" -a -f "$i" ]; then
             NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)/\1/'`
+            wwlogger "PROVISION HANDLER: $NAME"
             msg_white " * $NAME "
             sh -x $i 2>/var/log/provision/$NAME.log
             RETVAL=$?
@@ -25,8 +26,10 @@ if [ -d "/warewulf/provision/" ]; then
                 wwsuccess
             elif [ $RETVAL -gt 1 ]; then
                 wwfailure
+                wwlogger "PROVISION HANDLER: $NAME - Failure/Rebooting"
                 wwreboot
             else
+                wwlogger "PROVISION HANDLER: $NAME - Failure"
                 wwfailure
             fi
         fi

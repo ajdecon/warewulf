@@ -58,6 +58,7 @@ rootfs: busybox
 	ln -s transporthandler rootfs/sbin/wwgetscript
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 	ln -s transporthandler rootfs/sbin/wwgetfiles
+	ln -s transporthandler rootfs/sbin/wwlogger
 
 initramfs.cpio: rootfs
 	install -m 644 $(srcdir)/devs.cpio initramfs.cpio
