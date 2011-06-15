@@ -21,33 +21,36 @@ use File::Copy;
 
 $ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
 
-my $config = Warewulf::Config->new("bootstrap.conf");
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
 my $opt_debug;
 my $opt_verbose;
 my $opt_help;
 my $opt_root = "";
-my $opt_name;
 my $opt_file;
+my $opt_config;
 my $kversion;
+my $config;
 
-my $help = "USAGE: $0 [options] nodes....
+my $help = "USAGE: $0 [options] kernel_version
     SUMMARY:
         This command will create the bootstrap images that nodes use to
         bootstrap the provisioning process.
 
     OPTIONS:
         -r, --root      Look into this chroot directory to find the kernel
-        -n, --name      Override the default name of the kernel version with
-                        the given string
-        -f, --file      Write the bootstrap image to a file instead of
-                        importing it into data store
+        -c, --config    What configuration file should be used (don't use
+                        full path, rather just the relative name as would be
+                        found in \$sysconfigdir/warewulf/bootstrap/) other-
+                        wise the default bootstrap.conf is used.
+        -f, --file      Write the bootstrap image to a file at the specified
+                        path location (default drops it in the current
+                        directory with the kernel_version.wwbs as name)
 
     EXAMPLES:
         # wwbootstrap 2.6.32-71.el6.x86_64
-        # wwbootstrap --name testbootstrap 2.6.32-71.el6.x86_64
-        # wwbootstrap --root /path/to/chroot 2.6.32-71.el6.x86_64
+        # wwbootstrap --config=testbootstrap 2.6.32-71.el6.x86_64
+        # wwbootstrap --root=/path/to/chroot 2.6.32-71.el6.x86_64
 
 ";
 
@@ -58,14 +61,21 @@ GetOptions(
     'd|debug'       => \$opt_debug,
     'v|verbose'     => \$opt_verbose,
     'r|root=s'      => \$opt_root,
-    'n|name=s'      => \$opt_name,
     'f|file=s'      => \$opt_file,
+    'c|config=s'    => \$opt_config,
 );
 
 
 if ($opt_help or ! @ARGV) {
     print $help;
     exit;
+}
+
+if ($opt_config) {
+    $config = Warewulf::Config->new($opt_config);
+} else {
+    $config = Warewulf::Config->new("bootstrap.conf");
+
 }
 
 $opt_kversion = shift(@ARGV);
@@ -91,18 +101,9 @@ if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
     exit 1;
 }
 
-if ($opt_name and $opt_name =~ /^([a-zA-Z0-9_\-\.]+)$/) {
-    $opt_name = $1;
-    &iprint("Using bootstrap name: $opt_name\n");
-} elsif ($opt_name) {
-    &eprint("Bootstrap name contains illegal characters!\n");
-    exit 1;
-} else {
-    $opt_name = $opt_kversion;
-}
 
 if (! $opt_file) {
-    $opt_file = $opt_name .".wwbs";
+    $opt_file = $opt_kversion .".wwbs";
 }
 
 
@@ -236,7 +237,9 @@ if ($config->get("firmware")) {
 
 copy("$opt_root/boot/vmlinuz-$opt_kversion", "$tmpdir/kernel");
 
+&nprint("Building and compressing: $opt_file\n");
+system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $opt_file");
 system("rm -rf $tmpdir");
 
-system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $opt_file");
+&nprint("Done.\n");
 
