@@ -11,12 +11,16 @@
 use CGI;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
+use Warewulf::EventHandler;
 use File::Path;
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
+my $eh = Warewulf::EventHandler->new();
 
 print $q->header();
+
+$eh->disable();
 
 my $hwaddr = $q->param('hwaddr');
 my $log = $q->param('log');

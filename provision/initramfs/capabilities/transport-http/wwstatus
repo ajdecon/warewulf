@@ -11,13 +11,7 @@
 
 MESSAGE=`echo $1 | sed -e 's@ @+@g'`
 
-while true; do
-    for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O /dev/null "http://$master/WW/logger?hwaddr=$HWADDR&status=$MESSAGE" 2>/dev/null; then
-            exit 0
-        fi
-    done
-    echo -n "." 1>&2
-    throttled_sleep
+for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
+    wget -q -O /dev/null "http://$master/WW/logger?hwaddr=$HWADDR&status=$MESSAGE"
 done
 
