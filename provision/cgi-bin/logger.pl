@@ -19,7 +19,8 @@ my $db = Warewulf::DataStore->new();
 print $q->header();
 
 my $hwaddr = $q->param('hwaddr');
-my $message = $q->param('message');
+my $log = $q->param('log');
+my $status = $q->param('status');
 
 my $logdir = "/tmp/warewulf_log/provision/";
 
@@ -29,20 +30,25 @@ if (! -f $logdir) {
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
-    if ($message =~ /^([a-zA-Z0-9\s\-_\.\/:]+)$/) {
-        my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
-        my $node = $nodeSet->get_object(0);
-        my $name = $node->get("name") || $hwaddr;
-        my ($sec, $min, $hr, $day, $mon, $year) = localtime;
-        my $timestamp = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
-            $year, $mon, $day, $hr, $min, $sec);
-        $node->set("_provisionlog", $message);
-        $db->persist($node);
-        open(LOG, ">> $logdir/$name.log");
-        print LOG "[$timestamp] $message\n";
-        close LOG;
-    } else {
-        warn "bad message from $hwaddr\n";
+    my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
+    my $node = $nodeSet->get_object(0);
+    my $name = $node->get("name") || $hwaddr;
+    my ($sec, $min, $hr, $day, $mon, $year) = localtime;
+    $year += 1900;
+    my $timestamp = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
+        $year, $mon, $day, $hr, $min, $sec);
+    my @log_line;
+    open(LOG, ">> $logdir/$name.log");
+    if ($status =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
+        $node->set("_provisionstatus", $1);
+        print LOG "[$timestamp] STATUS=$1\n";
     }
+    if ($log =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
+        $node->set("_provisionlog", $1);
+        print LOG "[$timestamp] LOG=$1\n";
+    }
+    $node->set("_provisiontime", time());
+    $db->persist($node);
+    close LOG;
 }
 

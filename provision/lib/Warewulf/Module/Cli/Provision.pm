@@ -66,6 +66,7 @@ help()
     $h .= "\n";
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         print           Print the node(s) configuration\n";
+    $h .= "         status          Print the node(s) status\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
     $h .= "\n";
@@ -133,10 +134,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set" or $ARGV[1] eq "status")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "set");
+        @ret = ("print", "set", "status");
     }
 
     @ARGV = ();
@@ -357,6 +358,24 @@ exec()
             &iprint("Updated $return_count objects\n");
 
         }
+    } elsif ($command eq "status") {
+        &nprintf("%-15s %12s %15s  %s\n", "NAME", "LAST CONTACT", "STATUS", "MESSAGE");
+        my $time = time();
+        foreach my $o ($objSet->get_list()) {
+            my $lastcontact = $o->get("_provisiontime");
+            if ($lastcontact and $lastcontact =~ /^\d+$/) {
+                $lastcontact = $time - $lastcontact;
+            } else {
+                $lastcontact = "unknown";
+            }
+            printf("%-15s %12s %15s  %s\n",
+                $o->get("name") || "UNDEF",
+                $lastcontact,
+                $o->get("_provisionstatus") || "",
+                $o->get("_provisionlog") || ""
+            );
+        }
+
     } elsif ($command eq "print") {
         &nprintf("%-15s %-28s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
         foreach my $o ($objSet->get_list()) {
