@@ -104,7 +104,7 @@ complete()
         }
     }
 
-    Getopt::Long::Configure ("bundling");
+    Getopt::Long::Configure ("bundling", "passthrough");
 
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
