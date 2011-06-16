@@ -414,7 +414,11 @@ exec()
                 }
                 if ($opt_hwaddr) {
                     $opt_hwaddr = lc($opt_hwaddr);
+                    my $old_hwaddr = $netobj->get("hwaddr");
                     $netobj->set("hwaddr", $opt_hwaddr);
+                    if ($old_hwaddr and $old_hwaddr ne $opt_hwaddr) {
+                        $obj->del("_hwaddr", $old_hwaddr);
+                    }
                     $obj->add("_hwaddr", $opt_hwaddr);
                     $persist_count++;
                 }
