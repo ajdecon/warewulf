@@ -413,6 +413,7 @@ exec()
                     }
                 }
                 if ($opt_hwaddr) {
+                    $opt_hwaddr = lc($opt_hwaddr);
                     $netobj->set("hwaddr", $opt_hwaddr);
                     $obj->add("_hwaddr", $opt_hwaddr);
                     $persist_count++;
