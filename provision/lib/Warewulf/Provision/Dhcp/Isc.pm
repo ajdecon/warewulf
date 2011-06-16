@@ -152,7 +152,6 @@ persist()
             $config_template .= "allow booting;\n";
             $config_template .= "allow bootp;\n";
             $config_template .= "ddns-update-style interim;\n";
-            $config_template .= "option domain-name-servers dns_servers;\n";
             $config_template .= "option routers default_router;\n";
             $config_template .= "filename \"/warewulf/gpxelinux.0\";\n";
             $config_template .= "not authoritative;\n";
