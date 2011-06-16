@@ -175,7 +175,7 @@ exec()
     } elsif (scalar(@opt_print) > 0) {
         @opt_print = split(",", join(",", @opt_print));
     } else {
-        @opt_print = ("name", "type");
+        @opt_print = ("name", "_type");
     }
 
     if ($opt_new) {
@@ -220,7 +220,7 @@ exec()
             if (@opt_print) {
 
                 if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-                    my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
+                    my $string = sprintf("%-26s " x (scalar @opt_print), map {uc($_);} @opt_print);
                     &nprint($string ."\n");
                     &nprint("=" x length($string) ."\n");
                 }
@@ -323,7 +323,7 @@ exec()
                                 push(@values, "UNDEF");
                             }
                         }
-                        printf("%-17s " x (scalar @values) ."\n", @values);
+                        printf("%-26s " x (scalar @values) ."\n", @values);
                     }
                 }
             }
