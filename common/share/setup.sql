@@ -37,8 +37,8 @@ CREATE TABLE lookup
 (
     id INT NOT NULL AUTO_INCREMENT UNIQUE,
     object_id INT,
-    field VARCHAR(64),
-    value VARCHAR(64),
+    field VARCHAR(64) BINARY,
+    value VARCHAR(64) BINARY,
     FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
     UNIQUE KEY (object_id, field, value),
