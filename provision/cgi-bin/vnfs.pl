@@ -23,7 +23,7 @@ if ($q->param('hwaddr')) {
     my $hwaddr = $q->param('hwaddr');
     if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         my $hwaddr = $1;
-        my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
+        my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
         my $node = $nodeSet->get_object(0);
         if ($node) {
             my ($node_name) = $node->get("name");

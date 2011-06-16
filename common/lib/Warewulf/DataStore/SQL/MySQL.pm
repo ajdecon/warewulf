@@ -189,8 +189,8 @@ get_objects($$$@)
         my $id = $h->{"id"};
         my $type = $h->{"type"};
         my $o = Warewulf::DSOFactory->new($type, $self->unserialize($h->{"serialized"}));
-        $o->set("id", $id);
-        $o->set("type", $type);
+        $o->set("_id", $id);
+        $o->set("_type", $type);
         $objectSet->add($o);
     }
 
@@ -321,19 +321,20 @@ persist($$)
             return undef;
         }
         foreach my $o (@objlist) {
-            my $id = $o->get("id");
+            my $id = $o->get("_id");
             my $type = $o->type();
 
             if (! $id) {
                 my $sth;
+                &dprint("Persisting object as new\n");
                 $event->handle("$type.new", $o);
-                dprint("Inserting a new object into the datastore\n");
                 $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
                 $sth->execute($type);
                 $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
                 $sth->execute();
                 $id = $sth->fetchrow_array();
-                $o->set("id", $id);
+                &dprint("Inserted a new object into the datastore (ID: $id)\n");
+                $o->set("_id", $id);
             }
 
             dprint("Updating datastore ID = $id\n");
@@ -355,6 +356,7 @@ persist($$)
                         push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",'UNDEF',". $self->{"DBH"}->quote($id) .")");
                     }
                 }
+                &dprint("SQL: INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups) ."\n");
                 my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
                 $sth->execute();
             } else {
@@ -394,7 +396,7 @@ del_object($$)
         return undef;
     }
     foreach my $o (@objlist) {
-        my $id = $o->get("id");
+        my $id = $o->get("_id");
         my $type = $o->type;
 
         if ($id) {
@@ -432,7 +434,7 @@ add_lookup($$$$)
     if ($object and $type and $field and $value) {
         if (ref($object) eq "Warewulf::ObjectSet") {
             foreach my $o ($object->get_list()) {
-                if (my $id = $o->get("id")) {
+                if (my $id = $o->get("_id")) {
                     dprint("Adding a lookup entry for: $field and $value and $id\n");
                     my $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
                     $sth->execute(uc($field), $value, $id);
@@ -441,7 +443,7 @@ add_lookup($$$$)
                 }
             }
         } elsif (ref($object) =~ /^Warewulf::/) {
-            if (my $id = $object->get("id")) {
+            if (my $id = $object->get("_id")) {
                 dprint("Adding a lookup entry for: $field and $value and $id\n");
                 my $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
                 $sth->execute(uc($field), $value, $id);
@@ -469,7 +471,7 @@ del_lookup($$$$)
 
     if (ref($object) eq "Warewulf::ObjectSet") {
         foreach my $o ($object->get_list()) {
-            my $id = $o->get("id");
+            my $id = $o->get("_id");
             if ($id and $type and $field and $value) {
                 my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
                 $sth->execute($type, $field, $value, $id);
@@ -487,7 +489,7 @@ del_lookup($$$$)
             }
         }
     } elsif (ref($object) =~ /^Warewulf::/) {
-        my $id = $object->get("id");
+        my $id = $object->get("_id");
         if ($id and $type and $field and $value) {
             my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
             $sth->execute($type, $field, $value, $id);
@@ -533,7 +535,7 @@ new_object($)
     $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
     $sth->execute();
 
-    $object->set("id", $sth->fetchrow_array());
+    $object->set("_id", $sth->fetchrow_array());
 
     return($object);
 }

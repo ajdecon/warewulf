@@ -89,7 +89,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME");
+    return("_ID", "NAME");
 }
 
 

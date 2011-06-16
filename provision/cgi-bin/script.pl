@@ -25,7 +25,7 @@ if ($type =~ /^([a-zA-Z0-9\-\._]+)$/) {
     if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         $hwaddr = $1;
     
-        my $node = $db->get_objects("node", "hwaddr", $hwaddr)->get_object(0);
+        my $node = $db->get_objects("node", "_hwaddr", $hwaddr)->get_object(0);
     
         if ($node) {
             foreach my $script ($node->get("$scriptname")) {

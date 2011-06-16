@@ -21,14 +21,11 @@ my $hwaddr = $q->param('hwaddr');
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
-    my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
+    my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
     my $node = $nodeSet->get_object(0);
 
     if (! $node) {
-        $node = Warewulf::DSOFactory->new("node");
-        $node->set("name", "newnode");
-        $node->set("hwaddr", $hwaddr);
-        $db->persist($node);
+        exit;
     }
 
     my %nhash = $node->get_hash();

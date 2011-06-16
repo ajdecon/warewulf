@@ -28,7 +28,7 @@ my $node;
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     $hwaddr = $1;
 
-    $node = $db->get_objects("node", "hwaddr", $hwaddr)->get_object(0);
+    $node = $db->get_objects("node", "_hwaddr", $hwaddr)->get_object(0);
 
     if ($node) {
         if (! $fileid and $node) {

@@ -265,7 +265,7 @@ exec()
                 $o->get("name") || "UNDEF",
                 $o->get("cluster") || "UNDEF",
                 join(",", $o->get("groups")) || "UNDEF",
-                join(",", $o->get("hwaddr")) || "UNDEF"
+                join(",", $o->get("_hwaddr")) || "UNDEF"
             );
         }
     } elsif ($command eq "print") {
@@ -302,9 +302,11 @@ exec()
                             }
                         }
                         if (scalar(@scalars) > 0) {
-                            printf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
-                        } else {
-                            push(@values, "UNDEF");
+                            if ($h =~ /^_/) {
+                                &iprintf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
+                            } else {
+                                printf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
+                            }
                         }
                     } else {
                         if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
@@ -316,9 +318,17 @@ exec()
                                     push(@s, $l ."=". $string);
                                 }
                             }
-                            printf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
+                            if ($h =~ /^_/) {
+                                &iprintf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
+                            } else {
+                                printf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
+                            }
                         } else {
-                            printf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
+                            if ($h =~ /^_/) {
+                                &iprintf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
+                            } else {
+                                printf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
+                            }
                         }
                     }
                 }
@@ -396,6 +406,7 @@ exec()
                     my @netobjs = $obj->get("netdevs");
                     if (scalar(@netobjs) == 1) {
                         $netobj = shift(@netobjs);
+                        $opt_netdev = $netobj->get("name");
                     } else {
                         &eprint("Could not set network configuration for node '$name' (include --netdev!)\n");
                         next;
@@ -403,7 +414,7 @@ exec()
                 }
                 if ($opt_hwaddr) {
                     $netobj->set("hwaddr", $opt_hwaddr);
-                    $obj->add("hwaddr", $opt_hwaddr);
+                    $obj->add("_hwaddr", $opt_hwaddr);
                     $persist_count++;
                 }
                 if ($opt_ipaddr) {
@@ -419,22 +430,22 @@ exec()
                     $persist_count++;
                 }
                 if ($opt_devremove) {
-                    $obj->del("hwaddr", $netobj->get("hwaddr"));
+                    $obj->del("_hwaddr", $netobj->get("hwaddr"));
                     $obj->del("netdevs", $netobj);
                     $persist_count++;
                 }
             }
             if ($opt_ipaddr) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "IPADDR", $opt_ipaddr));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
             }
             if ($opt_netmask) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "NETMASK", $opt_netmask));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
             }
             if ($opt_hwaddr) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "HWADDR", $opt_hwaddr));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
             }
             if ($opt_fqdn) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "FQDN", $opt_fqdn));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
             }
             if ($opt_devremove) {
                 push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
@@ -509,25 +520,33 @@ exec()
         if (@opt_set) {
             foreach my $setstring (@opt_set) {
                 my ($key, $string) = split('=', $setstring, 2);
-                &dprint("Set: setting $key to $string\n");
-                foreach my $obj ($objSet->get_list()) {
-                    #$obj->set($key, &quotewords(',', 0, join("=", @vals)));
-                    $obj->set($key, &quotewords(',', 0, $string));
+                if ($key =~ /^_/) {
+                    &eprint("Can not manipulate private object key\n");
+                } else {
+                    &dprint("Set: setting $key to $string\n");
+                    foreach my $obj ($objSet->get_list()) {
+                        #$obj->set($key, &quotewords(',', 0, join("=", @vals)));
+                        $obj->set($key, &quotewords(',', 0, $string));
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", &quotewords(',', 0, $string))));
+                    $persist_count++;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", &quotewords(',', 0, $string))));
-                $persist_count++;
             }
         }
         if (@opt_add) {
             foreach my $setstring (@opt_add) {
                 my ($key, $string) = split('=', $setstring, 2);
-                foreach my $val (&quotewords(',', 0, $string)) {
-                    &dprint("Set: adding $key to $val\n");
-                    foreach my $obj ($objSet->get_list()) {
-                        $obj->add($key, split(",", $val));
+                if ($key =~ /^_/) {
+                    &eprint("Can not manipulate private object key\n");
+                } else {
+                    foreach my $val (&quotewords(',', 0, $string)) {
+                        &dprint("Set: adding $key to $val\n");
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->add($key, split(",", $val));
+                        }
+                        push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $opt));
+                        $persist_count++;
                     }
-                    push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $opt));
-                    $persist_count++;
                 }
             }
 
@@ -535,22 +554,26 @@ exec()
         if (@opt_del) {
             foreach my $setstring (@opt_del) {
                 my ($key, $string) = split('=', $setstring, 2);
-                if ($key and $string) {
-                    foreach my $val (&quotewords(',', 0, $string)) {
-                        &dprint("Set: deleting $val from $key\n");
+                if ($key =~ /^_/) {
+                    &eprint("Can not manipulate private object key\n");
+                } else {
+                    if ($key and $string) {
+                        foreach my $val (&quotewords(',', 0, $string)) {
+                            &dprint("Set: deleting $val from $key\n");
+                            foreach my $obj ($objSet->get_list()) {
+                                $obj->del($key, split(",", $val));
+                            }
+                            $persist_count++;
+                            push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $opt));
+                        }
+                    } elsif ($key) {
+                        &dprint("Set: deleting $key\n");
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->del($key, split(",", $val));
+                            $obj->del($key);
                         }
                         $persist_count++;
-                        push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $opt));
+                        push(@changes, sprintf("   UNSET: %-20s\n", $key));
                     }
-                } elsif ($key) {
-                    &dprint("Set: deleting $key\n");
-                    foreach my $obj ($objSet->get_list()) {
-                        $obj->del($key);
-                    }
-                    $persist_count++;
-                    push(@changes, sprintf("   UNSET: %-20s\n", $key));
                 }
             }
         }

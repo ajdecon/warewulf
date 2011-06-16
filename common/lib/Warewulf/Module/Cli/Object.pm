@@ -249,9 +249,11 @@ exec()
                                     }
                                 }
                                 if (scalar(@scalars) > 0) {
-                                    printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
-                                } else {
-                                    push(@values, "UNDEF");
+                                    if ($h =~ /^_/) {
+                                        &iprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
+                                    } else {
+                                        printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
+                                    }
                                 }
                             } else {
                                 if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
@@ -263,9 +265,17 @@ exec()
                                             push(@s, $l ."=". $string);
                                         }
                                     }
-                                    printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
+                                    if ($h =~ /^_/) {
+                                        &iprintf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
+                                    } else {
+                                        printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
+                                    }
                                 } else {
-                                    printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                    if ($h =~ /^_/) {
+                                        &iprintf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                    } else {
+                                        printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
+                                    }
                                 }
                             }
                         }
@@ -380,48 +390,59 @@ exec()
                 }
 
                 if (@opt_set) {
-
                     foreach my $setstring (@opt_set) {
                         my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        &dprint("Set: setting $key to ". join("=", @vals) ."\n");
-                        foreach my $obj (@objList) {
-                            $obj->set($key, &quotewords(',', 0, join("=", @vals)));
-                        }
-                        $persist_bool = 1;
-                    }
-                }
-                if (@opt_add) {
-
-                    foreach my $setstring (@opt_add) {
-                        my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                            &dprint("Set: adding $key to $val\n");
+                        if ($key =~ /^_/) {
+                            &eprint("Can not manipulate private object key\n");
+                        } else {
+                            &dprint("Set: setting $key to ". join("=", @vals) ."\n");
                             foreach my $obj (@objList) {
-                                $obj->add($key, split(",", $val));
+                                $obj->set($key, &quotewords(',', 0, join("=", @vals)));
                             }
                             $persist_bool = 1;
                         }
                     }
-
                 }
-                if (@opt_del) {
 
-                    foreach my $setstring (@opt_del) {
+                if (@opt_add) {
+                    foreach my $setstring (@opt_add) {
                         my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        if ($key and @vals) {
+                        if ($key =~ /^_/) {
+                            &eprint("Can not manipulate private object key\n");
+                        } else {
                             foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                                &dprint("Set: deleting $val from $key\n");
+                                &dprint("Set: adding $key to $val\n");
                                 foreach my $obj (@objList) {
-                                    $obj->del($key, split(",", $val));
+                                    $obj->add($key, split(",", $val));
                                 }
                                 $persist_bool = 1;
                             }
-                        } elsif ($key) {
-                            &dprint("Set: deleting $key\n");
-                            foreach my $obj (@objList) {
-                                $obj->del($key);
+                        }
+                    }
+
+                }
+
+                if (@opt_del) {
+                    foreach my $setstring (@opt_del) {
+                        my ($key, @vals) = &quotewords('=', 1, $setstring);
+                        if ($key =~ /^_/) {
+                            &eprint("Can not manipulate private object key\n");
+                        } else {
+                            if ($key and @vals) {
+                                foreach my $val (&quotewords(',', 0, join("=", @vals))) {
+                                    &dprint("Set: deleting $val from $key\n");
+                                    foreach my $obj (@objList) {
+                                        $obj->del($key, split(",", $val));
+                                    }
+                                    $persist_bool = 1;
+                                }
+                            } elsif ($key) {
+                                &dprint("Set: deleting $key\n");
+                                foreach my $obj (@objList) {
+                                    $obj->del($key);
+                                }
+                                $persist_bool = 1;
                             }
-                            $persist_bool = 1;
                         }
                     }
 

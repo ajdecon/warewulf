@@ -155,7 +155,7 @@ while(1) {
         chomp($line);
         if ( $line =~ /DHCPDISCOVER from ([0-9a-zA-Z:]+) via (eth\d+):.+no free leases/) {
             my $hwaddr = $1;
-            my $NodeObj = $datastore->get_objects("node", "hwaddr", $hwaddr)->get_object(0);
+            my $NodeObj = $datastore->get_objects("node", "_hwaddr", $hwaddr)->get_object(0);
             if ($NodeObj) {
                 print "Node is known ($hwaddr)\n";
             } else {
@@ -187,7 +187,7 @@ while(1) {
                     $newEthObj->set("ipaddr", $ip);
                     $newEthObj->set("netmask", $netmask);
                     $newNodeObj->add("netdevs", $newEthObj);
-                    $newNodeObj->add("hwaddr", $hwaddr);
+                    $newNodeObj->add("_hwaddr", $hwaddr);
                     $newNodeObj->set("bootstrap", $opt_bootstrap);
                     $newNodeObj->set("vnfsid", $vnfsid);
                     $newNodeObj->set("groups", split(",", $opt_groups));

@@ -221,11 +221,12 @@ delete()
 
     foreach my $nodeobj (@nodeobjs) {
         my $nodename = $nodeobj->get("name") || "undefined";
-        my @hwaddrs = $nodeobj->get("hwaddr");
+        my @hwaddrs = $nodeobj->get("_hwaddr");
 
         &dprint("Deleting pxelinux entries for node: $nodename\n");
 
-        foreach my $hwaddr (@hwaddrs) {
+        foreach my $netdev ($nodeobj->get("netdevs")) {
+            my $hwaddr = $netdev->get("hwaddr");
             if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                 $hwaddr = $1;
                 &iprint("Deleting Pxelinux configuration for: $nodename/$hwaddr\n");

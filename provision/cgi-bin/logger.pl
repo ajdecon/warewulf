@@ -12,7 +12,10 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
 use Warewulf::EventHandler;
+use Warewulf::Logger;
 use File::Path;
+
+set_log_level("DEBUG");
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
@@ -34,7 +37,7 @@ if (! -f $logdir) {
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
-    my $nodeSet = $db->get_objects("node", "hwaddr", $hwaddr);
+    my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
     my $node = $nodeSet->get_object(0);
     my $name = $node->get("name") || $hwaddr;
     my ($sec, $min, $hr, $day, $mon, $year) = localtime;

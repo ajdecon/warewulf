@@ -75,7 +75,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "ID", "DEVICE", "IPADDR", "HWADDR", "NODEID");
+    return("_ID", "NAME", "DEVICE", "IPADDR", "HWADDR", "NODEID");
 }
 
 
