@@ -211,13 +211,18 @@ exec()
                 }
                 push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
             } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("bootstrap", $opt_bootstrap);
-                        &dprint("Setting bootstrap for node name: $name\n");
-                    $persist_bool = 1;
+                my $bootstrapObj = $db->get_objects("bootstrap", "name", $opt_bootstrap)->get_object(0);
+                if ($bootstrapObj and my $bootstrapid = $bootstrapObj->get("_id")) {
+                    foreach my $obj ($objSet->get_list()) {
+                        my $name = $obj->get("name") || "UNDEF";
+                        $obj->set("bootstrapid", $bootstrapid);
+                        &dprint("Setting bootstrapid for node name: $name\n");
+                        $persist_bool = 1;
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "BOOTSTRAP", $opt_bootstrap));
+                } else {
+                    &eprint("No bootstrap named: $opt_vnfs\n");
                 }
-                push(@changes, sprintf("     SET: %-20s\n", "BOOTSTRAP"));
             }
         }
 
@@ -232,7 +237,7 @@ exec()
                 push(@changes, sprintf("   UNSET: %-20s\n", "VNFS"));
             } else {
                 my $vnfsObj = $db->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
-                if ($vnfsObj and my $vnfsid = $vnfsObj->get("id")) {
+                if ($vnfsObj and my $vnfsid = $vnfsObj->get("_id")) {
                     foreach my $obj ($objSet->get_list()) {
                         my $name = $obj->get("name") || "UNDEF";
                         $obj->set("vnfsid", $vnfsid);
@@ -254,10 +259,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                        if ($fileObj->get("_id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
                             push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("id"));
+                            push(@file_ids, $fileObj->get("_id"));
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -285,10 +290,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                        if ($fileObj->get("_id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
                             push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("id"));
+                            push(@file_ids, $fileObj->get("_id"));
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -316,10 +321,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("id") ."\n");
+                        if ($fileObj->get("_id")) {
+                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
                             push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("id"));
+                            push(@file_ids, $fileObj->get("_id"));
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -382,7 +387,7 @@ exec()
             my $fileObjSet;
             my @files;
             if ($o->get("fileids")) {
-                $fileObjSet = $db->get_objects("file", "id", $o->get("fileids"));
+                $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
             if ($fileObjSet) {
                 foreach my $f ($fileObjSet->get_list()) {
@@ -393,7 +398,7 @@ exec()
             }
             my $vnfs = "UNDEF";
             if (my $vnfsid = $o->get("vnfsid")) {
-                my $vnfsObj = $db->get_objects("vnfs", "id", $vnfsid)->get_object(0);
+                my $vnfsObj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($vnfsObj) {
                     $vnfs = $vnfsObj->get("name");
                 }
