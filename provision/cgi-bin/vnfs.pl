@@ -29,7 +29,7 @@ if ($q->param('hwaddr')) {
             my ($node_name) = $node->get("name");
             my ($vnfsid) = $node->get("vnfsid");
             if ($vnfsid) {
-                my $obj = $db->get_objects("vnfs", "id", $vnfsid)->get_object(0);
+                my $obj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($obj) {
                     my ($vnfs_name) = $obj->get("name");
                     &nprint("Sending VNFS '$vnfs_name' to node '$node_name'\n");
@@ -39,7 +39,7 @@ if ($q->param('hwaddr')) {
                     }
                     $q->print("Content-Disposition: attachment; filename=\"vnfs.img\"\r\n");
                     $q->print("\r\n");
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     while(my $buffer = $binstore->get_chunk()) {
                         $q->print($buffer);
                     }

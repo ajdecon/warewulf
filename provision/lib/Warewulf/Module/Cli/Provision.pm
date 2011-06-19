@@ -56,10 +56,13 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     provision [command] [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "    The provision command is used for setting node provisioning attributes.\n";
     $h .= "\n";
-    $h .= "ACTIONS:\n";
+    $h .= "COMMANDS:\n";
     $h .= "\n";
     $h .= "     The first argument MUST be the desired action you wish to take and after\n";
     $h .= "     the action, the order of the options and the targets is not specific.\n";
@@ -67,6 +70,7 @@ help()
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         print           Print the node(s) configuration\n";
     $h .= "         status          Print the node(s) status\n";
+    $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
     $h .= "\n";
@@ -177,13 +181,7 @@ exec()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (scalar(@ARGV) > 0) {
-        $command = shift(@ARGV);
-        &dprint("Running command: $command\n");
-    } else {
-        &dprint("Returning with nothing to do\n");
-        return();
-    }
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
@@ -200,7 +198,10 @@ exec()
     }
 
 
-    if ($command eq "set") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif ($command eq "set") {
         if ($opt_bootstrap) {
             if (uc($opt_bootstrap) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
@@ -386,6 +387,8 @@ exec()
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
             my @files;
+            my $vnfs = "UNDEF";
+            my $bootstrap = "UNDEF";
             if ($o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
@@ -396,20 +399,31 @@ exec()
             } else {
                 push(@files, "UNDEF");
             }
-            my $vnfs = "UNDEF";
             if (my $vnfsid = $o->get("vnfsid")) {
                 my $vnfsObj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($vnfsObj) {
                     $vnfs = $vnfsObj->get("name");
                 }
             }
+            if (my $bootstrapid = $o->get("bootstrapid")) {
+                my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
+                if ($bootstrapObj) {
+                    $bootstrap = $bootstrapObj->get("name");
+                }
+            }
             printf("%-15s %-28s %-15s %-15s\n",
                 $o->get("name") || "UNDEF",
-                $o->get("bootstrap") || "UNDEF",
+                $bootstrap,
                 $vnfs,
                 join(",", @files)
             );
         }
+    } elsif ($command eq "help") {
+        print $self->help();
+
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
     # We are done with ARGV, and it was internally modified, so lets reset

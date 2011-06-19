@@ -34,7 +34,7 @@ if ($type =~ /^([a-zA-Z0-9\-\._]+)$/) {
                 }
                 my $obj = $db->get_objects("file", "name", $script)->get_object(0);
                 if ($obj->get("format") eq "shell") {
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     while(my $buffer = $binstore->get_chunk()) {
                         print $buffer;
                     }

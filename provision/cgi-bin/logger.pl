@@ -12,10 +12,8 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
 use Warewulf::EventHandler;
-use Warewulf::Logger;
 use File::Path;
-
-set_log_level("DEBUG");
+use Sys::Syslog;
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
@@ -41,21 +39,24 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $node = $nodeSet->get_object(0);
     my $name = $node->get("name") || $hwaddr;
     my ($sec, $min, $hr, $day, $mon, $year) = localtime;
+    my $persist_bool;
     $year += 1900;
     my $timestamp = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
         $year, $mon, $day, $hr, $min, $sec);
     my @log_line;
-    open(LOG, ">> $logdir/$name.log");
     if ($status =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
         $node->set("_provisionstatus", $1);
-        print LOG "[$timestamp] STATUS=$1\n";
+        $persist_bool = 1;
     }
     if ($log =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
         $node->set("_provisionlog", $1);
-        print LOG "[$timestamp] LOG=$1\n";
+        openlog("wwprovision", "ndelay,pid", "local0");
+        syslog("info", "$name $1");
+        $persist_bool = 1;
     }
-    $node->set("_provisiontime", time());
-    $db->persist($node);
-    close LOG;
+    if ($persist_bool) {
+        $node->set("_provisiontime", time());
+        $db->persist($node);
+    }
 }
 

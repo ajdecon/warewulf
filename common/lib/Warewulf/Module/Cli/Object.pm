@@ -228,7 +228,7 @@ exec()
                 foreach my $o ($objectSet->get_list()) {
                     if (@opt_print and $opt_print[0] eq ":all") {
                         my %hash = $o->get_hash();
-                        my $id = $o->get("id");
+                        my $id = $o->get("_id");
                         my $name = $o->get("name");
                         &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                         foreach my $h (keys %hash) {

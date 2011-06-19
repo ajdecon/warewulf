@@ -51,10 +51,13 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     node [command] [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "    The node command is used for editing the node configurations.\n";
     $h .= "\n";
-    $h .= "ACTIONS:\n";
+    $h .= "COMMANDS:\n";
     $h .= "\n";
     $h .= "     The first argument MUST be the desired action you wish to take and after\n";
     $h .= "     the action, the order of the options and the targets is not specific.\n";
@@ -64,6 +67,7 @@ help()
     $h .= "         list            List a summary of nodes\n";
     $h .= "         print           Print the node configuration\n";
     $h .= "         delete          Remove a node configuration from the data store\n";
+    $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
     $h .= "\n";
@@ -182,6 +186,7 @@ exec()
     my $objSet;
     my @changes;
     my $command;
+    my $object_count = 0;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -207,20 +212,18 @@ exec()
 
     );
 
-    if (scalar(@ARGV) > 0) {
-        $command = shift(@ARGV);
-        &dprint("Running command: $command\n");
-    } else {
-        &dprint("Returning with nothing to do\n");
-        return();
-    }
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
         return();
     }
 
-    if ($command eq "new") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+        return();
+    } elsif ($command eq "new") {
         $objSet = Warewulf::ObjectSet->new();
         foreach my $string (&expand_bracket(@ARGV)) {
             my $obj;
@@ -235,9 +238,9 @@ exec()
         $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
     }
 
-    my $object_count = $objSet->count();
-
-    if ($object_count == 0 ) {
+    if ($objSet) {
+        $object_count = $objSet->count();
+    } else {
         &nprint("No nodes found\n");
         return();
     }
@@ -602,10 +605,12 @@ exec()
             &iprint("Updated $return_count objects\n");
         }
 
+    } elsif ($command eq "help") {
+        print $self->help();
 
     } else {
-        &eprint("Unknown command: $command\n");
-        return;
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
     # We are done with ARGV, and it was internally modified, so lets reset

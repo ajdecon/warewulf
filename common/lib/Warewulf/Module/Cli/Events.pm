@@ -30,15 +30,23 @@ new()
 sub
 exec()
 {
-    my ($self, $arg) = @_;
+    my ($self, $command) = @_;
     my $events = Warewulf::EventHandler->new();
 
-    if (uc($arg) eq "ENABLE") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif (uc($command) eq "ENABLE") {
         &nprint("Enabling the Warewulf Event Handler\n");
         $events->enable();
-    } elsif (uc($arg) eq "DISABLE") {
+    } elsif (uc($command) eq "DISABLE") {
         &nprint("Disabling the Warewulf Event Handler\n");
         $events->disable();
+    } elsif ($command eq "help") {
+        print $self->help();
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 }
 
@@ -57,13 +65,17 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     events [command]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     Control how/if events are handled.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     enable      Enable all events for this shell (default)\n";
-    $h .= "     disable     Disable the event handler\n";
+    $h .= "     enable          Enable all events for this shell (default)\n";
+    $h .= "     disable         Disable the event handler\n";
+    $h .= "     help            Show usage information\n";
     $h .= "\n";
 
     return($h);

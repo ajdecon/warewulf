@@ -131,6 +131,7 @@ _doreboot() {
         echo "Rebooting system... Please stand by"
         echo
         sleep 2
+        wwlogger "Node rebooting"
         /sbin/reboot -n -f
     fi
 }
@@ -138,6 +139,7 @@ _doreboot() {
 wwreboot() {
     message=$1
     _doreboot 10 &
+    wwlogger "Rebooting node in 10 seconds..."
     echo
     echo
     if [ -n "$message" ]; then
@@ -154,6 +156,7 @@ wwreboot() {
     echo
     rm /reboot
     /bin/sh
+    wwlogger "Node rebooting"
     /sbin/reboot -n -f
 }
 

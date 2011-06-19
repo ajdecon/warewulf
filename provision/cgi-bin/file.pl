@@ -38,11 +38,11 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 if (! $file) {
                     next;
                 }
-                my $objSet = $db->get_objects("file", "id", $file);
+                my $objSet = $db->get_objects("file", "_id", $file);
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
                         printf("%s %s %s %s %s %s\n",
-                            $obj->get("id") || "NULL",
+                            $obj->get("_id") || "NULL",
                             $obj->get("name") || "NULL",
                             $obj->get("uid") || "0",
                             $obj->get("gid") || "0",
@@ -54,11 +54,11 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         } elsif ($fileid =~ /^([0-9]+)$/ ) {
             $fileid = $1;
             my $output;
-            my $fileObj = $db->get_objects("file", "id", $fileid)->get_object(0);;
+            my $fileObj = $db->get_objects("file", "_id", $fileid)->get_object(0);;
             my %nhash = $node->get_hash();
 
             if ($fileObj) {
-                my $binstore = $db->binstore($fileObj->get("id"));
+                my $binstore = $db->binstore($fileObj->get("_id"));
                 while(my $buffer = $binstore->get_chunk()) {
                     $output .= $buffer;
                 }

@@ -55,6 +55,9 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     file [command] [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     This is the base file interface for dealing with Warewulf. It allows you to\n";
     $h .= "     import, export, create and modify files within the Warewulf datastore. Some\n";
@@ -70,6 +73,7 @@ help()
     $h .= "     show            Show the content of a file\n";
     $h .= "     print           Print a list of the files Warewulf knows of\n";
     $h .= "     delete          Remove a node configuration from the data store\n";
+    $h .= "     help            Show usage information\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
@@ -171,20 +175,17 @@ exec()
         'gid=s'         => \$opt_gid,
     );
 
-    if (scalar(@ARGV) > 0) {
-        $command = shift(@ARGV);
-        &dprint("Running command: $command\n");
-    } else {
-        &dprint("Returning with nothing to do\n");
-        return();
-    }
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
         return();
     }
 
-    if ($command eq "import") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif ($command eq "import") {
         foreach my $tmp_path (@ARGV) {
             if ($tmp_path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
                 my $path = $1;
@@ -210,7 +211,7 @@ exec()
                         }
                         my $obj = $objList[0];
                         $obj->set("checksum", $digest);
-                        my $binstore = $db->binstore($obj->get("id"));
+                        my $binstore = $db->binstore($obj->get("_id"));
                         my $size;
                         my $buffer;
                         open(FILE, $path);
@@ -235,7 +236,7 @@ exec()
                         $db->persist($obj);
                         $obj->set($opt_lookup, $name);
                         $obj->set("checksum", digest_file_hex($path, "MD5"));
-                        my $binstore = $db->binstore($obj->get("id"));
+                        my $binstore = $db->binstore($obj->get("_id"));
                         my $size;
                         my $buffer;
                         &dprint("Persisting new File Object\n");
@@ -284,7 +285,7 @@ exec()
             push(@objList, $obj);
         }
         my $obj = $objList[0];
-        my $binstore = $db->binstore($obj->get("id"));
+        my $binstore = $db->binstore($obj->get("_id"));
         my $rand = &rand_string("16");
         my $tmpfile = "/tmp/wwsh.$rand";
         my $digest1;
@@ -299,7 +300,7 @@ exec()
             if (system("$1 $tmpfile") == 0) {
                 $digest2 = digest_file_hex($tmpfile, "MD5");
                 if ($digest1 ne $digest2) {
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
                     open(FILE, $tmpfile);
@@ -418,7 +419,7 @@ exec()
         if (-d $path) {
             foreach my $obj (@objList) {
                 my $file = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
 
                 if (-f "$path/$file" and $term->interactive()) {
                     print("Are you sure you wish to overwrite $path/$file?\n\n");
@@ -447,7 +448,7 @@ exec()
             }
             if (scalar(@objList) == 1) {
                 my $obj = $objList[0];
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
                 open(FILE, "> $path");
                 while(my $buffer = $binstore->get_chunk()) {
                     print FILE $buffer;
@@ -459,7 +460,7 @@ exec()
             }
         } else {
             my $obj = $objList[0];
-            my $binstore = $db->binstore($obj->get("id"));
+            my $binstore = $db->binstore($obj->get("_id"));
             mkpath(dirname($path));
             open(FILE, "> $path");
             while(my $buffer = $binstore->get_chunk()) {
@@ -479,7 +480,7 @@ exec()
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         foreach my $obj (@objList) {
-            my $binstore = $db->binstore($obj->get("id"));
+            my $binstore = $db->binstore($obj->get("_id"));
             my $name = $obj->get("name");
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
             while(my $buffer = $binstore->get_chunk()) {
@@ -517,6 +518,12 @@ exec()
             &nprint("Deleted $return_count objects\n");
         }
 
+    } elsif ($command eq "help") {
+        print $self->help();
+
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
 

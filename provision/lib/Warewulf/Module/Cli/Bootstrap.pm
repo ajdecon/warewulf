@@ -55,16 +55,24 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     bootstrap [command] [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     This interface allows you to manage your bootstrap images within the Warewulf\n";
     $h .= "     data store.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     import          Import a bootstrap image into Warewulf\n";
-    $h .= "     export          Export a bootstrap image to the local file system\n";
-    $h .= "     delete          Delete a bootstrap image from Warewulf\n";
-    $h .= "     list            Show all of the currently imported bootstrap images\n";
+    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
+    $h .= "     the action, the order of the options and the targets is not specific.\n";
+    $h .= "\n";
+    $h .= "         import          Import a bootstrap image into Warewulf\n";
+    $h .= "         export          Export a bootstrap image to the local file system\n";
+    $h .= "         delete          Delete a bootstrap image from Warewulf\n";
+    $h .= "         list            Show all of the currently imported bootstrap images\n";
+    $h .= "         rebuild         Rebuild the tftp bootable image\n";
+    $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
@@ -154,20 +162,17 @@ exec()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (scalar(@ARGV) > 0) {
-        $command = shift(@ARGV);
-        &dprint("Running command: $command\n");
-    } else {
-        &dprint("Returning with nothing to do\n");
-        return();
-    }
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
         return();
     }
 
-    if ($command eq "import") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif ($command eq "import") {
         my $import = shift(@ARGV);
         if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
             my $path = $1;
@@ -193,7 +198,7 @@ exec()
                     }
                     my $obj = $objList[0];
                     $obj->set("checksum", $digest);
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
                     open(SCRIPT, $path);
@@ -216,7 +221,7 @@ exec()
                     $db->persist($obj);
                     $obj->set("name", $name);
                     $obj->set("checksum", digest_file_hex($path, "MD5"));
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
                     &dprint("Persisting new Bootstrap Object\n");
@@ -261,7 +266,7 @@ exec()
         if (-d $opt_export) {
             foreach my $obj (@objList) {
                 my $name = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
 
                 if ($name !~ /\.wwbs$/) {
                     $name .= ".wwbs";
@@ -294,7 +299,7 @@ exec()
                     }
                 }
                 my $obj = $objList[0];
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
                 open(SCRIPT, "> $opt_export");
                 while(my $buffer = $binstore->get_chunk()) {
                     print SCRIPT $buffer;
@@ -306,7 +311,7 @@ exec()
             }
         } else {
             my $obj = $objList[0];
-            my $binstore = $db->binstore($obj->get("id"));
+            my $binstore = $db->binstore($obj->get("_id"));
             my $dirname = dirname($opt_export);
             open(SCRIPT, "> $opt_export");
             while(my $buffer = $binstore->get_chunk()) {
@@ -316,11 +321,15 @@ exec()
             &nprint("Exported: $opt_export\n");
         }
 
+    } elsif ($command eq "rebuild") {
+        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+        foreach my $obj ($objectSet->get_list()) {
+            $bootstrapObj->build_bootstrap($obj);
+        }
     } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
         &nprint("BOOTSTRAP NAME                      SIZE (M)\n");
-        foreach my $obj (@objList) {
+        foreach my $obj ($objectSet->get_list()) {
             printf("%-35s %-8.1f\n",
                 $obj->get("name") || "UNDEF",
                 $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
@@ -342,6 +351,12 @@ exec()
 
             &nprint("Deleted $return_count objects\n");
         }
+    } elsif ($command eq "help") {
+        print $self->help();
+
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
 

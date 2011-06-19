@@ -76,19 +76,19 @@ build_bootstrap()
 
     if ($bootstrapObj) {
         my $bootstrap_name = $bootstrapObj->get("name");
+        my $bootstrap_id = $bootstrapObj->get("_id");
 
-        if ($bootstrap_name =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+        if ($bootstrap_id =~ /^([0-9]+)$/) {
             &nprint("Building bootstrap: $bootstrap_name\n");
-            my $name = $1;
+            my $id = $1;
             my $ds = Warewulf::DataStore->new();
             my $config = Warewulf::Config->new("bootstrap.conf");
             my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
             my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
             my $randstring = &rand_string("12");
             my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-            my $binstore = $ds->binstore($bootstrapObj->get("id"));
-            my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$name/";
-#            my $bootstrapdir = "/tmp/warewulf/bootstrap/$name/";
+            my $binstore = $ds->binstore($bootstrapObj->get("_id"));
+            my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$bootstrap_id/";
             my $initramfs = "$initramfsdir/initfs";
 
             if (-f "$bootstrapdir/cookie") {
@@ -140,7 +140,7 @@ build_bootstrap()
             open(COOKIE, "> $bootstrapdir/cookie");
             print COOKIE $bootstrapObj->get("checksum");
             close COOKIE;
-            &nprint("Bootstrap image '$name' is ready\n");
+            &nprint("Bootstrap image '$bootstrap_name' is ready\n");
 
         }
     }

@@ -54,17 +54,27 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     vnfs [command] [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     This interface allows you to manage your VNFS images within the Warewulf\n";
     $h .= "     data store.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     import          Import a VNFS image into Warewulf\n";
-    $h .= "     export          Export a VNFS image to the local file system\n";
-    $h .= "     delete          Delete a VNFS image from Warewulf\n";
-    $h .= "     list            Show all of the currently imported VNFS images\n";
+    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
+    $h .= "     the action, the order of the options and the targets is not specific.\n";
     $h .= "\n";
+    $h .= "         import          Import a VNFS image into Warewulf\n";
+    $h .= "         export          Export a VNFS image to the local file system\n";
+    $h .= "         delete          Delete a VNFS image from Warewulf\n";
+    $h .= "         list            Show all of the currently imported VNFS images\n";
+    $h .= "         help            Show usage information\n";
+    $h .= "\n";
+    $h .= "TARGETS:\n";
+    $h .= "\n";
+    $h .= "     The target is the specification for the VNFS you wish to operate on.\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
@@ -151,20 +161,17 @@ exec()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (scalar(@ARGV) > 0) {
-        $command = shift(@ARGV);
-        &dprint("Running command: $command\n");
-    } else {
-        &dprint("Returning with nothing to do\n");
-        return();
-    }
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
         return();
     }
 
-    if ($command eq "import") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif ($command eq "import") {
         my $import = shift(@ARGV);
         if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
             my $path = $1;
@@ -189,7 +196,7 @@ exec()
                     }
                     my $obj = $objList[0];
                     $obj->set("checksum", $digest);
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
                     open(SCRIPT, $path);
@@ -213,7 +220,7 @@ exec()
                     $db->persist($obj);
                     $obj->set("name", $vnfsname);
                     $obj->set("checksum", digest_file_hex($path, "MD5"));
-                    my $binstore = $db->binstore($obj->get("id"));
+                    my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
                     &dprint("Persisting new Vnfs Object\n");
@@ -257,7 +264,7 @@ exec()
         if (-d $opt_export) {
             foreach my $obj (@objList) {
                 my $name = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
 
                 if ($name !~ /\.vnfs$/) {
                     $name .= ".vnfs";
@@ -290,7 +297,7 @@ exec()
                     }
                 }
                 my $obj = $objList[0];
-                my $binstore = $db->binstore($obj->get("id"));
+                my $binstore = $db->binstore($obj->get("_id"));
                 open(SCRIPT, "> $opt_export");
                 while(my $buffer = $binstore->get_chunk()) {
                     print SCRIPT $buffer;
@@ -302,7 +309,7 @@ exec()
             }
         } else {
             my $obj = $objList[0];
-            my $binstore = $db->binstore($obj->get("id"));
+            my $binstore = $db->binstore($obj->get("_id"));
             my $dirname = dirname($opt_export);
             open(SCRIPT, "> $opt_export");
             while(my $buffer = $binstore->get_chunk()) {
@@ -338,6 +345,12 @@ exec()
 
             &nprint("Deleted $return_count objects\n");
         }
+    } elsif ($command eq "help") {
+        print $self->help();
+
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
 

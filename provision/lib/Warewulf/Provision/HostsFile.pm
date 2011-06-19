@@ -197,7 +197,7 @@ update_datastore()
         $fileobj->set("name", $name);
     }
 
-    my $binstore = $datastore->binstore($fileobj->get("id"));
+    my $binstore = $datastore->binstore($fileobj->get("_id"));
 
     $fileobj->set("checksum", md5_hex($hosts));
     $fileobj->set("path", "/etc/hosts");
