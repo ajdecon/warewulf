@@ -71,9 +71,8 @@ help()
     $h .= "         export          Export a bootstrap image to the local file system\n";
     $h .= "         delete          Delete a bootstrap image from Warewulf\n";
     $h .= "         list            Show all of the currently imported bootstrap images\n";
-    $h .= "         rebuild         Rebuild the tftp bootable image\n";
+    $h .= "         (re)build       Build (or rebuild) the tftp bootable image on this host\n";
     $h .= "         help            Show usage information\n";
-    $h .= "\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
@@ -321,7 +320,7 @@ exec()
             &nprint("Exported: $opt_export\n");
         }
 
-    } elsif ($command eq "rebuild") {
+    } elsif ($command eq "rebuild" or $command eq "build") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         foreach my $obj ($objectSet->get_list()) {
             $bootstrapObj->build_bootstrap($obj);
