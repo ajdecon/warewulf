@@ -387,6 +387,38 @@ exec()
         my $persist_count = 0;
 
         if ($opt_ipaddr or $opt_hwaddr or $opt_netmask or $opt_fqdn or $opt_devremove) {
+            if ($opt_ipaddr) {
+                if ($opt_ipaddr =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    $opt_ipaddr = $1;
+                } else {
+                    &eprint("Bad format for IP address!\n");
+                    $opt_ipaddr = undef;
+                }
+            }
+            if ($opt_netmask) {
+                if ($opt_netmask =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    $opt_netmask = $1;
+                } else {
+                    &eprint("Bad format for netmask address!\n");
+                    $opt_netmask = undef;
+                }
+            }
+            if ($opt_fqdn) {
+                if ($opt_fqdn =~ /^([a-zA-Z0-9\-_\.]+)$/) {
+                    $opt_fqdn = $1;
+                } else {
+                    &eprint("Illegal characters in FQDN format!\n");
+                    $opt_fqdn = undef;
+                }
+            }
+            if ($opt_hwaddr) {
+                if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
+                    $opt_hwaddr = $1;
+                } else {
+                    &eprint("Bad format for HW address!\n");
+                    $opt_hwaddr = undef;
+                }
+            }
             foreach my $obj ($objSet->get_list()) {
                 my $name = $obj->get("name") || "UNDEF";
                 my $netobj;
