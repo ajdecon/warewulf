@@ -69,6 +69,68 @@ init()
     return($self);
 }
 
+=item delete_bootstrap()
+
+Remove a bootable bootstrap image from the local file system.
+
+=cut
+sub
+delete_bootstrap()
+{
+    my ($self, $bootstrapObj) = @_;
+
+    if ($bootstrapObj) {
+        my $bootstrap_name = $bootstrapObj->get("name");
+        my $bootstrap_id = $bootstrapObj->get("_id");
+
+        if ($bootstrap_id =~ /^([0-9]+)$/) {
+            my $id = $1;
+            my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
+            my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$bootstrap_id/";
+
+            &nprint("Deleting local bootable bootstrap files: $bootstrap_name\n");
+
+            if (-f "$bootstrapdir/initfs") {
+                if (unlink("$bootstrapdir/initfs")) {
+                    &iprint("Removed file: $bootstrapdir/initfs\n");
+                } else {
+                    &eprint("Could not remove file: $bootstrapdir/initfs\n");
+                }
+            }
+            if (-f "$bootstrapdir/kernel") {
+                if (unlink("$bootstrapdir/kernel")) {
+                    &iprint("Removed file: $bootstrapdir/kernel\n");
+                } else {
+                    &eprint("Could not remove file: $bootstrapdir/kernel\n");
+                }
+            }
+            if (-f "$bootstrapdir/cookie") {
+                if (unlink("$bootstrapdir/cookie")) {
+                    &iprint("Removed file: $bootstrapdir/cookie\n");
+                } else {
+                    &eprint("Could not remove file: $bootstrapdir/cookie\n");
+                }
+            }
+            if (-d "$bootstrapdir") {
+                if (unlink("$bootstrapdir")) {
+                    &iprint("Removed directory: $bootstrapdir\n");
+                } else {
+                    &eprint("Could not remove directory: $bootstrapdir\n");
+                }
+            }
+            
+        }
+    }
+}
+
+=item build_bootstrap()
+
+Write the bootstrap image to the TFTP directory. This does more then just pull
+it out of the data store and dump it to a file. It also merges it with the
+appropriate Warewulf initrd userspace components for the provision master in
+question.
+
+=cut
 sub
 build_bootstrap()
 {
@@ -79,7 +141,6 @@ build_bootstrap()
         my $bootstrap_id = $bootstrapObj->get("_id");
 
         if ($bootstrap_id =~ /^([0-9]+)$/) {
-            &nprint("Building bootstrap: $bootstrap_name\n");
             my $id = $1;
             my $ds = Warewulf::DataStore->new();
             my $config = Warewulf::Config->new("bootstrap.conf");
@@ -90,6 +151,8 @@ build_bootstrap()
             my $binstore = $ds->binstore($bootstrapObj->get("_id"));
             my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$bootstrap_id/";
             my $initramfs = "$initramfsdir/initfs";
+
+            &nprint("Building bootstrap: $bootstrap_name\n");
 
             if (-f "$bootstrapdir/cookie") {
                 open(COOKIE, "$bootstrapdir/cookie");
