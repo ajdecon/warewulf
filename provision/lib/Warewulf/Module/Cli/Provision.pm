@@ -68,8 +68,8 @@ help()
     $h .= "     the action, the order of the options and the targets is not specific.\n";
     $h .= "\n";
     $h .= "         set             Modify an existing node configuration\n";
-    $h .= "         print           Print the node(s) configuration\n";
-    $h .= "         status          Print the node(s) status\n";
+    $h .= "         list            List a summary of the node(s) configuration\n";
+    $h .= "         status          Print the node(s) provisioning status\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -96,7 +96,7 @@ help()
     $h .= "     Warewulf> provision set n00[00-99] --fileadd=ifcfg-eth0\n";
     $h .= "     Warewulf> provision set -l cluster mycluster --vnfs=rhel-6.0\n";
     $h .= "     Warewulf> provision set -l group mygroup hello group123\n";
-    $h .= "     Warewulf> provision print n00[00-99]\n";
+    $h .= "     Warewulf> provision list n00[00-99]\n";
     $h .= "\n";
 
     return($h);
@@ -142,7 +142,7 @@ complete()
     if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set" or $ARGV[1] eq "status")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "set", "status");
+        @ret = ("list", "set", "status");
     }
 
     @ARGV = ();
@@ -415,8 +415,9 @@ exec()
             );
         }
 
-    } elsif ($command eq "print") {
+    } elsif ($command eq "list") {
         &nprintf("%-15s %-28s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
+        &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
             my @files;
