@@ -565,7 +565,6 @@ exec()
                 } else {
                     &dprint("Set: setting $key to $string\n");
                     foreach my $obj ($objSet->get_list()) {
-                        #$obj->set($key, &quotewords(',', 0, join("=", @vals)));
                         $obj->set($key, &quotewords(',', 0, $string));
                     }
                     push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", &quotewords(',', 0, $string))));

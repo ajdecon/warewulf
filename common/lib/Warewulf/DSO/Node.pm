@@ -74,7 +74,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("_ID", "_HWADDR", "NAME", "CLUSTER", "GROUPS", "MASTER");
+    return("_ID", "_HWADDR", "NAME", "CLUSTER", "GROUPS", "MASTER", "FILEIDS");
 }
 
 
