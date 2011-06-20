@@ -71,7 +71,7 @@ help()
     $h .= "     edit            Edit the file with 'vi' in the datastore directly\n";
     $h .= "     set             Set file attributes/metadata\n";
     $h .= "     show            Show the content of a file\n";
-    $h .= "     print           Print a list of the files Warewulf knows of\n";
+    $h .= "     list            List a summary of imported files\n";
     $h .= "     delete          Remove a node configuration from the data store\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
@@ -91,7 +91,7 @@ help()
     $h .= "     Warewulf> file import /path/to/file/to/import/with/given-name\n";
     $h .= "     Warewulf> file edit given-name\n";
     $h .= "     Warewulf> file set hosts-file --path=/etc/hosts --mode=0644 --uid=0\n";
-    $h .= "     Warewulf> file print\n";
+    $h .= "     Warewulf> file list\n";
     $h .= "     Warewulf> file delete name123 given-name\n";
     $h .= "\n";
 
@@ -181,6 +181,33 @@ exec()
         &eprint("Database object not avaialble!\n");
         return();
     }
+
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+        return();
+    } elsif ($command eq "new") {
+        $objSet = Warewulf::ObjectSet->new();
+        foreach my $string (&expand_bracket(@ARGV)) {
+            my $obj;
+            $obj = Warewulf::DSOFactory->new($entity_type);
+
+            $obj->set($opt_lookup, $string);
+
+            $objSet->add($obj);
+        }
+        $db->persist($objSet);
+    } else {
+        $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+    }
+
+    if ($objSet) {
+        $object_count = $objSet->count();
+    } else {
+        &nprint("No nodes found\n");
+        return();
+    }
+
 
     if (! $command) {
         &eprint("You must provide a command!\n\n");
@@ -489,16 +516,21 @@ exec()
         }
         close(PROG);
 
-    } elsif ($command eq "print" or $command eq "delete") {
+    } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
         &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
+        &nprint("================================================================================\n");
         foreach my $obj (@objList) {
-            my @nodeObjects = $db->get_objects("node", "files", $obj->get("name"))->get_list();
+            my $nodeSet = $db->get_objects("node", "fileids", $obj->get("_id"));
+            my $node_count = 0;
+            if ($nodeSet) {
+                $node_count = $nodeSet->count();
+            }
             printf("%-18s %-14s %4s %9.1f   %s\n",
                 $obj->get("name") || "UNDEF",
                 $obj->get("format") || "unknwon",
-                scalar(@nodeObjects),
+                $node_count,
                 $obj->get("size") ? $obj->get("size")/1024 : "0",
                 $obj->get("path") || "");
         }
