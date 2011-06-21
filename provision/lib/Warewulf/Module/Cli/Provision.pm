@@ -232,7 +232,7 @@ exec()
         }
 
         if (@opt_master) {
-            if (exists($master[0]) and $master[0] eq "UNDEF") {
+            if (exists($opt_master[0]) and $opt_master[0] eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->del("master");
@@ -415,8 +415,54 @@ exec()
             );
         }
 
+    } elsif ($command eq "print") {
+        foreach my $o ($objSet->get_list()) {
+            my @files;
+            my $vnfs = "UNDEF";
+            my $bootstrap = "UNDEF";
+            my $name = $o->get("NAME") || "UNDEF";
+            if ($o->get("fileids")) {
+                $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
+            }
+            if ($fileObjSet) {
+                foreach my $f ($fileObjSet->get_list()) {
+                    push(@files, $f->get("name"));
+                }
+            } else {
+                push(@files, "UNDEF");
+            }
+            if (my $vnfsid = $o->get("vnfsid")) {
+                my $vnfsObj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
+                if ($vnfsObj) {
+                    $vnfs = $vnfsObj->get("name");
+                }
+            }
+            if (my $bootstrapid = $o->get("bootstrapid")) {
+                my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
+                if ($bootstrapObj) {
+                    $bootstrap = $bootstrapObj->get("name");
+                }
+            }
+            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+            printf("%12s: %-10s = %s\n", $name, "BOOTSTRAP", $bootstrap);
+            printf("%12s: %-10s = %s\n", $name, "VNFS", $vnfs);
+            printf("%12s: %-10s = %s\n", $name, "FILES", join(",", @files));
+            if ($o->get("master")) {
+                printf("%12s: %-10s = %s\n", $name, "MASTER", join(",", $o->get("master")));
+            }
+            if ($o->get("filesystems")) {
+                printf("%12s: %-10s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
+            }
+            if ($o->get("diskformat")) {
+                printf("%12s: %-10s = %s\n", $name, "DISKFORMAT", join(",", $o->get("diskformat")));
+            }
+            if ($o->get("diskpartition")) {
+                printf("%12s: %-10s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
+            }
+        }
+
     } elsif ($command eq "list") {
-        &nprintf("%-15s %-28s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
+        &nprintf("%-15s %-20s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
         &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
@@ -445,10 +491,10 @@ exec()
                     $bootstrap = $bootstrapObj->get("name");
                 }
             }
-            printf("%-15s %-28s %-15s %-15s\n",
+            printf("%-15s %-20s %-15s %-15s\n",
                 $o->get("name") || "UNDEF",
-                $bootstrap,
-                $vnfs,
+                &ellipsis(20, $bootstrap),
+                &ellipsis(15, $vnfs),
                 join(",", @files)
             );
         }
