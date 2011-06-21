@@ -165,21 +165,31 @@ uid_test()
 }
 
 
-=item ellipsis($length, $string)
+=item ellipsis($length, $string, $location)
 
 Trim a string to the desired length adding '...' to show that the original
-string is longer then allowed.
+string is longer then allowed. Location will define where to place the
+'...' within the string. Options are start, middle, end (default: middle).
 
 =cut
 sub ellipsis($$)
 {
-    my ($length, $text) = @_;
+    my ($length, $text, $location) = @_;
     my $actual_length = length($text);
     my $ret;
 
     if ($actual_length > $length) {
-        $ret = substr($text, 0, $length-3);
-        $ret .= "...";
+        if (! $location or $location eq "middle") {
+            my $leader_length = sprintf("%d", ($length-3)/2);
+            my $tail_length = $length - 3 - $leader_length;
+            $ret = substr($text, 0, $leader_length) ."...". substr($text, -$tail_length);
+        } elsif ($location eq "end") {
+            $ret = substr($text, 0, $length-3);
+            $ret .= "...";
+        } elsif ($location eq "start") {
+            $ret = "...";
+            $ret .= substr($text, -$length);
+        }
     } else {
         $ret = $text;
     }
