@@ -113,6 +113,26 @@ init()
 }
 
 
+=item restart()
+
+Restart the DHCP service
+
+=cut
+sub
+restart()
+{
+
+    my $system = Warewulf::SystemFactory->new();
+
+    if (!$system->chkconfig("dhcpd", "on")) {
+        &eprint($system->output() ."\n");
+    }
+    if (! $system->service("dhcpd", "restart")) {
+        &eprint($system->output() ."\n");
+    }
+
+}
+
 =item persist()
 
 This will update the DHCP file.

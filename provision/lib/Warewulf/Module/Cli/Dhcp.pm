@@ -44,7 +44,7 @@ summary()
 {
     my $output;
 
-    $output .= "Configure/Reconfigure DHCP services";
+    $output .= "Manage DHCP services and configuration";
 
     return($output);
 }
@@ -55,24 +55,41 @@ sub
 help()
 {
     my ($self, $keyword) = @_;
-    my $output;
+    my $h;
 
-    $output .= "SUMMARY:\n";
-    $output .= "        The DHCP command configures/reconfigures the DHCP services.\n";
+    $h .= "USAGE:\n";
+    $h .= "     node [command] [options] [targets]\n";
+    $h .= "\n";
+    $h .= "SUMMARY:\n";
+    $h .= "        The DHCP command configures/reconfigures the DHCP services.\n";
+    $h .= "COMMANDS:\n";
+    $h .= "\n";
+    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
+    $h .= "     the action, the order of the options and the targets is not specific.\n";
+    $h .= "\n";
+    $h .= "         update          Update the DHCP configuration, and restart the service\n";
+    $h .= "         restart         Restart the DHCP service\n";
+    $h .= "\n";
 
-    return($output);
+    return($h);
 }
 
 
 sub
 exec()
 {
-    my ($self, @args) = @_;
-
-    &nprint("Rebuilding the DHCP configuration\n");
+    my ($self, $command, @args) = @_;
     my $dhcp = Warewulf::Provision::DhcpFactory->new();
-    $dhcp->persist();
-    &nprint("Done.\n");
+
+    if ($command eq "update") {
+        &nprint("Rebuilding the DHCP configuration\n");
+        $dhcp->persist();
+        &nprint("Done.\n");
+    } elsif ($command eq "restart") {
+        &nprint("Restarting the DHCP service\n");
+        $dhcp->restart();
+        &nprint("Done.\n");
+    }
 
 }
 
