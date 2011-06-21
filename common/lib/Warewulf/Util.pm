@@ -24,6 +24,7 @@ our @EXPORT = (
     '&progname',
     '&expand_bracket',
     '&uid_test',
+    '&ellipsis'
 );
 
 =head1 NAME
@@ -161,6 +162,29 @@ uid_test()
     }
 
     return;
+}
+
+
+=item ellipsis($length, $string)
+
+Trim a string to the desired length adding '...' to show that the original
+string is longer then allowed.
+
+=cut
+sub ellipsis($$)
+{
+    my ($length, $text) = @_;
+    my $actual_length = length($text);
+    my $ret;
+
+    if ($actual_length > $length) {
+        $ret = substr($text, 0, $length-3);
+        $ret .= "...";
+    } else {
+        $ret = $text;
+    }
+
+    return($ret);
 }
 
 
