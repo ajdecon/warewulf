@@ -162,7 +162,7 @@ generate()
                     }
 
                 } else {
-                    &eprint("Node '$nodename' has an invalid netdevs entry!\n");
+                    &dprint("Node '$nodename' has an invalid netdevs entry!\n");
                 }
             }
         }

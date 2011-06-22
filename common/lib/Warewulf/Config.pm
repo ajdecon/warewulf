@@ -102,7 +102,7 @@ parse()
 
     foreach my $file (@args) {
         if (exists($files{"$file"})) {
-            &iprint("Using cached configuration file: $file\n");
+            &dprint("Using cached configuration file: $file\n");
         } else {
             foreach my $path (@basepaths) {
                 &dprint("Searching for file: $path/$file\n");
