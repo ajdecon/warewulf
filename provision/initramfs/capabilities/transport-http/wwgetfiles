@@ -22,7 +22,7 @@ while true; do
                     chmod $mode $NEWROOT/$path
                 else
                     echo "ERROR: Could not download $name"
-                    exit 1
+                    exit 2
                 fi
             done
             rm -f $TMPFILE

@@ -24,4 +24,6 @@ if [ "x$WWPOSTREBOOT" == "xyes" -a -f "/tmp/stateful-root" ]; then
     sleep 1
     sync
     /sbin/reboot -f
+else
+    exit 1
 fi

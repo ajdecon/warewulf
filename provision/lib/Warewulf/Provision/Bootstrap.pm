@@ -152,7 +152,7 @@ build_bootstrap()
             my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$bootstrap_id/";
             my $initramfs = "$initramfsdir/initfs";
 
-            &nprint("Building bootstrap: $bootstrap_name\n");
+            &nprint("Integrating the Warewulf bootstrap: $bootstrap_name\n");
 
             if (-f "$bootstrapdir/cookie") {
                 open(COOKIE, "$bootstrapdir/cookie");

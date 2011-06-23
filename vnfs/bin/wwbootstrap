@@ -23,6 +23,7 @@ $ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
 
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
+my $output = "/tmp/$randstring.wwbs";
 my $opt_debug;
 my $opt_verbose;
 my $opt_help;
@@ -31,6 +32,7 @@ my $opt_file;
 my $opt_config;
 my $kversion;
 my $config;
+my $wwsh_bin;
 
 my $help = "USAGE: $0 [options] kernel_version
     SUMMARY:
@@ -44,13 +46,14 @@ my $help = "USAGE: $0 [options] kernel_version
                         found in \$sysconfigdir/warewulf/bootstrap/) other-
                         wise the default bootstrap.conf is used.
         -f, --file      Write the bootstrap image to a file at the specified
-                        path location (default drops it in the current
-                        directory with the kernel_version.wwbs as name)
+                        path location (default automatically imports the
+                        file into Warewulf instead of writing to disk).
 
     EXAMPLES:
         # wwbootstrap 2.6.32-71.el6.x86_64
         # wwbootstrap --config=testbootstrap 2.6.32-71.el6.x86_64
         # wwbootstrap --root=/path/to/chroot 2.6.32-71.el6.x86_64
+        # wwbootstrap --file=test-bootstrap.wwbs 2.6.32-71.el6.x86_64
 
 ";
 
@@ -102,9 +105,14 @@ if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
 }
 
 
-if (! $opt_file) {
-    $opt_file = $opt_kversion .".wwbs";
+foreach my $dir (split(":", $ENV{"PATH"})) {
+    if ($dir =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+        if (-x "$1/wwsh") {
+            $wwsh_bin = "$1/wwsh";
+        }
+    }
 }
+
 
 
 mkpath("$tmpdir/initramfs");
@@ -237,9 +245,18 @@ if ($config->get("firmware")) {
 
 copy("$opt_root/boot/vmlinuz-$opt_kversion", "$tmpdir/kernel");
 
-&nprint("Building and compressing: $opt_file\n");
-system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $opt_file");
+&nprint("Building and compressing bootstrap\n");
+system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $output");
 system("rm -rf $tmpdir");
+
+if ($opt_file) {
+    rename($output, $opt_file);
+    &nprint("Wrote bootstrap to: $opt_file\n");
+} else {
+    &iprint("Importing bootstrap into Warewulf\n");
+    system("$wwsh_bin bootstrap import $output --name=$opt_kversion");
+    unlink($output);
+}
 
 &nprint("Done.\n");
 

@@ -37,14 +37,14 @@ if [ -z "$WWMASTER" ]; then
         WWMASTER=$DHCP_SERVER
     else
         echo "ERROR: Could not identify master node!"
-        exit 1
+        exit 2
     fi
 fi
 
 
 throttled_sleep() {
     if [ $COUNT -ge $INTERVALS ]; then
-        exit 1
+        exit 2
     fi
     COUNT=`expr $COUNT + 1`
     START=`expr $START + $BACKOFF`

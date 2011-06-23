@@ -54,9 +54,28 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
                     mkdir $NEWROOT/dev/mapper
                     mknod $NEWROOT/dev/mapper/control c 10 58
 
-                    chroot $NEWROOT /sbin/grub-install $WWBOOTLOADER >/dev/null
+                    if chroot $NEWROOT /sbin/grub-install $WWBOOTLOADER >/dev/null; then
+                        exit 0
+                    else
+                        echo "Running grub-install failed!"
+                        exit 255
+                    fi
+                else
+                    echo "Could not find INITRD and/or KERNEL version!"
+                    exit 2
                 fi
+            else
+                echo "GRUB is not installed!"
+                exit 2
             fi
+        else
+            echo "Could not identify kernel version in VNFS!"
+            exit 2
         fi
+    else
+        echo "BOOTLOADER=$BOOTLOADER is invalid!"
+        exit 2
     fi
+else
+    exit 1
 fi

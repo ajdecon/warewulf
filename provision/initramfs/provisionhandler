@@ -24,6 +24,8 @@ if [ -d "/warewulf/provision/" ]; then
             RETVAL=$?
             if [ $RETVAL -eq 0 ]; then
                 wwsuccess
+            elif [ $RETVAL -eq 1 ]; then
+                wwskipped
             elif [ $RETVAL -gt 1 ]; then
                 wwfailure
                 wwlogger "Provision script error: $NAME (RETVAL=$RETVAL)"

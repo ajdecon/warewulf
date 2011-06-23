@@ -22,7 +22,7 @@ case $1 in
     ;;
     *)
         echo "What type of script do you wish to download? ('pre' or 'post)"
-        exit 1
+        exit 2
     ;;
 esac
 

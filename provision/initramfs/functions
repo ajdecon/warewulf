@@ -115,6 +115,11 @@ wwdone() {
     msg_red "DONE\n"
 }
 
+wwskipped() {
+    echo -en "\\033[73G"
+    msg_gray "SKIPPED\n"
+}
+
 wwfailure() {
     echo -en "\\033[75G"
     msg_red "ERROR\n"

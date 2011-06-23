@@ -265,9 +265,9 @@ exec()
         &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             printf("%-19s %-19s %-19s %-19s\n",
-                $o->get("name") || "UNDEF",
-                $o->get("cluster") || "UNDEF",
-                join(",", $o->get("groups")) || "UNDEF",
+                &ellipsis(19, ($o->get("name") || "UNDEF"), "end"),
+                &ellipsis(19, ($o->get("cluster") || "UNDEF")),
+                &ellipsis(19, (join(",", $o->get("groups")) || "UNDEF")),
                 join(",", $o->get("_hwaddr")) || "UNDEF"
             );
         }
