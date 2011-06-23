@@ -87,7 +87,11 @@ for DEV in `echo $WWDISKPARTITION | sed 's/,/ /g'` ; do
                             case $WWFS_TYPE in
                                 swap)
 #                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nt\n$PARTNUM\n82\nw\n"
-                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                    if [ $PARTNUM -eq 1 ]; then
+                                        echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$SIZE\nt\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                    else
+                                        echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$SIZE\nt\n$PARTNUM\n82\nw\n" | /sbin/fdisk /dev/$DISK > /dev/null || exit 255
+                                    fi
                                 ;;
                                 *)
 #                                    echo -ne "n\np\n$PARTNUM\n$WWFS_START\n$WWFS_SIZE\nw\n"
