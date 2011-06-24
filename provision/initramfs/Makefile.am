@@ -51,7 +51,6 @@ rootfs: busybox
 	install -m 755 $(srcdir)/functions rootfs/etc/functions
 	install -m 755 $(srcdir)/dhcp-script rootfs/sbin/
 	install -m 755 $(srcdir)/detect rootfs/sbin/
-	install -m 755 $(srcdir)/hwaddr rootfs/sbin/
 	install -m 755 $(srcdir)/transporthandler rootfs/sbin/
 	install -m 755 $(srcdir)/provisionhandler rootfs/sbin/
 	ln -s transporthandler rootfs/sbin/wwgetvnfs
@@ -77,5 +76,5 @@ clean-local:
 
 
 
-EXTRA_DIST = busybox.config init devs.cpio functions dhcp-script detect hwaddr transporthandler provisionhandler
+EXTRA_DIST = busybox.config init devs.cpio functions dhcp-script detect transporthandler provisionhandler
 

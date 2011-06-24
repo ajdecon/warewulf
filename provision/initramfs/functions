@@ -160,7 +160,7 @@ wwreboot() {
     echo "System will reboot automatically when you close the shell."
     echo
     rm /reboot
-    /bin/sh
+    setsid cttyhack sh
     wwlogger "Node rebooting"
     /sbin/reboot -n -f
 }

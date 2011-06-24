@@ -102,8 +102,6 @@ ifup() {
     return 255
 }
 
-> /tmp/wwdev
-
 if [ -n "$WWDEV" ]; then
     for i in $WWDEV; do
         if ifup $i; then
@@ -129,6 +127,25 @@ if [ $WWDEBUG -ge 3 ]; then
     echo
 fi
 
+if [ ! -f /tmp/wwdev ]; then
+    echo
+    echo "ERROR: Network hardware was not recognized!"
+    echo
+    wwreboot
+fi
+
+NETDEV=`cat /tmp/wwdev`
+msg_white "Probing for HW Address: "
+if [ -f "/sys/class/net/$NETDEV/address" ]; then
+    HWADDR=`cat /sys/class/net/$NETDEV/address`
+    msg_gray "($HWADDR)"
+    wwsuccess
+else
+    wwfailure
+    wwreboot
+fi
+export HWADDR
+
 
 for i in /etc/warewulf/init/*; do
     if [ -x "$i" -a -f "$i" ]; then
@@ -137,76 +154,60 @@ for i in /etc/warewulf/init/*; do
 done
 
 
-msg_white "Probing for HW Address: "
-HWADDR=`/sbin/hwaddr`
-export HWADDR
-if [ -n "$HWADDR" ]; then
-    msg_gray "($HWADDR)"
+msg_white "Getting base node configuration: "
+
+if wwgetnodeconfig > /tmp/nodeconfig; then
+    . /tmp/nodeconfig
+    if [ -n "$WWNAME" -a -n "$WWCLUSTER" ]; then
+        msg_gray "(I am: $WWNAME.$WWCLUSTER)"
+        hostname $WWNAME.$WWCLUSTER
+    elif [ -n "$WWNAME" ]; then
+        msg_gray "(I am: $WWNAME)"
+        hostname $WWNAME
+    fi
     wwsuccess
 else
     wwfailure
     wwreboot
 fi
 
-while true; do
-    msg_white "Getting base node configuration: "
-
-    if wwgetnodeconfig > /tmp/nodeconfig; then
-        . /tmp/nodeconfig
-        if [ -n "$WWNAME" -a -n "$WWCLUSTER" ]; then
-            msg_gray "(I am: $WWNAME.$WWCLUSTER)"
-            hostname $WWNAME.$WWCLUSTER
-        elif [ -n "$WWNAME" ]; then
-            msg_gray "(I am: $WWNAME)"
-            hostname $WWNAME
-        fi
-        wwsuccess
-    else
-        wwfailure
-        wwreboot
-    fi
-
-    if [ -n "$WWPRESHELL" ]; then
-        wwlogger "PRESHELL defined, waiting for local shell to exit"
-        echo "This node is configured to run a shell before the provision process"
-        echo "due to the 'preshell' Warewulf node configuration... So be it!"
-        echo
-        wwstatus "PRESHELL"
-        setsid cttyhack sh
-    fi
-
-    wwstatus "BOOTSTRAP"
-    wwlogger "Starting the provision handler"
-
-    msg_white "Starting the provision handler: \n"
-    provisionhandler
+if [ -n "$WWPRESHELL" ]; then
+    wwlogger "PRESHELL defined, waiting for local shell to exit"
+    echo "This node is configured to run a shell before the provision process"
+    echo "due to the 'preshell' Warewulf node configuration... So be it!"
     echo
+    wwstatus "PRESHELL"
+    setsid cttyhack sh
+fi
 
-    if [ -n "$WWPOSTSHELL" ]; then
-        echo "This node is configured to run a shell after the provision process"
-        echo "due to the 'postshell' Warewulf node configuration... So be it!"
-        echo
-        wwlogger "POSTSHELL defined, waiting for local shell to exit"
-        wwstatus "POSTSHELL"
-        setsid cttyhack sh
-    fi
+wwstatus "BOOTSTRAP"
+wwlogger "Starting the provision handler"
 
-    if [ -x "$NEWROOT/sbin/init" ]; then
-        wwlogger "Called /sbin/init"
-        wwstatus "RUNNING"
-        seq 1 5 | tac | while read i; do
-            echo -ne "\rCalling /sbin/init in $i seconds..."
-            sleep 1
-        done
-        clear
-        exec switch_root $NEWROOT /sbin/init
-    fi
+msg_white "Starting the provision handler: \n"
+provisionhandler
+echo
 
-    wwlogger "Provision process did not complete! Will try again..."
-    wwstatus "ERROR"
-
+if [ -n "$WWPOSTSHELL" ]; then
+    echo "This node is configured to run a shell after the provision process"
+    echo "due to the 'postshell' Warewulf node configuration... So be it!"
     echo
-    echo "-------------------------------------------------------------------------------";
-    msg_gray "Starting provision process again...\n"
-    sleep 3
-done
+    wwlogger "POSTSHELL defined, waiting for local shell to exit"
+    wwstatus "POSTSHELL"
+    setsid cttyhack sh
+fi
+
+if [ -x "$NEWROOT/sbin/init" ]; then
+    wwlogger "Called /sbin/init"
+    wwstatus "RUNNING"
+    seq 1 5 | tac | while read i; do
+        echo -ne "\rCalling /sbin/init in $i seconds..."
+        sleep 1
+    done
+    clear
+    exec switch_root $NEWROOT /sbin/init
+fi
+
+wwlogger "Provision process did not complete! Will try again..."
+wwstatus "ERROR"
+
+wwreboot
