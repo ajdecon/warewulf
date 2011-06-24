@@ -306,9 +306,9 @@ exec()
                         }
                         if (scalar(@scalars) > 0) {
                             if ($h =~ /^_/) {
-                                &iprintf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
+                                &iprintf("%12s: %-16s = %s\n", $name, $h, join(",", sort @scalars));
                             } else {
-                                printf("%12s: %-10s = %s\n", $name, $h, join(",", sort @scalars));
+                                printf("%12s: %-16s = %s\n", $name, $h, join(",", sort @scalars));
                             }
                         }
                     } else {
@@ -322,15 +322,15 @@ exec()
                                 }
                             }
                             if ($h =~ /^_/) {
-                                &iprintf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
+                                &iprintf("%12s: %-16s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
                             } else {
-                                printf("%12s: %-10s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
+                                printf("%12s: %-16s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
                             }
                         } else {
                             if ($h =~ /^_/) {
-                                &iprintf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
+                                &iprintf("%12s: %-16s = %s\n", $name, $h, $hash{$h});
                             } else {
-                                printf("%12s: %-10s = %s\n", $name, $h, $hash{$h});
+                                printf("%12s: %-16s = %s\n", $name, $h, $hash{$h});
                             }
                         }
                     }

@@ -58,10 +58,11 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     node [command] [options] [targets]\n";
+    $h .= "     dhcp [command]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "        The DHCP command configures/reconfigures the DHCP services.\n";
+    $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
     $h .= "     The first argument MUST be the desired action you wish to take and after\n";

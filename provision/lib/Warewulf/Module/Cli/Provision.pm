@@ -444,20 +444,20 @@ exec()
                 }
             }
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-            printf("%12s: %-10s = %s\n", $name, "BOOTSTRAP", $bootstrap);
-            printf("%12s: %-10s = %s\n", $name, "VNFS", $vnfs);
-            printf("%12s: %-10s = %s\n", $name, "FILES", join(",", @files));
+            printf("%12s: %-16s = %s\n", $name, "BOOTSTRAP", $bootstrap);
+            printf("%12s: %-16s = %s\n", $name, "VNFS", $vnfs);
+            printf("%12s: %-16s = %s\n", $name, "FILES", join(",", @files));
             if ($o->get("master")) {
-                printf("%12s: %-10s = %s\n", $name, "MASTER", join(",", $o->get("master")));
+                printf("%12s: %-16s = %s\n", $name, "MASTER", join(",", $o->get("master")));
             }
             if ($o->get("filesystems")) {
-                printf("%12s: %-10s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
+                printf("%12s: %-16s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
             }
             if ($o->get("diskformat")) {
-                printf("%12s: %-10s = %s\n", $name, "DISKFORMAT", join(",", $o->get("diskformat")));
+                printf("%12s: %-16s = %s\n", $name, "DISKFORMAT", join(",", $o->get("diskformat")));
             }
             if ($o->get("diskpartition")) {
-                printf("%12s: %-10s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
+                printf("%12s: %-16s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
             }
         }
 
@@ -469,7 +469,7 @@ exec()
             my @files;
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            my $mater = "UNDEF";
+            my $master = "UNDEF";
             if ($o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
@@ -492,7 +492,9 @@ exec()
                     $bootstrap = $bootstrapObj->get("name");
                 }
             }
-            $master = $o->get("master");
+            if (my @masters = $o->get("master")) {
+                $master = join(",", @masters);
+            }
             printf("%-15s %-15s %-20s %-15s %-15s\n",
                 $o->get("name") || "UNDEF",
                 &ellipsis(15, $master),
