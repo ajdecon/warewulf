@@ -70,6 +70,7 @@ help()
     $h .= "\n";
     $h .= "         update          Update the DHCP configuration, and restart the service\n";
     $h .= "         restart         Restart the DHCP service\n";
+    $h .= "         help            Show usage information\n";
     $h .= "\n";
 
     return($h);
@@ -82,7 +83,10 @@ exec()
     my ($self, $command, @args) = @_;
     my $dhcp = Warewulf::Provision::DhcpFactory->new();
 
-    if ($command eq "update") {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+    } elsif ($command eq "update") {
         &nprint("Rebuilding the DHCP configuration\n");
         $dhcp->persist();
         &nprint("Done.\n");
@@ -90,6 +94,11 @@ exec()
         &nprint("Restarting the DHCP service\n");
         $dhcp->restart();
         &nprint("Done.\n");
+    } elsif ($command eq "help") {
+        print $self->help();
+    } else {
+        &eprint("Unknown command: $command\n\n");
+        print $self->help();
     }
 
 }
