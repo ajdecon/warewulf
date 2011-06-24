@@ -579,11 +579,11 @@ exec()
                     &eprint("Can not manipulate private object key\n");
                 } else {
                     foreach my $val (&quotewords(',', 0, $string)) {
-                        &dprint("Set: adding $key to $val\n");
+                        &dprint("Set: adding $val to $key\n");
                         foreach my $obj ($objSet->get_list()) {
                             $obj->add($key, split(",", $val));
                         }
-                        push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $opt));
+                        push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $val));
                         $persist_count++;
                     }
                 }
@@ -603,7 +603,7 @@ exec()
                                 $obj->del($key, split(",", $val));
                             }
                             $persist_count++;
-                            push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $opt));
+                            push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $val));
                         }
                     } elsif ($key) {
                         &dprint("Set: deleting $key\n");
@@ -619,7 +619,7 @@ exec()
 
         if ($persist_count > 0) {
             if ($command ne "new" and $term->interactive()) {
-                print "Are you sure you want to make the following changes to $persist_count node(s):\n\n";
+                print "Are you sure you want to make the following $persist_count changes to node(s):\n\n";
                 foreach my $change (@changes) {
                     print $change;
                 }
