@@ -12,7 +12,6 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
 use Warewulf::EventHandler;
-use File::Path;
 use Sys::Syslog;
 
 my $q = CGI->new();
@@ -26,12 +25,6 @@ $eh->disable();
 my $hwaddr = $q->param('hwaddr');
 my $log = $q->param('log');
 my $status = $q->param('status');
-
-my $logdir = "/tmp/warewulf_log/provision/";
-
-if (! -f $logdir) {
-    mkpath($logdir);
-}
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
