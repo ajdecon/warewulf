@@ -83,10 +83,6 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
-    $h .= "     -p, --print         Define what fields are printed (':all' prints all)\n";
-    $h .= "     -s, --set           Set an arbitrary key=value(s) pair\n";
-    $h .= "     -a, --add           Add a value to an arbitrary key\n";
-    $h .= "     -d, --del           Delete a value from an arbitrary key, or the entire key\n";
     $h .= "         --groups        Define the list of groups this node should be part of\n";
     $h .= "         --groupadd      Associate a group to this node\n";
     $h .= "         --groupdel      Remove a group association from this node\n";
@@ -175,9 +171,6 @@ exec()
     my $opt_devremove;
     my $opt_cluster;
     my $opt_name;
-    my @opt_set;
-    my @opt_add;
-    my @opt_del;
     my @opt_print;
     my @opt_groups;
     my @opt_groupadd;
@@ -194,10 +187,6 @@ exec()
     Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
-        'p|print=s'     => \@opt_print,
-        's|set=s'       => \@opt_set,
-        'a|add=s'       => \@opt_add,
-        'd|del=s'       => \@opt_del,
         'groups=s'      => \@opt_groups,
         'groupadd=s'    => \@opt_groupadd,
         'groupdel=s'    => \@opt_groupdel,
@@ -272,116 +261,32 @@ exec()
             );
         }
     } elsif ($command eq "print") {
-        if (scalar(@opt_print) > 0) {
-            @opt_print = split(",", join(",", @opt_print));
-        } else {
-            @opt_print = (":all");
-        }
-        if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
-            my $string = sprintf("%-17s " x (scalar @opt_print), map {uc($_);} @opt_print);
-            &nprint($string ."\n");
-            &nprint("=" x length($string) ."\n");
-        }
         foreach my $o ($objSet->get_list()) {
-            if (@opt_print and $opt_print[0] eq ":all") {
-                my %hash = $o->get_hash();
-                my $name = $o->get("name");
-                &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                foreach my $h (keys %hash) {
-                    if(ref($hash{$h}) =~ /^ARRAY/) {
-                        my @scalars;
-                        foreach my $e (@{$hash{$h}}) {
-                            if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                my $type = lc($1);
-                                my @s;
-                                foreach my $l ($e->lookups()) {
-                                    if (my $string = $e->get($l)) {
-                                        push(@s, $l ."=". $string);
-                                    }
-                                }
-                                push(@scalars, $type ."(". join(",", @s) .")");
-                            } else {
-                                push(@scalars, $e);
-                            }
-                        }
-                        if (scalar(@scalars) > 0) {
-                            if ($h =~ /^_/) {
-                                &iprintf("%12s: %-16s = %s\n", $name, $h, join(",", sort @scalars));
-                            } else {
-                                printf("%12s: %-16s = %s\n", $name, $h, join(",", sort @scalars));
-                            }
-                        }
-                    } else {
-                        if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                            my @scalars;
-                            my $type = lc($1);
-                            my @s;
-                            foreach my $l ($e->lookups()) {
-                                if (my $string = $e->get($l)) {
-                                    push(@s, $l ."=". $string);
-                                }
-                            }
-                            if ($h =~ /^_/) {
-                                &iprintf("%12s: %-16s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
-                            } else {
-                                printf("%12s: %-16s = %s\n", $name, $h, $type ."(". join(",", @s) .")");
-                            }
-                        } else {
-                            if ($h =~ /^_/) {
-                                &iprintf("%12s: %-16s = %s\n", $name, $h, $hash{$h});
-                            } else {
-                                printf("%12s: %-16s = %s\n", $name, $h, $hash{$h});
-                            }
-                        }
+            my $name = $o->get("name") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+                $name .= ".$cluster";
+            }
+            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+            printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
+            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "CLUSTER", ($o->get("cluster") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "GROUPS", join(",", $o->get("groups")));
+            foreach my $n ($o->get("netdevs")) {
+                if ( my $device = $n->get("name")) {
+                    printf("%15s: %-16s = %s\n", $name, "HWADDR($device)", $n->get("hwaddr"));
+                    if (my $ipaddr = $n->get("ipaddr")) {
+                        printf("%15s: %-16s = %s\n", $name, "IPADDR($device)", $ipaddr);
+                    }
+                    if (my $netmask = $n->get("netmask")) {
+                        printf("%15s: %-16s = %s\n", $name, "NETMASK($device)", $netmask);
+                    }
+                    if (my $fqdn = $n->get("fqdn")) {
+                        printf("%15s: %-16s = %s\n", $name, "FQDN($device)", $fqdn);
                     }
                 }
-            } else {
-                my @values;
-                foreach my $h (@opt_print) {
-                    if (my $val = $o->get($h)) {
-                        if(ref($val) =~ /^ARRAY/) {
-                            my @scalars;
-                            foreach my $e (@{$val}) {
-                                if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                    my $type = lc($1);
-                                    my @s;
-                                    foreach my $l ($e->lookups()) {
-                                        if (my $string = $e->get($l)) {
-                                            push(@s, $l ."=". $string);
-                                        }
-                                    }
-                                    push(@scalars, $type ."(". join(",", @s) .")");
-                                } else {
-                                    push(@scalars, $e);
-                                }
-                            }
-                            if (scalar(@scalars) > 0) {
-                                push(@values, join(",", sort @scalars));
-                            } else {
-                                push(@values, "UNDEF");
-                            }
-                        } else {
-                            if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                my @scalars;
-                                my $type = lc($1);
-                                my @s;
-                                foreach my $l ($e->lookups()) {
-                                    if (my $string = $e->get($l)) {
-                                        push(@s, $l ."=". $string);
-                                    }
-                                }
-                                push(@values, $type ."(". join(",", @s) .")");
-                            } else {
-                                push(@values, $val);
-                            }
-                        }
-                    } else {
-                        push(@values, "UNDEF");
-                    }
-                }
-                printf("%-17s " x (scalar @values) ."\n", @values);
             }
         }
+
     } elsif ($command eq "set" or $command eq "new") {
         &dprint("Entered 'set' codeblock\n");
         my $persist_count = 0;
@@ -554,66 +459,6 @@ exec()
                 }
                 push(@changes, sprintf("     DEL: %-20s = %s\n", "GROUPS", $opt));
                 $persist_count++;
-            }
-        }
-
-        if (@opt_set) {
-            foreach my $setstring (@opt_set) {
-                my ($key, $string) = split('=', $setstring, 2);
-                if ($key =~ /^_/) {
-                    &eprint("Can not manipulate private object key\n");
-                } else {
-                    &dprint("Set: setting $key to $string\n");
-                    foreach my $obj ($objSet->get_list()) {
-                        $obj->set($key, &quotewords(',', 0, $string));
-                    }
-                    push(@changes, sprintf("     SET: %-20s = %s\n", $key, join(",", &quotewords(',', 0, $string))));
-                    $persist_count++;
-                }
-            }
-        }
-        if (@opt_add) {
-            foreach my $setstring (@opt_add) {
-                my ($key, $string) = split('=', $setstring, 2);
-                if ($key =~ /^_/) {
-                    &eprint("Can not manipulate private object key\n");
-                } else {
-                    foreach my $val (&quotewords(',', 0, $string)) {
-                        &dprint("Set: adding $val to $key\n");
-                        foreach my $obj ($objSet->get_list()) {
-                            $obj->add($key, split(",", $val));
-                        }
-                        push(@changes, sprintf("     ADD: %-20s = %s\n", $key, $val));
-                        $persist_count++;
-                    }
-                }
-            }
-
-        }
-        if (@opt_del) {
-            foreach my $setstring (@opt_del) {
-                my ($key, $string) = split('=', $setstring, 2);
-                if ($key =~ /^_/) {
-                    &eprint("Can not manipulate private object key\n");
-                } else {
-                    if ($key and $string) {
-                        foreach my $val (&quotewords(',', 0, $string)) {
-                            &dprint("Set: deleting $val from $key\n");
-                            foreach my $obj ($objSet->get_list()) {
-                                $obj->del($key, split(",", $val));
-                            }
-                            $persist_count++;
-                            push(@changes, sprintf("     DEL: %-20s = %s\n", $key, $val));
-                        }
-                    } elsif ($key) {
-                        &dprint("Set: deleting $key\n");
-                        foreach my $obj ($objSet->get_list()) {
-                            $obj->del($key);
-                        }
-                        $persist_count++;
-                        push(@changes, sprintf("   UNSET: %-20s\n", $key));
-                    }
-                }
             }
         }
 
