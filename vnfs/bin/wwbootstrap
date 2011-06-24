@@ -104,12 +104,14 @@ if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
     exit 1;
 }
 
-if ($opt_file and $opt_file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-    $opt_file = $1;
-    &iprint("Writing output file to: $opt_file\n");
-} else {
-    &eprint("Output file name contains illegal characters!\n");
-    exit 1;
+if ($opt_file) {
+    if ($opt_file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+        $opt_file = $1;
+        &iprint("Writing output file to: $opt_file\n");
+    } else {
+        &eprint("Output file name contains illegal characters: $opt_file\n");
+        exit 1;
+    }
 }
 
 foreach my $dir (split(":", $ENV{"PATH"})) {
