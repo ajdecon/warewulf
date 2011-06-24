@@ -488,7 +488,15 @@ exec()
         } else {
             my $obj = $objList[0];
             my $binstore = $db->binstore($obj->get("_id"));
-            mkpath(dirname($path));
+            if ($path =~ /\/$/) {
+                mkpath($path, {error => \my $err});
+                if (@$err) {
+                    &eprint("Could not create $path\n");
+                    return;
+                }
+                my $name = $obj->get("name");
+                $path .= $name;
+            }
             open(FILE, "> $path");
             while(my $buffer = $binstore->get_chunk()) {
                 print FILE $buffer;

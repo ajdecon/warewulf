@@ -20,6 +20,7 @@ use Warewulf::DSOFactory;
 use Warewulf::Provision::Bootstrap;
 use Getopt::Long;
 use File::Basename;
+use File::Path;
 use Text::ParseWords;
 use Digest::file qw(digest_file_hex);
 
@@ -311,7 +312,18 @@ exec()
         } else {
             my $obj = $objList[0];
             my $binstore = $db->binstore($obj->get("_id"));
-            my $dirname = dirname($opt_export);
+            if ($opt_export =~ /\/$/) {
+                mkpath($opt_export, {error => \my $err});
+                if (@$err) {
+                    &eprint("Could not create $opt_export\n");
+                    return;
+                }
+                my $name = $obj->get("name");
+                if ($name !~ /\.wwbs$/) {
+                    $name .= ".wwbs";
+                }
+                $opt_export .= $name;
+            }
             open(SCRIPT, "> $opt_export");
             while(my $buffer = $binstore->get_chunk()) {
                 print SCRIPT $buffer;
