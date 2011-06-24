@@ -466,7 +466,7 @@ exec()
         }
 
     } elsif ($command eq "list") {
-        &nprintf("%-14s %-12s %-13s %-18s %-18s\n", "NAME(.CLUSTER)", "MASTER", "VNFS", "BOOTSTRAP", "FILES");
+        &nprintf("%-19s %-15s %-21s %-21s\n", "NAME(.CLUSTER)", "VNFS", "BOOTSTRAP", "FILES");
         &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
@@ -474,7 +474,6 @@ exec()
             my $name = $o->get("name") || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            my $master = "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                 $name .= ".$cluster";
             }
@@ -500,15 +499,11 @@ exec()
                     $bootstrap = $bootstrapObj->get("name");
                 }
             }
-            if (my @masters = $o->get("master")) {
-                $master = join(",", @masters);
-            }
-            printf("%-14s %-12s %-13s %-18s %-18s\n",
-                &ellipsis(14, $name, "end"),
-                &ellipsis(12, $master, "end"),
-                &ellipsis(13, $vnfs, "end"),
-                &ellipsis(18, $bootstrap, "end"),
-                &ellipsis(18, join(",", @files), "end")
+            printf("%-19s %-15s %-21s %-21s\n",
+                &ellipsis(19, $name, "end"),
+                &ellipsis(15, $vnfs, "end"),
+                &ellipsis(21, $bootstrap, "end"),
+                &ellipsis(21, join(",", @files), "end")
             );
         }
     } elsif ($command eq "help") {
