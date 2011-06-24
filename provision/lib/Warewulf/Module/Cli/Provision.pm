@@ -462,13 +462,14 @@ exec()
         }
 
     } elsif ($command eq "list") {
-        &nprintf("%-15s %-20s %-15s %-15s\n", "NAME", "BOOTSTRAP", "VNFS", "FILES");
-        &nprint("================================================================================\n");
+        &nprintf("%-15s %-15s %-20s %-15s %-15s\n", "NAME", "MASTER", "BOOTSTRAP", "VNFS", "FILES");
+        &nprint("================================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
             my @files;
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
+            my $mater = "UNDEF";
             if ($o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
@@ -491,8 +492,10 @@ exec()
                     $bootstrap = $bootstrapObj->get("name");
                 }
             }
-            printf("%-15s %-20s %-15s %-15s\n",
+            $master = $o->get("master");
+            printf("%-15s %-15s %-20s %-15s %-15s\n",
                 $o->get("name") || "UNDEF",
+                &ellipsis(15, $master),
                 &ellipsis(20, $bootstrap),
                 &ellipsis(15, $vnfs),
                 join(",", @files)
