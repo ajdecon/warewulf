@@ -104,6 +104,13 @@ if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
     exit 1;
 }
 
+if ($opt_file and $opt_file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+    $opt_file = $1;
+    &iprint("Writing output file to: $opt_file\n");
+} else {
+    &eprint("Output file name contains illegal characters!\n");
+    exit 1;
+}
 
 foreach my $dir (split(":", $ENV{"PATH"})) {
     if ($dir =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
@@ -219,7 +226,7 @@ if ($config->get("firmware")) {
     foreach my $f ($config->get("firmware")) {
         if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
             my $f_clean = $1;
-            open(FIND, "find $opt_root/lib/firmware/$f_clean -type f 2>/dev/null |");
+            open(FIND, "cd $opt_root; find lib/firmware/$f_clean -type f 2>/dev/null |");
             while(my $firmware = <FIND>) {
                 chomp($firmware);
                 if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
