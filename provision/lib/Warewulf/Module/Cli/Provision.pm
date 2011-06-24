@@ -68,7 +68,8 @@ help()
     $h .= "     the action, the order of the options and the targets is not specific.\n";
     $h .= "\n";
     $h .= "         set             Modify an existing node configuration\n";
-    $h .= "         list            List a summary of the node(s) configuration\n";
+    $h .= "         list            List a summary of the node(s) provision configuration\n";
+    $h .= "         print           Print the full node(s) provision configuration\n";
     $h .= "         status          Print the node(s) provisioning status\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
@@ -418,9 +419,12 @@ exec()
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my @files;
+            my $name = $o->get("name") || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            my $name = $o->get("NAME") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+                $name .= ".$cluster";
+            }
             if ($o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
@@ -444,34 +448,38 @@ exec()
                 }
             }
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-            printf("%12s: %-16s = %s\n", $name, "BOOTSTRAP", $bootstrap);
-            printf("%12s: %-16s = %s\n", $name, "VNFS", $vnfs);
-            printf("%12s: %-16s = %s\n", $name, "FILES", join(",", @files));
+            printf("%15s: %-16s = %s\n", $name, "BOOTSTRAP", $bootstrap);
+            printf("%15s: %-16s = %s\n", $name, "VNFS", $vnfs);
+            printf("%15s: %-16s = %s\n", $name, "FILES", join(",", @files));
             if ($o->get("master")) {
-                printf("%12s: %-16s = %s\n", $name, "MASTER", join(",", $o->get("master")));
+                printf("%15s: %-16s = %s\n", $name, "MASTER", join(",", $o->get("master")));
             }
             if ($o->get("filesystems")) {
-                printf("%12s: %-16s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
+                printf("%15s: %-16s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
             }
             if ($o->get("diskformat")) {
-                printf("%12s: %-16s = %s\n", $name, "DISKFORMAT", join(",", $o->get("diskformat")));
+                printf("%15s: %-16s = %s\n", $name, "DISKFORMAT", join(",", $o->get("diskformat")));
             }
             if ($o->get("diskpartition")) {
-                printf("%12s: %-16s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
+                printf("%15s: %-16s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
             }
         }
 
     } elsif ($command eq "list") {
-        &nprintf("%-15s %-15s %-20s %-15s %-15s\n", "NAME", "MASTER", "BOOTSTRAP", "VNFS", "FILES");
-        &nprint("================================================================================================\n");
+        &nprintf("%-14s %-12s %-13s %-18s %-18s\n", "NAME(.CLUSTER)", "MASTER", "VNFS", "BOOTSTRAP", "FILES");
+        &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
             my @files;
+            my $name = $o->get("name") || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
             my $master = "UNDEF";
-            if ($o->get("fileids")) {
-                $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
+            if (my ($cluster) = $o->get("cluster")) {
+                $name .= ".$cluster";
+            }
+            if (my @fileids = $o->get("fileids")) {
+                $fileObjSet = $db->get_objects("file", "_id", @fileids);
             }
             if ($fileObjSet) {
                 foreach my $f ($fileObjSet->get_list()) {
@@ -495,12 +503,12 @@ exec()
             if (my @masters = $o->get("master")) {
                 $master = join(",", @masters);
             }
-            printf("%-15s %-15s %-20s %-15s %-15s\n",
-                $o->get("name") || "UNDEF",
-                &ellipsis(15, $master),
-                &ellipsis(20, $bootstrap),
-                &ellipsis(15, $vnfs),
-                join(",", @files)
+            printf("%-14s %-12s %-13s %-18s %-18s\n",
+                &ellipsis(14, $name, "end"),
+                &ellipsis(12, $master, "end"),
+                &ellipsis(13, $vnfs, "end"),
+                &ellipsis(18, $bootstrap, "end"),
+                &ellipsis(18, join(",", @files), "end")
             );
         }
     } elsif ($command eq "help") {
