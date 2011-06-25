@@ -224,6 +224,7 @@ if ($config->get("drivers")) {
 
 
 if ($config->get("firmware")) {
+    my $firmware_count = 0;
     mkpath("$tmpdir/initramfs/lib/firmware");
     foreach my $f ($config->get("firmware")) {
         if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
