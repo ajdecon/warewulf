@@ -156,6 +156,7 @@ persist()
         my $netdev = $config->get("network device");
         my $config_template;
         my $dhcpd_contents;
+        my $seen;
 
         if (-f "$sysconfdir/warewulf/dhcpd-template.conf") {
             open(DHCP, "$sysconfdir/warewulf/dhcpd-template.conf");
@@ -222,9 +223,25 @@ persist()
                     my ($ipv4_bin) = $d->get("ipaddr");
                     my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
 
-                    &dprint("Adding a host entry for: $nodename-$netdev\n");
+                    if (exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
+                        my $redundant_node = $seen{"NODESTRING"}{"$nodename-$netdev"};
+                        &wprint("Skipping redundant node entry ($nodename-$netdev) in $node (already seen in $redundant_node)\n");
+                        next;
+                    }
+                    if (exists($seen{"HWADDR"}{"$hwaddr"})) {
+                        my $redundant_node = $seen{"HWADDR"}{"$hwaddr"};
+                        &wprint("Skipping redundant HWADDR ($hwaddr) in $node (already seen in $redundant_node)\n");
+                        next;
+                    }
+                    if (exists($seen{"IPADDR"}{"$ipv4_addr"})) {
+                        my $redundant_node = $seen{"IPADDR"}{"$ipv4_addr"};
+                        &wprint("Skipping redundant IPADDR ($ipv4_addr) in $node (already seen in $redundant_node)\n");
+                        next;
+                    }
 
                     if ($nodename and $ipv4_addr and $hwaddr) {
+                        &dprint("Adding a host entry for: $nodename-$netdev\n");
+
                         $dhcpd_contents .= "   host $nodename-$netdev {\n";
                         $dhcpd_contents .= "      option host-name $nodename;\n";
                         $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
@@ -233,6 +250,11 @@ persist()
                             $dhcpd_contents .= "      next-server $master_ipv4_addr;\n";
                         }
                         $dhcpd_contents .= "   }\n";
+
+                        $seen{"NODESTRING"}{"$nodename-$netdev"} = $nodename;
+                        $seen{"HWADDR"}{"$hwaddr"} = $nodename;
+                        $seen{"IPADDR"}{"$ipv4_addr"} = $nodename;
+
                     } else {
                         &dprint("Skipping node '$nodename-$netdev' due to insufficient information\n");
                     }
