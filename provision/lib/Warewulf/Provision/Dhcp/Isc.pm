@@ -262,7 +262,7 @@ persist()
 
             close FILE;
             $digest2 = digest_file_hex($self->get("FILE"), "MD5");
-            if ($digest1 ne $digest2) {
+            if (! $digest1 or $digest1 ne $digest2) {
                 &dprint("Restarting DHCPD service\n");
                 if (! $system->service("dhcpd", "restart")) {
                     &eprint($system->output() ."\n");
