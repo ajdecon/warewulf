@@ -156,7 +156,7 @@ persist()
         my $netdev = $config->get("network device");
         my $config_template;
         my $dhcpd_contents;
-        my $seen;
+        my %seen;
 
         if (-f "$sysconfdir/warewulf/dhcpd-template.conf") {
             open(DHCP, "$sysconfdir/warewulf/dhcpd-template.conf");
@@ -223,19 +223,19 @@ persist()
                     my ($ipv4_bin) = $d->get("ipaddr");
                     my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
 
-                    if (exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
+                    if (exists($seen{"NODESTRING"}) and exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
                         my $redundant_node = $seen{"NODESTRING"}{"$nodename-$netdev"};
-                        &wprint("Skipping redundant node entry ($nodename-$netdev) in $node (already seen in $redundant_node)\n");
+                        &iprint("Skipping redundant node entry for $nodename-$netdev already seen in $redundant_node)\n");
                         next;
                     }
-                    if (exists($seen{"HWADDR"}{"$hwaddr"})) {
+                    if (exists($seen{"HWADDR"}) and exists($seen{"HWADDR"}{"$hwaddr"})) {
                         my $redundant_node = $seen{"HWADDR"}{"$hwaddr"};
-                        &wprint("Skipping redundant HWADDR ($hwaddr) in $node (already seen in $redundant_node)\n");
+                        &iprint("Skipping redundant HWADDR ($hwaddr) in $nodename-$netdev (already seen in $redundant_node)\n");
                         next;
                     }
-                    if (exists($seen{"IPADDR"}{"$ipv4_addr"})) {
+                    if (exists($seen{"IPADDR"}) and exists($seen{"IPADDR"}{"$ipv4_addr"})) {
                         my $redundant_node = $seen{"IPADDR"}{"$ipv4_addr"};
-                        &wprint("Skipping redundant IPADDR ($ipv4_addr) in $node (already seen in $redundant_node)\n");
+                        &iprint("Skipping redundant IPADDR ($ipv4_addr) in $nodename-$netdev (already seen in $redundant_node)\n");
                         next;
                     }
 
@@ -251,9 +251,9 @@ persist()
                         }
                         $dhcpd_contents .= "   }\n";
 
-                        $seen{"NODESTRING"}{"$nodename-$netdev"} = $nodename;
-                        $seen{"HWADDR"}{"$hwaddr"} = $nodename;
-                        $seen{"IPADDR"}{"$ipv4_addr"} = $nodename;
+                        $seen{"NODESTRING"}{"$nodename-$netdev"} = "$nodename-$netdev";
+                        $seen{"HWADDR"}{"$hwaddr"} = "$nodename-$netdev";
+                        $seen{"IPADDR"}{"$ipv4_addr"} = "$nodename-$netdev";
 
                     } else {
                         &dprint("Skipping node '$nodename-$netdev' due to insufficient information\n");
