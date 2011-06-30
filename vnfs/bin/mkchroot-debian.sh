@@ -1,4 +1,14 @@
 #!/bin/bash
+#
+# Modified June 2011 from mkchroot-rh.sh by Adam DeConinck at R Systems NA, Inc.
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
 
 VNFSDIR=$1
 SUITE=squeeze
