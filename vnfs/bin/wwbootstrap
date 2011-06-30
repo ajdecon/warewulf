@@ -102,6 +102,9 @@ if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
 } elsif ($opt_root) {
     &eprint("Root directory name contains illegal characters!\n");
     exit 1;
+} else {
+    $opt_root = "/";
+    &iprint("Using root directory: $opt_root\n");
 }
 
 if ($opt_file) {
@@ -239,7 +242,7 @@ if ($config->get("firmware")) {
                     if (! -d "$tmpdir/initramfs/$path") {
                         mkpath("$tmpdir/initramfs/$path");
                     }
-                    if (copy($firmware, "$tmpdir/initramfs/$path")) {
+                    if (copy("$opt_root/$firmware", "$tmpdir/initramfs/$path")) {
                         $firmware_count++;
                     }
                 }
