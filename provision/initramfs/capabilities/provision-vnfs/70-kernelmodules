@@ -11,4 +11,8 @@
 cp -r /lib/modules/* $NEWROOT/lib/modules/
 cp -r /lib/firmware/* $NEWROOT/lib/firmware/
 
+if [ -x "$NEWROOT/sbin/depmod" ]; then
+    chroot $NEWROOT /sbin/depmod -a
+fi
+
 exit 0
