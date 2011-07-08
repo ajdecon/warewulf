@@ -419,6 +419,7 @@ exec()
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my @files;
+            my $fileObjSet;
             my $name = $o->get("name") || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
