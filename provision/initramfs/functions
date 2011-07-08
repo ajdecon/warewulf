@@ -153,7 +153,7 @@ wwreboot() {
     echo
     echo "Rebooting in 10 seconds.... "
     echo
-    echo -n "   Press [ENTER] to inturrupt and get a debugging shell: "
+    echo -n "   Press [ENTER] to interrupt and get a debugging shell: "
     read foo
     echo
     echo "Spawning a debug shell."
