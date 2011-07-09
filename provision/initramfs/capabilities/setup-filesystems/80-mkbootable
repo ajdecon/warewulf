@@ -21,7 +21,9 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
             if [ -x "$NEWROOT/sbin/dracut" ]; then
                 chroot $NEWROOT /sbin/dracut --force '' $KERNELVERSION
             elif [ -x "$NEWROOT/sbin/mkinitrd" ]; then
+                mount -t sysfs none $NEWROOT/sys  
                 chroot $NEWROOT /sbin/mkinitrd -f $INITRD $KERNELVERSION
+                umount $NEWROOT/sys
             fi
             if [ -x "$NEWROOT/sbin/grub-install" ]; then
                 ROOTDEV=`cat /tmp/rootdev`
