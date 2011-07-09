@@ -115,7 +115,7 @@ for DEV in `echo $WWDISKFORMAT | sed 's/,/ /g'` ; do
                     /sbin/mkswap /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
                 ext2)
-                    /sbin/mkfs.ext2 /dev/$WWFS_DEV >/dev/null 2>&1
+                    /sbin/mkfs.ext2 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
             esac
         fi
