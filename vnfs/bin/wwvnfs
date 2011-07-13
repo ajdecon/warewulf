@@ -64,22 +64,6 @@ foreach my $exclude (@opt_excludes) {
    push(@exclude_files, split(/\s*,\s*/, $exclude));
 }
 
-if (! $opt_chroot) {
-    print "USAGE: $0 [options] (name)\n";
-    print "\nOPTIONS:\n\n";
-    print "   -c, --chroot      Path to the chroot to use for this VNFS image\n";
-    print "   -r, --root        Alias for --chroot\n";
-    print "   -v, --vnfs        Location of the VNFS file to create\n";
-    print "   -e, --excludes    Exclude a file or directory from the VNFS image\n";
-    print "       --excludefile Path to a file that contains a list of files and directories to\n";
-    print "                     exclude from the VNFS image\n";
-# At the moment, include file support does not exist
-#    print "   -i, --includefile Path to a file that contains a list of files and directories to\n";
-#    print "                     include, and thus create the VNFS out of\n";
-    print "   -h, --hybridpath  Path to use within the VNFS where the links will be pointed to in\n";
-    print "                     the final image (this needs to be added to the VNFS fstab!)\n";
-    exit 1;
-}
 
 if (! $opt_name and $opt_chroot) {
     $opt_name = basename($opt_chroot);
@@ -107,6 +91,39 @@ if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
     exit 1;
 } else {
     &eprint("What is the name of this VNFS?!\n");
+# Really shouldn't have usage information in two places... but without this here, running 
+# wwvnfs with no args only prints "What is the name of this VNFS?!". FIXME. -AJD
+    print "USAGE: $0 [options] (name)\n";
+    print "\nOPTIONS:\n\n";
+    print "   -c, --chroot      Path to the chroot to use for this VNFS image\n";
+    print "   -r, --root        Alias for --chroot\n";
+    print "   -v, --vnfs        Location of the VNFS file to create\n";
+    print "   -e, --excludes    Exclude a file or directory from the VNFS image\n";
+    print "       --excludefile Path to a file that contains a list of files and directories to\n";
+    print "                     exclude from the VNFS image\n";
+# At the moment, include file support does not exist
+#    print "   -i, --includefile Path to a file that contains a list of files and directories to\n";
+#    print "                     include, and thus create the VNFS out of\n";
+    print "   -h, --hybridpath  Path to use within the VNFS where the links will be pointed to in\n";
+    print "                     the final image (this needs to be added to the VNFS fstab!)\n";
+
+    exit 1;
+}
+
+if (! $opt_chroot) {
+    print "USAGE: $0 [options] (name)\n";
+    print "\nOPTIONS:\n\n";
+    print "   -c, --chroot      Path to the chroot to use for this VNFS image\n";
+    print "   -r, --root        Alias for --chroot\n";
+    print "   -v, --vnfs        Location of the VNFS file to create\n";
+    print "   -e, --excludes    Exclude a file or directory from the VNFS image\n";
+    print "       --excludefile Path to a file that contains a list of files and directories to\n";
+    print "                     exclude from the VNFS image\n";
+# At the moment, include file support does not exist
+#    print "   -i, --includefile Path to a file that contains a list of files and directories to\n";
+#    print "                     include, and thus create the VNFS out of\n";
+    print "   -h, --hybridpath  Path to use within the VNFS where the links will be pointed to in\n";
+    print "                     the final image (this needs to be added to the VNFS fstab!)\n";
     exit 1;
 }
 
