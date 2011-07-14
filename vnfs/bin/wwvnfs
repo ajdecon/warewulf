@@ -229,6 +229,8 @@ if (-d $opt_chroot) {
                     mkpath($dirname);
                 }
                 rename($output, $opt_output);
+		&nprint("Wrote VNFS image to $opt_output\n");
+		&nprint("Done.\n");
             } else {
                 system("$wwsh_bin vnfs import $output --name=$opt_name");
                 unlink($output);
