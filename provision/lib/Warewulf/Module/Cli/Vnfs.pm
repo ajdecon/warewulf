@@ -9,7 +9,7 @@
 
 
 
-package Warewulf::Module::Cli::VNFS;
+package Warewulf::Module::Cli::Vnfs;
 
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
