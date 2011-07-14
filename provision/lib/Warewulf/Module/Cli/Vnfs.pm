@@ -9,7 +9,7 @@
 
 
 
-package Warewulf::Module::Cli::Vnfs;
+package Warewulf::Module::Cli::VNFS;
 
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
@@ -188,13 +188,14 @@ exec()
                 my @objList = $objectSet->get_list();
                 if (scalar(@objList) == 1) {
                     if ($term->interactive()) {
-                        print "Are you sure you wish to overwrite the Warewulf Vnfs Image '$name'?\n\n";
+                        print "Are you sure you wish to overwrite the Warewulf VNFS Image '$name'?\n\n";
                         my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                         if ($yesno ne "y" and $yesno ne "yes" ) {
                             &nprint("No import performed\n");
                             return();
                         }
                     }
+                    &nprint("Importing into existing VNFS Object: $name\n");
                     my $obj = $objList[0];
                     $obj->set("checksum", $digest);
                     my $binstore = $db->binstore($obj->get("_id"));
@@ -212,11 +213,10 @@ exec()
                     close SCRIPT;
                     $obj->set("size", $size);
                     $db->persist($obj);
-                    &nprint("Imported $name into existing object\n");
                 } elsif (scalar(@objList) == 0) {
                     my $vnfsname = $name;
                     $vnfsname =~ s/\.vnfs$//;
-                    &nprint("Creating new Vnfs Object: $name\n");
+                    &nprint("Importing new VNFS Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("vnfs");
                     $db->persist($obj);
                     $obj->set("name", $vnfsname);
@@ -224,7 +224,7 @@ exec()
                     my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;
-                    &dprint("Persisting new Vnfs Object\n");
+                    &dprint("Persisting new VNFS Object\n");
                     open(SCRIPT, $path);
                     while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
                         &dprint("Chunked $length bytes of $path\n");
@@ -238,7 +238,6 @@ exec()
                     close SCRIPT;
                     $obj->set("size", $size);
                     $db->persist($obj);
-                    &nprint("Imported $name into a new object\n");
                 } else {
                     &wprint("Import into one object at a time please!\n");
                 }
@@ -306,7 +305,7 @@ exec()
                 close SCRIPT;
                 &nprint("Exported: $opt_export\n");
             } else {
-                &eprint("Can only export 1 Vnfs image into a file, perhaps export to a directory?\n");
+                &eprint("Can only export 1 VNFS image into a file, perhaps export to a directory?\n");
             }
         } else {
             my $obj = $objList[0];
@@ -345,7 +344,7 @@ exec()
         if ($command eq "delete") {
 
             if ($term->interactive()) {
-                print "\nAre you sure you wish to delete the above Vnfs image?\n\n";
+                print "\nAre you sure you wish to delete the above VNFS image?\n\n";
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes" ) {
                     &nprint("No update performed\n");
