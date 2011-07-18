@@ -154,3 +154,7 @@ Mon Jun  6 17:21:52 2011                        Michael Jennings (mej)
 
 Ignore files cleaned by "make maintainer-clean"
 ----------------------------------------------------------------------
+Mon Jul 18 15:49:53 2011                        Michael Jennings (mej)
+
+Fix usage of svnversion since it no longer errors properly.
+----------------------------------------------------------------------
