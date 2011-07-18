@@ -23,3 +23,7 @@ Thu Jul 14 14:26:59 2011                        Michael Jennings (mej)
 
 Oops, one too many.
 ----------------------------------------------------------------------
+Mon Jul 18 15:50:42 2011                        Michael Jennings (mej)
+
+Fix usage of svnversion since it no longer errors properly.
+----------------------------------------------------------------------
