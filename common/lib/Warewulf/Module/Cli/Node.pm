@@ -273,7 +273,9 @@ exec()
             printf("%15s: %-16s = %s\n", $name, "GROUPS", join(",", $o->get("groups")));
             foreach my $n ($o->get("netdevs")) {
                 if ( my $device = $n->get("name")) {
-                    printf("%15s: %-16s = %s\n", $name, "HWADDR($device)", $n->get("hwaddr"));
+                    if (my $hwaddr = $n->get("hwaddr")) {
+                        printf("%15s: %-16s = %s\n", $name, "HWADDR($device)", $hwaddr);
+                    }
                     if (my $ipaddr = $n->get("ipaddr")) {
                         printf("%15s: %-16s = %s\n", $name, "IPADDR($device)", $ipaddr);
                     }
