@@ -1,0 +1,4 @@
+Mon Jul 18 15:51:42 2011                        Michael Jennings (mej)
+
+Fix usage of svnversion since it no longer errors properly.
+----------------------------------------------------------------------
