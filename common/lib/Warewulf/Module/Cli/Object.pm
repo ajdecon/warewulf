@@ -138,7 +138,7 @@ exec()
 
 
     @ARGV = ();
-    push(@ARGV, &quotewords('\s+', 0, @_));
+    push(@ARGV, &quotewords('\s+', 1, @_));
 
     Getopt::Long::Configure ("bundling", "nopassthrough");
 
