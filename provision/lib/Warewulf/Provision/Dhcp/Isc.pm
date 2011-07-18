@@ -223,6 +223,11 @@ persist()
                     my ($ipv4_bin) = $d->get("ipaddr");
                     my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
 
+                    if (! $hwaddr) {
+                        &dprint("Skipping $netdev as it has no defined HWADDR\n");
+                        next;
+                    }
+
                     if (exists($seen{"NODESTRING"}) and exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
                         my $redundant_node = $seen{"NODESTRING"}{"$nodename-$netdev"};
                         &iprint("Skipping redundant node entry for $nodename-$netdev already seen in $redundant_node)\n");
