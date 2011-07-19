@@ -21,7 +21,6 @@ use Getopt::Long;
 use File::Basename;
 use File::Path;
 use Text::ParseWords;
-use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -183,7 +182,7 @@ exec()
                 } else {
                     $name = basename($path);
                 }
-                my $digest = digest_file_hex($path, "MD5");
+                my $digest = digest_file_hex_md5($path);
                 $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
                 my @objList = $objectSet->get_list();
                 if (scalar(@objList) == 1) {
@@ -220,7 +219,7 @@ exec()
                     my $obj = Warewulf::DSOFactory->new("vnfs");
                     $db->persist($obj);
                     $obj->set("name", $vnfsname);
-                    $obj->set("checksum", digest_file_hex($path, "MD5"));
+                    $obj->set("checksum", digest_file_hex_md5($path));
                     my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
                     my $buffer;

@@ -27,3 +27,7 @@ Mon Jul 18 15:50:42 2011                        Michael Jennings (mej)
 
 Fix usage of svnversion since it no longer errors properly.
 ----------------------------------------------------------------------
+Tue Jul 19 14:37:15 2011                        Michael Jennings (mej)
+
+Replace use of Digest::file with Digest::MD5.
+----------------------------------------------------------------------

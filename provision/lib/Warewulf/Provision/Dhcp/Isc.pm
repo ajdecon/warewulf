@@ -19,7 +19,6 @@ use Warewulf::Util;
 use Warewulf::Include;
 use Warewulf::DSOFactory;
 use Socket;
-use Digest::file qw(digest_file_hex);
 
 our @ISA = ('Warewulf::Provision::Dhcp');
 
@@ -276,7 +275,7 @@ persist()
             my $system = Warewulf::SystemFactory->new();
 
             if ($self->get("FILE") and -f $self->get("FILE")) {
-                $digest1 = digest_file_hex($self->{"FILE"}, "MD5");
+                $digest1 = digest_file_hex_md5($self->{"FILE"});
             }
             &iprint("Updating DHCP configuration\n");
             &dprint("Opening file ". $self->get("FILE") ." for writing\n");
@@ -288,7 +287,7 @@ persist()
             print FILE $dhcpd_contents;
 
             close FILE;
-            $digest2 = digest_file_hex($self->get("FILE"), "MD5");
+            $digest2 = digest_file_hex_md5($self->get("FILE"));
             if (! $digest1 or $digest1 ne $digest2) {
                 &dprint("Restarting DHCPD service\n");
                 if (! $system->service("dhcpd", "restart")) {
