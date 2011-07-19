@@ -15,6 +15,7 @@ use Warewulf::Logger;
 
 use Exporter;
 use File::Basename;
+use Digest::MD5;
 
 our @ISA = ('Exporter');
 
@@ -24,7 +25,8 @@ our @EXPORT = (
     '&progname',
     '&expand_bracket',
     '&uid_test',
-    '&ellipsis'
+    '&ellipsis',
+    '&digest_file_hex_md5'
 );
 
 =head1 NAME
@@ -195,6 +197,24 @@ sub ellipsis($$)
     }
 
     return($ret);
+}
+
+
+=item digest_file_hex_md5($filename)
+
+Return the MD5 checksum of the file specified in $filename
+
+=cut
+sub digest_file_hex_md5($)
+{
+    my ($filename) = @_;
+    local *DATA;
+
+    if (open(DATA, $filename)) {
+        return md5_hex(join("", <DATA>));
+    } else {
+        return undef;
+    }
 }
 
 
