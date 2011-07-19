@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+modprobe ipmi_si >/dev/null 2>&1
+modprobe ipmi_devintf >/dev/null 2>&1
+
+sleep 1
+
+if [ ! -c /dev/ipmi0 -a ! -c /dev/ipmi/0 ]; then
+    exit 1
+fi
+
+IPMI_UID=${WWIPMI_UID:-3}
+
+RETVAL=1
+
+if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
+    for channel in ${WWIPMI_LANCHANNEL:-1 2 3 4 5 6}; do
+        if ipmitool lan print $channel >/dev/null 2>&1; then
+            # Nobody seems to know what these RAW commands do, but multiple
+            # vendors have been known to reference one/some/all
+            ipmitool raw 0x6 0x40 0x1 0x42 0x44
+            ipmitool raw 0x6 0x40 0x1 0x82 0x84
+            ipmitool raw 0xc 0x21 0x1 0x1 0x1
+            ipmitool raw 0xc 1 1 0xc0 0
+
+            # Setting basic network information
+            ipmitool lan set $channel ipaddr $WWIPMI_IPADDR                     || RETVAL=255
+            ipmitool lan set $channel netmask $WWIPMI_NETMASK                   || RETVAL=255
+            ipmitool lan set $channel ipsrc static                              || RETVAL=255
+            ipmitool lan set $channel access on                                 || RETVAL=255
+            ipmitool channel setaccess $channel $IPMI_UID ipmi=on privilege=4   || RETVAL=255
+
+            # User setup starting with a kludge for IPMI implementations that
+            # do bad things when you try to set the same thing for user/pass
+            # That was already there.
+            ipmitool user set name $IPMI_UID xxtmpuser                          || RETVAL=255
+            ipmitool user set password $IPMI_UID xxtmppass                      || RETVAL=255
+            ipmitool user set name $IPMI_UID ${WWIPMI_USERNAME:-ipmiadmin}      || RETVAL=255
+            ipmitool user set password $IPMI_UID ${WWIPMI_PASSWORD:-wwrocks}    || RETVAL=255
+            ipmitool user priv $IPMI_UID 4 $channel                             || RETVAL=255
+            ipmitool user enable $IPMI_UID                                      || RETVAL=255
+
+            # Set SOL configuration
+            ipmitool sol set volatile-bit-rate 115.2 $channel                   || RETVAL=255
+            ipmitool sol set non-volatile-bit-rate 115.2 $channel               || RETVAL=255
+            ipmitool sol payload enable $channel $IPMI_UID                      || RETVAL=255
+            ipmitool sol set privilege-level user $channel                      || RETVAL=255
+            ipmitool mc reset cold                                              || RETVAL=255
+            break
+        fi
+    done
+else
+    exit 1
+fi
+
+exit $RETVAL

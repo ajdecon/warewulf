@@ -28,22 +28,26 @@ rootfs: ipmitool
 	mkdir rootfs/sbin
 	mkdir rootfs/lib
 	mkdir rootfs/lib64
+	mkdir -p rootfs/warewulf/provision/
 	chmod -R u+w rootfs/
 	cp -a ipmitool rootfs/sbin/
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	chmod -R +w rootfs/
 	find rootfs -type f -perm -o+x -print | xargs strip -g
+	install -m 755 $(srcdir)/10-ipmiconfig rootfs/warewulf/provision/10-ipmiconfig
 
 capability.cpio: rootfs
 	cd rootfs/; find . | cpio -o -H newc -F ../capability.cpio
 
 install-data-local: capability.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/
-	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/setup-ipmitool
+	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/setup-ipmi
 
 uninstall-local:
-	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/setup-ipmitool
+	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/setup-ipmi
 
 clean-local:
 	rm -rf _work rootfs ipmitool capability.cpio
 
+
+EXTRA_DIST = 10-ipmiconfig

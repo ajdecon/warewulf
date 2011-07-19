@@ -1,4 +1,4 @@
-Name: warewulf-skel
+Name: warewulf-ipmi
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: 1
@@ -33,6 +33,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
-%perl_vendorlib/*
+%{_localstatedir}/warewulf/initramfs/setup-ipmi
+
 
 %changelog
