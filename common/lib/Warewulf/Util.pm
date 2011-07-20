@@ -15,7 +15,7 @@ use Warewulf::Logger;
 
 use Exporter;
 use File::Basename;
-use Digest::MD5 qw(md5_hex);;
+use Digest::MD5 qw(md5_hex);
 
 our @ISA = ('Exporter');
 
