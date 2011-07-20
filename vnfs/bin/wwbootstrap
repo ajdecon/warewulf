@@ -69,6 +69,10 @@ GetOptions(
 );
 
 
+if ($opt_debug) {
+    &set_log_level("DEBUG");
+}
+
 if ($opt_help or ! @ARGV) {
     print $help;
     exit;
@@ -159,7 +163,12 @@ if ($config->get("drivers")) {
                 $mod_path{"$name"} = $path;
                 push(@mod_files, $path);
                 if (@deps) {
-                    @{$mod_deps{"$path"}} = @deps;
+                    foreach my $dep (@deps) {
+                        if ($dep =~ /^.*(kernel\/.*)$/) {
+                            my $depfile = $1;
+                            push(@{$mod_deps{"$path"}}, $depfile);
+                        }
+                    }
                 }
             }
         }
@@ -197,7 +206,7 @@ if ($config->get("drivers")) {
                 foreach my $dep (@{$mod_deps{"$file"}}) {
                     if (! exists($included_files{"$dep"})) {
                         $included_files{"$dep"} = 1;
-                        &dprint("Including driver dependency: $dep\n");
+                        &dprint("Including driver dependency ($file): $dep\n");
                         push(@driver_files, $dep);
                     }
                 }
