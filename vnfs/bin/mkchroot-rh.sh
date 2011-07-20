@@ -47,6 +47,8 @@ echo "devpts /dev/pts devpts gid=5,mode=620 0 0" >> $VNFSDIR/etc/fstab
 echo "sysfs /sys sysfs defaults 0 0" >> $VNFSDIR/etc/fstab
 echo "proc /proc proc defaults 0 0" >> $VNFSDIR/etc/fstab
 
+echo "NETWORKING=yes" > $VNFSDIR/etc/sysconfig/network
+
 echo "Creating SSH host keys"
 /usr/bin/ssh-keygen -q -t rsa1 -f $VNFSDIR/etc/ssh/ssh_host_key -C '' -N ''
 /usr/bin/ssh-keygen -q -t rsa -f $VNFSDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
