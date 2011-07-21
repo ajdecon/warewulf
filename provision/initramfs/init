@@ -102,6 +102,15 @@ ifup() {
     return 255
 }
 
+
+# Bring up networks
+msg_white "Bringing up local loopback network..."
+if ifconfig lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1; then
+    wwsuccess
+else
+    wwfailure
+fi
+
 if [ -n "$WWDEV" ]; then
     for i in $WWDEV; do
         if ifup $i; then
