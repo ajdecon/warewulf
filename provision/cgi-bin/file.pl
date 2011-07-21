@@ -64,10 +64,10 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 }
 
                 # Search for all matching variable entries.
-                #foreach my $wwstring ($output =~ m/\%\{WWNODE::[^\}]+\}(\[([0-9]+)\])?/g) {
-                foreach my $wwstring ($output =~ m/\%\{WWNODE::[^\}]+\}(?:\[\d+\])?/g) {
+                #foreach my $wwstring ($output =~ m/\%\{[^\}]+\}(\[([0-9]+)\])?/g) {
+                foreach my $wwstring ($output =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
                     # Check for format, and seperate into a seperate wwvar string
-                    if ($wwstring =~ /^\%\{WWNODE::(.+?)\}(\[(\d+)\])?$/) {
+                    if ($wwstring =~ /^\%\{(.+?)\}(\[(\d+)\])?$/) {
                         my $wwvar = $1;
                         my $wwarrayindex = $3;
                         # Set the current object that we are looking at. This is
