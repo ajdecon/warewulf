@@ -167,7 +167,10 @@ msg_white "Getting base node configuration: "
 
 if wwgetnodeconfig > /tmp/nodeconfig; then
     . /tmp/nodeconfig
-    if [ -n "$WWNAME" -a -n "$WWCLUSTER" ]; then
+    if [ -n "$WWFQDN" ]; then
+        msg_gray "(I am: $WWFQDN)"
+        hostname $WWFQDN
+    elif [ -n "$WWNAME" -a -n "$WWCLUSTER" ]; then
         msg_gray "(I am: $WWNAME.$WWCLUSTER)"
         hostname $WWNAME.$WWCLUSTER
     elif [ -n "$WWNAME" ]; then

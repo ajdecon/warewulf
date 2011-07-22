@@ -10,6 +10,12 @@
 
 cp /tmp/ifcfg-eth* $NEWROOT/etc/sysconfig/network-scripts/ 2>/dev/null
 
+HOSTNAME=`hostname`
+grep -v "^HOSTNAME=" $NEWROOT/etc/sysconfig/network > /tmp/network_withouthostname
+cat /tmp/network_withouthostname > $NEWROOT/etc/sysconfig/network
+rm -f /tmp/network_withouthostname
+echo "HOSTNAME=$HOSTNAME" >> $NEWROOT/etc/sysconfig/network
+
 if [ -z "$WWNOFSTABUPDATE" ]; then
     if [ -f "$NEWROOT/etc/fstab" ]; then
         > $NEWROOT/etc/fstab_
