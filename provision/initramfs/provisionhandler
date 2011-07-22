@@ -20,10 +20,10 @@ if [ -d "/warewulf/provision/" ]; then
             NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)/\1/'`
             wwlogger "Running provision script: $NAME"
             msg_white " * $NAME "
-            echo $GRAY
+            echo -ne $GRAY
             sh -x $i 2>/var/log/provision/$NAME.log
             RETVAL=$?
-            echo $NORMAL
+            echo -ne $NORMAL
             if [ $RETVAL -eq 0 ]; then
                 wwsuccess
             elif [ $RETVAL -eq 1 ]; then
