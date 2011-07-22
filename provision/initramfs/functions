@@ -25,6 +25,9 @@ export WWIP
 WWNETMASK=`sed -e '/ wwnetmask=/!d;s/.*wwnetmask=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNETMASK
 
+WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWMASTER
+
 WWGW=`sed -e '/ wwgw=/!d;s/.*wwgw=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWGW
 

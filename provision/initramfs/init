@@ -59,7 +59,7 @@ wwsuccess
 ifup() {
     DEVICE=$1
     RETVAL=1
-    if [ -n "$WWIP" -a -n "$WWNETMASK" ]; then
+    if [ -n "$WWIP" -a -n "$WWNETMASK" -a -n "$WWMASTER" ]; then
         if ifconfig $DEVICE up >/dev/null 2>&1; then
             msg_white  "Configuring $DEVICE: "
             ifconfig $DEVICE $WWIP netmask $WWNETMASK up
@@ -72,6 +72,19 @@ ifup() {
             echo "IPADDR=$WWIP" >> /tmp/ifcfg-$DEVICE
             echo "NETMASK=$WWNETMASK" >> /tmp/ifcfg-$DEVICE
             echo "GATEWAY=$WWGW" >> /tmp/ifcfg-$DEVICE
+            COUNT=0
+            msg_white  "Trying to reach the master node at $WWMASTER... "
+            while [ $COUNT -le $WWNETRETRY ]; do
+                if ping -c 1 $WWMASTER >/dev/null 2>&1; then
+                    wwsuccess
+                    return
+                fi
+                msg_white "."
+                COUNT=`expr $COUNT + 1`
+                sleep 1
+            done
+            wwfailure
+            wwreboot
         fi
     else
         if ifconfig $DEVICE up >/dev/null 2>&1; then
@@ -91,7 +104,7 @@ ifup() {
                     echo "GATEWAY=$GATEWAY" >> /tmp/ifcfg-$DEVICE
                     return 0
                 fi
-                msg_gray "."
+                msg_white "."
                 COUNT=`expr $COUNT + 1`
                 sleep 1
             done
@@ -104,7 +117,7 @@ ifup() {
 
 
 # Bring up networks
-msg_white "Bringing up local loopback network..."
+msg_white "Bringing up local loopback network:"
 if ifconfig lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1; then
     wwsuccess
 else
