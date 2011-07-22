@@ -13,16 +13,17 @@ modprobe ipmi_devintf >/dev/null 2>&1
 sleep 1
 
 if [ ! -c /dev/ipmi0 -a ! -c /dev/ipmi/0 ]; then
+    echo "Kernel support not present"
     exit 1
 fi
 
 IPMI_UID=${WWIPMI_UID:-3}
 
-RETVAL=1
 
 if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
     for channel in ${WWIPMI_LANCHANNEL:-1 2 3 4 5 6}; do
         if ipmitool lan print $channel >/dev/null 2>&1; then
+            RETVAL=0
             # Nobody seems to know what these RAW commands do, but multiple
             # vendors have been known to reference one/some/all
             ipmitool raw 0x6 0x40 0x1 0x42 0x44                                 >/dev/null
@@ -53,11 +54,15 @@ if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
             ipmitool sol payload enable $channel $IPMI_UID                      >/dev/null || RETVAL=2
             ipmitool sol set privilege-level user $channel                      >/dev/null || RETVAL=2
             ipmitool mc reset cold                                              >/dev/null || RETVAL=2
-            break
+            exit $RETVAL
         fi
     done
+    echo "Interface not found"
+    exit 1
 else
+    echo "IPMI is not configured"
     exit 1
 fi
 
-exit $RETVAL
+# Should never get here... but if so, fail without reboot.
+exit 2
