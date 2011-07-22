@@ -25,34 +25,34 @@ if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
         if ipmitool lan print $channel >/dev/null 2>&1; then
             # Nobody seems to know what these RAW commands do, but multiple
             # vendors have been known to reference one/some/all
-            ipmitool raw 0x6 0x40 0x1 0x42 0x44
-            ipmitool raw 0x6 0x40 0x1 0x82 0x84
-            ipmitool raw 0xc 0x21 0x1 0x1 0x1
-            ipmitool raw 0xc 1 1 0xc0 0
+            ipmitool raw 0x6 0x40 0x1 0x42 0x44                                 >/dev/null
+            ipmitool raw 0x6 0x40 0x1 0x82 0x84                                 >/dev/null
+            ipmitool raw 0xc 0x21 0x1 0x1 0x1                                   >/dev/null
+            ipmitool raw 0xc 1 1 0xc0 0                                         >/dev/null
 
             # Setting basic network information
-            ipmitool lan set $channel ipaddr $WWIPMI_IPADDR                     || RETVAL=255
-            ipmitool lan set $channel netmask $WWIPMI_NETMASK                   || RETVAL=255
-            ipmitool lan set $channel ipsrc static                              || RETVAL=255
-            ipmitool lan set $channel access on                                 || RETVAL=255
-            ipmitool channel setaccess $channel $IPMI_UID ipmi=on privilege=4   || RETVAL=255
+            ipmitool lan set $channel ipaddr $WWIPMI_IPADDR                     >/dev/null || RETVAL=2
+            ipmitool lan set $channel netmask $WWIPMI_NETMASK                   >/dev/null || RETVAL=2
+            ipmitool lan set $channel ipsrc static                              >/dev/null || RETVAL=2
+            ipmitool lan set $channel access on                                 >/dev/null || RETVAL=2
+            ipmitool channel setaccess $channel $IPMI_UID ipmi=on privilege=4   >/dev/null || RETVAL=2
 
             # User setup starting with a kludge for IPMI implementations that
             # do bad things when you try to set the same thing for user/pass
             # That was already there.
-            ipmitool user set name $IPMI_UID xxtmpuser                          || RETVAL=255
-            ipmitool user set password $IPMI_UID xxtmppass                      || RETVAL=255
-            ipmitool user set name $IPMI_UID ${WWIPMI_USERNAME:-ipmiadmin}      || RETVAL=255
-            ipmitool user set password $IPMI_UID ${WWIPMI_PASSWORD:-wwrocks}    || RETVAL=255
-            ipmitool user priv $IPMI_UID 4 $channel                             || RETVAL=255
-            ipmitool user enable $IPMI_UID                                      || RETVAL=255
+            ipmitool user set name $IPMI_UID xxtmpuser                          >/dev/null
+            ipmitool user set password $IPMI_UID xxtmppass                      >/dev/null
+            ipmitool user set name $IPMI_UID ${WWIPMI_USERNAME:-wwadmin}        >/dev/null || RETVAL=2
+            ipmitool user set password $IPMI_UID ${WWIPMI_PASSWORD:-wwcalvin}   >/dev/null || RETVAL=2
+            ipmitool user priv $IPMI_UID 4 $channel                             >/dev/null || RETVAL=2
+            ipmitool user enable $IPMI_UID                                      >/dev/null || RETVAL=2
 
             # Set SOL configuration
-            ipmitool sol set volatile-bit-rate 115.2 $channel                   || RETVAL=255
-            ipmitool sol set non-volatile-bit-rate 115.2 $channel               || RETVAL=255
-            ipmitool sol payload enable $channel $IPMI_UID                      || RETVAL=255
-            ipmitool sol set privilege-level user $channel                      || RETVAL=255
-            ipmitool mc reset cold                                              || RETVAL=255
+            ipmitool sol set volatile-bit-rate 115.2 $channel                   >/dev/null
+            ipmitool sol set non-volatile-bit-rate 115.2 $channel               >/dev/null
+            ipmitool sol payload enable $channel $IPMI_UID                      >/dev/null || RETVAL=2
+            ipmitool sol set privilege-level user $channel                      >/dev/null || RETVAL=2
+            ipmitool mc reset cold                                              >/dev/null || RETVAL=2
             break
         fi
     done
