@@ -58,7 +58,9 @@ if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
             ipmitool sol set non-volatile-bit-rate 115.2 $channel               >/dev/null
             ipmitool sol payload enable $channel $IPMI_UID                      >/dev/null || RETVAL=2
             ipmitool sol set privilege-level user $channel                      >/dev/null || RETVAL=2
-            ipmitool mc reset cold                                              >/dev/null || RETVAL=2
+            if [ -n "$WWIPMI_RESET" -a $WWIPMI_RESET > 0 ]; then
+                ipmitool mc reset cold                                              >/dev/null || RETVAL=2
+            fi
             exit $RETVAL
         fi
     done
