@@ -196,7 +196,7 @@ else
     wwreboot
 fi
 
-if [ -n "$WWPRESHELL" ]; then
+if [ -n "$WWPRESHELL" -a "$WWPRESHELL" != "0" ]; then
     wwlogger "PRESHELL defined, waiting for local shell to exit"
     echo "This node is configured to run a shell before the provision process"
     echo "due to the 'preshell' Warewulf node configuration... So be it!"
@@ -212,7 +212,7 @@ msg_white "Starting the provision handler: \n"
 provisionhandler
 echo
 
-if [ -n "$WWPOSTSHELL" ]; then
+if [ -n "$WWPOSTSHELL" -a "$WWPOSTSHELL" != "0" ]; then
     echo "This node is configured to run a shell after the provision process"
     echo "due to the 'postshell' Warewulf node configuration... So be it!"
     echo
