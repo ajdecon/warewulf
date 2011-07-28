@@ -227,7 +227,7 @@ exec()
                     }
                     push(@changes, sprintf("     SET: %-20s = %s\n", "BOOTSTRAP", $opt_bootstrap));
                 } else {
-                    &eprint("No bootstrap named: $opt_vnfs\n");
+                    &eprint("No bootstrap named: $opt_bootstrap\n");
                 }
             }
         }
