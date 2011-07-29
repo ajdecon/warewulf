@@ -19,6 +19,7 @@ use Warewulf::Include;
 use Warewulf::Util;
 use Warewulf::Provision::Tftp;
 use File::Path;
+use File::Basename;
 
 our @ISA = ('Warewulf::Object');
 
@@ -143,7 +144,6 @@ build_bootstrap()
         if ($bootstrap_id =~ /^([0-9]+)$/) {
             my $id = $1;
             my $ds = Warewulf::DataStore->new();
-            my $config = Warewulf::Config->new("bootstrap.conf");
             my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
             my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
             my $randstring = &rand_string("12");
@@ -174,17 +174,12 @@ build_bootstrap()
             }
             close CPIO;
 
-            foreach my $module ($config->get("capabilities")) {
-                if ($module =~ /^([a-zA-Z0-9\.\_-]+)$/) {
-                    $module = $1;
-                    my $file = "$initramfsdir/$module";
-                    &dprint("Searching to include module: $initramfsdir/$module\n");
-                    if (-f $file) {
-                        &nprint("Including capability: $module\n");
-                        system("cd $tmpdir/initramfs; cpio -i -u --quiet < $file");
-                    } else {
-                        &dprint("Defined module not found: $module\n");
-                    }
+            foreach my $path (glob($initramfsdir . "/capabilities/*")) {
+                if ($path =~ /^([a-zA-Z0-9\.\_\-\/]+)$/) {
+                    my $file = $1;
+                    my $module = basename($file);
+                    &nprint("Including capability: $module\n");
+                    system("cd $tmpdir/initramfs; cpio -i -u --quiet < $file");
                 }
             }
             if (-f "$initramfsdir/base") {

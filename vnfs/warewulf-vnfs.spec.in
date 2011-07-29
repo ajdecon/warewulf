@@ -37,6 +37,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %config(noreplace) %{_sysconfdir}/warewulf/vnfs.conf
+%config(noreplace) %{_sysconfdir}/warewulf/bootstrap.conf
 %{_bindir}/*
 
 %changelog

@@ -54,7 +54,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %config(noreplace) %{_sysconfdir}/warewulf/provision.conf
-%config(noreplace) %{_sysconfdir}/warewulf/bootstrap.conf
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
 %{_bindir}/*
 %{_libexecdir}/warewulf/*
