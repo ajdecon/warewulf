@@ -43,6 +43,8 @@ AC_OUTPUT(Makefile
    warewulf-ipmi.spec
    lib/Makefile
    lib/Warewulf/Makefile
+   lib/Warewulf/Module/Makefile
+   lib/Warewulf/Module/Cli/Makefile
    3rd_party/Makefile
    3rd_party/BSD/Makefile
    initramfs/Makefile

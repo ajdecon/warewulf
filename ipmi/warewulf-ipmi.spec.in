@@ -36,6 +36,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
 %{_localstatedir}/warewulf/initramfs/capabilities/setup-ipmi
+%{perl_vendorlib}/Warewulf/Module/Cli/*
+
 
 
 %changelog

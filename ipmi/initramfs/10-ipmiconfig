@@ -11,6 +11,11 @@
 IPMI_UID=${WWIPMI_UID:-3}
 
 
+if [ -z "$WWIPMI_AUTOCONFIG" -o "$WWIPMI_AUTOCONFIG" -eq "0" ]; then
+    echo -ne "Auto configuration not activated"
+    exit 1
+fi
+
 if [ -n "$WWIPMI_IPADDR" -a -n "$WWIPMI_NETMASK" ]; then
 
     modprobe ipmi_devintf >/dev/null 2>&1

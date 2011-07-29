@@ -1,6 +1,6 @@
-SUBDIRS = Module
+SUBDIRS = Cli
 
-perlmodsdir = ${PERL_VENDORLIB}
+perlmodsdir = ${PERL_VENDORLIB}/Warewulf/Module
 
 dist_perlmods_SCRIPTS = 
 
