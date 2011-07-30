@@ -71,6 +71,9 @@ help()
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         list            List a summary of the node(s) ipmi configuration\n";
     $h .= "         print           Print the full node(s) ipmi configuration\n";
+    $h .= "         poweron         Power on the list of nodes\n";
+    $h .= "         poweroff        Power off the list of nodes\n";
+    $h .= "         powerstatus     Print the power status of the nodes\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -139,10 +142,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set" or $ARGV[1] eq "status")) {
+    if (exists($ARGV[1])) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "print", "help");
+        @ret = ("list", "set", "print", "help", "poweron", "poweroff");
     }
 
     @ARGV = ();
@@ -334,6 +337,45 @@ exec()
 
         }
 
+    } elsif ($command eq "poweron") {
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->get("name") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+               $name .= ".$cluster";
+            }
+            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
+                &nprint("Sending IPMI command to $name: chassis power on\n");
+                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power on");
+            } else {
+                &iprint("Skipping poweron for unconfigured node $name\n");
+            }
+        }
+    } elsif ($command eq "poweroff") {
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->get("name") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+               $name .= ".$cluster";
+            }
+            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
+                &nprint("Sending IPMI command to $name: chassis power off\n");
+                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power off");
+            } else {
+                &iprint("Skipping poweroff for unconfigured node $name\n");
+            }
+        }
+    } elsif ($command eq "powerstatus") {
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->get("name") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+               $name .= ".$cluster";
+            }
+            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
+                &nprint("Sending IPMI command to $name: chassis power status\n");
+                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power status");
+            } else {
+                &iprint("Skipping powerstatus for unconfigured node $name\n");
+            }
+        }
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
