@@ -162,3 +162,9 @@ Tue Jul 19 14:32:41 2011                        Michael Jennings (mej)
 
 Replace use of Digest::file with Digest::MD5.
 ----------------------------------------------------------------------
+Tue Aug  2 15:27:47 2011                        Michael Jennings (mej)
+
+Cleanups, documentation fixes, etc. for the top-level modules.  Still
+need to work through the hierarchy.  None of these changes should
+affect functionality, but they still need thorough testing anyway.
+----------------------------------------------------------------------

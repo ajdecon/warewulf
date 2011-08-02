@@ -18,39 +18,31 @@ our @ISA = ('Warewulf::Object');
 
 Warewulf::System - Warewulf's System (Data Store Object) base class
 
-=head1 ABOUT
-
-
 =head1 SYNOPSIS
 
     use Warewulf::System;
 
     my $obj = Warewulf::System->new();
 
-
 =head1 METHODS
 
-=over 12
-=cut
-
+=over 4
 
 =item new()
 
-The new constructor will create the object that references configuration the
-stores.
+Create and return a new System object instance.
 
 =cut
-sub new($$) { undef; };
 
-
+sub new($$) { return undef; };
 
 =item service($name, $command)
 
 Run a command on a service script (e.g. /etc/init.d/service restart).
 
 =cut
-sub service($$) { undef; };
 
+sub service($$) { return undef; };
 
 =item chkconfig($name, $command)
 
@@ -58,19 +50,16 @@ Enable a service script to be enabled or disabled at boot (e.g.
 /sbin/chkconfig service on).
 
 =cut
-sub chkconfig($$) { undef; };
 
+sub chkconfig($$) { return undef; };
 
 =item output()
 
-return the output cache on a command
+Return the output cache on a command
 
 =cut
-sub output($$) { undef; };
 
-
-
-
+sub output($$) { return undef; };
 
 =back
 

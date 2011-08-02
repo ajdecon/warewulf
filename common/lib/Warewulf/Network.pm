@@ -25,63 +25,76 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Network- Various helper functions
-
-=head1 ABOUT
-
-The Warewulf::Network provides some additional helper functions
+Warewulf::Network - Various network-related helper functions
 
 =head1 SYNOPSIS
 
     use Warewulf::Network;
 
-=cut
+=head1 DESCRIPTION
 
+The Warewulf::Network object provides some network-related helper
+functions.
+
+=head1 METHODS
+
+=over 4
 
 =item new()
 
-Instantiate an object.  Any initializer accepted by the C<set()>
-method may also be passed to C<new()>.
+Creates and returns a new Network object.
 
 =cut
 
 sub
-new($)
+new()
 {
-    my $proto = shift;
+    my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
-    my $self = {};
 
+    $self = $class->SUPER::new();
     bless($self, $class);
 
-    return $self->init(@_);
+    return $self->init(@args);
 }
+
+=item init()
+
+(Re-)initialize an object.  Called automatically by new().
+
+=cut
 
 sub
 init()
 {
-    my ($self)  = @_;
+    my ($self, @args) = @_;
 
-    return($self);
+    return $self;
 }
-
 
 =item ipaddr($device);
 
 Return the IPv4 address of the given device name
 
 =cut
-sub ipaddr()
+
+sub
+ipaddr()
 {
     my ($self, $device) = @_;
 
     if ($device) {
         if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
             my $device_clean = $1;
-            my $socket;
-            socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-            my $buf = pack('a256', $device_clean);
-            if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+            my ($socket, $buf);
+            my @address;
+
+            if (!socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2])) {
+                &eprint("unable to create a socket:  $!\n");
+                return undef;
+            }
+            $buf = pack('a256', $device_clean);
+            if (ioctl($socket, SIOCGIFADDR(), $buf) && (@address = unpack('x20 C4', $buf))) {
                 return join('.', @address);
             }
         } else {
@@ -90,7 +103,7 @@ sub ipaddr()
     } else {
         &wprint("Called ipaddr() on device object without a device name\n");
     }
-    return();
+    return undef;
 }
 
 
@@ -99,17 +112,24 @@ sub ipaddr()
 Return the IPv4 netmask of the given device name
 
 =cut
-sub netmask()
+
+sub
+netmask()
 {
     my ($self, $device) = @_;
 
     if ($device) {
         if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
             my $device_clean = $1;
-            my $socket;
-            socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
-            my $buf = pack('a256', $device_clean);
-            if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+            my ($socket, $buf);
+            my @address;
+
+            if (!socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2])) {
+                &eprint("unable to create a socket:  $!\n");
+                return undef;
+            }
+            $buf = pack('a256', $device_clean);
+            if (ioctl($socket, SIOCGIFNETMASK(), $buf) && (@address = unpack('x20 C4', $buf))) {
                 return join('.', @address);
             }
         } else {
@@ -119,7 +139,7 @@ sub netmask()
         &wprint("Called netmask() on device object without a device name\n");
     }
 
-    return();
+    return undef;
 }
 
 
@@ -128,41 +148,45 @@ sub netmask()
 Return the IPv4 network of the given device name
 
 =cut
-sub network {
+
+sub
+network()
+{
     my ($self, $device) = @_;
 
-    return($self->calc_network($self->ipaddr($device), $self->netmask($device)));
+    return $self->calc_network($self->ipaddr($device), $self->netmask($device));
 }
-
-
 
 =item calc_network($ipaddr, $netmask)
 
 Return the IPv4 network for agiven IPv4 address and netmask
 
 =cut
-sub calc_network {
+
+sub
+calc_network()
+{
     my ($self, $ipaddr, $netmask) = @_;
 
-    if ($ipaddr and $netmask) {
+    if ($ipaddr && $netmask) {
         my $net_bin = unpack("N", inet_aton($ipaddr));
         my $mask_bin = unpack("N", inet_aton($netmask));
         my $net = $net_bin & $mask_bin;
 
-        return(inet_ntoa(pack('N',$net)));
+        return inet_ntoa(pack('N',$net));
     }
 
-    return();
+    return undef;
 }
-
-
 
 =item list_devices()
 
 Return a list of all supported network devices
 
 =cut
-sub list_devices()
+
+sub
+list_devices()
 {
     my ($self) = @_;
     my @ret;
@@ -171,36 +195,38 @@ sub list_devices()
         push(@ret, basename($devpath));
     }
 
-    return(@ret);
+    return @ret;
 }
-
-
 
 =item list_ipaddrs()
 
-Return a list of all supported network devices and their configured IP addresses
+Return a list of all configured IP addresses on the system's network devices
 
 =cut
-sub list_ipaddrs()
+
+sub
+list_ipaddrs()
 {
     my ($self) = @_;
     my @ret;
 
     foreach my $dev ($self->list_devices()) {
-        if (my $ipaddr = $self->ipaddr($dev)) {
+        my $ipaddr = $self->ipaddr($dev);
+
+        if ($ipaddr) {
             push(@ret, $ipaddr);
         }
     }
 
-    return(@ret);
+    return @ret;
 }
-
 
 =item ip_serialize($ipaddress)
 
 Convert a given IPv4 address to a serial numeric integer.
 
 =cut
+
 sub
 ip_serialize()
 {
@@ -208,21 +234,20 @@ ip_serialize()
 
     if (defined($string)) {
         if ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
-            return(unpack("N", inet_aton($string)));
+            return unpack("N", inet_aton($string));
         } elsif ($string =~ /^\d+$/) {
-            return($string)
+            return $string;
         }
     }
-
-    return();
+    return undef;
 }
-
 
 =item ip_unserialize($integer)
 
 Convert a given serialized numeric integer into a properly formatted IPv4 address.
 
 =cut
+
 sub
 ip_unserialize()
 {
@@ -230,14 +255,15 @@ ip_unserialize()
 
     if (defined($string)) {
         if ( $string =~ /^\d+$/ ) {
-            return(inet_ntoa(pack('N', $string)));
+            return inet_ntoa(pack('N', $string));
         } elsif ($string =~ /^\d+\.\d+\.\d+\.\d+$/) {
-            return($string);
+            return $string;
         }
     }
-
-    return();
+    return undef;
 }
+
+=back
 
 =head1 SEE ALSO
 

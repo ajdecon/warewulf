@@ -25,9 +25,6 @@ Warewulf::Config - Object interface to configuration paramaters
 
 =head1 ABOUT
 
-The Warewulf::Config class allows one to access configuration paramaters
-with as an object interface.
-
 =head1 SYNOPSIS
 
     use Warewulf::Config;
@@ -38,40 +35,46 @@ with as an object interface.
         print "->$entry<-\n";
     }
 
+=head1 DESCRIPTION
+
+The Warewulf::Config class allows one to access configuration paramaters
+with an object interface.
+
 =head1 FORMAT
 
-The configuration file format utilizes key value pairs seperated by an
-equal ('=') sign. There maybe multiple key value pairs as well as comma
-delimated value entries.
+The configuration file format utilizes key-value pairs separated by an
+equal sign ('='). There maybe multiple key-value pairs as well as
+comma-delimited value entries.
 
 Line continuations are allowed as long as the previous line entry ends
 with a backslash.
 
-    key value = entry one, entry two, "entry two,a"
-    key value = entry three, \
-    entry four
+Example configuration directives:
 
-Will yield the following values:
+    key = value one, value two, "value two,a"
+    key = value three, \
+          value four
 
-    entry one
-    entry two
-    entry two,a
-    entry three
-    entry four
+This will assign the following to the "key" variable:
+
+    value one
+    value two
+    value two,a
+    value three
+    value four
 
 
 =head1 METHODS
 
-=over 12
-=cut
-
+=over 4
 
 =item new($config_name)
 
-The new constructor will create the object that references configuration the
-stores. You can pass a list of configuration files that will be included in
-the object if desired. Each config will be searched for, first in the users
-home/private directory and then in the global locations.
+The new() constructor will create the object that references the
+configuration store. You can pass a list of configuration files that
+will be included in the object if desired. Each config will be
+searched for first in the user's home/private directory and then in
+the global locations.
 
 =cut
 
@@ -82,7 +85,6 @@ new()
 {
     my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
-    my $self = {};
 
     $self = $class->SUPER::new();
     bless($self, $class);
@@ -94,20 +96,22 @@ sub
 parse()
 {
     my ($self, @args) = @_;
+    my @basepaths;
 
-    my @basepaths = (
-        (getpwuid $>)[7] . "/.warewulf",
-        $Warewulf::Include::wwconfig{"SYSCONFDIR"} . "/warewulf"
+    
+    @basepaths = (
+        (getpwuid($>))[7] . "/.warewulf",
+        &wwconfig("SYSCONFDIR") . "/warewulf"
     );
 
     foreach my $file (@args) {
         if (exists($files{"$file"})) {
-            &dprint("Using cached configuration file: $file\n");
+            &dprint("Using cached configuration file:  $file\n");
         } else {
             foreach my $path (@basepaths) {
-                &dprint("Searching for file: $path/$file\n");
+                &dprint("Searching for file:  $path/$file\n");
                 if (-f "$path/$file") {
-                    &dprint("Found file: $file\n");
+                    &dprint("Found file:  $file\n");
                     if (open(FILE, "$path/$file")) {
                         while(my $line = <FILE>) {
                             chomp($line);
@@ -118,14 +122,14 @@ parse()
                             my ($key, $value) = split(/\s*=\s*/, $line, 2);
                             push(@{$files{$file}{$key}}, grep { defined($_) } &quotewords('[,\s]+', 0, $value));
                         }
-                        close FILE;
+                        close(FILE);
                     } else {
-                        &wprint("Could not open file: $path/$file: $!\n");
+                        &wprint("Could not open file $path/$file:  $!\n");
                     }
                 }
             }
         }
-        foreach my $key (keys %{$files{$file}}) {
+        foreach my $key (keys(%{$files{$file}})) {
             $self->set($key, @{$files{$file}{$key}});
         }
     }
@@ -133,10 +137,7 @@ parse()
     return($self);
 }
 
-
-=head1 SEE ALSO
-
-
+=back
 
 =head1 COPYRIGHT
 

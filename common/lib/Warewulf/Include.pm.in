@@ -15,22 +15,20 @@ $VERSION = "@VERSION@";
 
 Warewulf::Include - Warewulf base configuration paramaters
 
-=head1 ABOUT
-
-This package gets updated at build time to match the configure options
-that it was called with. Including this file will make a global
-configuration hash available (%pconfig). Below is the list of exported
-values.
-
 =head1 SYNOPSIS
 
     use Warewulf::Include;
 
-    foreach my $key ( keys %Warewulf::Include::wwconfig) {
-        print "$key: $Warewulf::Include::wwconfig{$key}\n";
+    foreach my $key (keys(%Warewulf::Include::wwconfig)) {
+        printf("$key: %s\n", &wwconfig($key));
     }
 
-=head1 CONFIGURATION:
+=head1 DESCRIPTION
+
+This module is auto-generated at build time to contain the configure
+options with which Warewulf was built. Including this file will
+provide an interface to obtain these configuration values at runtime.
+Below is a list of configuration variables supported.
 
     PROGNAME
     VERSION
@@ -40,6 +38,7 @@ values.
     LIBDIR
     DATAROOTDIR
     DATADIR
+    LIBEXECDIR
     PERLMODDIR
 
 =cut
@@ -48,16 +47,16 @@ my $prefix = "@prefix@";
 my $exec_prefix = "@exec_prefix@";
 my $datarootdir = "@datarootdir@";
 
-$wwconfig{"PROGNAME"}                        = basename($0);
-$wwconfig{"VERSION"}                         = $VERSION;
-$wwconfig{"PREFIX"}                          = "@prefix@";
-$wwconfig{"STATEDIR"}                        = "@localstatedir@";
-$wwconfig{"SYSCONFDIR"}                      = "@sysconfdir@";
-$wwconfig{"LIBDIR"}                          = "@libdir@";
-$wwconfig{"DATAROOTDIR"}                     = "@datarootdir@";
-$wwconfig{"DATADIR"}                         = "@datadir@";
-$wwconfig{"LIBEXECDIR"}                      = "@libexecdir@";
-$wwconfig{"PERLMODDIR"}                      = "@PERL_VENDORLIB@";
+$wwconfig{"PROGNAME"}         = basename($0);
+$wwconfig{"VERSION"}          = $VERSION;
+$wwconfig{"PREFIX"}           = "@prefix@";
+$wwconfig{"STATEDIR"}         = "@localstatedir@";
+$wwconfig{"SYSCONFDIR"}       = "@sysconfdir@";
+$wwconfig{"LIBDIR"}           = "@libdir@";
+$wwconfig{"DATAROOTDIR"}      = "@datarootdir@";
+$wwconfig{"DATADIR"}          = "@datadir@";
+$wwconfig{"LIBEXECDIR"}       = "@libexecdir@";
+$wwconfig{"PERLMODDIR"}       = "@PERL_VENDORLIB@";
 
 
 sub
@@ -66,10 +65,10 @@ wwconfig($)
     my $var = uc(shift);
 
     if (exists($wwconfig{"$var"})) {
-        return($wwconfig{"$var"});
+        return $wwconfig{"$var"};
     }
 
-    return();
+    return undef;
 }
 
 =head1 SEE ALSO

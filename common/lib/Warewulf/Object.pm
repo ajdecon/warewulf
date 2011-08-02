@@ -27,9 +27,6 @@ all other classes.
     $obj->set("type" => "person", "active" => 1);
     $display = $obj->to_string();
     $dbg = $obj->debug_string();
-    printf("%s is named %s\n", $display, $obj->name());
-
-    $data_store->persist($obj->serialize());
 
 =head1 DESCRIPTION
 

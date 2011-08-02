@@ -57,13 +57,17 @@ my @TARGETS;
 
 Warewulf::Logger - Log interface
 
-=head1 ABOUT
-
-The Warewulf::Logger package provides an interface for logging and output
-
 =head1 SYNOPSIS
 
     use Warewulf::Logger;
+
+=head1 DESCRIPTION
+
+The Warewulf::Logger package provides an interface for logging and output.
+
+=head1 FUNCTIONS
+
+=over 4
 
 =item get_log_level()
 
@@ -232,6 +236,7 @@ Log a message at a given log (i.e., severity/verbosity) level (with
 format).
 
 =cut
+
 sub
 lprintf
 {
@@ -255,6 +260,7 @@ Log a message at the CRITICAL log level (without format).
 Log a message at the CRITICAL log level (with format).
 
 =cut
+
 sub cprint {return lprint($WWLOG_CRITICAL, @_);}
 sub cprintf {return lprintf($WWLOG_CRITICAL, @_);}
 
@@ -267,6 +273,7 @@ Log a message at the ERROR log level (without format).
 Log a message at the ERROR log level (with format).
 
 =cut
+
 sub eprint {return lprint($WWLOG_ERROR, @_);}
 sub eprintf {return lprintf($WWLOG_ERROR, @_);}
 
@@ -279,6 +286,7 @@ Log a message at the WARNING log level (without format).
 Log a message at the WARNING log level (with format).
 
 =cut
+
 sub wprint {return lprint($WWLOG_WARNING, @_);}
 sub wprintf {return lprintf($WWLOG_WARNING, @_);}
 
@@ -291,6 +299,7 @@ Log a message at the NOTICE log level (without format).
 Log a message at the NOTICE log level (with format).
 
 =cut
+
 sub nprint {return lprint($WWLOG_NOTICE, @_);}
 sub nprintf {return lprintf($WWLOG_NOTICE, @_);}
 
@@ -303,6 +312,7 @@ Log a message at the INFO log level (without format).
 Log a message at the INFO log level (with format).
 
 =cut
+
 sub iprint {return lprint($WWLOG_INFO, @_);}
 sub iprintf {return lprintf($WWLOG_INFO, @_);}
 
@@ -315,9 +325,11 @@ Log a message at the DEBUG log level (without format).
 Log a message at the DEBUG log level (with format).
 
 =cut
+
 sub dprint {return lprint($WWLOG_DEBUG, @_);}
 sub dprintf {return lprintf($WWLOG_DEBUG, @_);}
 
+=back
 
 =head1 SEE ALSO
 

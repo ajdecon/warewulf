@@ -18,29 +18,33 @@ my %modules;
 
 =head1 NAME
 
-Warewulf::SystemFactory - This will automatically load the appropriate System
-(Data Store Object) on an as needed basis.
-
-=head1 ABOUT
-
+Warewulf::SystemFactory - Factory class for Warewulf::System objects
 
 =head1 SYNOPSIS
 
     use Warewulf::SystemFactory;
 
-    my $obj = Warewulf::SystemFactory->new($type);
+    my $sys = Warewulf::SystemFactory->new($type);
+
+=head1 DESCRIPTION
+
+This class is a factory for Warewulf::System objects.
+
+=head1 METHODS
+
+=over 4
 
 =item new()
 
-Create the object.
+Create and return a System instance of the requested type.
 
 =cut
+
 sub
 new($$)
 {
-    my $proto = shift;
-    my $type = shift;
-    my $mod_name;
+    my ($proto, $type) = @_;
+    my ($mod_name, $obj);
 
     if (! $type) {
         if (-f "/etc/redhat-release") {
@@ -48,9 +52,9 @@ new($$)
         }
     }
 
-    $mod_name = "Warewulf::System::". ucfirst(lc($type));
+    $mod_name = "Warewulf::System::" . ucfirst(lc($type));
 
-    if (! exists($modules{$mod_name})) {
+    if (!exists($modules{$mod_name})) {
         &dprint("Loading object name: $mod_name\n");
         eval "require $mod_name";
         if ($@) {
@@ -62,18 +66,18 @@ new($$)
 
     &dprint("Getting a new object from $mod_name\n");
 
-    my $obj = eval "$mod_name->new(\@_)";
+    $obj = eval "$mod_name->new(\@_)";
 
     &dprint("Got an object: $obj\n");
 
-    return($obj);
+    return $obj;
 }
 
 =back
 
 =head1 SEE ALSO
 
-Warewulf::Object, Warewulf::ObjectSet
+Warewulf::System
 
 =head1 COPYRIGHT
 

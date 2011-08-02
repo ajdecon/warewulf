@@ -17,10 +17,7 @@ use File::Basename;
 
 =head1 NAME
 
-Warewulf::ModuleLoader - Database interface
-
-=head1 ABOUT
-
+Warewulf::ModuleLoader - Dynamically load modules by type
 
 =head1 SYNOPSIS
 
@@ -28,9 +25,20 @@ Warewulf::ModuleLoader - Database interface
 
     my $obj = Warewulf::ModuleLoader->new($type);
 
-=item new()
+=head1 DESCRIPTION
 
-Create the object.
+This object is responsible for dynamically loading a particular type
+of Warewulf modules (given by the parameter to the new() constructor).
+
+=head1 METHODS
+
+=over 4
+
+=item new($type)
+
+Creates the ModuleLoader object, loads all modules of type $type, and
+returns the resultant object.  The type will be something like "Cli"
+and represents a subdirectory of a Warewulf module tree.
 
 =cut
 
@@ -48,7 +56,7 @@ new($)
     if (exists($ENV{"WWMODPATH"})) {
         if ($ENV{"WWMODPATH"} =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
             push(@INC, $1);
-            &dprint("WWMODPATH: Adding $1 to \@INC\n");
+            &dprint("WWMODPATH:  Adding $1 to \@INC\n");
         } else {
             &eprint("WWMODPATH is tainted!\n");
         }
@@ -57,31 +65,31 @@ new($)
     if (!exists($self->{"MODULES"})) {
         foreach my $path (@INC) {
             if ($path =~/^(\/[a-zA-Z0-9_\-\/\.]+)$/) {
-                &dprint("Module load path: $path\n");
+                &dprint("Module load path:  $path\n");
                 foreach my $file (glob("$path/Warewulf/Module/$type/*.pm")) {
                     if ($file =~ /^([a-zA-Z0-9_\-\/\.]+)$/) {
                         my $file_clean = $1;
                         my ($name, $tmp, $keyword);
 
-                        $name = "Warewulf::Module::". $type ."::". basename($file_clean);
+                        $name = "Warewulf::Module::${type}::" . basename($file_clean);
                         $name =~ s/\.pm$//;
 
-                        if (! exists($loaded{"$name"})) {
-                            &dprint("Module load file: $file_clean\n");
+                        if (!exists($loaded{"$name"})) {
+                            &dprint("Module load file:  $file_clean\n");
                             eval {
                                 require $file_clean;
                             };
                             if ($@) {
-                                &wprint("Caught error on module load: $@\n");
+                                &wprint("Caught error on module load:  $@\n");
                             }
 
                             $tmp = eval "$name->new()";
                             if ($tmp) {
                                 push(@{$self->{"MODULES"}}, $tmp);
-                                &dprint("Module load success: Added module $name\n");
+                                &dprint("Module load success:  Added module $name\n");
                                 $loaded{"$name"} = $file;
                             } else {
-                                &wprint("Module load error: Could not invoke $name->new(): $@\n");
+                                &wprint("Module load error:  Could not invoke $name->new():  $@\n");
                             }
                         } else {
                             &dprint("Module $name ($loaded{$name}) already loaded\n");
@@ -96,26 +104,28 @@ new($)
         }
     }
 
-    return($self);
+    return $self;
 }
 
-=item list($keyword)
+=item list([$keyword])
 
+Returns a list of references to loaded modules which own the keyword
+$keyword.  If $keyword is omitted, returns all modules loaded.
 
 =cut
+
 sub
 list($$)
 {
-    my $self = shift;
-    my $keyword = shift;
+    my ($self, $keyword) = @_;
     my @ret;
 
     if ($keyword) {
-        &dprint("Module list: looking for keyword: $keyword\n");
+        &dprint("ModuleLoader::list():  Looking for keyword \"$keyword\"\n");
         if (exists($self->{"MODULES"})) {
             foreach my $obj (@{$self->{"MODULES"}}) {
                 if ($obj->keyword() eq $keyword) {
-                    &dprint("Found object: $obj\n");
+                    &dprint("Found object $obj\n");
                     push(@ret, $obj);
                 }
             }
@@ -127,10 +137,8 @@ list($$)
         }
     }
 
-    return(@ret);
+    return @ret;
 }
-
-
 
 =back
 

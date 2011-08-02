@@ -21,30 +21,30 @@ my $singleton;
 
 =head1 NAME
 
-Warewulf::Term - Warewulf's general object instance object interface.
-
-=head1 ABOUT
-
+Warewulf::Term - Warewulf terminal control object
 
 =head1 SYNOPSIS
 
     use Warewulf::Term;
 
-    my $obj = Warewulf::Term->new();
+    my $term = Warewulf::Term->new();
+    $term->history_load("/path/to/history")
 
+=head1 DESCRIPTION
+
+This object manages terminal interaction, command history, etc. using
+the Term::ReadLine Perl module.
 
 =head1 METHODS
 
-=over 12
-=cut
-
+=over 4
 
 =item new()
 
-The new constructor will create the object that references configuration the
-stores.
+Create and return a Term object instance.
 
 =cut
+
 sub
 new($$)
 {
@@ -78,6 +78,7 @@ new($$)
 Read and initilize terminal with previous history
 
 =cut
+
 sub
 history_load()
 {
@@ -94,7 +95,7 @@ history_load()
         }
     }
 
-    return();
+    return;
 }
 
 
@@ -105,6 +106,7 @@ will automatically save to the same file name that was used when initalized
 with history_load().
 
 =cut
+
 sub
 history_save()
 {
@@ -130,15 +132,15 @@ history_save()
         }
     }
 
-    return();
+    return;
 }
-
 
 =item history_add()
 
 Add a string to the history
 
 =cut
+
 sub
 history_add($)
 {
@@ -150,14 +152,105 @@ history_add($)
         }
     }
 
-    return($set);
+    return $set;
 }
 
-=item auto_complete()
+=item complete($keyword, $objecthandler)
 
-auto_complete internal static function
+Pass a keyword and an object handler to be called on tab completion
 
 =cut
+
+sub
+complete()
+{
+    my ($self, $keyword, $object) = @_;
+
+    &dprint("Adding keyword '$keyword' to complete\n");
+
+    if ($keyword && $object) {
+        push(@{$self->{"COMPLETE"}{"$keyword"}}, $object);
+    }
+}
+
+=item interactive($is_interactive)
+
+Test to see if the terminal is interactive. If you pass a "1" or "0"
+to it you can override the default behavior and make it so that it
+will return true or false for subsequent calls (respectively).
+
+=cut
+
+sub
+interactive($)
+{
+    my ($self, $interactive) = @_;
+
+    if (defined($interactive)) {
+        if ($interactive eq "1") {
+            $self->{"INTERACTIVE"} = 1;
+        } elsif ($interactive eq "0") {
+            $self->{"INTERACTIVE"} = undef;
+        }
+    }
+
+    return $self->{"INTERACTIVE"};
+}
+
+=item get_input($prompt, $array_ref_of_completions)
+
+Get input from the user. If the array of potential completions are
+given then the first entry will be considered the default.
+
+=cut
+
+sub
+get_input($)
+{
+    my ($self, $prompt, @completions) = @_;
+    my $attribs = $self->{"TERM"}->Attribs;
+    my $ret;
+
+    if ($self->interactive) {
+        if (@completions) {
+            @{$self->{"ARRAY"}} = @completions;
+        }
+        $ret = $self->{"TERM"}->readline($prompt);
+        if (@completions) {
+            delete($self->{"ARRAY"});
+        }
+
+        if (! $ret && exists($completions[0])) {
+            $ret = $completions[0];
+        }
+
+        if ($ret) {
+            $ret =~ s/^\s+//;
+            $ret =~ s/\s+$//;
+        }
+    } else {
+        $ret = $completions[0];
+    }
+
+    return $ret;
+}
+
+=back
+
+=head1 SEE ALSO
+
+Warewulf::Object
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001-2003 Gregory M. Kurtzer
+
+Copyright (c) 2003-2011, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+=cut
+
 sub
 auto_complete()
 {
@@ -176,95 +269,14 @@ auto_complete()
             }
         }
     } elsif (exists($self->{"COMPLETE"})) {
-        foreach my $keyword (sort keys %{$self->{"COMPLETE"}}) {
+        foreach my $keyword (sort(keys(%{$self->{"COMPLETE"}}))) {
             push(@ret, $keyword);
         }
     }
 
-    return(@ret);
+    return @ret;
 }
 
-
-=item complete($keyword, $objecthandler)
-
-Pass a keyword and an object handler to be called on tab completion
-
-=cut
-sub
-complete()
-{
-    my ($self, $keyword, $object) = @_;
-
-    &dprint("Adding keyword '$keyword' to complete\n");
-
-    if ($keyword and $object) {
-        push(@{$self->{"COMPLETE"}{"$keyword"}}, $object);
-    }
-}
-
-
-
-=item interactive($is_interactive)
-
-Test to see if the terminal is interactive. If you pass a "1" or "0" to it you
-can override the default behavior and make it so that it will return true or
-false for subsequent calls (respectively).
-
-=cut
-sub
-interactive($)
-{
-    my ($self, $interactive) = @_;
-
-    if (defined($interactive)) {
-        if ($interactive eq "1") {
-            $self->{"INTERACTIVE"} = 1;
-        } elsif ($interactive eq "0") {
-            $self->{"INTERACTIVE"} = undef;
-        }
-    }
-
-    return($self->{"INTERACTIVE"});
-}
-
-
-=item get_input($prompt, $array_ref_of_completions)
-
-Get input from the user. If the array of potential completions are given then
-the first entry will be considered the default.
-
-=cut
-sub
-get_input($)
-{
-    my ($self, $prompt, @completions) = @_;
-    my $attribs = $self->{"TERM"}->Attribs;
-    my $ret;
-
-    if ($self->interactive) {
-
-        if (@completions) {
-            @{$self->{"ARRAY"}} = @completions;
-        }
-        $ret = $self->{"TERM"}->readline($prompt);
-        if (@completions) {
-            delete($self->{"ARRAY"});
-        }
-
-        if (! $ret and exists($completions[0])) {
-            $ret = $completions[0];
-        }
-
-        if ($ret) {
-            $ret =~ s/^\s+//;
-            $ret =~ s/\s+$//;
-        }
-    } else {
-        $ret = $completions[0];
-    }
-
-    return($ret);
-}
 
 
 ## Initial tests
@@ -275,23 +287,5 @@ get_input($)
 #
 #print "->$out<-\n";
 #
-
-
-=back
-
-=head1 SEE ALSO
-
-Warewulf::Object
-
-=head1 COPYRIGHT
-
-Copyright (c) 2001-2003 Gregory M. Kurtzer
-
-Copyright (c) 2003-2011, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of any
-required approvals from the U.S. Dept. of Energy).  All rights reserved.
-
-=cut
-
 
 1;

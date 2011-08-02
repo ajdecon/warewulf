@@ -19,28 +19,30 @@ our @ISA = ('Warewulf::Object');
 
 Warewulf::DSO - Warewulf's DSO (Data Store Object) base class
 
-=head1 ABOUT
-
-
 =head1 SYNOPSIS
 
-    use Warewulf::DSO;
+    our @ISA = ('Warewulf::DSO');
 
-    my $obj = Warewulf::DSO->new();
+=head1 DESCRIPTION
 
+Objects which are to be persisted to (and subsequently pulled from)
+the Warewulf Data Store should inherit from the Warewulf::DSO parent
+class.  This class should never be directly instantiated.
 
 =head1 METHODS
 
-=over 12
-=cut
-
+=over 4
 
 =item new()
 
-The new constructor will create the object that references configuration the
-stores.
+The new method is the constructor for this object.  It will create an
+object instance and return it to the caller.
+
+NOTE:  This method should only ever be called as SUPER::new() by a
+derived class; there should never be a direct instance of this class.
 
 =cut
+
 sub
 new($$)
 {
@@ -54,13 +56,13 @@ new($$)
     return $self->init(@_);
 }
 
-
 =item type()
 
-Return a string that defines this object type as it will be stored in the
-datastore.
+Returns a string that defines this object type as it will be stored in
+the datastore.
 
 =cut
+
 sub
 type($)
 {
@@ -70,34 +72,34 @@ type($)
 
     if ($type eq "DSO") {
         if (my $given_type = $self->get("type")) {
-            return(lc($given_type));
+            return lc($given_type);
         } else {
-            return("unknown");
+            return "unknown";
         }
     }
-    return(lc($type));
+    return lc($type);
 }
-
 
 =item lookups()
 
 Return a list of lookup names for this DSO type.
 
 =cut
+
 sub
 lookups($)
 {
     my $self = shift;
 
-    return("_ID", "NAME");
+    return ("_ID", "NAME");
 }
-
 
 =item persist()
 
 Persist this object into the datastore
 
 =cut
+
 sub
 persist($)
 {
@@ -106,7 +108,6 @@ persist($)
 
     $datastore->persist($self);
 }
-
 
 =back
 

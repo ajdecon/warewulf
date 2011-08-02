@@ -15,7 +15,7 @@ use Warewulf::Logger;
 
 use Exporter;
 use File::Basename;
-use Digest::MD5 qw(md5_hex);
+use Digest::MD5 ('md5_hex');
 
 our @ISA = ('Exporter');
 
@@ -31,77 +31,72 @@ our @EXPORT = (
 
 =head1 NAME
 
-Warewulf::Util- Various helper functions
-
-=head1 ABOUT
-
-The Warewulf::Util provides some additional helper functions
+Warewulf::Util - Various helper functions
 
 =head1 SYNOPSIS
 
     use Warewulf::Util;
 
+=head1 DESCRIPTION
+
+This module contains various utility functions used throughout the
+Warewulf code.
+
+=head1 FUNCTIONS
+
+=over 4
 
 =item rand_string(length)
 
 Generate a random string of a given length
 
 =cut
+
 sub
 rand_string($)
 {
-   my $size             = (shift || "8" ) - 1;
-   my @alphanumeric     = ('a'..'z', 'A'..'Z', 0..9);
-   my $randstring       = join '', map $alphanumeric[rand @alphanumeric], 0..$size;
+    my $size;
+    my @alphanumeric = ('a'..'z', 'A'..'Z', 0..9);
 
-   return $randstring;
+    if (scalar(@_)) {
+        $size = $_[0] - 1;
+    } else {
+        $size = 7;
+    }
+
+    return join('', map { $alphanumeric[rand @alphanumeric] } 0..$size);
 }
-
-
 
 =item croak()
 
-Die with a backtrace
+Die with a backtrace.
 
 =cut
+
 sub
 croak()
 {
-    my $file             = ();
-    my $line             = ();
-    my $subroutine       = ();
-    my $i                = ();
-    my @tmp              = ();
+    my ($file, $line, $subroutine, $i);
+    my @tmp;
 
     print "Program has croaked!\n\n";
 
-    if (get_log_level() == DEBUG) {
-        print STDERR "STACK TRACE:\n";
-        print STDERR "------------\n";
-        for ($i = 1; @tmp = caller($i); $i++) {
-            $subroutine = $tmp[3];
-            (undef, $file, $line) = caller($i);
-            $file =~ s/^.*\/([^\/]+)$/$1/;
-            print STDERR '      ', ' ' x $i, "$subroutine() called at $file:$line\n";
-        }
-        print STDERR "\n";
-    }
+    &backtrace();
 
     exit(255);
 }
-
 
 =item progname()
 
 Return the program name of this running instance
 
 =cut
+
 sub
 progname()
 {
-    return(basename($0));
+    return basename($0);
 }
-
 
 =item expand_bracket($range1, $range2)
 
@@ -110,6 +105,7 @@ that has that expanded into a full array. For example, n00[0-19] will return
 an array of 20 entries.
 
 =cut
+
 sub
 expand_bracket(@)
 {
@@ -126,15 +122,18 @@ expand_bracket(@)
                 if ($r =~ /^([0-9]+)\-([0-9]+)$/) {
                     my $start = $1;
                     my $end = $2;
+
                     if ($end > $start) {
                         my $len = length($end);
-                        for(my $i=$start; $i<=$end; $i++) {
+
+                        for (my $i = $start; $i <= $end; $i++) {
                             push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
                         }
                     }
                 } elsif ($r =~ /^([0-9]+)$/ ) {
                     my $num = $1;
                     my $len = length($num);
+
                     push(@ret, sprintf("%s%0.${len}d%s", $prefix, $num, $suffix));
                 }
             }
@@ -144,9 +143,8 @@ expand_bracket(@)
 
     }
 
-    return(@ret);
+    return @ret;
 }
-
 
 =item uid_test($uid)
 
@@ -154,18 +152,18 @@ Test to see if the current uid meets the passed uid: e.g. &uid_test(0) will
 test for the root user (which is always UID zero on a Unix system).
 
 =cut
+
 sub
 uid_test()
 {
     my ($uid) = @_;
 
     if (defined($uid)) {
-        return($> == $uid);
+        return ($> == $uid);
     }
 
     return;
 }
-
 
 =item ellipsis($length, $string, $location)
 
@@ -174,17 +172,20 @@ string is longer then allowed. Location will define where to place the
 '...' within the string. Options are start, middle, end (default: middle).
 
 =cut
-sub ellipsis($$)
+
+sub
+ellipsis($$)
 {
     my ($length, $text, $location) = @_;
     my $actual_length = length($text);
     my $ret;
 
     if ($actual_length > $length) {
-        if (! $location or $location eq "middle") {
+        if (! $location || $location eq "middle") {
             my $leader_length = sprintf("%d", ($length-3)/2);
             my $tail_length = $length - 3 - $leader_length;
-            $ret = substr($text, 0, $leader_length) ."...". substr($text, -$tail_length);
+
+            $ret = substr($text, 0, $leader_length) . "..." . substr($text, -$tail_length);
         } elsif ($location eq "end") {
             $ret = substr($text, 0, $length-3);
             $ret .= "...";
@@ -195,16 +196,15 @@ sub ellipsis($$)
     } else {
         $ret = $text;
     }
-
-    return($ret);
+    return $ret;
 }
-
 
 =item digest_file_hex_md5($filename)
 
 Return the MD5 checksum of the file specified in $filename
 
 =cut
+
 sub digest_file_hex_md5($)
 {
     my ($filename) = @_;
@@ -217,10 +217,7 @@ sub digest_file_hex_md5($)
     }
 }
 
-
-=head1 SEE ALSO
-
-Warewulf
+=back
 
 =head1 COPYRIGHT
 

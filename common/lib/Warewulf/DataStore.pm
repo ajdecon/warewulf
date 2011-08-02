@@ -16,97 +16,148 @@ use Warewulf::Config;
 use Warewulf::DataStore::SQL;
 use DBI;
 
-
 =head1 NAME
 
-Warewulf::DataStore - Database interface
-
-=head1 ABOUT
-
-The Warewulf::DataStore interface simplies typically used DB calls and operates on
-Warewulf::Objects and Warewulf::ObjectSets for simplistically integrating
-with native Warewulf code.
+Warewulf::DataStore - Interface to backend data store
 
 =head1 SYNOPSIS
 
     use Warewulf::DataStore;
 
-    print "creating new object\n";
-    my $db = Warewulf::DataStore::SQL::MySQL->new();
-    my $entity = $db->new_object();
+    print "Creating DataStore interface object\n";
+    my $ds = Warewulf::DataStore->new();
+    my $entity = $ds->new_object();
 
-    print "Setting some stuffs\n";
+    print "Setting some stuff\n";
     $entity->set("name", "gmk00");
 
-    print "persisting\n";
-    $db->persist($entity);
+    print "Persisting object\n";
+    $ds->persist($entity);
 
-    print "adding lookups\n";
-    $db->add_lookup($entity, "node", "name", "gmk00");
-    $db->add_lookup($entity, "node", "status", "READY");
+    print "Adding lookups\n";
+    $ds->add_lookup($entity, "node", "name", "gmk00");
+    $ds->add_lookup($entity, "node", "status", "READY");
 
-    print "Getting stuffs\n";
-
-    my $objectSet = $db->get_objects("node", "name", "gmk00");
-    foreach my $o ( $objectSet->get_list() ) {
+    print "Getting stuff\n";
+    my $objectSet = $ds->get_objects("node", "name", "gmk00");
+    foreach my $o ($objectSet->get_list()) {
         print "name: ". $o->get("name") ."\n";
     }
 
+=head1 DESCRIPTION
+
+Warewulf uses an abstract data store to persist and retrieve the
+objects it uses to represent the various components of the systems it
+manages.  This class represents an instance of that data store, and
+its methods are used to store and retrieve objects as well as specify
+how those objects may be identified uniquely within the data store.
+
+=head1 METHODS
+
+=over 4
 
 =item new()
 
-Create the object.
+Create the object that will act as the interface to the data store.
+The specific data store implementation to be used is determined by
+configuration ("database type" in C<database.conf>).
 
 =cut
+
 sub
 new($$)
 {
     my $proto = shift;
     my $config = Warewulf::Config->new("database.conf");
-    my $db_engine = $config->get("database type") || "sql";
+    my $ds_engine = $config->get("database type") || "sql";
 
-    if ($db_engine eq "sql") {
+    if ($ds_engine eq "sql") {
         return(Warewulf::DataStore::SQL->new(@_));
     } else {
-        &eprint("Could not load DB type: $db_engine\n");
+        &eprint("Could not load DS type \"$ds_engine\"\n");
         exit 1;
     }
 
     return();
 }
 
-=item get_objects($type, $field, @sstrings_to_match)
+=item get_objects($type, $field, $match_string_1, [...])
 
-Return a Warewulf::ObjectSet that includes all of the matched Warewulf::Objects
-for the given criteria.
+Return a Warewulf::ObjectSet that includes all of the matched Warewulf::Object
+instances for the given criteria.
+
+=cut
+
+sub
+get_objects()
+{
+    return undef;
+}
 
 =item new_object()
 
 Return a single Warewulf::Object. This is a necessary step if you wish for the
 objects that you are dealing with to be persisted because this will reserve a
-place in the DataStore for this empty Object.
+place in the DataStore for the empty Object.
 
-=item persist($entity)
+=cut
 
-This will persist an ObjectSet or a single Object to the DataStore. By default
-certain fields if they exist within each Object will automatically create
-lookup entries if that is needed for the DataStore backend you are using.
+sub
+new_object()
+{
+    return undef;
+}
 
-=item add_lookup($entity, $type, $field, $value)
+=item persist($object)
 
+Persist an Object (or group of Objects in an ObjectSet) to the
+DataStore. By default, if they exist, certain fields within each
+Object will automatically generate lookup entries as well.
 
-=item del_lookup($entity [, $type, $field, $value])
+=cut
 
-This will delete lookup entities. The Object entitiy is required, but the
-other arguments are optional. If they are not passed, then they will not
-be used in the comparasion on if that lookup is deleted. Thus the more
-arguments you have (left to right), the finer granularity you can remove.
+sub
+persist($)
+{
+    return undef;
+}
+
+=item add_lookup($object, $type, $field, $value)
+
+Add a lookup entry to the DataStore for the specified object.  Queries
+for objects of type $type whose $field value is $value will return
+$object.
+
+=cut
+
+sub
+add_lookup($$$$)
+{
+    return undef;
+}
+
+=item del_lookup($object, [$type, [$field, [$value]]])
+
+This will delete lookup entries. The Object is required, but the other
+arguments are optional. Any arguments not supplied will not be used to
+determine which lookup(s) are deleted. The more arguments you supply,
+the finer the granularity with which you can specify what to
+remove. If only the object instance is supplied, all lookups for that
+object will be removed.
+
+=cut
+
+sub
+del_lookup()
+{
+    return undef;
+}
 
 =back
 
 =head1 SEE ALSO
 
-Warewulf::Object Warewulf::ObjectSet
+Warewulf::Object, Warewulf::ObjectSet
 
 =head1 COPYRIGHT
 
@@ -117,7 +168,6 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
-
 
 
 

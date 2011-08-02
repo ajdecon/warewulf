@@ -20,14 +20,17 @@ our @EXPORT = ('&caller_fixed', '&get_backtrace', '&backtrace');
 
 Warewulf::Debug - Debugging functions
 
-=head1 ABOUT
-
-The Warewulf::Debug provides debugging functions
-
 =head1 SYNOPSIS
 
     use Warewulf::Debug;
 
+=head1 DESCRIPTION
+
+The Warewulf::Debug provides debugging functions
+
+=head1 FUNCTIONS
+
+=over 4
 
 =item caller_fixed()
 
@@ -86,6 +89,7 @@ get_backtrace()
 Throw a backtrace at the current location in the code.
 
 =cut
+
 sub
 backtrace()
 {
@@ -94,6 +98,7 @@ backtrace()
     print STDERR &get_backtrace(1), "\n";
 }
 
+=back
 
 =head1 SEE ALSO
 

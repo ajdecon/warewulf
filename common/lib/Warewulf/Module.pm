@@ -11,14 +11,13 @@
 package Warewulf::Module;
 
 use Warewulf::Object;
-use Warewulf::Logger;
 
 our @ISA = ('Warewulf::Object');
 
 
 =head1 NAME
 
-Warewulf::Module - 
+Warewulf::Module - Warewulf module base class
 
 =head1 SYNOPSIS
 
@@ -26,34 +25,63 @@ Warewulf::Module -
 
 =head1 DESCRIPTION
 
-    Mooooo
+    This class acts as a base (parent) class for all other module
+    classes.  All modules should derive (directly or indirectly) from
+    Warewulf::Module.
 
 =head1 METHODS
 
 =over 4
 
-=item keyword()
+=item new()
 
-Prints the keyword that this module will respond for.
+Creates and returns a new Module object.
 
 =cut
+
+sub
+new()
+{
+    my ($proto, @args) = @_;
+    my $class = ref($proto) || $proto;
+
+    $self = $class->SUPER::new();
+    bless($self, $class);
+
+    return $self->init(@args);
+}
+
+=item init()
+
+(Re-)initialize an object.  Called automatically by new().
+
+=cut
+
+sub
+init()
+{
+    my ($self, @args) = @_;
+
+    return $self;
+}
+
+=item keyword()
+
+Returns the keyword for which this module will be responsible.
+
+=cut
+
 sub
 keyword()
 {
     my $self = shift;
     my $keyword = ref($self);
-    $keyword =~ s/^.+:://;
 
-    return(lc($keyword));
+    $keyword =~ s/^.+:://;
+    return lc($keyword);
 }
 
-=item init()
-
-Initialization when this module gets called
-
-=cut
-sub init() { };
-
+=back
 
 =head1 SEE ALSO
 

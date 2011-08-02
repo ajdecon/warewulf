@@ -15,15 +15,12 @@ use Warewulf::Logger;
 use File::Basename;
 
 my %events;
-my $disable;
-my $events_loaded;
+my $disable = 0;
+my $events_loaded = 0;
 
 =head1 NAME
 
-Warewulf::EventHandler - Database interface
-
-=head1 ABOUT
-
+Warewulf::EventHandler - Event loader/handler
 
 =head1 SYNOPSIS
 
@@ -39,41 +36,25 @@ Warewulf::EventHandler - Database interface
         print STDERR "Arguments: @arguments\n";
     }
 
+    # Register event handler
     $obj->register("error.print", \&event_callback);
 
-TRIGGERING EVENTS:
-
-    use Warewulf::EventHandler;
-
-    my $obj = Warewulf::EventHandler->new();
-
+    # Trigger event
     $obj->eventloader();
     $obj->handle("error.print", "arg1", "arg2");
 
-API registration recommendation:
+=head1 DESCRIPTION
 
-    There is nothing limiting this API to what is defined here but this is
-    a sane starting point as to what events should be used.
+This object loads all available events and is subsequently used to
+trigger event handlers when events occur.
 
-    Event string        Argument list
+=head1 METHODS
 
-    node.boot           node_object
-    node.down           node_object
-    node.add            node_object
-    node.modify         node_object
-    node.ready          node_object
-    node.error          node_object
-    node.warning        node_object
-    program.start
-    program.exit
-    program.error
-    [appname].start
-    [appname].exit
-    [appname].error
+=over 4
 
 =item new()
 
-Create the object.
+Create and return an EventHandler object.
 
 =cut
 
@@ -81,7 +62,6 @@ sub
 new($)
 {
     my $proto = shift;
-    my $type = shift;
     my $class = ref($proto) || $proto;
     my $self = {};
 
@@ -89,8 +69,14 @@ new($)
 
     &dprint("Created new EventHandler object\n");
 
-    return($self);
+    return $self;
 }
+
+=item eventloader()
+
+Loads all the event objects (modules).
+
+=cut
 
 sub
 eventloader()
@@ -110,7 +96,7 @@ eventloader()
                         my $file_clean = $1;
                         my ($name, $tmp, $keyword);
 
-                        $name = "Warewulf::Event::". basename($file_clean);
+                        $name = "Warewulf::Event::" . basename($file_clean);
                         $name =~ s/\.pm$//;
 
                         &iprint("Loading event handler: $name\n");
@@ -135,16 +121,16 @@ eventloader()
 Subscribe an event callback by its trigger name
 
 =cut
+
 sub
 register()
 {
     my ($self, $event, $func_ref) = @_;
     my $event_name = uc($event);
 
-    &dprint("Registering event '$event' for ". ref($self) ."\n");
-
+    &dprint("Registering event '$event' for " . ref($self) . "\n");
     push(@{$events{"$event_name"}}, $func_ref);
-
+    return scalar(@{$events{"$event_name"}});
 }
 
 
@@ -153,6 +139,7 @@ register()
 Disable all events
 
 =cut
+
 sub
 disable()
 {
@@ -169,12 +156,13 @@ Enable all events (this is the default, so it toggles back on after
 disable() has been called).
 
 =cut
+
 sub
 enable()
 {
     my ($self) = @_;
 
-    $disable = undef;
+    $disable = 0;
 
 }
 
@@ -184,6 +172,7 @@ enable()
 Run all of the events that have registered the defined trigger name
 
 =cut
+
 sub
 handle()
 {
@@ -202,8 +191,8 @@ handle()
             &dprint("No events registered for: $event_name\n");
         }
         if ($event_name =~ /^([^\.]+)\.([^\.]+)$/) {
-            my $type = $1;
-            my $action = $2;
+            my ($type, $action) = ($1, $2);
+
             if (exists($events{"$type.*"})) {
                 &dprint("Handling events for '$type.*'\n");
                 foreach my $func (@{$events{"$type.*"}}) {
@@ -222,12 +211,32 @@ handle()
     }
 }
 
-
 =back
+
+=head1 API RECOMMENDATION
+
+There is nothing limiting this API to what is defined here but this is
+a sane starting point as to what events should be used.
+
+Event string        Argument list
+
+node.boot           node_object
+node.down           node_object
+node.add            node_object
+node.modify         node_object
+node.ready          node_object
+node.error          node_object
+node.warning        node_object
+program.start
+program.exit
+program.error
+[appname].start
+[appname].exit
+[appname].error
 
 =head1 SEE ALSO
 
-Warewulf::Module
+Warewulf::Event
 
 =head1 COPYRIGHT
 

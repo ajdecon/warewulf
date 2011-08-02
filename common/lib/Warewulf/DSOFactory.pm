@@ -50,23 +50,32 @@ BEGIN {
 
 =head1 NAME
 
-Warewulf::DSOFactory - This will automatically load the appropriate DSO
-(Data Store Object) on an as needed basis.
-
-=head1 ABOUT
-
+Warewulf::DSOFactory - Instantiate Data Store Objects (DSOs)
 
 =head1 SYNOPSIS
 
     use Warewulf::DSOFactory;
 
-    my $obj = Warewulf::DSOFactory->new($type);
+    my $foo = Warewulf::DSOFactory->new("foo");
 
-=item new()
+=head1 DESCRIPTION
 
-Create the object.
+This factory object instantiates the requested Data Store Object (DSO)
+by name and returns a reference to the instance created.
+
+=head1 METHODS
+
+=over 4
+
+=item new(type)
+
+The new() method will return an instance of the specified DSO type.
+All available DSO class files are dynamically loaded at runtime, and
+the desired type is specified by its basename.  For example, specify
+"node" to create an instance of a Warewulf::DSO::Node object.
 
 =cut
+
 sub
 new($$)
 {
@@ -74,19 +83,18 @@ new($$)
     my $type = shift;
     my $obj;
 
-    if ( $type =~ /^([a-zA-Z0-9\-_\.]+)$/ ) {
+    if ($type =~ /^([a-zA-Z0-9\-_\.]+)$/) {
         my $name = uc($1);
 
         if (exists($classes{"$name"})) {
             $obj = $classes{"$name"}->new(@_);
         } else {
-            &iprint("Could not load DataStore object class for type '$name', loading a DSO baseclass instead!\n");
+            &iprint("DSO type \"$type\" does not exist, instantiating DSO base class instead!\n");
             $obj = Warewulf::DSO->new(@_);
         }
-
-        &dprint("Got an object: $obj\n");
+        &dprint("Got an object:  $obj\n");
     } elsif ($type) {
-        &eprint("Illegal character in mod_name type: $type\n");
+        &eprint("Illegal character in object type:  $type\n");
     } else {
         &eprint("DSOFactory called without type!\n");
     }

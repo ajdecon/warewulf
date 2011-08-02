@@ -20,35 +20,34 @@ our @ISA = ('Warewulf::Object');
 
 Warewulf::ObjectSet - Warewulf's object set interface.
 
-=head1 ABOUT
-
-
 =head1 SYNOPSIS
 
     use Warewulf::ObjectSet;
 
     my $obj = Warewulf::ObjectSet->new();
 
+=head1 DESCRIPTION
+
+An ObjectSet is a convenient, object-oriented container for holding an
+arbitrary collection of Objects.  Its most common/notable use is in
+the DataStore:  return values for queries to the DataStore will be in
+the form of ObjectSets.
 
 =head1 METHODS
 
-=over 12
-=cut
-
+=over 4
 
 =item new()
 
-The new constructor will create the object that references configuration the
-stores.
+Create and return a new ObjectSet instance.
 
 =cut
+
 sub
 new($$)
 {
-    my $proto = shift;
+    my ($proto, $arrayref) = @_;
     my $class = ref($proto) || $proto;
-    my $self = {};
-    my $arrayref = shift;
 
     $self = $class->SUPER::new();
     bless($self, $class);
@@ -57,19 +56,19 @@ new($$)
         $self->add_hashes($arrayref);
     }
 
-    return($self);
+    return $self;
 }
 
 =item add($obj)
 
-The add method will add an object into the ObjectSet object.
+The add method will add an object to the ObjectSet.
 
 =cut
+
 sub
 add($$)
 {
-    my $self = shift;
-    my $obj = shift;
+    my ($self, $obj) = @_;
     my @index;
 
     if (defined($obj)) {
@@ -87,7 +86,6 @@ add($$)
     }
 }
 
-
 =item find($index, $string)
 
 Return the relevant object(s) by searching for the given indexed key
@@ -100,11 +98,11 @@ The return value will be either a list or a scalar depending on how
 you request the data.
 
 =cut
+
 sub
 find($$$)
 {
     my ($self, $key, $val) = @_;
-    my @return;
 
     if (!exists($self->{"DATA"}{$key})) {
         return undef;
@@ -115,17 +113,16 @@ find($$$)
     return ((wantarray()) ? (@{$self->{"DATA"}{$key}{$val}}) : ($self->{"DATA"}{$key}{$val}[0]));
 }
 
-
 =item get_object($index)
 
 Return the single Object at the given array index
 
 =cut
+
 sub
 get_object($)
 {
-    my $self = shift;
-    my $index = shift;
+    my ($self, $index) = @_;
 
     if (exists($self->{"ARRAY"}[$index])) {
         return ($self->{"ARRAY"}[$index]);
@@ -134,21 +131,22 @@ get_object($)
     }
 }
 
-
 =item get_list_entries($index)
 
 Return an array of list entries found in the current set.
 
 =cut
+
 sub
 get_list_entries($$)
 {
-    my $self = shift;
-    my $key = shift;
+    my ($self, $key) = @_;
     my @ret;
 
-    foreach my $obj ( sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}}) {
-        if (my $value = $obj->get($key)) {
+    foreach my $obj (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}}) {
+        my $value = $obj->get($key);
+
+        if ($value) {
             push(@ret, $value);
         }
     }
@@ -160,16 +158,16 @@ get_list_entries($$)
     }
 }
 
-
 =item get_list()
 
 Return an array of all objects in this ObjectSet.
 
 =cut
+
 sub
 get_list($$)
 {
-    my $self = shift;
+    my ($self) = @_;
 
     if (exists($self->{"ARRAY"})) {
         return (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}});
@@ -180,13 +178,14 @@ get_list($$)
 
 =item count()
 
-Return the number of entities in the ObjectSet
+Return the number of entities in the ObjectSet.
 
 =cut
+
 sub
 count()
 {
-    my $self = shift;
+    my ($self) = @_;
     my $count;
 
     &dprint("Counting objects in set\n");
@@ -197,9 +196,8 @@ count()
     }
     &dprint("Found '$count' objects in Set\n");
 
-    return($count);
+    return $count;
 }
-
 
 =item index(key name)
 
@@ -210,18 +208,16 @@ interface.
 Returns the current (possibly updated) list.
 
 =cut
+
 sub
 index($$)
 {
-    my $self = shift;
-    my $key = shift;
+    my ($self, $key) = @_;
 
     if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
-
         push(@{$self->{"INDEXES"}}, $key);
-
 #        if (exists($self->{"DATA"})) {
-            $self->{"DATA"} = ();
+            $self->{"DATA"} = {};
             # Add object to all indexes.
             foreach my $index (@{$self->{"INDEXES"}}) {
                 foreach my $obj (@{$self->{"ARRAY"}}) {
@@ -242,17 +238,16 @@ index($$)
     }
 }
 
-
 =item add_hashes($array_obj)
 
-Add an array of hashes to this object set
+Add an array of hashes to this ObjectSet.
 
 =cut
+
 sub
 add_hashes($$)
 {
-    my $self = shift;
-    my $array_obj = shift;
+    my ($self, $array_obj) = @_;
 
     foreach my $h (@{$array_obj}) {
         my $obj;
@@ -269,6 +264,7 @@ add_hashes($$)
 
 }
 
+=back
 
 =head1 SEE ALSO
 

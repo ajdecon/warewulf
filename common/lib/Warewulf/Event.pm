@@ -10,37 +10,47 @@
 
 package Warewulf::Event;
 
-use Warewulf::Util;
-use Warewulf::Logger;
-use File::Basename;
+use Warewulf::Object;
+
+our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Event - Database interface
-
-=head1 ABOUT
-
+Warewulf::Event - Event base class
 
 =head1 SYNOPSIS
 
     use Warewulf::Event;
 
-    my $obj = Warewulf::Event->new();
+    my $event = Warewulf::Event->new();
+
+=head1 METHODS
+
+=over 4
 
 =item new()
 
-Create the object.
+Creates and returns a new Event object.
 
 =cut
 
-sub new() { };
+sub
+new()
+{
+    my ($proto, @args) = @_;
+    my $class = ref($proto) || $proto;
 
+    $self = $class->SUPER::new();
+    bless($self, $class);
+
+    return $self->init(@args);
+}
 
 =back
 
 =head1 SEE ALSO
 
-Warewulf::Module
+Warewulf::EventHandler, Warewulf::Object
 
 =head1 COPYRIGHT
 

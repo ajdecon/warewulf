@@ -22,22 +22,30 @@ my $DAEMONIZED;
 
 =head1 NAME
 
-Warewulf::Daemon - Run into the background
-
-=head1 ABOUT
-
-The Warewulf::Daemon class facilitates running processes in the background
+Warewulf::Daemon - Manage daemonization
 
 =head1 SYNOPSIS
 
     use Warewulf::Daemon;
 
+    &daemonize();
+    $is_daemon = &daemonized();
+
+=head1 DESCRIPTION
+
+This class provides a facility to background the current running
+process and to verify whether or not this has been done.
+
+=head1 FUNCTIONS
+
+=over 4
 
 =item daemonize()
 
-Throw this application into the background
+Throw this application into the background.
 
 =cut
+
 sub
 daemonize()
 {
@@ -45,15 +53,15 @@ daemonize()
 
     $DAEMONIZED = 1;
 
-    $SIG{PIPE} = 'IGNORE';
+    $SIG{"PIPE"} = "IGNORE";
 
-    $SIG{HUP} = sub {
+    $SIG{"HUP"} = sub {
         iprint("Recieved a SIGHUP... nothing to do here");
         return(1);
     };
 
-    $SIG{TERM} = sub {
-        kill 'TERM' => keys %slaves;
+    $SIG{"TERM"} = sub {
+        kill("TERM", keys(%slaves));
         $critical_loop = ();
         if (-f "/var/run/$progname.pid") {
             unlink("/var/run/$progname.pid");
@@ -61,8 +69,8 @@ daemonize()
         iprint("Recieved a SIGTERM... exiting");
     };
 
-    $SIG{INT} = sub {
-        kill 'INT' => keys %slaves;
+    $SIG{"INT"} = sub {
+        kill("INT", keys(%slaves));
         $critical_loop = ();
         if (-f "/var/run/$progname.pid") {
             unlink("/var/run/$progname.pid");
@@ -75,8 +83,8 @@ daemonize()
     open(STDERR, ">/dev/null");
     open(PIDFILE, ">/var/run/$progname.pid");
     print PIDFILE $$;
-    close PIDFILE;
-    fork and exit;
+    close(PIDFILE);
+    fork() && exit(0);
 
 }
 
@@ -86,6 +94,7 @@ Return true if running as a daemon. If an argument is defined then it will set
 daemonized to return true.
 
 =cut
+
 sub
 daemonized()
 {
@@ -95,14 +104,10 @@ daemonized()
         $DAEMONIZED = 1;
     }
 
-    return($DAEMONIZED);
+    return $DAEMONIZED;
 }
 
-
-
-=head1 SEE ALSO
-
-
+=back
 
 =head1 COPYRIGHT
 
