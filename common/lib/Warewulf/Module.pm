@@ -44,6 +44,7 @@ new()
 {
     my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
+    my $self;
 
     $self = $class->SUPER::new();
     bless($self, $class);
