@@ -112,7 +112,7 @@ parse()
             foreach my $path (@basepaths) {
                 &dprint("Searching for file:  $path/$file\n");
                 if (-f "$path/$file") {
-                    &dprint("Found file:  $file\n");
+                    &dprint("Found file:  $path/$file\n");
                     if (open(FILE, "$path/$file")) {
                         while(my $line = <FILE>) {
                             chomp($line);
@@ -129,9 +129,9 @@ parse()
                     }
                 }
             }
-            foreach my $key (keys(%{$files{$file}})) {
-                $self->set($key, @{$files{$file}{$key}});
-            }
+        }
+        foreach my $key (keys(%{$files{$file}})) {
+            $self->set($key, @{$files{$file}{$key}});
         }
     }
 
