@@ -155,7 +155,9 @@ if ($config->get("drivers")) {
         open(DEP, "$opt_root/lib/modules/$opt_kversion/modules.dep");
         while (my $line = <DEP>) {
             chomp($line);
-            if ($line =~ /^.*(kernel\/[a-zA-Z0-9\-_\.\/]+):\s*(.*)$/) {
+            my $strippath = "$opt_root/lib/modules/$opt_kversion/";
+            $line =~ s/^\Q$strippath\E//;
+            if ($line =~ /^([^:]+):\s*(.*)$/) {
                 my $path = $1;
                 my @deps = split(/\s+/, $2);
                 my $name = basename($path);
