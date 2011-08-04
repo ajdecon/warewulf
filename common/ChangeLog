@@ -168,3 +168,7 @@ Cleanups, documentation fixes, etc. for the top-level modules.  Still
 need to work through the hierarchy.  None of these changes should
 affect functionality, but they still need thorough testing anyway.
 ----------------------------------------------------------------------
+Wed Aug  3 17:05:31 2011                        Michael Jennings (mej)
+
+Further cleanups and a few functional corrections vetted with gmk.
+----------------------------------------------------------------------

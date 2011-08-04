@@ -51,14 +51,14 @@ with a backslash.
 
 Example configuration directives:
 
-    key = value one, value two, "value two,a"
-    key = value three, \
-          value four
+    key = value_one value_two, "value two,a"
+    key = 'value three' \
+          value\ four
 
 This will assign the following to the "key" variable:
 
-    value one
-    value two
+    value_one
+    value_two
     value two,a
     value three
     value four
@@ -90,7 +90,7 @@ new()
     $self = $class->SUPER::new();
     bless($self, $class);
 
-    return($self->parse(@args));
+    return $self->parse(@args);
 }
 
 sub
@@ -129,9 +129,9 @@ parse()
                     }
                 }
             }
-        }
-        foreach my $key (keys(%{$files{$file}})) {
-            $self->set($key, @{$files{$file}{$key}});
+            foreach my $key (keys(%{$files{$file}})) {
+                $self->set($key, @{$files{$file}{$key}});
+            }
         }
     }
 

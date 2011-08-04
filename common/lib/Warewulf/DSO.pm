@@ -21,6 +21,7 @@ Warewulf::DSO - Warewulf's DSO (Data Store Object) base class
 
 =head1 SYNOPSIS
 
+    use Warewulf::DSO;
     our @ISA = ('Warewulf::DSO');
 
 =head1 DESCRIPTION
@@ -46,14 +47,14 @@ derived class; there should never be a direct instance of this class.
 sub
 new($$)
 {
-    my $proto = shift;
+    my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
-    my $self = {};
+    my $self;
 
-#    $self = $class->SUPER::new();
+    $self = $class->SUPER::new();
     bless($self, $class);
 
-    return $self->init(@_);
+    return $self->init(@args);
 }
 
 =item type()
@@ -66,12 +67,14 @@ the datastore.
 sub
 type($)
 {
-    my $self = shift;
+    my ($self) = @_;
     my $type = ref($self);
-    $type =~ s/^.+:://;
 
+    $type =~ s/^.+:://;
     if ($type eq "DSO") {
-        if (my $given_type = $self->get("type")) {
+        my $given_type = $self->get("type");
+
+        if ($given_type) {
             return lc($given_type);
         } else {
             return "unknown";
@@ -89,8 +92,6 @@ Return a list of lookup names for this DSO type.
 sub
 lookups($)
 {
-    my $self = shift;
-
     return ("_ID", "NAME");
 }
 
@@ -103,7 +104,7 @@ Persist this object into the datastore
 sub
 persist($)
 {
-    my $self = shift;
+    my ($self) = @_;
     my $datastore = Warewulf::DataStore->new();
 
     $datastore->persist($self);

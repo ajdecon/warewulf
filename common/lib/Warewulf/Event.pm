@@ -21,8 +21,12 @@ Warewulf::Event - Event base class
 =head1 SYNOPSIS
 
     use Warewulf::Event;
+    our @ISA = ('Warewulf::Event');
 
-    my $event = Warewulf::Event->new();
+=head1 DESCRIPTION
+
+This class acts as a generic base class for all Warewulf Events.  It
+should never be directly instantiated.
 
 =head1 METHODS
 
@@ -39,6 +43,7 @@ new()
 {
     my ($proto, @args) = @_;
     my $class = ref($proto) || $proto;
+    my $self;
 
     $self = $class->SUPER::new();
     bless($self, $class);
