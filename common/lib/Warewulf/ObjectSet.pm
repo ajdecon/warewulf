@@ -73,7 +73,7 @@ add($$)
     my @index;
 
     if (defined($obj)) {
-        # Maintain sorted list of objects in set.
+        # Maintain ordered list of objects in set.
         push(@{$self->{"ARRAY"}}, $obj);
 
         # Add object to all indexes.
@@ -85,6 +85,58 @@ add($$)
             }
         }
     }
+}
+
+=item del($obj)
+=item del($key, $value)
+
+Deletes an item from the ObjectSet, either by direct reference ($obj)
+or by the value ($value) of an indexed key ($key).  The second form is
+essentially equivalent to calling find($key, $value) and invoking
+del() on the resulting object(s).  Returns the removed object(s).
+
+=cut
+
+sub
+del()
+{
+    my ($self, $key, $value) = @_;
+    my (@objs);
+
+    if (defined($key) && defined($value)) {
+        # Find all objects in set (probably just 1) that have this key/value pair.
+        @objs = $self->find($key, $value);
+    } elsif (defined($key) && ref($key)) {
+        if (ref($key) eq "ARRAY") {
+            # Array reference to a list of objects.  Delete them all.
+            @objs = @{$key};
+        } else {
+            # Just one object.  Delete it.
+            @objs = ($key);
+        }
+    } else {
+        # Error in parameters.
+        return undef;
+    }
+
+    # In most cases, @objs will only contain a single object.  However, nothing guarantees
+    # that the indexes of an ObjectSet will be unique; in fact, it's designed to handle
+    # indexing on anything, even non-unique keys.  So any number of objects could match.
+    foreach my $obj (@objs) {
+        # Update all indexes to remove this object.
+        foreach $key ($self->index()) {
+            $value = $obj->get($key);
+            # Remove all index entries that have $key set to this $value.
+            @{$self->{"DATA"}{$key}{$value}} = grep { $_ ne $obj } @{$self->{"DATA"}{$key}{$value}};
+            if (scalar(@{$self->{"DATA"}{$key}{$value}}) == 0) {
+                # We just emptied that list, so remove it from the index hash.
+                delete $self->{"DATA"}{$key}{$value};
+            }
+        }
+        # Remove the object from the set.
+        @{$self->{"ARRAY"}} = grep { $_ ne $obj } @{$self->{"ARRAY"}};
+    }
+    return ((wantarray()) ? (@objs) : ($objs[0]));
 }
 
 =item find($index, $string)
@@ -191,7 +243,7 @@ count()
 
     &dprint("Counting objects in set\n");
     if (exists($self->{"ARRAY"})) {
-        $count = scalar @{$self->{"ARRAY"}} || 0;
+        $count = scalar(@{$self->{"ARRAY"}}) || 0;
     } else {
         $count = 0;
     }

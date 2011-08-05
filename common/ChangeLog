@@ -172,3 +172,7 @@ Wed Aug  3 17:05:31 2011                        Michael Jennings (mej)
 
 Further cleanups and a few functional corrections vetted with gmk.
 ----------------------------------------------------------------------
+Fri Aug  5 16:15:11 2011                        Michael Jennings (mej)
+
+Add ObjectSet::del() method to remove objects from sets.
+----------------------------------------------------------------------
