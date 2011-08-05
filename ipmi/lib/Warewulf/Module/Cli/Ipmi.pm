@@ -17,6 +17,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::Network;
+use Warewulf::ParallelCmd;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -73,6 +74,7 @@ help()
     $h .= "         print           Print the full node(s) ipmi configuration\n";
     $h .= "         poweron         Power on the list of nodes\n";
     $h .= "         poweroff        Power off the list of nodes\n";
+    $h .= "         powercycle      Power cycle the list of nodes\n";
     $h .= "         powerstatus     Print the power status of the nodes\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
@@ -316,10 +318,6 @@ exec()
             push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_AUTOCONFIGURE"));
         }
 
-
-
-
-
         if ($persist_bool) {
             if ($command ne "new" and $term->interactive()) {
                 print "Are you sure you want to make the following changes to ". $object_count ." node(s):\n\n";
@@ -337,48 +335,70 @@ exec()
             $return_count = $db->persist($objSet);
 
             &iprint("Updated $return_count objects\n");
-
         }
 
     } elsif ($command eq "poweron") {
+        my $pcmd = Warewulf::ParallelCmd->new();
+        my $pcmd->fanout(4);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                print("Sending IPMI command to $name: ");
-                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power on");
+                &dprint("Sending IPMI command to $name: chassis power on\n");
+                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power on");
             } else {
                 &iprint("Skipping poweron for unconfigured node $name\n");
             }
         }
-    } elsif ($command eq "poweroff") {
+        $pcmd->run();
+    } elsif ($command eq "powercycle") {
+        my $pcmd = Warewulf::ParallelCmd->new();
+        my $pcmd->fanout(4);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                print("Sending IPMI command to $name: ");
-                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power off");
+                &dprint("Sending IPMI command to $name: chassis power cycle\n");
+                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power cycle");
+            } else {
+                &iprint("Skipping powercycle for unconfigured node $name\n");
+            }
+        }
+        $pcmd->run();
+    } elsif ($command eq "poweroff") {
+        my $pcmd = Warewulf::ParallelCmd->new();
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->get("name") || "UNDEF";
+            if (my ($cluster) = $o->get("cluster")) {
+               $name .= ".$cluster";
+            }
+            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
+                &dprint("Sending IPMI command to $name: chassis power off\n");
+                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power off");
             } else {
                 &iprint("Skipping poweroff for unconfigured node $name\n");
             }
         }
+        $pcmd->run();
     } elsif ($command eq "powerstatus") {
+        my $pcmd = Warewulf::ParallelCmd->new();
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                print("Sending IPMI command to $name: ");
-                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power status");
+                &dprint("Sending IPMI command to $name: chassis power status\n");
+                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power status");
             } else {
                 &iprint("Skipping powerstatus for unconfigured node $name\n");
             }
         }
+        $pcmd->run();
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
