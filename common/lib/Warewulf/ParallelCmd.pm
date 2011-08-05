@@ -118,27 +118,28 @@ run($)
 {
     my ($self) = @_;
     my $select = $self->get("select");
-    my @queue = @{$self->{"QUEUE"}};
+    my @queue = $self->get("queue");
     my $fanout = $self->get("fanout") || 64;
 
-    for(my $i=0; $i <= $fanout and $i <= scalar(@queue); $i++) {
+    for (my $i=0; $i <= $fanout && $i <= scalar(@queue); $i++) {
         my $command = shift(@queue);
         my $fh;
+
         &dprint("Spawning command: $command\n");
         open($fh, "$command |");
         $select->add($fh);
     }
 
-    while(my @ready = $select->can_read()) {
+    while (my @ready = $select->can_read()) {
         foreach my $fh (@ready) {
-            while(<$fh>) {
+            while (<$fh>) {
                 print $_;
             }
             $select->remove($fh);
             $fh->close();
             # Closed one file handle, so now lets queue the next in the array
             # if it exists.
-            if (@queue) {
+            if (scalar(@queue)) {
                 my $fh;
                 my $command = shift(@queue);
 
