@@ -96,6 +96,8 @@ help()
     $h .= "         --autoconfig    Automatically try and configure this node's IPMI settings\n";
     $h .= "                         on boot (if no password is set for the node, one will be\n";
     $h .= "                         randomly generated)\n";
+    $h .= "         --noautoconfig  Remove the autoconfig flag so the node doesn't get configured\n";
+    $h .= "                         automatically\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -165,6 +167,7 @@ exec()
     my $opt_username;
     my $opt_password;
     my $opt_autoconfig;
+    my $opt_noautoconfig;
     my $return_count;
     my $objSet;
     my @changes;
@@ -183,6 +186,7 @@ exec()
         'username=s'    => \$opt_username,
         'password=s'    => \$opt_password,
         'autoconfig'    => \$opt_autoconfig,
+        'noautoconfig'  => \$opt_noautoconfig,
         'l|lookup=s'    => \$opt_lookup,
     );
 
@@ -288,29 +292,28 @@ exec()
         }
 
         if ($opt_autoconfig) {
-            if (uc($opt_autoconfig) eq "UNDEF" or uc($opt_autoconfig) eq "NO") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("ipmi_autoconfig");
-                    &dprint("Deleting the IPMI auto configure tag for node name: $name\n");
-                    $persist_bool = 1;
+            foreach my $obj ($objSet->get_list()) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->set("ipmi_autoconfig", "1");
+                &dprint("Setting the IPMI auto configure tag for node name: $name\n");
+                if (! $obj->get("ipmi_username")) {
+                    $obj->set("ipmi_username", "wwadmin");
                 }
-                push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_AUTOCONFIGURE"));
-            } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("ipmi_autoconfig", "1");
-                    &dprint("Setting the IPMI auto configure tag for node name: $name\n");
-                    if (! $obj->get("ipmi_username")) {
-                        $obj->set("ipmi_username", "wwadmin");
-                    }
-                    if (! $obj->get("ipmi_password")) {
-                        $obj->set("ipmi_password", &rand_string("8"));
-                    }
-                    $persist_bool = 1;
+                if (! $obj->get("ipmi_password")) {
+                    $obj->set("ipmi_password", &rand_string("8"));
                 }
-                push(@changes, sprintf("     SET: %-20s\n", "IPMI_AUTOCONFIG"));
+                $persist_bool = 1;
             }
+            push(@changes, sprintf("     SET: %-20s\n", "IPMI_AUTOCONFIG"));
+        }
+        if ($opt_noautoconfig) {
+            foreach my $obj ($objSet->get_list()) {
+                my $name = $obj->get("name") || "UNDEF";
+                $obj->del("ipmi_autoconfig");
+                &dprint("Deleting the IPMI auto configure tag for node name: $name\n");
+                $persist_bool = 1;
+            }
+            push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_AUTOCONFIGURE"));
         }
 
 
@@ -344,7 +347,7 @@ exec()
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &nprint("Sending IPMI command to $name: chassis power on\n");
+                print("Sending IPMI command to $name: ");
                 system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power on");
             } else {
                 &iprint("Skipping poweron for unconfigured node $name\n");
@@ -357,7 +360,7 @@ exec()
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &nprint("Sending IPMI command to $name: chassis power off\n");
+                print("Sending IPMI command to $name: ");
                 system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power off");
             } else {
                 &iprint("Skipping poweroff for unconfigured node $name\n");
@@ -370,7 +373,7 @@ exec()
                $name .= ".$cluster";
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &nprint("Sending IPMI command to $name: chassis power status\n");
+                print("Sending IPMI command to $name: ");
                 system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power status");
             } else {
                 &iprint("Skipping powerstatus for unconfigured node $name\n");
