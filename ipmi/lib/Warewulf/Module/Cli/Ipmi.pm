@@ -345,7 +345,7 @@ exec()
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
                 &nprint("Sending IPMI command to $name: chassis power on\n");
-                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power on");
+                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power on");
             } else {
                 &iprint("Skipping poweron for unconfigured node $name\n");
             }
@@ -358,7 +358,7 @@ exec()
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
                 &nprint("Sending IPMI command to $name: chassis power off\n");
-                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power off");
+                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power off");
             } else {
                 &iprint("Skipping poweroff for unconfigured node $name\n");
             }
@@ -371,7 +371,7 @@ exec()
             }
             if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
                 &nprint("Sending IPMI command to $name: chassis power status\n");
-                system("ipmitool -I lan -u $username -p $password -H $ipaddr chassis power status");
+                system("ipmitool -I lan -U $username -P $password -H $ipaddr chassis power status");
             } else {
                 &iprint("Skipping powerstatus for unconfigured node $name\n");
             }
