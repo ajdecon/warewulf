@@ -176,3 +176,10 @@ Fri Aug  5 16:15:11 2011                        Michael Jennings (mej)
 
 Add ObjectSet::del() method to remove objects from sets.
 ----------------------------------------------------------------------
+Fri Aug  5 18:43:51 2011                        Michael Jennings (mej)
+
+Initial testing framework.  Doesn't test much yet, but it's a start.
+Eventually I'd like to achieve complete coverage, at least on the
+modules, but that will take some time.  Use "make test" to run the
+tests.
+----------------------------------------------------------------------
