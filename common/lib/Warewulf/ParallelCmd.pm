@@ -12,6 +12,7 @@ package Warewulf::ParallelCmd;
 
 use IO::Select;
 use Warewulf::Object;
+use Warewulf::ObjectSet;
 use Warewulf::Logger;
 
 our @ISA = ('Warewulf::Object');
@@ -107,6 +108,24 @@ fanout($$)
 }
 
 
+=item wtime()
+
+How many seconds to wait before throwing a warning to the user that a command is
+still running. (DEFAULT=15)
+
+=cut
+
+sub
+wtime($$)
+{
+    my ($self, $wtime) = @_;
+
+    $self->set("wtime", $wtime);
+
+    return;
+}
+
+
 =item run()
 
 Run the queued commands
@@ -120,33 +139,53 @@ run($)
     my $select = $self->get("select");
     my @queue = $self->get("queue");
     my $fanout = $self->get("fanout") || 64;
+    my $cmdobjs = Warewulf::ObjectSet->new();
 
-    for (my $i=0; $i <= $fanout && $i <= scalar(@queue); $i++) {
-        my $command = shift(@queue);
-        my $fh;
+    $cmdobjs->index("fileno");
 
-        &dprint("Spawning command: $command\n");
-        open($fh, "$command |");
-        $select->add($fh);
+    $self->set("cmdobjs", $cmdobjs);
+
+    # Spawning the initial fanout within the queue
+    for (my $i=1; $i <= $fanout && $i <= scalar(@queue); $i++) {
+        $self->forkcmd(shift(@queue));
     }
 
-    while (my @ready = $select->can_read()) {
-        foreach my $fh (@ready) {
-            while (<$fh>) {
-                print $_;
-            }
-            $select->remove($fh);
-            $fh->close();
-            # Closed one file handle, so now lets queue the next in the array
-            # if it exists.
-            if (scalar(@queue)) {
-                my $fh;
-                my $command = shift(@queue);
+    #while (my @ready = $select->can_read("2")) {
+    my $timer = 1;
+    while ($select->count() > 0) {
+        my $timeleft = $timer+$time - time;
+        my @ready = $select->can_read($timeleft);
+        &dprint("can_read($timeleft) engaged\n");
+        $time = time();
+        if (scalar(@ready)) {
+            &dprint("got FH activity\n");
+            foreach my $fh (@ready) {
+                my $buffer;
+                my $length;
 
-                &dprint("Spawning command: $command\n");
-                open($fh, "$command |");
-                $select->add($fh);
+                do {
+                    my $tmp;
+                    $length = $fh->sysread($tmp, 1024) || 0;
+                    $buffer .= $tmp;
+                } while ( $length == 1024 );
+
+                if ($buffer) {
+                    foreach my $line (split(/\n/, $buffer)) {
+                        print "$line\n";
+                    }
+
+                } else {
+                    $self->endcmd($fh);
+                    # Closed one file handle, so now lets queue the next in the array
+                    # if it exists.
+                    if (scalar(@queue)) {
+                        $self->forkcmd(shift(@queue));
+                    }
+                }
             }
+        } else {
+            &dprint("Invoking the warnings\n");
+            $self->warnings();
         }
     }
 }
@@ -167,6 +206,63 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
+sub
+forkcmd($)
+{
+    my ($self, $command) = @_;
+    my $cmdObjs = $self->get("cmdobjs");
+    my $cmdObj = Warewulf::Object->new();
+    my $select = $self->get("select");
+    my $fh;
+
+    &dprint("Spawning command: $command\n");
+    open($fh, "$command |");
+    $select->add($fh);
+
+    $cmdObj->set("command", $command);
+    $cmdObj->set("fh", $fh);
+    $cmdObj->set("fileno", $fh->fileno());
+    $cmdObj->set("warningtime", time());
+    $cmdObjs->add($cmdObj);
+}
+
+sub
+endcmd($)
+{
+    my ($self, $fh) = @_;
+    my $select = $self->get("select");
+    my $cmdObjs = $self->get("cmdobjs");
+    my $fileno = $fh->fileno();
+
+    &dprint("closing out fileno: $fileno\n");
+    $select->remove($fh);
+    $fh->close();
+
+    $cmdObjs->del("fileno", $fileno) or print "ERROR: Did not remove the object\n";
+}
+
+sub
+warnings($)
+{
+    my ($self) = @_;
+    my $cmdObjs = $self->get("cmdobjs");
+    my $wtime = $self->get("wtime") || 15;
+    &dprint("called warnings()\n");
+
+    foreach my $cmdObj ($cmdObjs->get_list()) {
+        my $runtime = time - $cmdObj->get("warningtime");
+        if ($runtime >= $wtime) {
+            my $fh = $cmdObj->get("fh");
+            my $fileno = $cmdObj->get("fileno");
+            my $command = $cmdObj->get("command");
+            $cmdObj->set("warningtime", time);
+            &dprint("fileno: $fileno, runtime: $runtime\n");
+            &wprint("Command still running: $command\n");
+        }
+    }
+}
+
 
 
 1;
