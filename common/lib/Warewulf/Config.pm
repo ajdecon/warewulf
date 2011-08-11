@@ -264,7 +264,7 @@ parse()
             dprint("Line $. unparseable:  \"$line\"\n");
             next;
         }
-        @values = grep { defined($_) } &quotewords('[,\s]+', 0, $value);
+        @values = grep { defined($_) } &quotewords('\s*,\s*', 0, $value);
         &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\"\n", $self->get("__FILENAME"),
                  $key, $op, join("\" \"", @values));
         if ($op eq "+=") {

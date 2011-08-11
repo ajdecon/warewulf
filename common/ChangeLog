@@ -195,3 +195,14 @@ Initial refactoring of the Config module is functional.  This version
 of the parser splits on whitespace with commas considered equivalent
 to whitespace.  All tests pass.
 ----------------------------------------------------------------------
+Thu Aug 11 16:37:58 2011                        Michael Jennings (mej)
+
+Per discussion with Greg, this version of the parser requires a comma
+between items in a list.  Whitespace surrounding the comma is ignored,
+but embedded whitespace within a value is significant.  This maintains
+consistency between quoting requirements for keys and values but will
+require some existing configuration files to be modified.
+
+The test config file has been modified so that all unit tests pass
+again.
+----------------------------------------------------------------------
