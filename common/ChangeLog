@@ -189,3 +189,9 @@ WORK IN PROGRESS:  Config.pm rewrite and unit tests.
 
 This WILL BREAK existing config files, so don't try to use it yet!
 ----------------------------------------------------------------------
+Thu Aug 11 16:30:59 2011                        Michael Jennings (mej)
+
+Initial refactoring of the Config module is functional.  This version
+of the parser splits on whitespace with commas considered equivalent
+to whitespace.  All tests pass.
+----------------------------------------------------------------------

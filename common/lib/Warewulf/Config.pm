@@ -246,7 +246,7 @@ parse()
 
         chomp($line);
         $line =~ s/\s*#.*//;
-        if (! $line) {
+        if ($line =~ /^\s*$/) {
             next;
         }
 
@@ -256,7 +256,7 @@ parse()
         # whitespace must be quoted, regardless of commas.  Any empty
         # values must also be quoted.  Leading whitespace continues
         # the previous line.
-        if ($line =~ /^\s*([^+=]+)\s*(\+?=)\s*(.+)$/) {
+        if ($line =~ /^\s*([^+=]*[^+=\s])\s*(\+?=)\s*(.+)$/) {
             ($key, $op, $value) = ($1, $2, $3);
         } elsif ($line =~ /^\s+(\S.*)$/) {
             ($key, $op, $value) = ($last_key, "+=", $1);
