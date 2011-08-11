@@ -72,6 +72,9 @@ init(@)
 {
     my $self = shift;
 
+    # Clear current data from object.
+    %{$self} = ();
+
     # Check for new initializer.
     if (scalar(@_)) {
         $self->set(@_);
@@ -146,8 +149,8 @@ set($$)
         my $hashref = $vals[0];
 
         if (ref($hashref) eq "HASH") {
-            # Hashref.  Repopulate our data from scratch and return.
-            %{$self} = %{$hashref};
+            # Hashref.  Populate our data from referenced hash and return.
+            map { $self->{uc($_)} = $hashref->{$_} } keys(%{$hashref});
             return $hashref;
         } elsif (ref($hashref) eq "ARRAY") {
             # Arrayref.  Dereference it and process as normal.
@@ -205,7 +208,7 @@ add()
     }
     foreach my $newval (@vals) {
         if (defined($newval)) {
-            # NOTE: that this prevents undef from being a value in this array
+            # NOTE:  This prevents undef from being a value in this array
             if (!scalar(grep { $_ eq $newval } @{$self->{$key}})) {
                 push @{$self->{$key}}, $newval;
             }

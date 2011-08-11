@@ -17,13 +17,15 @@ use Warewulf::Util;
 use Warewulf::Object;
 use Text::ParseWords;
 
-our @ISA = ('Warewulf::Object', 'Exporter');
+our @ISA = ('Warewulf::Object');
+
+# Shared cache for configuration data.  All instances share the same
+# cache.
+my %cache;
 
 =head1 NAME
 
 Warewulf::Config - Object interface to configuration paramaters
-
-=head1 ABOUT
 
 =head1 SYNOPSIS
 
@@ -37,8 +39,143 @@ Warewulf::Config - Object interface to configuration paramaters
 
 =head1 DESCRIPTION
 
-The Warewulf::Config class allows one to access configuration paramaters
-with an object interface.
+The Warewulf::Config class facilitates the parsing of configuration
+data and retrieving the results in an object-oriented manner.
+
+=head1 METHODS
+
+=over 4
+
+=item new($config_name)
+
+The new() constructor will create the object that references the
+configuration store. You can pass a list of configuration files that
+will be included in the object if desired. Each config will be
+searched for first in the user's home/private directory and then in
+the global locations.
+
+=cut
+
+sub
+new()
+{
+    my ($proto, @args) = @_;
+    my $class = ref($proto) || $proto;
+    my $self;
+
+    $self = $class->SUPER::new();
+    bless($self, $class);
+
+    return $self->init(@args);
+}
+
+=item init([$filename, [$path, [...]]])
+
+Initializes the Config object.  If parameters are supplied, the
+specified config file will be parsed immediately.
+
+=cut
+
+sub
+init()
+{
+    my ($self, @args) = @_;
+
+    # Delete all information from the Config object.
+    %{$self} = ();
+    $self->set_path(
+        &homedir() . "/.warewulf",
+        &wwconfig("SYSCONFDIR") . "/warewulf"
+    );
+    if (scalar(@args)) {
+        $self->load(@args);
+    }
+    return $self;
+}
+
+=item get_path()
+
+Returns the list of directories to be searched for config files in
+this Config instance.
+
+=cut
+
+sub
+get_path()
+{
+    my ($self) = @_;
+
+    return $self->get("__PATH");
+}
+
+=item set_path($path, [...])
+
+Specifies one or more paths to be searched for config files.  To
+append to the search path, the first argument to set_path() should be
+the return value of get_path().
+
+=cut
+
+sub
+set_path()
+{
+    my ($self, @args) = @_;
+
+    return $self->set("__PATH", @args);
+}
+
+=item load($filename, [$path, [...]])
+
+Loads the specified configuration file ($filename) into this Config
+object.  Any existing configuration data present in the object will be
+PRESERVED.  (If this is not desired, call init() instead.)  Additional
+search paths ($path, ...) may be specified but are not required.  The
+default search path is ("~/.warewulf", "/etc/warewulf").
+
+=cut
+
+sub
+load()
+{
+    my ($self, @args) = @_;
+    my $filename;
+
+    if (!scalar(@args)) {
+        return undef;
+    }
+
+    $filename = shift(@args);
+    if (scalar(@args)) {
+        $self->set_path(@args);
+    }
+    $self->set("__FILENAME", $filename);
+    foreach my $path ($self->get_path()) {
+        &dprint("Searching for file:  $path/$filename\n");
+        if (-r "$path/$filename") {
+            &dprint("Found file:  $path/$filename\n");
+            $self->set("__FILE", "$path/$filename");
+            return $self->parse();
+        }
+    }
+    &dprintf("File $filename not found in path(s) \"%s\"\n",
+             join("\", \"", $self->get_path()));
+    return 0;
+}
+
+=item save([$filename])
+
+Stores the current configuration data from this Config instance into the specified file ($filename) or the original file (if unspecified).  NOT YET IMPLEMENTED.
+
+=cut
+
+sub
+save()
+{
+    &wprint("Warewulf::Config->save() not yet implemented.\n");
+    return undef;
+}
+
+=back
 
 =head1 FORMAT
 
@@ -63,83 +200,6 @@ This will assign the following to the "key" variable:
     value three
     value four
 
-
-=head1 METHODS
-
-=over 4
-
-=item new($config_name)
-
-The new() constructor will create the object that references the
-configuration store. You can pass a list of configuration files that
-will be included in the object if desired. Each config will be
-searched for first in the user's home/private directory and then in
-the global locations.
-
-=cut
-
-my %files;
-
-sub
-new()
-{
-    my ($proto, @args) = @_;
-    my $class = ref($proto) || $proto;
-    my $self;
-
-    $self = $class->SUPER::new();
-    bless($self, $class);
-
-    return $self->parse(@args);
-}
-
-sub
-parse()
-{
-    my ($self, @args) = @_;
-    my @basepaths;
-
-    
-    @basepaths = (
-        (getpwuid($>))[7] . "/.warewulf",
-        &wwconfig("SYSCONFDIR") . "/warewulf"
-    );
-
-    foreach my $file (@args) {
-        if (exists($files{"$file"})) {
-            &dprint("Using cached configuration file:  $file\n");
-        } else {
-            foreach my $path (@basepaths) {
-                &dprint("Searching for file:  $path/$file\n");
-                if (-f "$path/$file") {
-                    &dprint("Found file:  $path/$file\n");
-                    if (open(FILE, "$path/$file")) {
-                        while(my $line = <FILE>) {
-                            chomp($line);
-                            $line =~ s/#.*//;
-                            if (! $line) {
-                                next;
-                            }
-                            my ($key, $value) = split(/\s*=\s*/, $line, 2);
-                            push(@{$files{$file}{$key}}, grep { defined($_) } &quotewords('[,\s]+', 0, $value));
-                        }
-                        close(FILE);
-                    } else {
-                        &wprint("Could not open file $path/$file:  $!\n");
-                    }
-                }
-            }
-        }
-        foreach my $key (keys(%{$files{$file}})) {
-            $self->set($key, @{$files{$file}{$key}});
-        }
-    }
-
-    return($self);
-}
-
-=back
-
 =head1 COPYRIGHT
 
 Copyright (c) 2001-2003 Gregory M. Kurtzer
@@ -149,6 +209,81 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
+# Open and parse the config file, or used cached data if present.
+# Returns 1 in the former case and 0 in the latter case. 
+sub
+parse()
+{
+    my ($self) = @_;
+    my ($conffile, $last_key);
+    local *FILE;
+
+    # Check for filename
+    $conffile = $self->get("__FILE");
+    if (! $conffile) {
+        &cprint("${self}->parse() called without validated filename!\n");
+        return undef;
+    }
+
+    # Check for cached data.
+    if (exists($cache{$conffile})) {
+        # Use the cached hash reference to populate the object.
+        &dprint("Cache data for $conffile exists.  Using it.\n");
+        $self->set($cache{$conffile});
+        return 0;
+    }
+
+    # Open and parse the config file.
+    if (!open(FILE, $conffile)) {
+        &wprint("Could not open file $conffile:  $!\n");
+        return undef;
+    }
+    &dprint("Reading $conffile...\n");
+    while (my $line = <FILE>) {
+        my ($key, $op, $value);
+        my @values;
+
+        chomp($line);
+        $line =~ s/\s*#.*//;
+        if (! $line) {
+            next;
+        }
+
+        # Key/Value pairs are separated by an equal sign ('=').
+        # Whitespace surrounding the '=' is ignored.  Values are
+        # separated by commas and/or whitespace.  ALL embedded
+        # whitespace must be quoted, regardless of commas.  Any empty
+        # values must also be quoted.  Leading whitespace continues
+        # the previous line.
+        if ($line =~ /^\s*([^+=]+)\s*(\+?=)\s*(.+)$/) {
+            ($key, $op, $value) = ($1, $2, $3);
+        } elsif ($line =~ /^\s+(\S.*)$/) {
+            ($key, $op, $value) = ($last_key, "+=", $1);
+        } else {
+            dprint("Line $. unparseable:  \"$line\"\n");
+            next;
+        }
+        @values = grep { defined($_) } &quotewords('[,\s]+', 0, $value);
+        &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\"\n", $self->get("__FILENAME"),
+                 $key, $op, join("\" \"", @values));
+        if ($op eq "+=") {
+            push(@{$cache{$conffile}{$key}}, @values);
+        } else {
+            @{$cache{$conffile}{$key}} = @values;
+        }
+        $last_key = $key;
+    }
+    close(FILE);
+
+    # Populate the object from the newly-cached config file data.
+    $self->set($cache{$conffile});
+    #foreach my $key (keys(%{$cache{$conffile}})) {
+    #    $self->set($key, @{$cache{$conffile}{$key}});
+    #}
+
+    return 1;
+}
 
 
 

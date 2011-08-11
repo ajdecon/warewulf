@@ -23,6 +23,7 @@ our @EXPORT = (
     '&rand_string',
     '&croak',
     '&progname',
+    '&homedir',
     '&expand_bracket',
     '&uid_test',
     '&ellipsis',
@@ -96,6 +97,18 @@ sub
 progname()
 {
     return basename($0);
+}
+
+=item homedir()
+
+Returns the home directory of the current user (real UID) or "." on error.
+
+=cut
+
+sub
+homedir()
+{
+    return (($ENV{'HOME'}) || ($ENV{'LOGDIR'}) || ((getpwuid($<))[7]) || ("."));
 }
 
 =item expand_bracket($range1, $range2)
