@@ -5,7 +5,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Network.pm 191 2011-01-17 23:27:51Z gmk $
+# $Id$
 #
 
 package Warewulf::Network;

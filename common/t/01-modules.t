@@ -15,13 +15,11 @@ use Test::More;
 # Generate the list below with this command:
 #    find ./lib -name '*.pm' -print | sed 's/^\.\/lib\///;s/\//::/g;s/\.pm$/",/;s/^/    "/' | sort
 my @module_list = (
-    "Warewulf",
     "Warewulf::Config",
     "Warewulf::Daemon",
     "Warewulf::DataStore",
     "Warewulf::DataStore::SQL",
     "Warewulf::DataStore::SQL::MySQL",
-    "Warewulf::Debug",
     "Warewulf::DSO",
     "Warewulf::DSO::Config",
     "Warewulf::DSOFactory",

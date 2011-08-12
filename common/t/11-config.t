@@ -31,7 +31,7 @@ plan("tests" => (
          + 3                                # Sanity checks for test config file
          + 4                                # No-args tests
          + 2                                # With-args tests
-         + 2 * (2 * scalar(keys(%vals)))    # Value tests
+         + 2 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
 ));
 
 # This is useful for using the test suite to double as a debugging tool.
@@ -59,7 +59,7 @@ can_ok($t[1], "init", "get_path", "set_path", "load", "save");
 
 # Uncomment the below when debugging.
 #use Warewulf::Util;
-#diag(&examine_object(\@t, "@t:  "));
+#diag(&examine_object(\@t, "\@t:  "));
 
 # For each object, verify the config data we got.
 for (my $i = 0; $i < scalar(@t); $i++) {

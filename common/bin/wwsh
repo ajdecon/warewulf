@@ -6,20 +6,20 @@
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
+# $Id$
+#
 
-
-
-use Warewulf::Logger;
-use Warewulf::Term;
-use Warewulf::DataStore;
-use Warewulf::Config;
-use Warewulf::ModuleLoader;
-use Warewulf::EventHandler;
-use Warewulf::Debug;
 use Getopt::Long;
 use Term::ReadLine;
 use File::Path;
 use Text::ParseWords;
+use Warewulf::Logger;
+use Warewulf::Util;
+use Warewulf::Config;
+use Warewulf::Term;
+use Warewulf::DataStore;
+use Warewulf::ModuleLoader;
+use Warewulf::EventHandler;
 
 my ($modules, $db, $term);
 my @keywords;

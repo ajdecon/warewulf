@@ -15,9 +15,8 @@ use IO::Handle;
 use IO::File;
 use IO::Pipe;
 use Sys::Syslog;
-use Warewulf::Debug;
-use Warewulf::Daemon;
 use Exporter;
+use Warewulf::Util;
 
 my $WWLOG_CRITICAL = 0;
 my $WWLOG_ERROR = 1;
@@ -63,7 +62,9 @@ Warewulf::Logger - Log interface
 
 =head1 DESCRIPTION
 
-The Warewulf::Logger package provides an interface for logging and output.
+The Warewulf::Logger package provides an interface for logging and
+output.  It wraps syslog and can be used to support just about any
+type of logging imaginable.
 
 =head1 FUNCTIONS
 
@@ -333,7 +334,7 @@ sub dprintf {return lprintf($WWLOG_DEBUG, @_);}
 
 =head1 SEE ALSO
 
-Warewulf, Warewulf::Debug
+Warewulf::Util
 
 =head1 COPYRIGHT
 
@@ -351,12 +352,8 @@ init_log_targets()
 {
     my ($so, $se);
 
-    if (&daemonized()) {
-        $so = $se = IO::File->new("/tmp/test.log", "a", 0600);
-    } else {
-        $so = IO::Handle->new_from_fd(fileno(STDOUT), "w");
-        $se = IO::Handle->new_from_fd(fileno(STDERR), "w");
-    }
+    $so = IO::Handle->new_from_fd(fileno(STDOUT), "w");
+    $se = IO::Handle->new_from_fd(fileno(STDERR), "w");
     @TARGETS = (
         [ $se ],  # CRITICAL
         [ $se ],  # ERROR

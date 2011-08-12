@@ -11,9 +11,8 @@
 package Warewulf::Config;
 
 use Warewulf::Include;
-use Warewulf::Debug;
-use Warewulf::Logger;
 use Warewulf::Util;
+use Warewulf::Logger;
 use Warewulf::Object;
 use Text::ParseWords;
 

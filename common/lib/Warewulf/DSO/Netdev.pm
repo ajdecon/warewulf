@@ -5,7 +5,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Netdev.pm 50 2010-11-02 01:15:57Z gmk $
+# $Id$
 #
 
 package Warewulf::DSO::Netdev;

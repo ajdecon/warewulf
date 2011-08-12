@@ -5,7 +5,7 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Event.pm 83 2010-12-09 22:13:21Z gmk $
+# $Id$
 #
 
 package Warewulf::Event;

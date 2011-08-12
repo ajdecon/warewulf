@@ -10,27 +10,16 @@
 
 package Warewulf::Util;
 
-#use Warewulf::Debug;
-use Warewulf::Logger;
-
 use Exporter;
 use File::Basename;
 use Digest::MD5 ('md5_hex');
 
 our @ISA = ('Exporter');
 
-our @EXPORT = (
-    '&rand_string',
-    '&croak',
-    '&progname',
-    '&homedir',
-    '&expand_bracket',
-    '&uid_test',
-    '&ellipsis',
-    '&digest_file_hex_md5',
-    '&is_tainted',
-    '&examine_object'
-);
+our @EXPORT = ('&rand_string', '&caller_fixed', '&get_backtrace',
+    '&backtrace', '&croak', '&progname', '&homedir',
+    '&expand_bracket', '&uid_test', '&ellipsis',
+    '&digest_file_hex_md5', '&is_tainted', '&examine_object');
 
 =head1 NAME
 
@@ -68,6 +57,72 @@ rand_string($)
     }
 
     return join('', map { $alphanumeric[rand @alphanumeric] } 0..$size);
+}
+
+=item caller_fixed()
+
+Fixed version of caller() that actually does the right thing.  Returns
+the Nth stack frame, not counting itself.
+
+=cut
+
+sub
+caller_fixed($)
+{
+    my $idx = shift || 0;
+    my ($pkg, $file, $line, $subroutine);
+
+    $idx++;
+    (undef, undef, undef, $subroutine) = caller($idx);
+    if (!defined($subroutine)) {
+        $subroutine = "MAIN";
+    }
+    $subroutine =~ s/\w+:://g;
+    if ($subroutine =~ /^\w+$/) {
+        $subroutine .= "()";
+    }
+    ($pkg, $file, $line) = caller($idx - 1);
+    if ($file && $file =~ /^.*\/([^\/]+)$/) {
+        $file = $1;
+    }
+    return ($pkg || "", $file || "", $line || "", $subroutine);
+}
+
+=item get_backtrace()
+
+Generate a stack trace in array form, one caller per line.
+
+=cut
+
+sub
+get_backtrace()
+{
+    my $start = shift || 0;
+    my (@trace, @tmp);
+
+    $start++;
+    for (my $i = $start; @tmp = caller($i); $i++) {
+        my ($file, $line, $subroutine);
+        my $idx = $i - $start;
+
+        (undef, $file, $line, $subroutine) = &caller_fixed($i);
+        push @trace, sprintf("%s\[%d\] $file:$line | $subroutine\n",  ' ' x $idx, $idx);
+    }
+    return ((wantarray()) ? (@trace) : (join('', @trace)));
+}
+
+=item backtrace()
+
+Throw a backtrace at the current location in the code.
+
+=cut
+
+sub
+backtrace()
+{
+    print STDERR "STACK TRACE:\n";
+    print STDERR "------------\n";
+    print STDERR &get_backtrace(1), "\n";
 }
 
 =item croak()
@@ -258,7 +313,7 @@ indent each subsequent level (default 4).
 sub
 examine_object(@)
 {
-    my ($item, $buffer, $indent, $indent_step) = @_;
+    my ($item, $buffer, $indent, $indent_step, $seen) = @_;
     my $tainted;
 
     # Set default parameters.
@@ -270,6 +325,9 @@ examine_object(@)
     }
     if (!defined($indent_step)) {
         $indent_step = 4;
+    }
+    if (!defined($seen)) {
+        $seen = {};
     }
     if (&is_tainted($item)) {
         $tainted = ' *TAINTED*';
@@ -283,52 +341,54 @@ examine_object(@)
     } elsif (ref($item)) {
         my $type = ref($item);
 
+        if (exists($seen->{$item})) {
+            # Use a hash table to avoid recursing the same reference
+            # multiple times.  Avoids infinite recursion in
+            # self-referential data structures.
+            $buffer .= "SEEN $seen->{$item} REF $item$tainted";
+            return $buffer;
+        }
         if ($type eq "SCALAR") {
+            $seen->{$item} = "SCALAR";
             $buffer .= "SCALAR REF $item$tainted {\n" . (' ' x ($indent + $indent_step));
-            $buffer = &examine_object(${$item}, $buffer, $indent + $indent_step, $indent_step);
+            $buffer = &examine_object(${$item}, $buffer, $indent + $indent_step, $indent_step, $seen);
             $buffer .= "\n" . (' ' x $indent) . '}';
-        } elsif ($type eq "ARRAY") {
-            $buffer .= "ARRAY REF $item$tainted {\n";
+        } elsif (UNIVERSAL::isa($item, "ARRAY")) {
+            $seen->{$item} = (($type eq "ARRAY") ? ("ARRAY") : ("OBJECT"));
+            $buffer .= "$seen->{$item} REF $item$tainted {\n";
             for (my $i = 0; $i < scalar(@{$item}); $i++) {
                 $buffer .= (' ' x ($indent + $indent_step)) . "$i:  ";
-                $buffer = &examine_object($item->[$i], $buffer, $indent + $indent_step, $indent_step) . "\n";
+                $buffer = &examine_object($item->[$i], $buffer, $indent + $indent_step, $indent_step, $seen) . "\n";
             }
             $buffer .= (' ' x $indent) . '}';
-        } elsif ($type eq "HASH") {
-            $buffer .= "HASH REF $item$tainted {\n";
+        } elsif (UNIVERSAL::isa($item, "HASH")) {
+            $seen->{$item} = (($type eq "HASH") ? ("HASH") : ("OBJECT"));
+            $buffer .= "$seen->{$item} REF $item$tainted {\n";
             foreach my $key (sort(keys(%{$item}))) {
                 $buffer .= (' ' x ($indent + $indent_step));
-                $buffer = &examine_object($key, $buffer, $indent + $indent_step, $indent_step) . " => ";
-                $buffer = &examine_object($item->{$key}, $buffer, $indent + $indent_step, $indent_step) . "\n";
+                $buffer = &examine_object($key, $buffer, $indent + $indent_step, $indent_step, $seen) . " => ";
+                $buffer = &examine_object($item->{$key}, $buffer, $indent + $indent_step, $indent_step, $seen) . "\n";
             }
             $buffer .= (' ' x $indent) . '}';
-        } elsif ($type eq "CODE") {
-            $buffer .= "CODE REF $item$tainted";
-        } elsif ($type eq "REF") {
-            $buffer .= "REF REF $item$tainted {\n" . (' ' x ($indent + $indent_step));
-            $buffer = &examine_object(${$item}, $buffer, $indent + $indent_step, $indent_step);
+        } elsif (UNIVERSAL::isa($item, "CODE")) {
+            $seen->{$item} = (($type eq "CODE") ? ("CODE") : ("OBJECT"));
+            $buffer .= "$seen->{$item} REF $item$tainted";
+        } elsif (UNIVERSAL::isa($item, "REF")) {
+            $seen->{$item} = (($type eq "REF") ? ("REF") : ("OBJECT"));
+            $buffer .= "$seen->{$item} REF $item$tainted {\n" . (' ' x ($indent + $indent_step));
+            $buffer = &examine_object(${$item}, $buffer, $indent + $indent_step, $indent_step, $seen);
             $buffer .= "\n" . (' ' x $indent) . '}';
         } elsif ($type eq "GLOB") {
+            $seen->{$item} = $type;
             $buffer .= "GLOB REF $item$tainted";
         } elsif ($type eq "LVALUE") {
+            $seen->{$item} = $type;
             $buffer .= "LVALUE REF $item$tainted";
         #} elsif ($type eq "Regexp") {
         } else {
-            # Some object type.
-            $buffer .= ref($item) . " REF $item$tainted {\n" . (' ' x ($indent + $indent_step));
-            if (UNIVERSAL::isa($item, "CODE")) {
-                $item = \&{$item};
-            } elsif (UNIVERSAL::isa($item, "REF")) {
-                $item = \${$item};
-            } elsif (UNIVERSAL::isa($item, "HASH")) {
-                $item = \%{$item};
-            } elsif (UNIVERSAL::isa($item, "ARRAY")) {
-                $item = \@{$item};
-            } else {
-                $item = \"UNKNOWN";  #"
-            }
-            $buffer = &examine_object($item, $buffer, $indent + $indent_step, $indent_step);
-            $buffer .= "\n" . (' ' x $indent) . '}';
+            # Some unknown reference type.
+            $seen->{$item} = "UNKNOWN";
+            $buffer .= "UNKNOWN REF $item$tainted";
         }
     } elsif ($item =~ /^\d+$/) {
         $buffer .= "$item$tainted";
