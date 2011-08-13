@@ -15,6 +15,7 @@ use Test::More;
 # Generate the list below with this command:
 #    find ./lib -name '*.pm' -print | sed 's/^\.\/lib\///;s/\//::/g;s/\.pm$/",/;s/^/    "/' | sort
 my @module_list = (
+    "Warewulf::ACVars",
     "Warewulf::Config",
     "Warewulf::Daemon",
     "Warewulf::DataStore",
@@ -31,7 +32,6 @@ my @module_list = (
     "Warewulf::EventHandler",
     "Warewulf::Event::NewObject",
     "Warewulf::HTML::Page",
-    "Warewulf::Include",
     "Warewulf::Logger",
     "Warewulf::Module",
     "Warewulf::Module::Cli",

@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(warewulf-common, 3.0, warewulf-devel@lbl.gov)
+AC_INIT(warewulf-common, 3.0.99.0, warewulf-devel@lbl.gov)
 AC_CONFIG_SRCDIR([.])
 
 AC_PROG_INSTALL
@@ -34,7 +34,7 @@ AC_OUTPUT(Makefile
    bin/Makefile
    etc/Makefile
    lib/Makefile
-   lib/Warewulf/Include.pm
+   lib/Warewulf/ACVars.pm
    lib/Warewulf/Makefile
    lib/Warewulf/DSO/Makefile
    lib/Warewulf/Event/Makefile

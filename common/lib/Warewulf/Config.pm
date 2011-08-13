@@ -10,7 +10,7 @@
 
 package Warewulf::Config;
 
-use Warewulf::Include;
+use Warewulf::ACVars;
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Object;
@@ -84,7 +84,7 @@ init()
     %{$self} = ();
     $self->set_path(
         &homedir() . "/.warewulf",
-        &wwconfig("SYSCONFDIR") . "/warewulf"
+        Warewulf::ACVars->get("SYSCONFDIR") . "/warewulf"
     );
     if (scalar(@args)) {
         $self->load(@args);

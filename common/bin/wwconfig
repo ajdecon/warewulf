@@ -9,7 +9,7 @@
 # $Id$
 #
 
-use Warewulf::Include;
+use Warewulf::ACVars;
 use Getopt::Long;
 
 Getopt::Long::Configure ("bundling");
@@ -25,7 +25,7 @@ GetOptions(
 );
 
 if ($opt_all) {
-    @VARS = keys(%Warewulf::Include::wwconfig);
+    @VARS = Warewulf::ACVars::vars();
 } elsif (@ARGV) {
     @VARS = @ARGV;
 } else {
@@ -42,6 +42,7 @@ if ($opt_help) {
     print "\n";
     print "   Paramaters:\n";
     print "\n";
+    print "      PROGNAME       Program name\n";
     print "      VERSION        Program version\n";
     print "      PREFIX         The compile-time prefix\n";
     print "      DATAROOTDIR    The compile-time data root directory\n";
@@ -60,7 +61,7 @@ foreach my $key (@VARS) {
     my $val;
 
     $key = uc($key);
-    $val = &wwconfig($key);
+    $val = Warewulf::ACVars::get($key);
 
     if ($opt_sh) {
         print "WAREWULF_$key=\"$val\"\n";

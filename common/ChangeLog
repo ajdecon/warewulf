@@ -216,3 +216,16 @@ script/module dependencies accordingly.
 Update examine_object() from upstream (Mezzanine) to improve handling
 of objects.
 ----------------------------------------------------------------------
+Fri Aug 12 16:56:56 2011                        Michael Jennings (mej)
+
+Renamed Include.pm to ACVars.pm to be more descriptive of what its
+purpose actually is.
+
+Refactored ACVars.pm to be object-oriented using a singleton pattern.
+The singleton is accessible by invoking functions on the module,
+calling static methods of the class, or invoking methods on an object
+instance.  More details and examples are in the POD in the module.
+
+Bumped version to 3.0.99.0 since it's undergone some significant
+changes (and breakage).
+----------------------------------------------------------------------
