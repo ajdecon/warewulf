@@ -150,7 +150,34 @@ set($$)
 
         if (ref($hashref) eq "HASH") {
             # Hashref.  Populate our data from referenced hash and return.
-            map { $self->{uc($_)} = $hashref->{$_} } keys(%{$hashref});
+            # FIXME:  We're dereferencing top-level references we can
+            # handle, but there's still a risk here.  Is there a "deep
+            # copy" mechanism we can use here instead?  Do we need to
+            # write one?  We also don't handle objects, but we could
+            # theoretically handle Warewulf::Objects....
+            # If we don't do this, all objects populated with a
+            # particular hashref will have all the same values for
+            # their keys...by reference!  Change one object, change
+            # them all!  Probably not a good thing.  :-)
+            %{$self} = ();
+            foreach my $key (keys(%{$hashref})) {
+                my $val = $hashref->{$key};
+
+                $key = uc($key);
+                if (ref($val)) {
+                    if (ref($val) eq "SCALAR") {
+                        $self->set($key, ${$val});
+                        next;
+                    } elsif (ref($val) eq "ARRAY") {
+                        $self->set($key, @{$val});
+                        next;
+                    } elsif (ref($val) eq "HASH") {
+                        %{$self->{$key}} = %{$val};
+                        next;
+                    }
+                }
+                $self->{$key} = $val;
+            }
             return $hashref;
         } elsif (ref($hashref) eq "ARRAY") {
             # Arrayref.  Dereference it and process as normal.

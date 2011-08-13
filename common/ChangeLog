@@ -229,3 +229,8 @@ instance.  More details and examples are in the POD in the module.
 Bumped version to 3.0.99.0 since it's undergone some significant
 changes (and breakage).
 ----------------------------------------------------------------------
+Fri Aug 12 18:05:48 2011                        Michael Jennings (mej)
+
+Fix bug in populating objects from a hashref.  This was causing
+configuration data to be retrievable only in array form.
+----------------------------------------------------------------------
