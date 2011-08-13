@@ -10,12 +10,12 @@
 
 package Warewulf::Provision::Bootstrap;
 
+use Warewulf::ACVars;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::DataStore;
 use Warewulf::DSOFactory;
-use Warewulf::Include;
 use Warewulf::Util;
 use Warewulf::Provision::Tftp;
 use File::Path;
@@ -145,7 +145,7 @@ build_bootstrap()
             my $id = $1;
             my $ds = Warewulf::DataStore->new();
             my $tftpboot = Warewulf::Provision::Tftp->new()->tftpdir();
-            my $initramfsdir = &wwconfig("statedir") ."/warewulf/initramfs/";
+            my $initramfsdir = &Warewulf::ACVars::get("statedir") . "/warewulf/initramfs/";
             my $randstring = &rand_string("12");
             my $tmpdir = "/var/tmp/wwinitrd.$randstring";
             my $binstore = $ds->binstore($bootstrapObj->get("_id"));

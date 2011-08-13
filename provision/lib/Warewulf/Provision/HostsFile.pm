@@ -10,16 +10,16 @@
 
 package Warewulf::Provision::HostsFile;
 
+use Socket;
+use Digest::MD5 qw(md5_hex);
+use Warewulf::ACVars;
 use Warewulf::Logger;
 use Warewulf::Provision::Dhcp;
 use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
-use Warewulf::Include;
 use Warewulf::DSOFactory;
-use Socket;
-use Digest::MD5 qw(md5_hex);
 
 
 =head1 NAME
@@ -86,7 +86,7 @@ generate()
     my $datastore = Warewulf::DataStore->new();
     my $netobj = Warewulf::Network->new();
     my $config = Warewulf::Config->new("provision.conf");
-    my $sysconfdir = &wwconfig("sysconfdir");
+    my $sysconfdir = &Warewulf::ACVars::get("sysconfdir");
 
     my $netdev = $config->get("network device");
     my $ipaddr = $netobj->ipaddr($netdev);

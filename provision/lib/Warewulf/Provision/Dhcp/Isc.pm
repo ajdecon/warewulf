@@ -10,13 +10,13 @@
 
 package Warewulf::Provision::Dhcp::Isc;
 
+use Warewulf::ACVars;
 use Warewulf::Logger;
 use Warewulf::Provision::Dhcp;
 use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
-use Warewulf::Include;
 use Warewulf::DSOFactory;
 use Socket;
 
@@ -141,7 +141,7 @@ sub
 persist()
 {
     my $self = shift;
-    my $sysconfdir = &wwconfig("sysconfdir");
+    my $sysconfdir = &Warewulf::ACVars::get("sysconfdir");
 
     if (! $self->get("FILE")) {
         &dprint("No configuration file present, so no DHCP configuration to persist\n");

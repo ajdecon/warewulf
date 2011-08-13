@@ -10,10 +10,10 @@
 
 package Warewulf::Provision::Pxelinux;
 
+use Warewulf::ACVars;
 use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
-use Warewulf::Include;
 use Warewulf::Network;
 use Warewulf::DataStore;
 use Warewulf::Provision::Tftp;
@@ -78,7 +78,7 @@ sub
 setup()
 {
     my $self = shift;
-    my $datadir = &wwconfig("datadir");
+    my $datadir = &Warewulf::ACVars::get("datadir");
     my $tftpdir = Warewulf::Provision::Tftp->new()->tftpdir();
 
     if ($tftpdir) {
