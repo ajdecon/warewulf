@@ -66,8 +66,10 @@ init()
 {
     my ($self) = @_;
     my $select = IO::Select->new();
+    my $queueset = Warewulf::ObjectSet->new();
 
     $self->set("select", $select);
+    $self->set("queueset", $queueset);
 
     return($self);
 }
@@ -82,11 +84,12 @@ sub
 queue($)
 {
     my ($self, $command) = @_;
+    my $obj = Warewulf::Object->new();
+    my $queueset = $self->get("queueset");
 
     &dprint("Adding command to queue: $command\n");
-    # Not using the OBJECT::add function, because it is too smart and doesn;t
-    # add redundant entries.
-    push(@{$self->{"QUEUE"}}, $command);
+    $obj->set("command", $command);
+    $queueset->add($obj);
 
     return;
 }
@@ -139,7 +142,8 @@ run($)
     my $select = $self->get("select");
     my @queue = $self->get("queue");
     my $fanout = $self->get("fanout") || 64;
-    my $cmdobjs = Warewulf::ObjectSet->new();
+    my $queueset = $self->get("queueset");
+    #my $cmdobjs = Warewulf::ObjectSet->new();
 
     $cmdobjs->index("fileno");
 
@@ -150,12 +154,11 @@ run($)
         $self->forkcmd(shift(@queue));
     }
 
-    #while (my @ready = $select->can_read("2")) {
     my $timer = 1;
     while ($select->count() > 0) {
         my $timeleft = $timer+$time - time;
-        my @ready = $select->can_read($timeleft);
         &dprint("can_read($timeleft) engaged\n");
+        my @ready = $select->can_read($timeleft);
         $time = time();
         if (scalar(@ready)) {
             &dprint("got FH activity\n");
