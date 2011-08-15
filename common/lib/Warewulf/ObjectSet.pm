@@ -196,7 +196,8 @@ get_list_entries($$)
     my ($self, $key) = @_;
     my @ret;
 
-    foreach my $obj (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}}) {
+#    foreach my $obj (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}}) {
+    foreach my $obj (@{$self->{"ARRAY"}}) {
         my $value = $obj->get($key);
 
         if ($value) {
@@ -223,7 +224,8 @@ get_list($$)
     my ($self) = @_;
 
     if (exists($self->{"ARRAY"})) {
-        return (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}});
+#        return (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}});
+        return(@{$self->{"ARRAY"}});
     } else {
         return;
     }
@@ -267,7 +269,7 @@ index($$)
 {
     my ($self, $key) = @_;
 
-    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
+#    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
         push(@{$self->{"INDEXES"}}, $key);
 #        if (exists($self->{"DATA"})) {
             $self->{"DATA"} = {};
@@ -282,7 +284,7 @@ index($$)
                 }
             }
 #        }
-    }
+#    }
     
     if (exists($self->{"INDEXES"})) {
         return (@{$self->{"INDEXES"}});
