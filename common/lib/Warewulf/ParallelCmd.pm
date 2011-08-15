@@ -68,6 +68,8 @@ init()
     my $select = IO::Select->new();
     my $queueset = Warewulf::ObjectSet->new();
 
+    $queueset->index("fileno");
+
     $self->set("select", $select);
     $self->set("queueset", $queueset);
 
@@ -140,18 +142,14 @@ run($)
 {
     my ($self) = @_;
     my $select = $self->get("select");
-    my @queue = $self->get("queue");
     my $fanout = $self->get("fanout") || 64;
     my $queueset = $self->get("queueset");
-    #my $cmdobjs = Warewulf::ObjectSet->new();
-
-    $cmdobjs->index("fileno");
-
-    $self->set("cmdobjs", $cmdobjs);
+    my $totalcount = $queueset->count() - 1;
+    my $queuecount = 0;
 
     # Spawning the initial fanout within the queue
-    for (my $i=1; $i <= $fanout && $i <= scalar(@queue); $i++) {
-        $self->forkcmd(shift(@queue));
+    for (; $queuecount < $fanout && $queuecount < $totalcount; $queuecount++) {
+        $self->forkobj($queueset->get_object($queuecount));
     }
 
     my $timer = 1;
@@ -178,17 +176,18 @@ run($)
                     }
 
                 } else {
-                    $self->endcmd($fh);
+                    $self->closefh($fh);
                     # Closed one file handle, so now lets queue the next in the array
                     # if it exists.
-                    if (scalar(@queue)) {
-                        $self->forkcmd(shift(@queue));
+                    if ($queuecount <= $totalcount) {
+                        $self->forkobj($queueset->get_object($queuecount));
+                        $queuecount++;
                     }
                 }
             }
         } else {
             &dprint("Invoking the warnings\n");
-            $self->warnings();
+            $self->timer();
         }
     }
 }
@@ -211,61 +210,61 @@ required approvals from the U.S. Dept. of Energy).  All rights reserved.
 =cut
 
 sub
-forkcmd($)
+forkobj($)
 {
-    my ($self, $command) = @_;
-    my $cmdObjs = $self->get("cmdobjs");
-    my $cmdObj = Warewulf::Object->new();
+    my ($self, $obj) = @_;
     my $select = $self->get("select");
+    my $command = $obj->get("command");
     my $fh;
 
     &dprint("Spawning command: $command\n");
     open($fh, "$command |");
     $select->add($fh);
 
-    $cmdObj->set("command", $command);
-    $cmdObj->set("fh", $fh);
-    $cmdObj->set("fileno", $fh->fileno());
-    $cmdObj->set("warningtime", time());
-    $cmdObjs->add($cmdObj);
+    $obj->set("fileno", $fh->fileno());
+    $obj->set("starttime", time());
 }
 
 sub
-endcmd($)
+closefh($)
 {
     my ($self, $fh) = @_;
+    my $queueset = $self->get("queueset");
     my $select = $self->get("select");
-    my $cmdObjs = $self->get("cmdobjs");
     my $fileno = $fh->fileno();
+    $queueset->index("fileno");
+    my $obj = $queueset->find("fileno", $fileno);
+    if ($obj) {
+        &dprint("closing out fileno: $fileno\n");
 
-    &dprint("closing out fileno: $fileno\n");
-    $select->remove($fh);
-    $fh->close();
-
-    $cmdObjs->del("fileno", $fileno) or print "ERROR: Did not remove the object\n";
-}
-
-sub
-warnings($)
-{
-    my ($self) = @_;
-    my $cmdObjs = $self->get("cmdobjs");
-    my $wtime = $self->get("wtime") || 15;
-    &dprint("called warnings()\n");
-
-    foreach my $cmdObj ($cmdObjs->get_list()) {
-        my $runtime = time - $cmdObj->get("warningtime");
-        if ($runtime >= $wtime) {
-            my $fh = $cmdObj->get("fh");
-            my $fileno = $cmdObj->get("fileno");
-            my $command = $cmdObj->get("command");
-            $cmdObj->set("warningtime", time);
-            &dprint("fileno: $fileno, runtime: $runtime\n");
-            &wprint("Command still running: $command\n");
-        }
+        $select->remove($fh);
+        $fh->close();
+        $obj->set("done", "1");
+        $obj->del("fileno");
+    } else {
+        &wprint("Could not resolve fileno: $fileno\n");
     }
 }
 
+sub
+timer($)
+{
+    my ($self) = @_;
+    my $queueset = $self->get("queueset");
+    my $curtime = time();
+    my $wtime = $self->get("wtime") || 15;
+
+    foreach my $obj ($queueset->get_list()) {
+        my $warntime = $obj->get("starttime") + $wtime;
+        my $fileno = $obj->get("fileno");
+        my $command = $obj->get("command");
+        my $warning = $obj->get("warning");
+        if (! $obj->get("done") and ! $warning and $fileno and $curtime > $warntime) {
+            &wprint("Command still in progress ($command)\n");
+            $obj->set("warning", 1);
+        }
+    }
+}
 
 
 1;
