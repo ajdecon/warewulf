@@ -26,12 +26,12 @@ Warewulf::ParallelCmd - A parallel command implementation library for Warewulf.
     use Warewulf::ParallelCmd;
 
     my $o = Warewulf::ParallelCmd->new();
-    $o->fanout(32);
-    for (my $i=1; $i<= 100; $i++) {
-        $o->queue("sleep 1; echo '$i done'");
+    $o->fanout(4);
+    $o->queue("echo 'long1 start'; sleep 20; echo 'long1 done'");
+    for (my $i=1; $i<= 20; $i++) {
+        $o->queue("echo '$i start'; sleep 4; echo '$i done'");
     }
     $o->run();
-
 
 =head1 DESCRIPTION
 
@@ -67,8 +67,6 @@ init()
     my ($self) = @_;
     my $select = IO::Select->new();
     my $queueset = Warewulf::ObjectSet->new();
-
-    $queueset->index("fileno");
 
     $self->set("select", $select);
     $self->set("queueset", $queueset);
@@ -186,7 +184,7 @@ run($)
                 }
             }
         } else {
-            &dprint("Invoking the warnings\n");
+            &dprint("Invoking the timer\n");
             $self->timer();
         }
     }
@@ -221,6 +219,8 @@ forkobj($)
     open($fh, "$command |");
     $select->add($fh);
 
+    &dprint("Created fileno: ". $fh->fileno() ."\n");
+
     $obj->set("fileno", $fh->fileno());
     $obj->set("starttime", time());
 }
@@ -232,7 +232,7 @@ closefh($)
     my $queueset = $self->get("queueset");
     my $select = $self->get("select");
     my $fileno = $fh->fileno();
-    $queueset->index("fileno");
+
     my $obj = $queueset->find("fileno", $fileno);
     if ($obj) {
         &dprint("closing out fileno: $fileno\n");
