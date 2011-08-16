@@ -243,3 +243,7 @@ Tue Aug 16 09:54:03 2011                        Michael Jennings (mej)
 This should fix the index generation.  Don't have unit tests for the
 ObjectSet yet, so I can't say for sure....  :-)
 ----------------------------------------------------------------------
+Tue Aug 16 16:15:52 2011                        Michael Jennings (mej)
+
+More work on the Util.pm tests.
+----------------------------------------------------------------------
