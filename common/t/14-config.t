@@ -15,7 +15,7 @@ use Warewulf::Object;
 use Warewulf::Config;
 
 my $cfgpath = "./t";
-my $cfgfile = "11-config_test_file.conf";
+my $cfgfile = "14-config_test_file.conf";
 my %vals = (
     "simple" => "test",
     "some key" => "some value",

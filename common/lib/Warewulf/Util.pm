@@ -47,11 +47,11 @@ Generate a random string of a given length
 sub
 rand_string($)
 {
-    my $size;
+    my ($size) = @_;
     my @alphanumeric = ('a'..'z', 'A'..'Z', 0..9);
 
-    if (scalar(@_)) {
-        $size = $_[0] - 1;
+    if (defined($size) && (int($size) == $size)) {
+        $size -= 1;;
     } else {
         $size = 7;
     }
@@ -101,11 +101,14 @@ get_backtrace()
     my (@trace, @tmp);
 
     $start++;
-    for (my $i = $start; @tmp = caller($i); $i++) {
+    for (my $i = $start; @tmp = &caller_fixed($i); $i++) {
         my ($file, $line, $subroutine);
         my $idx = $i - $start;
 
-        (undef, $file, $line, $subroutine) = &caller_fixed($i);
+        (undef, $file, $line, $subroutine) = @tmp;
+        if (($i > 512) || (! $file && ! $line && ($subroutine eq "MAIN()"))) {
+            last;
+        }
         push @trace, sprintf("%s\[%d\] $file:$line | $subroutine\n",  ' ' x $idx, $idx);
     }
     return ((wantarray()) ? (@trace) : (join('', @trace)));
@@ -165,7 +168,7 @@ Returns the home directory of the current user (real UID) or "." on error.
 sub
 homedir()
 {
-    return (($ENV{'HOME'}) || ($ENV{'LOGDIR'}) || ((getpwuid($<))[7]) || ("."));
+    return (($ENV{'HOME'}) || ($ENV{'LOGDIR'}) || ((getpwuid($<))[7]) || (""));
 }
 
 =item expand_bracket($range1, $range2)

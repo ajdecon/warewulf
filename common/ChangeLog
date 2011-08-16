@@ -234,3 +234,7 @@ Fri Aug 12 18:05:48 2011                        Michael Jennings (mej)
 Fix bug in populating objects from a hashref.  This was causing
 configuration data to be retrievable only in array form.
 ----------------------------------------------------------------------
+Mon Aug 15 18:14:36 2011                        Michael Jennings (mej)
+
+Work in progress:  Util.pm tests
+----------------------------------------------------------------------
