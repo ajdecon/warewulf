@@ -254,13 +254,18 @@ count()
     return $count;
 }
 
-=item index(key name)
+=item index($field)
 
-Define which member variables should be indexed when adding to an
-ObjectSet archive. This allows a fast return from the ObjectSet
-interface.
+Requests that the ObjectSet add an index (in the database sense) for a
+particular member variable of the objects in the set.  This speeds up
+access when searching for particular object(s) with matching members.
 
-Returns the current (possibly updated) list.
+For example, if you have an ObjectSet filled with nodes, you would
+likely want an index for the hostname of each node so that finding the
+node in the set with a particular hostname would not require searching
+the entire set.
+
+Returns the current (possibly updated) list of indexes.
 
 =cut
 
@@ -269,23 +274,17 @@ index($$)
 {
     my ($self, $key) = @_;
 
-#    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
+    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
         push(@{$self->{"INDEXES"}}, $key);
-#        if (exists($self->{"DATA"})) {
-            $self->{"DATA"} = {};
-            # Add object to all indexes.
-            foreach my $index (@{$self->{"INDEXES"}}) {
-                foreach my $obj (@{$self->{"ARRAY"}}) {
-                    my $value = $obj->get($index);
+        foreach my $obj (@{$self->{"ARRAY"}}) {
+            my $value = $obj->get($index);
 
-                    if (defined($value)) {
-                        push(@{$self->{"DATA"}{$index}{$value}}, $obj);
-                    }
-                }
+            if (defined($value)) {
+                push(@{$self->{"DATA"}{$index}{$value}}, $obj);
             }
-#        }
-#    }
-    
+        }
+    }
+
     if (exists($self->{"INDEXES"})) {
         return (@{$self->{"INDEXES"}});
     } else {
