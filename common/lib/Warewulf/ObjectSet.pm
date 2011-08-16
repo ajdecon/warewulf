@@ -75,15 +75,6 @@ add($$)
     if (defined($obj)) {
         # Maintain ordered list of objects in set.
         push(@{$self->{"ARRAY"}}, $obj);
-
-        # Add object to all indexes.
-        foreach my $key ($self->index()) {
-            my $value = $obj->get($key);
-
-            if (defined($value)) {
-                push(@{$self->{"DATA"}{$key}{$value}}, $obj);
-            }
-        }
     }
 }
 
@@ -123,16 +114,6 @@ del()
     # that the indexes of an ObjectSet will be unique; in fact, it's designed to handle
     # indexing on anything, even non-unique keys.  So any number of objects could match.
     foreach my $obj (@objs) {
-        # Update all indexes to remove this object.
-        foreach $key ($self->index()) {
-            $value = $obj->get($key);
-            # Remove all index entries that have $key set to this $value.
-            @{$self->{"DATA"}{$key}{$value}} = grep { $_ ne $obj } @{$self->{"DATA"}{$key}{$value}};
-            if (scalar(@{$self->{"DATA"}{$key}{$value}}) == 0) {
-                # We just emptied that list, so remove it from the index hash.
-                delete $self->{"DATA"}{$key}{$value};
-            }
-        }
         # Remove the object from the set.
         @{$self->{"ARRAY"}} = grep { $_ ne $obj } @{$self->{"ARRAY"}};
     }
@@ -156,14 +137,19 @@ sub
 find($$$)
 {
     my ($self, $key, $val) = @_;
+    my @ret;
 
-    if (!exists($self->{"DATA"}{$key})) {
+    if (! $key or ! $val) {
         return undef;
     }
-    if (!exists($self->{"DATA"}{$key}{$val})) {
-        return ();
+
+    foreach my $obj (@{$self->{"ARRAY"}}) {
+        if ($obj->get($key) eq $val) {
+            push(@ret, $obj);
+        }
     }
-    return ((wantarray()) ? (@{$self->{"DATA"}{$key}{$val}}) : ($self->{"DATA"}{$key}{$val}[0]));
+
+    return (wantarray() ? @ret : $ret[0]);
 }
 
 =item get_object($index)
@@ -252,44 +238,6 @@ count()
     &dprint("Found '$count' objects in Set\n");
 
     return $count;
-}
-
-=item index($field)
-
-Requests that the ObjectSet add an index (in the database sense) for a
-particular member variable of the objects in the set.  This speeds up
-access when searching for particular object(s) with matching members.
-
-For example, if you have an ObjectSet filled with nodes, you would
-likely want an index for the hostname of each node so that finding the
-node in the set with a particular hostname would not require searching
-the entire set.
-
-Returns the current (possibly updated) list of indexes.
-
-=cut
-
-sub
-index($$)
-{
-    my ($self, $key) = @_;
-
-    if ($key && !scalar(grep($key, @{$self->{"INDEXES"}}))) {
-        push(@{$self->{"INDEXES"}}, $key);
-        foreach my $obj (@{$self->{"ARRAY"}}) {
-            my $value = $obj->get($index);
-
-            if (defined($value)) {
-                push(@{$self->{"DATA"}{$index}{$value}}, $obj);
-            }
-        }
-    }
-
-    if (exists($self->{"INDEXES"})) {
-        return (@{$self->{"INDEXES"}});
-    } else {
-        return;
-    }
 }
 
 =item add_hashes($array_obj)
