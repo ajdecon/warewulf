@@ -277,13 +277,16 @@ exec()
                         next;
                     }
                 }
-                open(SCRIPT, "> $opt_export/$name");
-                while(my $buffer = $binstore->get_chunk()) {
-                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
-                    print SCRIPT $buffer;
+                if (open(SCRIPT, "> $opt_export/$name")) {
+                    while(my $buffer = $binstore->get_chunk()) {
+                        &dprint("Writing ". length($buffer) ." bytes to buffer\n");
+                        print SCRIPT $buffer;
+                    }
+                    close SCRIPT;
+                    &nprint("Exported: $opt_export/$name\n");
+                } else {
+                    &eprint($!);
                 }
-                close SCRIPT;
-                &nprint("Exported: $opt_export/$name\n");
             }
         } elsif (-f $opt_export) {
             if (scalar(@objList) == 1) {
