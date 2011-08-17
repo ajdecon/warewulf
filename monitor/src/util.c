@@ -1,4 +1,8 @@
-/* monitor.c */
+// 
+// Warewulf Monitor (util.c)
+//
+// Copyright(c) 2011 Anthony Salgado & Krishna Muriki
+//
 
 #include<stdio.h>
 #include<string.h>

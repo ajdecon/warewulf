@@ -1,5 +1,5 @@
 //
-// Warewulf Monitor Collector
+// Warewulf Monitor Collector (wwmon_collector.c)
 //
 // Copyright(c) 2011 Anthony Salgado & Krishna Muriki
 //
