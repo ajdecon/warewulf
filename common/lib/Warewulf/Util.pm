@@ -175,7 +175,7 @@ homedir()
 
 Input a string that contains a bracket range (e.g. [0-20]) and return a list
 that has that expanded into a full array. For example, n00[0-19] will return
-an array of 20 entries.
+an array of 20 entries.  Only one range specifier is allowed per string.
 
 =cut
 
@@ -186,24 +186,27 @@ expand_bracket(@)
     my @ret;
 
     foreach my $range (@ranges) {
-        if ($range =~ /^(.*?)\[([0-9\-\,]+)\](.*?)$/) {
+        if ($range =~ /^(.*)\[([\d\-\,]+)\](.*)$/) {
             my $prefix = $1;
             my $range = $2;
             my $suffix = $3;
 
             foreach my $r (split(",", $range)) {
-                if ($r =~ /^([0-9]+)\-([0-9]+)$/) {
+                if ($r =~ /^(\d+)-(\d+)$/) {
                     my $start = $1;
                     my $end = $2;
+                    my $len;
 
-                    if ($end > $start) {
-                        my $len = length($end);
-
-                        for (my $i = $start; $i <= $end; $i++) {
-                            push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
-                        }
+                    if ($end < $start) {
+                        # The range counts down, so swap the endpoints.
+                        ($start, $end) = ($end, $start);
                     }
-                } elsif ($r =~ /^([0-9]+)$/ ) {
+                    $len = length($end);
+
+                    for (my $i = $start; $i <= $end; $i++) {
+                        push(@ret, sprintf("%s%0.${len}d%s", $prefix, $i, $suffix));
+                    }
+                } elsif ($r =~ /^(\d+)$/ ) {
                     my $num = $1;
                     my $len = length($num);
 
@@ -221,55 +224,57 @@ expand_bracket(@)
 
 =item uid_test($uid)
 
-Test to see if the current uid meets the passed uid: e.g. &uid_test(0) will
+Test to see if the current euid meets the passed uid: e.g. &uid_test(0) will
 test for the root user (which is always UID zero on a Unix system).
 
 =cut
 
 sub
-uid_test()
+uid_test($)
 {
     my ($uid) = @_;
 
-    if (defined($uid)) {
-        return ($> == $uid);
-    }
-
-    return;
+    return ((defined($uid)) ? ($> == $uid) : (0));
 }
 
 =item ellipsis($length, $string, $location)
 
 Trim a string to the desired length adding '...' to show that the original
-string is longer then allowed. Location will define where to place the
+string is longer than allowed. Location will define where to place the
 '...' within the string. Options are start, middle, end (default: middle).
 
 =cut
 
 sub
-ellipsis($$)
+ellipsis($$$)
 {
     my ($length, $text, $location) = @_;
     my $actual_length = length($text);
-    my $ret;
 
-    if ($actual_length > $length) {
-        if (! $location || $location eq "middle") {
-            my $leader_length = sprintf("%d", ($length-3)/2);
-            my $tail_length = $length - 3 - $leader_length;
-
-            $ret = substr($text, 0, $leader_length) . "..." . substr($text, -$tail_length);
-        } elsif ($location eq "end") {
-            $ret = substr($text, 0, $length-3);
-            $ret .= "...";
+    $location = lc($location || "middle");
+    if (! $length || ! $text) {
+        return undef;
+    } elsif ($actual_length > $length) {
+        if ($length <= 3) {
+            return substr("...", 0, $length);
+        }
+        $length -= 3;
+        if ($location eq "end") {
+            return substr($text, 0, $length) . "...";
         } elsif ($location eq "start") {
-            $ret = "...";
-            $ret .= substr($text, -$length);
+            return "..." . substr($text, -$length);
+        } else {
+            my $leader_length = int($length / 2);
+            my $tail_length = $length - $leader_length;
+
+            # Anything else is assumed to mean "middle"
+            return substr($text, 0, $leader_length) . "..." . substr($text, -$tail_length);
         }
     } else {
-        $ret = $text;
+        return $text;
     }
-    return $ret;
+    # NOTREACHED
+    return undef;
 }
 
 =item digest_file_hex_md5($filename)

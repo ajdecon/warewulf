@@ -247,3 +247,8 @@ Tue Aug 16 16:15:52 2011                        Michael Jennings (mej)
 
 More work on the Util.pm tests.
 ----------------------------------------------------------------------
+Wed Aug 17 17:36:31 2011                        Michael Jennings (mej)
+
+More work on Util.pm tests.  We're up to an even 1600 unit tests after
+only 5 test sets and have already found and fixed a number of issues.
+----------------------------------------------------------------------

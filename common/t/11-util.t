@@ -23,11 +23,96 @@ my $rs_test_length_max = 128;
 my $rs_test_rand_count = 1000;
 my $rs_test_rand_length = 32;
 my $bt_test_sub_count = 16;
-my %eb_test_sets = (
-    [ "n[0-0][00-00][0-0]", "n00[01-03]", "n[0004-0005]" ],
-    [ "n0000", "n0001", "n0002", "n0003", "n0004", "n0005" ]
+my @eb_test_sets = (
+    {
+        "in"  => [ "n0[00-00]0", "n00[01-03]", "n[0004-0005]" ],
+        "out" => [ "n0000", "n0001", "n0002", "n0003", "n0004", "n0005" ]
+    },
+    {
+        "in"  => [ "n[0-0009]" ],
+        "out" => [ "n0000", "n0001", "n0002", "n0003", "n0004", "n0005", "n0006", "n0007", "n0008", "n0009" ]
+    },
+    {
+        "in"  => [ "[0-3]node" ],
+        "out" => [ "0node", "1node", "2node", "3node" ]
+    },
+    {
+        "in"  => [ "node[8-4].test" ],
+        "out" => [ "node4.test", "node5.test", "node6.test", "node7.test", "node8.test" ]
+    },
+    {
+        "in"  => [ "" ],
+        "out" => [ "" ]
+    },
+    {
+        "in"  => [ ],
+        "out" => [ ]
+    }
 );
-my $eb_test_set_count = scalar(map { scalar(@{$_}) } values(%eb_test_sets));
+my $eb_test_set_count = scalar(@eb_test_sets);
+my @el_test_sets = (
+    {
+        "desc" => "arg check - \$length == 0",
+        "in"   => [ 0, "lkjsdfliuaslienksdif", "middle" ],
+        "out"  => undef
+    },
+    {
+        "desc" => "arg check - \$text == \"\"",
+        "in"   => [ 255, "" ],
+        "out"  => undef
+    },
+    {
+        "desc" => "arg check - Location \"START\" (value and case)",
+        "in"   => [ 9, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "START" ],
+        "out"  => "...UVWXYZ"
+    },
+    {
+        "desc" => "arg check - Location \"middle\" (value and case)",
+        "in"   => [ 9, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "MiDDLe" ],
+        "out"  => "ABC...XYZ"
+    },
+    {
+        "desc" => "arg check - Location \"end\" (value and case)",
+        "in"   => [ 9, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "eND" ],
+        "out"  => "ABCDEF..."
+    },
+    {
+        "desc" => "arg check - Invalid location",
+        "in"   => [ 9, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "moo" ],
+        "out"  => "ABC...XYZ"
+    },
+    {
+        "desc" => "arg check - Missing location",
+        "in"   => [ 9, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ],
+        "out"  => "ABC...XYZ"
+    },
+    {
+        "desc" => "logic check - Length limit <= 3 but actual length > limit",
+        "in"   => [ 2, "abcd" ],
+        "out"  => ".."
+    },
+    {
+        "desc" => "logic check - Very small length limit, short string, start",
+        "in"   => [ 4, "abcde", "start" ],
+        "out"  => "...e"
+    },
+    {
+        "desc" => "logic check - Very small length limit, short string, middle",
+        "in"   => [ 4, "abcde", "middle" ],
+        "out"  => "...e"
+    },
+    {
+        "desc" => "logic check - Very small length limit, short string, end",
+        "in"   => [ 4, "abcde", "end" ],
+        "out"  => "a..."
+    },
+    {
+        "desc" => "",
+        "in"   => [ 255, "short string" ],
+        "out"  => "short string"
+    },
+);
+my $el_test_set_count = scalar(@el_test_sets);
 
 plan("tests" => (
          + 1                                              # Inheritance tests
@@ -37,7 +122,9 @@ plan("tests" => (
          + 1 + 5 * ($bt_test_sub_count + 1)               # Stack trace tests
          + 1                                              # progname() test
          + 3                                              # homedir() tests
-         #+ $eb_test_set_count                             # expand_bracket() tests
+         + $eb_test_set_count                             # expand_bracket() tests
+         + 5                                              # uid_test() tests
+         + $el_test_set_count                             # ellipsis() tests
          ### Not tested:  croak()
 ));
 
@@ -52,7 +139,6 @@ isa_ok($modname, "Exporter");
 foreach my $func (@funcnames) {
     can_ok($modname, $func);
 }
-
 
 #######################################
 ### rand_string() tests
@@ -149,10 +235,29 @@ is(&homedir(), (((getpwuid($<))[7]) || ""), "homedir() returns passwd data");
 %ENV = %save_env;
 
 #######################################
-### expand_bracket() test
+### expand_bracket() tests
 #######################################
-my @eb_nodeset;
-
-foreach my $eb_test (keys(%eb_test_sets)) {
-    @eb_nodeset = &expand_bracket(@{$eb_test_sets{$eb_test}});
+for (my $i = 0; $i < scalar(@eb_test_sets); $i++) {
+    my ($eb_in, $eb_out) = (@{$eb_test_sets[$i]}{("in", "out")});
+    my @eb_nodeset = &expand_bracket(@{$eb_in});
+    is_deeply(\@eb_nodeset, $eb_out, "Bracket expression(s) properly expanded, set $i");
 }
+
+#######################################
+### uid_test() tests
+#######################################
+ok(&uid_test($>), "&uid_test(EUID) is true");
+ok(!&uid_test($> + 1), "&uid_test(EUID+1) is false");
+ok((($> != 0) xor &uid_test(0)), "&uid_test(0) provides accurate result");
+ok((($< != $>) xor &uid_test($<)), "&uid_test() tests EUID ($>) not RUID ($<)");
+cmp_ok(&uid_test(), '==', 0, "&uid_test() (with no argument) returns false");
+
+#######################################
+### ellipsis() tests
+#######################################
+foreach my $el_test (@el_test_sets) {
+    my ($el_desc, $el_in, $el_out) = @{$el_test}{("desc", "in", "out")};
+    my $result = &ellipsis(@{$el_in});
+    is($result, $el_out, "ellipsis() $el_desc");
+}
+
