@@ -1,5 +1,5 @@
 //
-// Warewulf Monitor Aggregator (wwmon_aggregator.c)
+// Warewulf Monitor
 //
 // Copyright(c) 2011 Anthony Salgado & Krishna Muriki
 //
@@ -25,30 +25,46 @@ char local_sysname[MAX_SYSNAME_LEN];
 fd_set rfds, wfds;
 
 //Global structure array with values of each socket
-sockdata sock_data[FD_SETSIZE];
+myst2 sock_data[FD_SETSIZE];
 //Global Database to hold data of each socket
-sqlite3 *db; // database pointer
+static sqlite3 *db; // database pointer
 
 int
 writeHandler(int fd) 
 {
 
-  char sbuf[MAXPKTSIZE];
+  char *sbuf = malloc(sizeof(char)*MAXPKTSIZE);
   sbuf[0] = '\0';
- 
   apphdr *app_h = (apphdr *) sbuf;
   appdata *app_d = (appdata *) (sbuf + sizeof(apphdr));
 
   // TODO : Add writeHandler logic here
-  strcpy(app_d->payload,"Send Data");
-  app_h->len = strlen(app_d->payload);
+  json_object *json_db = malloc(sizeof(json_object_new_object));
+  json_db = json_object_new_object();
+  
+  sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, json_db, NULL);
 
+  // free the temporary buffer
+  // allocated for the sqlite_cmd
+  free(sock_data[fd].sqlite_cmd);
+
+  
+  // send JSON string iff an application
+  if(sock_data[fd].ctype == APPLICATION){
+    strcpy(app_d->payload, json_object_to_json_string(json_db));
+  } else {
+    strcpy(app_d->payload, "Send Data");
+  }
+  
+  app_h->len = strlen(app_d->payload);
   fprintf(stderr,"About to write on FD - %d\n",fd);
   if (sendall(fd, sbuf, sizeof(apphdr) + strlen(app_d->payload)) == -1) {
       FD_CLR(fd, &wfds);
       close(fd);
   }
-
+  // we forgot to free sbuf
+  free(sbuf); 
+  free(json_db);
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
 
@@ -62,27 +78,26 @@ readHandler(int fd)
 
   char rbuf[MAXPKTSIZE];
   rbuf[0] = '\0';
-  int readbytes;
+  int numbytes;
   json_object *jobj;
 
-  // First check if there is any remaining payload from previous
-  // transmission for this socket and decide the # of bytes to read.
   int numtoread;
+
   if( sock_data[fd].r_payloadlen > 0 && sock_data[fd].r_payloadlen < MAXPKTSIZE-1 ) {
       numtoread = sock_data[fd].r_payloadlen;
   } else {
       numtoread = MAXPKTSIZE-1;
   }
 
-  if ((readbytes=recv(fd, rbuf, numtoread, 0)) == -1) {
+  if ((numbytes=recv(fd, rbuf, numtoread, 0)) == -1) {
       perror("recv");
       FD_CLR(fd, &rfds);
       sock_data[fd].validinfo = 0;
       close(fd);
       return(0);
   }
-  rbuf[readbytes]='\0';
-  fprintf(stderr, "Rx a string of size %d - %s\n",readbytes,rbuf);
+  rbuf[numbytes]='\0';
+  fprintf(stderr, "Rx a string of size %d - %s\n",numbytes,rbuf);
 
   // Is this required ?
   if (strlen(rbuf) == 0)
@@ -96,11 +111,9 @@ readHandler(int fd)
       return(0);
   }
  
-  // If the read buffer is from pending transmission append to accuralbuf
-  // Or else treat it as a new packet. 
   if (sock_data[fd].r_payloadlen > 0) {
      strcat(sock_data[fd].accural_buf,rbuf);
-     sock_data[fd].r_payloadlen = sock_data[fd].r_payloadlen - readbytes;
+     sock_data[fd].r_payloadlen = sock_data[fd].r_payloadlen - numbytes;
   } else {
      apphdr *app_h = (apphdr *) rbuf;
      appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
@@ -110,23 +123,49 @@ readHandler(int fd)
      sock_data[fd].accural_buf = (char *) malloc(app_h->len);
      strcpy(sock_data[fd].accural_buf,app_d->payload);
      sock_data[fd].r_payloadlen = app_h->len - strlen(sock_data[fd].accural_buf);
+     printf("strlen(sock_data[%d].accural_buf) = %d\n", fd, strlen(sock_data[fd].accural_buf));
   }
 
   if (sock_data[fd].r_payloadlen > 0) {
      //Still has more reading to do
-     return(0);
+    printf("r_payloadlen = %d\n", sock_data[fd].r_payloadlen);
+    return(0);
   }
 
   printf("Done reading totally\n");
 
-  jobj = json_tokener_parse(sock_data[fd].accural_buf); // get json from string
+
+  // added logical system for handling the three kinds of messages from TCP:
+  // 1) Declaration of connection type
+  // 2) An SQLite command from an application
+  // 3) A JSON representation of wwmon_collector.c information
+  if(strstr(sock_data[fd].accural_buf, "ctype"))
+    {
+      int ctype;
+      jobj = json_tokener_parse(sock_data[fd].accural_buf);
+      ctype = json_object_get_int(json_object_object_get(jobj, "ctype"));
+      sock_data[fd].ctype = ctype;
+    }
+  if(strstr(sock_data[fd].accural_buf, "sqlite_cmd"))
+    {
+      jobj = json_tokener_parse(sock_data[fd].accural_buf);
+      sock_data[fd].sqlite_cmd = malloc(sizeof(char)*MAX_SQL_SIZE); 
+      strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
+    }
+  else if(strstr(sock_data[fd].accural_buf, "JSON"))
+    {
+      // convert json_string to object
+      jobj = json_tokener_parse(sock_data[fd].accural_buf);                                 
+      // update database call                                                                                                                                  
+      update_db2(jobj, db); // changed to update_db2
+    }
+  else 
+    {
+      printf("This statement should never be reached, something went horribly horribly wrong.\n");
+    }  
+
   sock_data[fd].validinfo = 1;
-  
-  // update database call
-  update_db(jobj, db);
-
   free(sock_data[fd].accural_buf);
-
   FD_CLR(fd, &rfds);
   FD_SET(fd, &wfds);
   return(0);
@@ -151,7 +190,7 @@ readndumpData(int fd)
   buf[numbytes] = '\0';
   printf("packet contains \"%s\"\n",buf);
 
-  sqlite3_exec(db, "select * from wwstats", json_from_db, json_db, NULL);
+  sqlite3_exec(db, "select rowid,NodeName,key,value from wwstats", json_from_db2, json_db, NULL);
 
   // send json_object over socket to wwstats
   if ((numbytes=sendto(fd, json_object_to_json_string(json_db), strlen(json_object_to_json_string(json_db)), 0,
@@ -231,9 +270,9 @@ acceptConn(int fd)
   strcpy(sock_data[c].remote_sock_ipaddr,inet_ntoa(sin.sin_addr));
 
   fprintf(stderr,"Accepted a new connection on fd - %d from %s\n",c,sock_data[c].remote_sock_ipaddr);
-  // Register interest in a write on this socket
-  FD_SET(c, &wfds);
-
+ 
+  FD_SET(c, &rfds);// changed from wfds
+  
   return(c);
 }
 
@@ -251,17 +290,21 @@ main(int argc, char *argv[])
 
   bzero(sock_data,sizeof(sock_data));
 
-  // Prepare to accept clients
-  FD_ZERO(&rfds);
-  FD_ZERO(&wfds);
-
   // Get the database ready
   // Attempt to open database & check for failure
   if( rc = sqlite3_open("wwmon.db", &db)  ){
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);
     exit(1);
+  } else {
+    printf("wwmon.db ready for reading and writing...\n");
   }
+
+  // Prepare to accept clients
+  FD_ZERO(&rfds);
+  FD_ZERO(&wfds);
+
+
 
   // Open TCP (SOCK_STREAM) Socket, bind to the port given and listen for connections
   //if((stcp = setupSockets(atoi(argv[1]))) < 0)

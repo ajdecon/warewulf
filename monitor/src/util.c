@@ -1,8 +1,4 @@
-// 
-// Warewulf Monitor (util.c)
-//
-// Copyright(c) 2011 Anthony Salgado & Krishna Muriki
-//
+/* monitor.c */
 
 #include<stdio.h>
 #include<string.h>
@@ -53,10 +49,9 @@ array_list_print(array_list *ls)
   printf(" ]\n");
 }
 
-void
-update_db(json_object *jobj, sqlite3 *db)
-{
 
+void update_db(json_object *jobj, sqlite3 *db)
+{
   char *sqlite_cmd = malloc(sizeof(char)*1024);
   strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(");
   char *values = malloc(sizeof(char)*1024);
@@ -88,6 +83,9 @@ update_db(json_object *jobj, sqlite3 *db)
   free(values);
 }
 
+void json_parse_complete(json_object *jobj);
+
+
 void
 json_parse_complete(json_object *jobj){
   enum json_type type;
@@ -99,6 +97,7 @@ json_parse_complete(json_object *jobj){
       break;
     case json_type_object:
       json_parse_complete(json_object_object_get(jobj, key));
+      printf("\n");
       break;
     }
   }
@@ -159,15 +158,143 @@ json_object *fast_data_parser(char *file_name, array_list *keys, int num_keys){
 }
 
 
+struct cpu_data{
+  long tj;
+  long wj;
+};
+
+
+
+static int
+json_from_db2(void *void_json, int argc, char **argv, char **azColName)
+{
+  int i;
+  json_object *json_db = (json_object *) void_json;
+  json_object *tmp = json_object_new_object();
+  char *key_buf = malloc(sizeof(char)*1024);
+  for(i = 0; i < argc; i++){
+    json_object_object_add(tmp, azColName[i], json_object_new_string(argv[i]));
+  }  
+  printf("argv[0] = %s\n", argv[0]);
+  printf("argv[1] = %s\n", argv[1]);
+  json_object_object_add(json_db, argv[0], tmp); // REQUIRE ROWID IS FIRST ARG
+  free(key_buf);
+  return 0;
+}
+
+
 static int
 json_from_db(void *void_json, int argc, char **argv, char **azColName)
 {
   int i;
   json_object *json_db = (json_object *) void_json;
   json_object *tmp = json_object_new_object();
+  printf("\nargv[0] = %s\n", argv[0]);
   for(i = 0; i < argc; i++){
     json_object_object_add(tmp, azColName[i], (json_object *) json_object_new_string(argv[i]));
   }
   json_object_object_add(json_db, argv[0], tmp);
+  return 0;
 }
 
+long
+get_jiffs(struct cpu_data *cd)
+{
+  long total_jiffs, work_jiffs;
+  int iters, i;
+  total_jiffs = 0;
+  work_jiffs = 0;
+  FILE *fp;
+  if(fp = fopen("/proc/stat", "r")){
+    char *line = malloc(sizeof(char)*100);
+    char *data = malloc(sizeof(char)*100);
+    while(fgets(line, 100, fp)){
+      if(data = strstr(line, "cpu")){
+	char * result = NULL;
+	result = strtok(data, " ");
+	while(result != NULL){
+	  chop(result);
+	  if(strcmp("cpu", result)){
+	    if(i++ < 3) work_jiffs += atoi(result); // calculating work_jiffs
+	    total_jiffs += atoi(result); // calculating total_jiffs
+	  }
+	  result = strtok(NULL, " ");
+	}
+      }
+      i = 0; // reset i to get each cpu's work_jiffs added
+    }
+    free(line);
+    free(data);
+    fclose(fp);
+    cd->tj = total_jiffs;
+    cd->wj = work_jiffs;
+
+    return 0;
+  } else {
+    printf("I/O ERROR: could not access file\n");
+    return -1;
+  }
+}
+
+
+float
+get_cpu_util()
+{
+  struct cpu_data *fin = malloc(sizeof(struct cpu_data *));
+  struct cpu_data *init = malloc(sizeof(struct cpu_data *));
+  get_jiffs(init);
+  sleep(2);
+  get_jiffs(fin);
+  
+  long work_diff = fin->wj - init->wj;
+  long  total_diff = fin->tj - init->tj;
+  
+  free(fin);
+  free(init);
+  
+  return (float) work_diff/total_diff*100;
+
+}
+
+
+
+void
+update_db2(json_object *jobj, sqlite3 *db)
+{
+  
+  int rc;
+  printf("Starting foreach loop...\n");
+ 
+  json_object_object_foreach(jobj, key, value){
+    char *sqlite_cmd = malloc(sizeof(char)*1024);
+    strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
+    char *values = malloc(sizeof(char)*1024);
+    strcpy(values, " VALUES('");
+    json_object *tmp = value;
+    json_object *jstring = json_object_object_get(tmp, "NodeName");
+    json_parse_complete(tmp);
+    strcat(values, json_object_get_string(jstring));
+    strcat(values, "' , '");
+    
+    jstring = json_object_object_get(tmp, "key");
+    strcat(values, json_object_get_string(jstring));
+    strcat(values, "' , '");
+    
+    jstring = json_object_object_get(tmp, "value");
+    strcat(values, json_object_get_string(jstring));
+    strcat(values, "' )");
+    
+    strcat(sqlite_cmd, values);
+    printf("Command was: %s\n", sqlite_cmd);
+
+    rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", 0);
+      sqlite3_free(0);
+    }
+    
+    free(sqlite_cmd);
+    free(values);
+  }
+
+}

@@ -1,5 +1,5 @@
 //
-// Warewulf Monitor Collector (wwmon_collector.c)
+// Warewulf Monitor Collector
 //
 // Copyright(c) 2011 Anthony Salgado & Krishna Muriki
 //
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
   char local_sysname[MAX_SYSNAME_LEN];
   json_object *jstring;
 
-  char buffer[MAXPKTSIZE];
+  char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
 
   apphdr *app_h = (apphdr *) buffer;
   appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
@@ -67,44 +67,20 @@ int main(int argc, char *argv[]){
       exit(1);
   }
 
-  json_object *jobj = malloc(sizeof(json_object *));
-  memset(jobj, 0, sizeof(json_object *));
-  memset(buffer, 0, sizeof(buffer));
+  // I don't think we need to malloc jobj
+  json_object *jobj;// = malloc(sizeof(json_object *));
 
-while(1) {
-  strcpy(buffer,"");
-  if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
-      perror("recv");
-      exit(1);
-  }
-  buffer[bytes_read] = '\0';
-  
-  array_list *requested_keys = array_list_new(NULL);
-  //printf("Adding to requests: %s\n", buffer);
-  array_list_add(requested_keys, "MemTotal");
-  array_list_add(requested_keys, "MemFree");
-  array_list_add(requested_keys, "SwapTotal");
-  array_list_add(requested_keys, "SwapFree");
-  array_list_print(requested_keys);
-  jobj = fast_data_parser("/proc/meminfo", requested_keys, array_list_length(requested_keys));
-
-  gethostname(local_sysname,sizeof(local_sysname));
-  jstring = json_object_new_string(local_sysname);
-  json_object_object_add(jobj,"NodeName",jstring);
-
-  timer=time(NULL);
-  date=asctime(localtime(&timer));
-  json_object_object_add(jobj,"TimeStamp",(json_object *) json_object_new_string(chop(date)));
-
-  json_parse(jobj);
-
+  // tell aggregator that I am a collector
+  jobj = json_object_new_object();
+  json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
   int json_len, bytes_left, buffer_len, bytestocopy;
   char *record;
 
   json_len = (int )strlen(json_object_to_json_string(jobj));
   record = (char *)malloc(json_len+1); //plus 1 for the null character
   strcpy(record,json_object_to_json_string(jobj));
-
+  //
+  
   bytes_read = 0; //bytes read from the record so far and sent
   bytes_left = json_len;
   
@@ -132,13 +108,102 @@ while(1) {
      bytes_read += bytestocopy;
      bytes_left -= bytestocopy;
   }
-  free(record);
-  sleep(10);
-}
- 
-  free(jobj); 
+  
+  
+  while(1) {
+    
+    /* Edit here was to implement a while loop receive
+       that we discussed before. */ 
+    char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+    if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
+      perror("recv");
+      exit(1);
+    }
 
+    bytes_left = app_h->len;
+    while(bytes_read < bytes_left){
+      if((bytes_read += recv(sock, buffer, MAXPKTSIZE-1,0)) == -1){
+	perror("recv");
+	exit(1);
+      }
+      strcat(app_d->payload, rbuf);
+    }
+
+    free(rbuf);
+    /* end of new code */
+
+    buffer[bytes_read] = '\0';
+    
+    array_list *requested_keys = array_list_new(NULL);
+    array_list_add(requested_keys, "MemTotal");
+    array_list_add(requested_keys, "MemFree");
+    array_list_add(requested_keys, "SwapTotal");
+    array_list_add(requested_keys, "SwapFree");
+
+    jobj = fast_data_parser("/proc/meminfo", requested_keys, array_list_length(requested_keys));
+    
+    gethostname(local_sysname,sizeof(local_sysname));
+    jstring = json_object_new_string(local_sysname);
+    json_object_object_add(jobj,"NodeName",jstring);
+    json_object_object_add(jobj, "cpu_util", (json_object *)json_object_new_double(get_cpu_util()));
+    json_object_object_add(jobj, "JSON", (json_object *) json_object_new_string(json_object_to_json_string(jobj)));
+
+    timer=time(NULL);
+    date=asctime(localtime(&timer));
+    json_object_object_add(jobj,"TimeStamp",(json_object *) json_object_new_string(chop(date)));
+
+
+    /* This new section of code 'transposes' the current json_object
+       such that it can be formatted as identified by the key/value it holds
+       and is stuffed into another json_object as if it were nested. */
+
+    json_object *j2 = json_object_new_object();
+    json_object_object_foreach(jobj, key, value){
+      json_object *tmp = json_object_new_object();
+      json_object_object_add(tmp, "NodeName", jstring);
+      json_object_object_add(tmp, "key", (json_object *) json_object_new_string(key));
+      json_object_object_add(tmp, "value", value);
+      json_object_object_add(j2, key, tmp);
+    }
+
+    json_parse(j2); // see output of this line of code for clarification    
+    jobj = j2; // send the 'transposed' json_object over the socket. 
+
+    json_len = (int )strlen(json_object_to_json_string(jobj));
+    record = (char *)malloc(json_len+1); //plus 1 for the null character
+    strcpy(record,json_object_to_json_string(jobj));
+    
+    bytes_read = 0; //bytes read from the record so far and sent
+    bytes_left = json_len;
+    
+    /* should we make this a function? */
+    while(bytes_read < json_len) 
+      {
+	buffer_len = 0;
+	
+	if(bytes_read == 0) {
+	  app_h->len = json_len;
+	  
+	  bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
+	  strncpy(app_d->payload,record,bytestocopy);
+	  
+	  buffer_len = sizeof(apphdr); // to accomodate the header size
+	} else {
+	  bytestocopy = (MAXPKTSIZE < bytes_left ? MAXPKTSIZE : bytes_left);
+	  strncpy(buffer,record+bytes_read,bytestocopy);
+	}
+	
+	buffer_len += bytestocopy;
+	
+	printf("Sending data ..\n");
+	sendall(sock, buffer, buffer_len);
+	
+	bytes_read += bytestocopy;
+	bytes_left -= bytestocopy;
+      }
+    free(record);
+    sleep(10);
+  }
   close(sock);
   return 0;
 }
-
