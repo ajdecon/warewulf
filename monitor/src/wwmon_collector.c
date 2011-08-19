@@ -1,5 +1,5 @@
 //
-// Warewulf Monitor Collector
+// Warewulf Monitor Collector (wwmon_collector.c)
 //
 // Copyright(c) 2011 Anthony Salgado & Krishna Muriki
 //
@@ -24,6 +24,11 @@
 
 int main(int argc, char *argv[]){
   
+  if (argc != 3) {
+      fprintf(stderr,"Usage: %s aggregator_hostname [port] \n", argv[0]);
+      exit(1);
+  }
+
   char *date;
   time_t timer;
 
@@ -34,15 +39,11 @@ int main(int argc, char *argv[]){
   char local_sysname[MAX_SYSNAME_LEN];
   json_object *jstring;
 
+  // Why malloc a know fixed size buffer --kmuriki
   char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
 
   apphdr *app_h = (apphdr *) buffer;
   appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
-
-  if (argc != 3) {
-      fprintf(stderr,"Usage: %s aggregator_hostname [port] \n", argv[0]);
-      exit(1);
-  }
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {

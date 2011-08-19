@@ -1,4 +1,6 @@
-/* monitor.c */
+//
+// Copyright(c) 2011 Anthony Salgado & Krishna Muriki
+//
 
 #include<stdio.h>
 #include<string.h>
@@ -50,7 +52,8 @@ array_list_print(array_list *ls)
 }
 
 
-void update_db(json_object *jobj, sqlite3 *db)
+void 
+update_db(json_object *jobj, sqlite3 *db)
 {
   char *sqlite_cmd = malloc(sizeof(char)*1024);
   strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(");
@@ -157,7 +160,7 @@ json_object *fast_data_parser(char *file_name, array_list *keys, int num_keys){
   }
 }
 
-
+// These declarations should go into globals.h --kmuriki
 struct cpu_data{
   long tj;
   long wj;
