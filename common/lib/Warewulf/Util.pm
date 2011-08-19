@@ -283,7 +283,8 @@ Return the MD5 checksum of the file specified in $filename
 
 =cut
 
-sub digest_file_hex_md5($)
+sub
+digest_file_hex_md5($)
 {
     my ($filename) = @_;
     local *DATA;
@@ -304,7 +305,7 @@ Returns true/false depending on whether or not an item is tainted.
 sub
 is_tainted($) {
     # "Borrowed" from the perlsec man page.
-    return ! eval { eval("#" . substr($_[0], 0, 0)); 1 };
+    return ! eval { eval("#" . substr(join("", @_), 0, 0)); 1 };
 }
 
 =item examine_object($var, [$buffer, [$indent, [$indent_step]]])

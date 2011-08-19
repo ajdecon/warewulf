@@ -113,6 +113,11 @@ my @el_test_sets = (
     },
 );
 my $el_test_set_count = scalar(@el_test_sets);
+my %md5_test_files = (
+    "11-util-md5_test_1.txt" => "52a766d0c00aafba64fe02552e1cea46",
+    "11-util-md5_test_2.txt" => "630e7135b2206004676e82584c59af45"
+);
+my $md5_test_count = scalar(keys(%md5_test_files));
 
 plan("tests" => (
          + 1                                              # Inheritance tests
@@ -125,7 +130,8 @@ plan("tests" => (
          + $eb_test_set_count                             # expand_bracket() tests
          + 5                                              # uid_test() tests
          + $el_test_set_count                             # ellipsis() tests
-         ### Not tested:  croak()
+         + 1 + 1 * $md5_test_count                        # digest_file_hex_md5() tests
+         ### Not tested:  croak(), is_tainted(), examine_object()
 ));
 
 # This is useful for using the test suite to double as a debugging tool.
@@ -261,3 +267,15 @@ foreach my $el_test (@el_test_sets) {
     is($result, $el_out, "ellipsis() $el_desc");
 }
 
+#######################################
+### digest_file_hex_md5() tests
+#######################################
+ok(!defined(&digest_file_hex_md5("random name")), "Unreadable/invalid file returns undef");
+foreach my $md5_file (keys(%md5_test_files)) {
+    my $fn = $md5_file;
+
+    if (! -e $fn) {
+        $fn = "t/$fn";
+    }
+    is(&digest_file_hex_md5($fn), $md5_test_files{$md5_file}, "Test file $fn hashes correctly");
+}

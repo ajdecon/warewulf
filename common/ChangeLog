@@ -252,3 +252,9 @@ Wed Aug 17 17:36:31 2011                        Michael Jennings (mej)
 More work on Util.pm tests.  We're up to an even 1600 unit tests after
 only 5 test sets and have already found and fixed a number of issues.
 ----------------------------------------------------------------------
+Thu Aug 18 17:59:01 2011                        Michael Jennings (mej)
+
+I couldn't find a reasonable way to generate tainted data, and I can't
+think of a way to test examine_object(), so Util.pm tests are done.
+Next is Logger, then Object.
+----------------------------------------------------------------------
