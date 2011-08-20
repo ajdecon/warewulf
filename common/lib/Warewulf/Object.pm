@@ -32,9 +32,8 @@ all other classes.
 
 C<Warewulf::Object> is the base class from which all other Warewulf
 objects are derived.  It provides a simple constructor, an
-initializer, get/set methods, string conversion, and a catch-all
-AUTOLOAD member function for turning arbitrary method calls into
-accessors.
+initializer, get/set methods, string conversion, and a hash
+conversion function.
 
 =head1 METHODS
 

@@ -18,12 +18,12 @@ use Sys::Syslog;
 use Exporter;
 use Warewulf::Util;
 
-my $WWLOG_CRITICAL = 0;
-my $WWLOG_ERROR = 1;
-my $WWLOG_WARNING = 2;
-my $WWLOG_NOTICE = 3;
-my $WWLOG_INFO = 4;
-my $WWLOG_DEBUG = 5;
+our $WWLOG_CRITICAL = 0;
+our $WWLOG_ERROR = 1;
+our $WWLOG_WARNING = 2;
+our $WWLOG_NOTICE = 3;
+our $WWLOG_INFO = 4;
+our $WWLOG_DEBUG = 5;
 
 my @SYSLOG_LEVELS = (
     $WWLOG_CRITICAL => LOG_CRIT,
@@ -36,14 +36,15 @@ my @SYSLOG_LEVELS = (
 
 our @ISA = ('Exporter');
 
-our @EXPORT = ('&get_log_level', '&set_log_level', '&cprint',
+our @EXPORT = ('&get_log_level', '&set_log_level', '&clear_log_target',
+               '&add_log_target', '&set_log_target', '&cprint',
                '&cprintf', '&eprint', '&eprintf', '&wprint',
                '&wprintf', '&nprint', '&nprintf', '&iprint',
                '&iprintf', '&dprint', '&dprintf');
 
-our @EXPORTOK = ('$WWLOG_CRITICAL', '$WWLOG_ERROR', '$WWLOG_WARNING',
-                 '$WWLOG_NOTICE', '$WWLOG_INFO', '$WWLOG_DEBUG',
-                 '&lprint', '&lprintf');
+our @EXPORT_OK = ('$WWLOG_CRITICAL', '$WWLOG_ERROR', '$WWLOG_WARNING',
+                  '$WWLOG_NOTICE', '$WWLOG_INFO', '$WWLOG_DEBUG',
+                  '&lprint', '&lprintf');
 
 sub init_log_targets();
 sub resolve_log_level(@);
@@ -86,7 +87,8 @@ get_log_level()
 
 Set the minimum log level at which to print/log messages.  LEVEL may
 be any of the following string or numeric values: CRITICAL (0), ERROR
-(1), WARNING (2), NOTICE (3), INFO (4), or DEBUG (5).
+(1), WARNING (2), NOTICE (3), INFO (4), or DEBUG (5).  Returns undef
+on error.
 
 =cut
 
@@ -98,8 +100,9 @@ set_log_level($)
     $level = &resolve_log_level($level);
     if (defined($level)) {
         $LEVEL = $level;
+        return $LEVEL;
     }
-    return $LEVEL;
+    return undef;
 }
 
 =item add_log_target(TARGET, LEVEL, [ LEVEL ... ])
@@ -150,14 +153,14 @@ add_log_target()
                 return undef;
             }
         }
-    } elsif ($target =~ /^SYSLOG(?::[^:]+(?::[^:]+)?)?$/) {
+    } elsif ($target =~ /^SYSLOG(?::([^:]+)(?::([^:]+))?)?$/i) {
         my ($ident, $facility) = ($1, $2);
 
         if (! $ident) {
-            $ident = basename($0);
+            $ident = &progname();
         }
         if (! $facility) {
-            $facility = ((&daemonized()) ? (LOG_DAEMON) : (LOG_USER));
+            $facility = ((getpgrp() == $$) ? (LOG_DAEMON) : (LOG_USER));
         }
         openlog($ident, "ndelay,nofatal,pid", $facility);
         $target = "SYSLOG";
@@ -206,10 +209,10 @@ Same as add_log_target() except that existing targets are removed.
 sub
 set_log_target()
 {
-    my $target = shift;
+    my ($target, @levels) = @_;
 
-    &clear_log_target(@_);
-    return &add_log_target($target, @_);
+    &clear_log_target(@levels);
+    return &add_log_target($target, @levels);
 }
 
 =item lprint(LEVEL, $string)
@@ -228,7 +231,7 @@ lprint
     }
     chomp($string);
     $string = &leader($level) . $string;
-    &write_to_targets($level, "$string\n");
+    return &write_to_targets($level, "$string\n");
 }
 
 =item lprintf(LEVEL, $format, @arguments)
@@ -249,7 +252,7 @@ lprintf
         return;
     }
     $format = &leader($level) . $format;
-    &write_to_targets($level, sprintf($format, @args));
+    return &write_to_targets($level, sprintf($format, @args));
 }
 
 =item cprint($string)
@@ -389,7 +392,7 @@ resolve_log_level(@)
             } elsif ($level eq "ALL") {
                 push @ret, $WWLOG_CRITICAL .. $WWLOG_DEBUG;
             }
-        } else {
+        } elsif ($level =~ /^\d+$/) {
             $level = int($level);
             if ($level >= $WWLOG_CRITICAL && $level <= $WWLOG_DEBUG) {
                 push @ret, $level;
@@ -449,14 +452,16 @@ write_to_targets($$)
                 ${$target} .= $str;
             } elsif (ref($target) eq "ARRAY") {
                 push @{$target}, $str;
-            } else {
+            } elsif (UNIVERSAL::can($target, "print")) {
                 $target->print($str);
             }
         } else {
             # This should never happen!
-            print STDERR &get_backtrace(3), "CRITICAL:  Unrecognized logging target $target!\n";
+            printf STDERR ("Warewulf::Logger:  CRITICAL:  Unrecognized logging target $target!  (from %s)\n",
+                           &get_caller_string());
         }
     }
+    return scalar(@{$TARGETS[$level]});
 }
 
 1;

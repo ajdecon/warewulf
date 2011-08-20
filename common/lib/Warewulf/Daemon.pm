@@ -85,7 +85,8 @@ daemonize()
     print PIDFILE $$;
     close(PIDFILE);
     fork() && exit(0);
-
+    setpgrp();
+    return 1;
 }
 
 =item daemonized()

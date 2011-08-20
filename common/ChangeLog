@@ -258,3 +258,8 @@ I couldn't find a reasonable way to generate tainted data, and I can't
 think of a way to test examine_object(), so Util.pm tests are done.
 Next is Logger, then Object.
 ----------------------------------------------------------------------
+Fri Aug 19 17:29:29 2011                        Michael Jennings (mej)
+
+An even 1700 tests sounds like a good stopping point for the weekend.
+Logger tests are done, now working on Object tests.
+----------------------------------------------------------------------
