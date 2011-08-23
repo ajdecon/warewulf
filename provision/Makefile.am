@@ -1,4 +1,4 @@
-SUBDIRS = lib initramfs modules etc bin cgi-bin share 3rd_party
+SUBDIRS = lib initramfs etc bin cgi-bin share 3rd_party
 
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.*
 DISTCLEANFILES = 

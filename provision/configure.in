@@ -88,7 +88,6 @@ AC_OUTPUT(Makefile
    initramfs/capabilities/provision-vnfs/Makefile
    initramfs/capabilities/setup-filesystems/Makefile
    initramfs/capabilities/transport-http/Makefile
-   modules/Makefile
    share/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
