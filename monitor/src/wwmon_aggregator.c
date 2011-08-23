@@ -1,5 +1,5 @@
 //
-// Warewulf Monitor Aggregator (wwmon_aggregator.c)
+// Warewulf Monitor
 //
 // Copyright(c) 2011 Anthony Salgado & Krishna Muriki
 //
@@ -18,14 +18,14 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "globals.h"
+//#include "globals.h"
 #include "util.c"
 
 char local_sysname[MAX_SYSNAME_LEN];
 fd_set rfds, wfds;
 
 //Global structure array with values of each socket
-sockdata sock_data[FD_SETSIZE];
+myst2 sock_data[FD_SETSIZE];
 //Global Database to hold data of each socket
 static sqlite3 *db; // database pointer
 
@@ -33,16 +33,14 @@ int
 writeHandler(int fd) 
 {
 
-  // Why to malloc a know size buffer --kmuriki
   char *sbuf = malloc(sizeof(char)*MAXPKTSIZE);
   sbuf[0] = '\0';
-
   apphdr *app_h = (apphdr *) sbuf;
   appdata *app_d = (appdata *) (sbuf + sizeof(apphdr));
 
-  json_object *json_db = malloc(sizeof(json_object_new_object));
+  // TODO : Add writeHandler logic here
+  json_object *json_db;
   json_db = json_object_new_object();
-  
   sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, json_db, NULL);
 
   // free the temporary buffer
@@ -65,7 +63,7 @@ writeHandler(int fd)
   }
   // we forgot to free sbuf
   free(sbuf); 
-  free(json_db);
+  json_object_put(json_db);
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
 
@@ -79,27 +77,26 @@ readHandler(int fd)
 
   char rbuf[MAXPKTSIZE];
   rbuf[0] = '\0';
-  int readbytes;
+  int numbytes;
   json_object *jobj;
 
-  // First check is there is any remaining payload from previous
-  // transmission for this socket and decide the # of bytes to read.
   int numtoread;
+
   if( sock_data[fd].r_payloadlen > 0 && sock_data[fd].r_payloadlen < MAXPKTSIZE-1 ) {
       numtoread = sock_data[fd].r_payloadlen;
   } else {
       numtoread = MAXPKTSIZE-1;
   }
 
-  if ((readbytes=recv(fd, rbuf, numtoread, 0)) == -1) {
+  if ((numbytes=recv(fd, rbuf, numtoread, 0)) == -1) {
       perror("recv");
       FD_CLR(fd, &rfds);
       sock_data[fd].validinfo = 0;
       close(fd);
       return(0);
   }
-  rbuf[readbytes]='\0';
-  fprintf(stderr, "Rx a string of size %d - %s\n",readbytes,rbuf);
+  rbuf[numbytes]='\0';
+  fprintf(stderr, "Rx a string of size %d - %s\n",numbytes,rbuf);
 
   // Is this required ?
   if (strlen(rbuf) == 0)
@@ -113,11 +110,9 @@ readHandler(int fd)
       return(0);
   }
  
-  // If the read buffer is from pending transmission append to accuralbuf
-  // Or else treat it as a new packet.
   if (sock_data[fd].r_payloadlen > 0) {
      strcat(sock_data[fd].accural_buf,rbuf);
-     sock_data[fd].r_payloadlen = sock_data[fd].r_payloadlen - readbytes;
+     sock_data[fd].r_payloadlen = sock_data[fd].r_payloadlen - numbytes;
   } else {
      apphdr *app_h = (apphdr *) rbuf;
      appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
@@ -137,6 +132,7 @@ readHandler(int fd)
   }
 
   printf("Done reading totally\n");
+
 
   // added logical system for handling the three kinds of messages from TCP:
   // 1) Declaration of connection type
