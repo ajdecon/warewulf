@@ -152,10 +152,10 @@ if ($config->get("drivers")) {
     mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion");
 
     if (-f "$opt_root/lib/modules/$opt_kversion/modules.dep") {
+        my $strippath = "$opt_root/lib/modules/$opt_kversion/";
         open(DEP, "$opt_root/lib/modules/$opt_kversion/modules.dep");
         while (my $line = <DEP>) {
             chomp($line);
-            my $strippath = "$opt_root/lib/modules/$opt_kversion/";
             $line =~ s/^\Q$strippath\E//;
             if ($line =~ /^([^:]+):\s*(.*)$/) {
                 my $path = $1;
@@ -166,9 +166,9 @@ if ($config->get("drivers")) {
                 push(@mod_files, $path);
                 if (@deps) {
                     foreach my $dep (@deps) {
-                        if ($dep =~ /^.*(kernel\/.*)$/) {
-                            my $depfile = $1;
-                            push(@{$mod_deps{"$path"}}, $depfile);
+                        $dep =~ s/^\Q$strippath\E//;
+                        if ($dep =~ /^([a-zA-Z0-9\.\-_\/]+)$/) {
+                            push(@{$mod_deps{"$path"}}, $1);
                         }
                     }
                 }
