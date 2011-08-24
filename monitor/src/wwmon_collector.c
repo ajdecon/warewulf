@@ -1,7 +1,12 @@
 //
-// Warewulf Monitor Collector
+// Copyright (c) 2001-2003 Gregory M. Kurtzer
+// 
+// Copyright (c) 2003-2011, The Regents of the University of California,
+// through Lawrence Berkeley National Laboratory (subject to receipt of any
+// required approvals from the U.S. Dept. of Energy).  All rights reserved.
 //
-// Copyright(c) 2011 Anthony Salgado & Krishna Muriki
+// Contributed by Anthony Salgado & Krishna Muriki
+// Warewulf Monitor (wwmon_collector.c)
 //
 
 #include <sys/types.h>
@@ -19,11 +24,16 @@
 #include <fcntl.h>
 #include <time.h>
 
-//#include "globals.h"
+#include "globals.h"
 #include "util.c"
 
 int main(int argc, char *argv[]){
   
+  if (argc != 3) {
+      fprintf(stderr,"Usage: %s aggregator_hostname [port] \n", argv[0]);
+      exit(1);
+  }
+
   char *date;
   time_t timer;
 
@@ -34,15 +44,11 @@ int main(int argc, char *argv[]){
   char local_sysname[MAX_SYSNAME_LEN];
   json_object *jstring;
 
+  // Why malloc a know fixed size buffer --kmuriki
   char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
 
   apphdr *app_h = (apphdr *) buffer;
   appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
-
-  if (argc != 3) {
-      fprintf(stderr,"Usage: %s aggregator_hostname [port] \n", argv[0]);
-      exit(1);
-  }
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {
@@ -73,20 +79,66 @@ int main(int argc, char *argv[]){
   // tell aggregator that I am a collector
   jobj = json_object_new_object();
   json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
-  int bytes_left;
+  int json_len, bytes_left, buffer_len, bytestocopy;
+  char *record;
 
+  json_len = (int )strlen(json_object_to_json_string(jobj));
+  record = (char *)malloc(json_len+1); //plus 1 for the null character
+  strcpy(record,json_object_to_json_string(jobj));
+  //
+  
+  bytes_read = 0; //bytes read from the record so far and sent
+  bytes_left = json_len;
+  
+  while(bytes_read < json_len) 
+  {
+     buffer_len = 0;
 
-  sendall_repeat(sock, buffer, app_h, app_d, jobj);
+     if(bytes_read == 0) {
+        app_h->len = json_len;
+        
+        bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
+        strncpy(app_d->payload,record,bytestocopy);
+
+        buffer_len = sizeof(apphdr); // to accomodate the header size
+     } else {
+        bytestocopy = (MAXPKTSIZE < bytes_left ? MAXPKTSIZE : bytes_left);
+        strncpy(buffer,record+bytes_read,bytestocopy);
+     }
+
+     buffer_len += bytestocopy;
+
+     printf("Sending data ..\n");
+     sendall(sock, buffer, buffer_len);
+
+     bytes_read += bytestocopy;
+     bytes_left -= bytestocopy;
+  }
   
   
   while(1) {
     
     /* Edit here was to implement a while loop receive
        that we discussed before. */ 
-    recvall(sock, buffer, app_h, app_d);
+    char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+    if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
+      perror("recv");
+      exit(1);
+    }
+
+    bytes_left = app_h->len;
+    while(bytes_read < bytes_left){
+      if((bytes_read += recv(sock, buffer, MAXPKTSIZE-1,0)) == -1){
+	perror("recv");
+	exit(1);
+      }
+      strcat(app_d->payload, rbuf);
+    }
+
+    free(rbuf);
     /* end of new code */
 
-    //buffer[bytes_read] = '\0';
+    buffer[bytes_read] = '\0';
     
     array_list *requested_keys = array_list_new(NULL);
     array_list_add(requested_keys, "MemTotal");
@@ -123,12 +175,41 @@ int main(int argc, char *argv[]){
     json_parse(j2); // see output of this line of code for clarification    
     jobj = j2; // send the 'transposed' json_object over the socket. 
 
-    sendall_repeat(sock, buffer, app_h, app_d, jobj);
-    json_object_put(j2); // freeing j2
+    json_len = (int )strlen(json_object_to_json_string(jobj));
+    record = (char *)malloc(json_len+1); //plus 1 for the null character
+    strcpy(record,json_object_to_json_string(jobj));
+    
+    bytes_read = 0; //bytes read from the record so far and sent
+    bytes_left = json_len;
+    
+    /* should we make this a function? */
+    while(bytes_read < json_len) 
+      {
+	buffer_len = 0;
+	
+	if(bytes_read == 0) {
+	  app_h->len = json_len;
+	  
+	  bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
+	  strncpy(app_d->payload,record,bytestocopy);
+	  
+	  buffer_len = sizeof(apphdr); // to accomodate the header size
+	} else {
+	  bytestocopy = (MAXPKTSIZE < bytes_left ? MAXPKTSIZE : bytes_left);
+	  strncpy(buffer,record+bytes_read,bytestocopy);
+	}
+	
+	buffer_len += bytestocopy;
+	
+	printf("Sending data ..\n");
+	sendall(sock, buffer, buffer_len);
+	
+	bytes_read += bytestocopy;
+	bytes_left -= bytestocopy;
+      }
+    free(record);
     sleep(10);
   }
-  json_object_put(jstring);
-  json_object_put(jobj);
   close(sock);
   return 0;
 }
