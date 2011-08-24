@@ -24,7 +24,6 @@
 #include <fcntl.h>
 #include <time.h>
 
-#include "globals.h"
 #include "util.c"
 
 int main(int argc, char *argv[]){
@@ -79,13 +78,14 @@ int main(int argc, char *argv[]){
   // tell aggregator that I am a collector
   jobj = json_object_new_object();
   json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
+
+/*
   int json_len, bytes_left, buffer_len, bytestocopy;
   char *record;
 
   json_len = (int )strlen(json_object_to_json_string(jobj));
   record = (char *)malloc(json_len+1); //plus 1 for the null character
   strcpy(record,json_object_to_json_string(jobj));
-  //
   
   bytes_read = 0; //bytes read from the record so far and sent
   bytes_left = json_len;
@@ -114,12 +114,18 @@ int main(int argc, char *argv[]){
      bytes_read += bytestocopy;
      bytes_left -= bytestocopy;
   }
-  
+
+*/
+
+  int bytes_left;
+  sendall_repeat(sock, buffer, app_h, app_d, jobj);
+
   
   while(1) {
     
     /* Edit here was to implement a while loop receive
        that we discussed before. */ 
+/*
     char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
     if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
       perror("recv");
@@ -136,9 +142,10 @@ int main(int argc, char *argv[]){
     }
 
     free(rbuf);
-    /* end of new code */
 
     buffer[bytes_read] = '\0';
+*/
+    recvall(sock, buffer, app_h, app_d);
     
     array_list *requested_keys = array_list_new(NULL);
     array_list_add(requested_keys, "MemTotal");
@@ -175,6 +182,7 @@ int main(int argc, char *argv[]){
     json_parse(j2); // see output of this line of code for clarification    
     jobj = j2; // send the 'transposed' json_object over the socket. 
 
+/*
     json_len = (int )strlen(json_object_to_json_string(jobj));
     record = (char *)malloc(json_len+1); //plus 1 for the null character
     strcpy(record,json_object_to_json_string(jobj));
@@ -208,8 +216,18 @@ int main(int argc, char *argv[]){
 	bytes_left -= bytestocopy;
       }
     free(record);
+*/
+
+    sendall_repeat(sock, buffer, app_h, app_d, jobj);
+    json_object_put(j2); // freeing j2
+
+
     sleep(10);
   }
+
+  json_object_put(jstring);
+  json_object_put(jobj);
+
   close(sock);
   return 0;
 }
