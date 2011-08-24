@@ -11,6 +11,7 @@ Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
 BuildRequires: warewulf-common
 Requires: warewulf-common
+Requires: mod_perl httpd
 Conflicts: warewulf <= 2.9
 BuildRoot: %{?_tmppath}/%{name}-%{version}-%{release}-root
 
