@@ -192,7 +192,7 @@ update()
                     print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrapname\n";
                     print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
                     print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
-                    if (scalar(@masters) > 1) {
+                    if (scalar(@masters) > 0) {
                         my $master = join(",", @masters);
                         print PXELINUX "wwmaster=$master ";
                     }

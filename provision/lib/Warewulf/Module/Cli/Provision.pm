@@ -85,7 +85,9 @@ help()
     $h .= "\n";
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
     $h .= "         --bootstrap     Define the bootstrap image should this node use\n";
-    $h .= "         --master        What master(s) should respond to this node?\n";
+    $h .= "         --master        Specifically set the Warewulf master(s) for this node\n";
+    $h .= "         --bootserver    If you have multiple DHCP/TFTP servers, which should be\n";
+    $h .= "                         used to boot this node\n";
     $h .= "         --vnfs          Define the VNFS that this node should use\n";
     $h .= "         --files         Define the files that should be provisioned to this node\n";
     $h .= "         --fileadd       Add a file to be provisioned this node\n";
@@ -161,6 +163,7 @@ exec()
     my $opt_bootstrap;
     my $opt_vnfs;
     my @opt_master;
+    my @opt_bootserver;
     my @opt_files;
     my @opt_fileadd;
     my @opt_filedel;
@@ -181,6 +184,7 @@ exec()
         'fileadd=s'     => \@opt_fileadd,
         'filedel=s'     => \@opt_filedel,
         'master=s'      => \@opt_master,
+        'bootserver=s'  => \@opt_bootserver,
         'bootstrap=s'   => \$opt_bootstrap,
         'vnfs=s'        => \$opt_vnfs,
         'l|lookup=s'    => \$opt_lookup,
@@ -259,6 +263,33 @@ exec()
             }
         }
 
+        if (@opt_bootserver) {
+            if (exists($opt_bootserver[0]) and $opt_bootserver[0] eq "UNDEF") {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->del("bootserver");
+                    &dprint("Deleting bootserver entries for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSERVER"));
+            } else {
+                my @set_bootserver;
+                foreach my $bootserver (split(",", join(",", @opt_bootserver))) {
+                    if ($bootserver =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                        push(@set_bootserver, $1);
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "BOOTSERVER", $1));
+                    } else {
+                        &eprint("Bad format for IP address: $bootserver\n");
+                    }
+                }
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("bootserver", @set_bootserver);
+                    &dprint("Setting bootserver for node name: $name\n");
+                    $persist_bool = 1;
+                }
+            }
+        }
 
         if ($opt_vnfs) {
             if (uc($opt_vnfs) eq "UNDEF") {
