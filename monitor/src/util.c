@@ -15,6 +15,72 @@
 #include<ctype.h>
 #include<json/json.h>
 #include<sqlite3.h>
+#include "globals.h"
+
+int
+recvall(int sock, char *buffer, apphdr *app_h, appdata *app_d)
+{
+  int bytes_read, bytes_left;
+  char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+  if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  bytes_left = app_h->len;
+  while(bytes_read < bytes_left){
+    if((bytes_read += recv(sock, buffer, MAXPKTSIZE-1,0)) == -1){
+      perror("recv");
+      exit(1);
+    }
+    strcat(app_d->payload, rbuf);
+  }
+  free(rbuf);
+  buffer[bytes_read] = '\0';
+  return bytes_read;
+}
+
+int
+sendall_repeat(int sock, char *buffer, apphdr *app_h, appdata *app_d,  json_object *jobj)
+{
+  int sendall(int s, char *buf, int total); // forward declaration
+  int  json_len, bytes_left, buffer_len, bytestocopy, bytes_read;
+  char *record;
+
+  json_len = (int) strlen(json_object_to_json_string(jobj));
+  record = (char *) malloc(json_len+1);
+  strcpy(record, json_object_to_json_string(jobj));
+
+  bytes_read = 0;
+  bytes_left = json_len;
+
+  while(bytes_read < json_len)
+    {
+      buffer_len = 0;
+
+      if(bytes_read == 0) {
+        app_h->len = json_len;
+
+        bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
+        strncpy(app_d->payload,record,bytestocopy);
+
+        buffer_len = sizeof(apphdr); // to accomodate the header size
+      } else {
+        bytestocopy = (MAXPKTSIZE < bytes_left ? MAXPKTSIZE : bytes_left);
+        strncpy(buffer,record+bytes_read,bytestocopy);
+      }
+
+      buffer_len += bytestocopy;
+
+      printf("Sending data ..\n");
+      sendall(sock, buffer, buffer_len);
+
+      bytes_read += bytestocopy;
+      bytes_left -= bytestocopy;
+    }
+  free(record);
+  return json_len;
+}
 
 // To Handle any partial sends
 int 
