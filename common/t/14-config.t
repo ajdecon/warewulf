@@ -22,7 +22,10 @@ my %vals = (
     "other.key" => "other.value",
     "test list" => [ "val1", "val2", "value 3", "value four,", "val5", "val6" ],
     "continuation" => [ "first line", "second line" ],
-    "list" => [ "one", "two", "three", "four", "five" ]
+    "list" => [ "one", "two", "three", "four", "five" ],
+    "empty value" => "",
+    "another blank" => "",
+    "yet another blank" => ""
 );
 my @t;
 

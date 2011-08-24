@@ -255,7 +255,7 @@ parse()
         # whitespace must be quoted, regardless of commas.  Any empty
         # values must also be quoted.  Leading whitespace continues
         # the previous line.
-        if ($line =~ /^\s*([^+=]*[^+=\s])\s*(\+?=)\s*(.+)$/) {
+        if ($line =~ /^\s*([^+=]*[^+=\s])\s*(\+?=)\s*(.*)$/) {
             ($key, $op, $value) = ($1, $2, $3);
         } elsif ($line =~ /^\s+(\S.*)$/) {
             ($key, $op, $value) = ($last_key, "+=", $1);
@@ -263,9 +263,13 @@ parse()
             dprint("Line $. unparseable:  \"$line\"\n");
             next;
         }
-        @values = grep { defined($_) } &quotewords('\s*,\s*', 0, $value);
-        &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\"\n", $self->get("__FILENAME"),
-                 $key, $op, join("\" \"", @values));
+        if (length($value) == 0) {
+            @values = ("");
+        } else {
+            @values = grep { defined($_) } &parse_line('\s*,\s*', 0, $value);
+        }
+        &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\" (%d)\n", $self->get("__FILENAME"),
+                 $key, $op, join("\" \"", @values), scalar(@values));
         if ($op eq "+=") {
             push(@{$cache{$conffile}{$key}}, @values);
         } else {
