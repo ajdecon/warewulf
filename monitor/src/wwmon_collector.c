@@ -190,7 +190,7 @@ int main(int argc, char *argv[]){
     bytes_read = 0; //bytes read from the record so far and sent
     bytes_left = json_len;
     
-    /* should we make this a function? */
+    // should we make this a function? 
     while(bytes_read < json_len) 
       {
 	buffer_len = 0;
