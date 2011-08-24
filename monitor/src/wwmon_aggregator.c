@@ -23,7 +23,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "globals.h"
 #include "util.c"
 
 char local_sysname[MAX_SYSNAME_LEN];
