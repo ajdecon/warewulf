@@ -26,14 +26,17 @@ recvall(int sock, char *buffer, apphdr *app_h, appdata *app_d)
     perror("recv");
     exit(1);
   }
+  printf("app_h->len: %d\n", app_h->len);
 
   bytes_left = app_h->len;
   while(bytes_read < bytes_left){
-    if((bytes_read += recv(sock, buffer, MAXPKTSIZE-1,0)) == -1){
+    if((bytes_read += recv(sock, rbuf, MAXPKTSIZE-1,0)) == -1){
       perror("recv");
       exit(1);
     }
     strcat(app_d->payload, rbuf);
+    //printf("bytes_left = %d\n", bytes_left);
+    //printf("bytes_read = %d\n", bytes_read);
   }
   free(rbuf);
   buffer[bytes_read] = '\0';

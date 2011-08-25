@@ -44,15 +44,16 @@ writeHandler(int fd)
   apphdr *app_h = (apphdr *) sbuf;
   appdata *app_d = (appdata *) (sbuf + sizeof(apphdr));
 
-  json_object *json_db = malloc(sizeof(json_object_new_object));
+  json_object *json_db;// = malloc(sizeof(json_object_new_object));
   json_db = json_object_new_object();
   
   sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, json_db, NULL);
 
   // free the temporary buffer
   // allocated for the sqlite_cmd
-  free(sock_data[fd].sqlite_cmd);
-
+  if(sock_data[fd].sqlite_cmd != NULL){
+    free(sock_data[fd].sqlite_cmd);
+  }
   
   // send JSON string iff an application
   if(sock_data[fd].ctype == APPLICATION){
@@ -60,6 +61,7 @@ writeHandler(int fd)
   } else {
     strcpy(app_d->payload, "Send Data");
   }
+
   
   app_h->len = strlen(app_d->payload);
   fprintf(stderr,"About to write on FD - %d\n",fd);
@@ -67,9 +69,10 @@ writeHandler(int fd)
       FD_CLR(fd, &wfds);
       close(fd);
   }
+  printf("send successful!\n");
   // we forgot to free sbuf
   free(sbuf); 
-  free(json_db);
+  //free(json_db);
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
 
@@ -148,6 +151,7 @@ readHandler(int fd)
   // 3) A JSON representation of wwmon_collector.c information
   if(strstr(sock_data[fd].accural_buf, "ctype"))
     {
+      printf("case 0\n");
       int ctype;
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       ctype = json_object_get_int(json_object_object_get(jobj, "ctype"));
@@ -155,14 +159,18 @@ readHandler(int fd)
     }
   if(strstr(sock_data[fd].accural_buf, "sqlite_cmd"))
     {
+      printf("case 1\n");
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       sock_data[fd].sqlite_cmd = malloc(sizeof(char)*MAX_SQL_SIZE); 
       strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
     }
   else if(strstr(sock_data[fd].accural_buf, "JSON"))
     {
+
+      printf("case 2\n");
       // convert json_string to object
       jobj = json_tokener_parse(sock_data[fd].accural_buf);                                 
+      json_parse_complete(jobj);
       // update database call                                                                                                                                  
       update_db2(jobj, db); // changed to update_db2
     }
@@ -172,7 +180,9 @@ readHandler(int fd)
     }  
 
   sock_data[fd].validinfo = 1;
-  free(sock_data[fd].accural_buf);
+  if(sock_data[fd].accural_buf != NULL){
+    free(sock_data[fd].accural_buf);
+  }
   FD_CLR(fd, &rfds);
   FD_SET(fd, &wfds);
   return(0);

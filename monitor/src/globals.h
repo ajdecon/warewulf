@@ -9,8 +9,8 @@
 // Warewulf Monitor (globals.h)
 //
 
-#define MAXPKTSIZE 1024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
-#define MAXDATASIZE 1020
+#define MAXPKTSIZE 10024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
+#define MAXDATASIZE 10020
 
 #define MAX_IPADDR_LEN   50
 #define MAX_SYSNAME_LEN  50
