@@ -40,6 +40,7 @@ my @nodenames;
 my %seen;
 my $vnfsid;
 my $bootstrapid;
+my $syslog_file;
 
 $events->eventloader();
 
@@ -162,7 +163,19 @@ if ($opt_scriptfile) {
     }
 }
 
-open(FILE, "/var/log/messages");
+if (-f "/var/log/messages") {
+    $syslog_file = "/var/log/messages";
+} elsif (-f "/var/log/syslog") {
+    $syslog_file = "/var/log/syslog";
+} else {
+    &eprint("Could not find syslog log file\n");
+    exit 1;
+}
+
+if (! open(FILE, $syslog_file)) {
+    &eprint("$!\n");
+    exit 1;
+}
 
 seek(FILE, 0, 2);
 
