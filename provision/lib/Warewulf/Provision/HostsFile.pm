@@ -133,26 +133,37 @@ generate()
                     my $fqdn = $d->get("fqdn");
                     my @name_entries;
                     my $name_eth;
+                    my $multiple_dots;
 
-                    if ($fqdn) {
-                        $name_eth = $fqdn;
-                    } elsif (($node_network eq $network) and ! defined($default_name)) {
+                    if (($node_network eq $network) and ! defined($default_name)) {
                         $name_eth = $nodename;
                         $default_name = 1;
                     } else {
                         $name_eth = "$nodename-$netdev";
                     }
 
+                    if (defined($fqdn)) {
+                        push(@name_entries, sprintf("%-18s", "$fqdn"));
+                        $multiple_dots = 1;
+                    }
+
+                    push(@name_entries, sprintf("%-12s", $name_eth));
+
                     if (defined($cluster) and defined($domain)) {
                         push(@name_entries, sprintf("%-18s", "$name_eth.$cluster.$domain"));
+                        $multiple_dots = 1;
                     }
                     if (defined($cluster)) {
                         push(@name_entries, sprintf("%-18s", "$name_eth.$cluster"));
-                    } else {
-                        push(@name_entries, sprintf("%-18s", $name_eth));
+                        $multiple_dots = 1;
                     }
                     if (defined($domain)) {
                         push(@name_entries, sprintf("%-18s", "$name_eth.$domain"));
+                        $multiple_dots = 1;
+                    }
+
+                    if (! $multiple_dots) {
+                        push(@name_entries, sprintf("%-18s", "$name_eth.localdomain"));
                     }
 
                     if ($nodename and $ipv4_addr) {
@@ -170,6 +181,8 @@ generate()
 
     return($hosts);
 }
+
+print &generate() ."\n\n";
 
 
 =item update_datastore()
