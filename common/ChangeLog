@@ -263,3 +263,9 @@ Fri Aug 19 17:29:29 2011                        Michael Jennings (mej)
 An even 1700 tests sounds like a good stopping point for the weekend.
 Logger tests are done, now working on Object tests.
 ----------------------------------------------------------------------
+Fri Aug 26 18:08:03 2011                        Michael Jennings (mej)
+
+Object tests are finally done.  I think I've got full coverage now,
+and several bugs were fixed that hadn't appeared yet.  Now at 1774
+tests.
+----------------------------------------------------------------------

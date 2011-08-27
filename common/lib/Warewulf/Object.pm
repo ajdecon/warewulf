@@ -104,7 +104,9 @@ get($)
             return $self->{$key};
         }
     } else {
-        return ((wantarray()) ? () : (undef));
+        my @ret = ();
+
+        return ((wantarray()) ? (@ret) : (undef));
     }
 }
 
@@ -224,6 +226,11 @@ add()
     my $key = shift;
     my @vals = @_;
 
+    if (!defined($key)) {
+        my @empty;
+
+        return ((wantarray()) ? (@empty) : (undef));
+    }
     $key = uc($key);
     if (exists($self->{$key})) {
         if (ref($self->{$key}) ne "ARRAY") {
@@ -256,25 +263,26 @@ del()
     my $self = shift;
     my $key = shift;
     my @vals = @_;
+    my @empty = ();
 
     if (!defined($key)) {
         # Bad/missing key is an error.
-        return undef;
+        return ((wantarray()) ? (@empty) : (undef));
     }
     $key = uc($key);
 
     if (!exists($self->{$key})) {
         # Nothing there to begin with.
-        return undef;
+        return @empty;
     } elsif (!ref($self->{$key}) || (ref($self->{$key}) ne "ARRAY")) {
         # Anything with which add() or del() is used must be an array.
-        @{$self->{$key}} = ($self->{$key});
+        $self->{$key} = [ $self->{$key} ];
     }
 
     if (!scalar(@vals)) {
         # Delete the key entirely.
         delete $self->{$key};
-        return ();
+        return @empty;
     }
 
     # Remove each element in @vals from the array.
@@ -289,7 +297,7 @@ del()
     # If the array is now empty, remove the key.
     if (!scalar(@{$self->{$key}})) {
         delete $self->{$key};
-        return ();
+        return @empty;
     }
     return @{$self->{$key}};
 }
