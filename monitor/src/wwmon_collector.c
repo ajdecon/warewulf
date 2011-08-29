@@ -122,12 +122,13 @@ int main(int argc, char *argv[]){
 
     send_json(sock, j2);
     json_object_put(j2); // freeing j2
-
+    json_object_put(jstring);
+    json_object_put(jobj);
     sleep(10);
   }
 
-    json_object_put(jstring);
-    json_object_put(jobj);
+  // json_object_put(jstring);
+  // json_object_put(jobj);
 
   close(sock);
   return 0;
