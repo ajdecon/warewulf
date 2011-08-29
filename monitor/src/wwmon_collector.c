@@ -117,7 +117,7 @@ int main(int argc, char *argv[]){
       json_object_object_add(j2, key, tmp);
     }
 
-    json_parse(j2); // see output of this line of code for clarification    
+    json_parse_complete(j2); // see output of this line of code for clarification    
 
 
     send_json(sock, j2);

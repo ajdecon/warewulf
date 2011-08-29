@@ -57,6 +57,7 @@ recvall(int sock, char **tbuffer)
   //strcpy(*tbuffer,buffer);
   //printf("Received - %s\n",*tbuffer);
   //exit(1);
+  printf("tbuffer: %s\n", *tbuffer);
   return bytes_read;
 }
 
