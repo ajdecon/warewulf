@@ -1,13 +1,14 @@
-//
-// Copyright (c) 2001-2003 Gregory M. Kurtzer
-// 
-// Copyright (c) 2003-2011, The Regents of the University of California,
-// through Lawrence Berkeley National Laboratory (subject to receipt of any
-// required approvals from the U.S. Dept. of Energy).  All rights reserved.
-//
-// Contributed by Anthony Salgado & Krishna Muriki
-// Warewulf Monitor (globals.h)
-//
+/*
+ * Copyright (c) 2001-2003 Gregory M. Kurtzer
+ * 
+ * Copyright (c) 2003-2011, The Regents of the University of California,
+ * through Lawrence Berkeley National Laboratory (subject to receipt of any
+ * required approvals from the U.S. Dept. of Energy).  All rights reserved.
+ *
+ * Contributed by Anthony Salgado & Krishna Muriki
+ * Warewulf Monitor (globals.h)
+ *
+ */
 
 #define MAXPKTSIZE 10024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
 #define MAXDATASIZE 10020
@@ -28,7 +29,7 @@ typedef struct private_info_of_any_socket {
         int     r_payloadlen; // Remaining payload length that needs to be read
 
         int     ctype;  // connection type, if collector: ctype = COLLECTOR
-                        // connection type, if wwstats: ctype = WWSTATS
+                        // connection type, if wwstats: ctype = APPLICATION
 
         char remote_sock_ipaddr[MAX_IPADDR_LEN];
         char    *sqlite_cmd;

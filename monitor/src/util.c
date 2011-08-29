@@ -1,13 +1,14 @@
-//
-// Copyright (c) 2001-2003 Gregory M. Kurtzer
-// 
-// Copyright (c) 2003-2011, The Regents of the University of California,
-// through Lawrence Berkeley National Laboratory (subject to receipt of any
-// required approvals from the U.S. Dept. of Energy).  All rights reserved.
-//
-// Contributed by Anthony Salgado & Krishna Muriki
-// Warewulf Monitor (util.c)
-//
+/*
+ * Copyright (c) 2001-2003 Gregory M. Kurtzer
+ * 
+ * Copyright (c) 2003-2011, The Regents of the University of California,
+ * through Lawrence Berkeley National Laboratory (subject to receipt of any
+ * required approvals from the U.S. Dept. of Energy).  All rights reserved.
+ *
+ * Contributed by Anthony Salgado & Krishna Muriki
+ * Warewulf Monitor (util.c)
+ *
+ */
 
 #include<stdio.h>
 #include<string.h>
@@ -18,15 +19,19 @@
 #include "globals.h"
 
 int
-recvall(int sock, char *buffer, apphdr *app_h, appdata *app_d)
+recvall(int sock, char *buffer)
 {
   int bytes_read, bytes_left;
   char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+
+  apphdr *app_h = (apphdr *) buffer;
+  appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
+
   if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
     perror("recv");
     exit(1);
   }
-  printf("app_h->len: %d\n", app_h->len);
+  //printf("app_h->len: %d\n", app_h->len);
 
   bytes_left = app_h->len;
   while(bytes_read < bytes_left){
@@ -44,15 +49,18 @@ recvall(int sock, char *buffer, apphdr *app_h, appdata *app_d)
 }
 
 int
-sendall_repeat(int sock, char *buffer, apphdr *app_h, appdata *app_d,  json_object *jobj)
+send_json(int sock, json_object *jobj)
 {
   int sendall(int s, char *buf, int total); // forward declaration
+
+  char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
+
   int  json_len, bytes_left, buffer_len, bytestocopy, bytes_read;
-  char *record;
+  char *json_str;
 
   json_len = (int) strlen(json_object_to_json_string(jobj));
-  record = (char *) malloc(json_len+1);
-  strcpy(record, json_object_to_json_string(jobj));
+  json_str = (char *) malloc(json_len+1);
+  strcpy(json_str, json_object_to_json_string(jobj));
 
   bytes_read = 0;
   bytes_left = json_len;
@@ -62,15 +70,19 @@ sendall_repeat(int sock, char *buffer, apphdr *app_h, appdata *app_d,  json_obje
       buffer_len = 0;
 
       if(bytes_read == 0) {
+
+        apphdr *app_h = (apphdr *) buffer;
+        appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
+
         app_h->len = json_len;
 
         bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
-        strncpy(app_d->payload,record,bytestocopy);
+        strncpy(app_d->payload,json_str,bytestocopy);
 
         buffer_len = sizeof(apphdr); // to accomodate the header size
       } else {
         bytestocopy = (MAXPKTSIZE < bytes_left ? MAXPKTSIZE : bytes_left);
-        strncpy(buffer,record+bytes_read,bytestocopy);
+        strncpy(buffer,json_str+bytes_read,bytestocopy);
       }
 
       buffer_len += bytestocopy;
@@ -81,7 +93,7 @@ sendall_repeat(int sock, char *buffer, apphdr *app_h, appdata *app_d,  json_obje
       bytes_read += bytestocopy;
       bytes_left -= bytestocopy;
     }
-  free(record);
+  free(json_str);
   return json_len;
 }
 
@@ -164,7 +176,6 @@ update_db(json_object *jobj, sqlite3 *db)
 
 void json_parse_complete(json_object *jobj);
 
-
 void
 json_parse_complete(json_object *jobj){
   enum json_type type;
@@ -242,8 +253,6 @@ struct cpu_data{
   long wj;
 };
 
-
-
 static int
 json_from_db2(void *void_json, int argc, char **argv, char **azColName)
 {
@@ -254,13 +263,12 @@ json_from_db2(void *void_json, int argc, char **argv, char **azColName)
   for(i = 0; i < argc; i++){
     json_object_object_add(tmp, azColName[i], json_object_new_string(argv[i]));
   }  
-  printf("argv[0] = %s\n", argv[0]);
-  printf("argv[1] = %s\n", argv[1]);
+// printf("argv[0] = %s\n", argv[0]);
+// printf("argv[1] = %s\n", argv[1]);
   json_object_object_add(json_db, argv[0], tmp); // REQUIRE ROWID IS FIRST ARG
   free(key_buf);
   return 0;
 }
-
 
 static int
 json_from_db(void *void_json, int argc, char **argv, char **azColName)
@@ -334,8 +342,6 @@ get_cpu_util()
   return (float) work_diff/total_diff*100;
 
 }
-
-
 
 void
 update_db2(json_object *jobj, sqlite3 *db)

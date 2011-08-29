@@ -1,13 +1,14 @@
-//
-// Copyright (c) 2001-2003 Gregory M. Kurtzer
-// 
-// Copyright (c) 2003-2011, The Regents of the University of California,
-// through Lawrence Berkeley National Laboratory (subject to receipt of any
-// required approvals from the U.S. Dept. of Energy).  All rights reserved.
-//
-// Contributed by Anthony Salgado & Krishna Muriki
-// Warewulf Monitor (wwmon_aggregator.c)
-//
+/*
+ * Copyright (c) 2001-2003 Gregory M. Kurtzer
+ * 
+ * Copyright (c) 2003-2011, The Regents of the University of California,
+ * through Lawrence Berkeley National Laboratory (subject to receipt of any
+ * required approvals from the U.S. Dept. of Energy).  All rights reserved.
+ *
+ * Contributed by Anthony Salgado & Krishna Muriki
+ * Warewulf Monitor (wwmon_aggregator.c)
+ *
+ */
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -59,9 +60,9 @@ writeHandler(int fd)
   if(sock_data[fd].ctype == APPLICATION){
     strcpy(app_d->payload, json_object_to_json_string(json_db));
   } else {
+  // if its a collector just instruct to send data
     strcpy(app_d->payload, "Send Data");
   }
-
   
   app_h->len = strlen(app_d->payload);
   fprintf(stderr,"About to write on FD - %d\n",fd);
@@ -151,7 +152,7 @@ readHandler(int fd)
   // 3) A JSON representation of wwmon_collector.c information
   if(strstr(sock_data[fd].accural_buf, "ctype"))
     {
-      printf("case 0\n");
+      //printf("case 0\n");
       int ctype;
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       ctype = json_object_get_int(json_object_object_get(jobj, "ctype"));
@@ -159,7 +160,7 @@ readHandler(int fd)
     }
   if(strstr(sock_data[fd].accural_buf, "sqlite_cmd"))
     {
-      printf("case 1\n");
+      //printf("case 1\n");
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       sock_data[fd].sqlite_cmd = malloc(sizeof(char)*MAX_SQL_SIZE); 
       strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
@@ -167,7 +168,7 @@ readHandler(int fd)
   else if(strstr(sock_data[fd].accural_buf, "JSON"))
     {
 
-      printf("case 2\n");
+      //printf("case 2\n");
       // convert json_string to object
       jobj = json_tokener_parse(sock_data[fd].accural_buf);                                 
       json_parse_complete(jobj);
@@ -287,8 +288,8 @@ acceptConn(int fd)
   strcpy(sock_data[c].remote_sock_ipaddr,inet_ntoa(sin.sin_addr));
 
   fprintf(stderr,"Accepted a new connection on fd - %d from %s\n",c,sock_data[c].remote_sock_ipaddr);
- 
-  FD_SET(c, &rfds);// changed from wfds
+  // Register interest in a read on this socket.
+  FD_SET(c, &rfds);
   
   return(c);
 }
@@ -320,8 +321,6 @@ main(int argc, char *argv[])
   // Prepare to accept clients
   FD_ZERO(&rfds);
   FD_ZERO(&wfds);
-
-
 
   // Open TCP (SOCK_STREAM) Socket, bind to the port given and listen for connections
   //if((stcp = setupSockets(atoi(argv[1]))) < 0)
