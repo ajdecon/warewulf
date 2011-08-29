@@ -75,15 +75,16 @@ int main(int argc, char *argv[]){
   json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
 
   send_json(sock, jobj);
+  json_object_put(jobj);
 
-  //Anthony, plz move this malloc into recvall & delete this comment, thanks --kmuriki
-  char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
-  strcpy(rbuf,"");
+  char *rbuf;
 
   while(1) {
 
     recvall(sock,rbuf);
-    
+    printf("Received - %s\n",rbuf);
+    free(rbuf);
+
     array_list *requested_keys = array_list_new(NULL);
     array_list_add(requested_keys, "MemTotal");
     array_list_add(requested_keys, "MemFree");
@@ -117,17 +118,15 @@ int main(int argc, char *argv[]){
     }
 
     json_parse(j2); // see output of this line of code for clarification    
-    jobj = j2; // send the 'transposed' json_object over the socket. 
 
-    send_json(sock, jobj);
+    json_object_put(jstring);
+    json_object_put(jobj);
+
+    send_json(sock, j2);
     json_object_put(j2); // freeing j2
 
     sleep(10);
   }
-  free(rbuf);
-
-  json_object_put(jstring);
-  json_object_put(jobj);
 
   close(sock);
   return 0;
