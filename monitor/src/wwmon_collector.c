@@ -81,9 +81,9 @@ int main(int argc, char *argv[]){
 
   while(1) {
 
-    recvall(sock,&rbuf);
+    rbuf = recvall(sock);
     printf("Received - %s\n",rbuf);
-    //free(rbuf);
+    free(rbuf);
 
     array_list *requested_keys = array_list_new(NULL);
     array_list_add(requested_keys, "MemTotal");
@@ -103,7 +103,6 @@ int main(int argc, char *argv[]){
     date=asctime(localtime(&timer));
     json_object_object_add(jobj,"TimeStamp",(json_object *) json_object_new_string(chop(date)));
 
-
     /* This new section of code 'transposes' the current json_object
        such that it can be formatted as identified by the key/value it holds
        and is stuffed into another json_object as if it were nested. */
@@ -119,16 +118,14 @@ int main(int argc, char *argv[]){
 
     json_parse_complete(j2); // see output of this line of code for clarification    
 
-
     send_json(sock, j2);
+
     json_object_put(j2); // freeing j2
     json_object_put(jstring);
     json_object_put(jobj);
+
     sleep(10);
   }
-
-  // json_object_put(jstring);
-  // json_object_put(jobj);
 
   close(sock);
   return 0;

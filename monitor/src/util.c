@@ -18,12 +18,12 @@
 #include<sqlite3.h>
 #include "globals.h"
 
-int
-recvall(int sock, char **tbuffer)
+char *
+recvall(int sock)
 {
   int bytes_read, bytes_left;
+
   char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
-  char *buffer;
 
   apphdr *app_h = (apphdr *) rbuf;
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
@@ -32,11 +32,10 @@ recvall(int sock, char **tbuffer)
     perror("recv");
     exit(1);
   }
-  printf("app_h->len: %d\n", app_h->len);
-  printf("Received - %s\n",app_d->payload);
+  //printf("app_h->len: %d\n", app_h->len);
+  //printf("Received - %s\n",app_d->payload);
 
- // buffer = *tbuffer;
- 
+  char *buffer;
   buffer = (char *) malloc (app_h->len);
   strcpy(buffer,app_d->payload);
 
@@ -47,18 +46,10 @@ recvall(int sock, char **tbuffer)
       exit(1);
     }
     strcat(buffer, rbuf);
-    //printf("bytes_left = %d\n", bytes_left);
-    //printf("bytes_read = %d\n", bytes_read);
   }
   free(rbuf);
   buffer[bytes_left] = '\0';
-  printf("Received - %s\n",buffer);
-  *tbuffer = buffer;
-  //strcpy(*tbuffer,buffer);
-  //printf("Received - %s\n",*tbuffer);
-  //exit(1);
-  printf("tbuffer: %s\n", *tbuffer);
-  return bytes_read;
+  return buffer;
 }
 
 int

@@ -37,43 +37,36 @@ static sqlite3 *db; // database pointer
 int
 writeHandler(int fd) 
 {
-
-  // Why to malloc a know size buffer --kmuriki
-  char *sbuf = malloc(sizeof(char)*MAXPKTSIZE);
-  sbuf[0] = '\0';
-
-  apphdr *app_h = (apphdr *) sbuf;
-  appdata *app_d = (appdata *) (sbuf + sizeof(apphdr));
-
-  json_object *json_db;// = malloc(sizeof(json_object_new_object));
-  json_db = json_object_new_object();
-  
-  sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, json_db, NULL);
-
-  // free the temporary buffer
-  // allocated for the sqlite_cmd
-  if(sock_data[fd].sqlite_cmd != NULL){
-    free(sock_data[fd].sqlite_cmd);
-  }
+ 
+  fprintf(stderr,"About to write on FD - %d\n",fd);
+ 
+  json_object *jobj,*jstring;
+  jobj = json_object_new_object();
   
   // send JSON string iff an application
   if(sock_data[fd].ctype == APPLICATION){
-    strcpy(app_d->payload, json_object_to_json_string(json_db));
-  } else {
-  // if its a collector just instruct to send data
-    strcpy(app_d->payload, "Send Data every 10 seconds");
-  }
+  	sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, jobj, NULL);
   
-  app_h->len = strlen(app_d->payload);
-  fprintf(stderr,"About to write on FD - %d\n",fd);
-  if (sendall(fd, sbuf, sizeof(apphdr) + strlen(app_d->payload)) == -1) {
-      FD_CLR(fd, &wfds);
-      close(fd);
+	// free the temporary buffer
+  	// allocated for the sqlite_cmd
+  	if(sock_data[fd].sqlite_cmd != NULL){
+  	  free(sock_data[fd].sqlite_cmd);
+  	}
+  } else {
+
+  jstring = json_object_new_string("Send Data");
+  json_object_object_add(jobj,"Command",jstring);
+
   }
+
+  send_json(fd,jobj);
   printf("send successful!\n");
-  // we forgot to free sbuf
-  free(sbuf); 
-  //free(json_db);
+
+  free(jobj);
+  if(sock_data[fd].ctype == COLLECTOR){
+  free(jstring);
+  }
+
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
 
