@@ -61,7 +61,7 @@ writeHandler(int fd)
     strcpy(app_d->payload, json_object_to_json_string(json_db));
   } else {
   // if its a collector just instruct to send data
-    strcpy(app_d->payload, "Send Data");
+    strcpy(app_d->payload, "Send Data every 10 seconds");
   }
   
   app_h->len = strlen(app_d->payload);
@@ -107,7 +107,7 @@ readHandler(int fd)
       return(0);
   }
   rbuf[readbytes]='\0';
-  fprintf(stderr, "Rx a string of size %d - %s\n",readbytes,rbuf);
+  fprintf(stderr, "Rx a string of size %d \n",readbytes);
 
   // Is this required ?
   if (strlen(rbuf) == 0)

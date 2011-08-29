@@ -81,9 +81,9 @@ int main(int argc, char *argv[]){
 
   while(1) {
 
-    recvall(sock,rbuf);
+    recvall(sock,&rbuf);
     printf("Received - %s\n",rbuf);
-    free(rbuf);
+    //free(rbuf);
 
     array_list *requested_keys = array_list_new(NULL);
     array_list_add(requested_keys, "MemTotal");
@@ -119,14 +119,15 @@ int main(int argc, char *argv[]){
 
     json_parse(j2); // see output of this line of code for clarification    
 
-    json_object_put(jstring);
-    json_object_put(jobj);
 
     send_json(sock, j2);
     json_object_put(j2); // freeing j2
 
     sleep(10);
   }
+
+    json_object_put(jstring);
+    json_object_put(jobj);
 
   close(sock);
   return 0;

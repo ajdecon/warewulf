@@ -19,19 +19,26 @@
 #include "globals.h"
 
 int
-recvall(int sock, char *buffer)
+recvall(int sock, char **tbuffer)
 {
   int bytes_read, bytes_left;
   char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+  char *buffer;
 
-  apphdr *app_h = (apphdr *) buffer;
-  appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
+  apphdr *app_h = (apphdr *) rbuf;
+  appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
 
-  if ((bytes_read=recv(sock, buffer, MAXPKTSIZE-1, 0)) == -1) {
+  if ((bytes_read=recv(sock, rbuf, MAXPKTSIZE-1, 0)) == -1) {
     perror("recv");
     exit(1);
   }
-  //printf("app_h->len: %d\n", app_h->len);
+  printf("app_h->len: %d\n", app_h->len);
+  printf("Received - %s\n",app_d->payload);
+
+ // buffer = *tbuffer;
+ 
+  buffer = (char *) malloc (app_h->len);
+  strcpy(buffer,app_d->payload);
 
   bytes_left = app_h->len;
   while(bytes_read < bytes_left){
@@ -39,12 +46,17 @@ recvall(int sock, char *buffer)
       perror("recv");
       exit(1);
     }
-    strcat(app_d->payload, rbuf);
+    strcat(buffer, rbuf);
     //printf("bytes_left = %d\n", bytes_left);
     //printf("bytes_read = %d\n", bytes_read);
   }
   free(rbuf);
-  buffer[bytes_read] = '\0';
+  buffer[bytes_left] = '\0';
+  printf("Received - %s\n",buffer);
+  *tbuffer = buffer;
+  //strcpy(*tbuffer,buffer);
+  //printf("Received - %s\n",*tbuffer);
+  //exit(1);
   return bytes_read;
 }
 
