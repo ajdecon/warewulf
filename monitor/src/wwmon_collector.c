@@ -67,8 +67,7 @@ int main(int argc, char *argv[]){
       exit(1);
   }
 
-  // I don't think we need to malloc jobj
-  json_object *jobj;// = malloc(sizeof(json_object *));
+  json_object *jobj;
 
   // tell aggregator that I am a collector
   jobj = json_object_new_object();

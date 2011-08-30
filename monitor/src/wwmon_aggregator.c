@@ -37,10 +37,12 @@ static sqlite3 *db; // database pointer
 int
 writeHandler(int fd) 
 {
- 
+  // Should we also assume that TCP write's also cannot be made when we want ?
+  // In other words is it possible that TCP send's would wait or get stuck ? -- kmuriki
+  
   fprintf(stderr,"About to write on FD - %d\n",fd);
  
-  json_object *jobj,*jstring;
+  json_object *jobj;
   jobj = json_object_new_object();
   
   // send JSON string iff an application
@@ -53,19 +55,13 @@ writeHandler(int fd)
   	  free(sock_data[fd].sqlite_cmd);
   	}
   } else {
-
-  jstring = json_object_new_string("Send Data");
-  json_object_object_add(jobj,"Command",jstring);
-
+  // send the command to collector
+  	json_object_object_add(jobj,"Command",json_object_new_string("Send Data"));
   }
 
   send_json(fd,jobj);
-  printf("send successful!\n");
-
   free(jobj);
-  if(sock_data[fd].ctype == COLLECTOR){
-  free(jstring);
-  }
+  printf("send successful!\n");
 
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
@@ -83,7 +79,7 @@ readHandler(int fd)
   int readbytes;
   json_object *jobj;
 
-  // First check is there is any remaining payload from previous
+  // First check if there is any remaining payload from previous
   // transmission for this socket and decide the # of bytes to read.
   int numtoread;
   if( sock_data[fd].r_payloadlen > 0 && sock_data[fd].r_payloadlen < MAXPKTSIZE-1 ) {
