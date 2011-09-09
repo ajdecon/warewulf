@@ -182,8 +182,6 @@ generate()
     return($hosts);
 }
 
-print &generate() ."\n\n";
-
 
 =item update_datastore()
 
