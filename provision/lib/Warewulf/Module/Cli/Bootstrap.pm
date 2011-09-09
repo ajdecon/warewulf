@@ -145,7 +145,6 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
-    my $bootstrapObj = Warewulf::Provision::Bootstrap->new();
     my $opt_lookup = "name";
     my $opt_name;
     my $command;
@@ -213,7 +212,6 @@ exec()
                     $obj->set("size", $size);
                     $db->persist($obj);
                     &nprint("Imported $name into existing object\n");
-                    $bootstrapObj->build_bootstrap($obj);
                 } elsif (scalar(@objList) == 0) {
                     &nprint("Creating new Bootstrap Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("bootstrap");
@@ -238,7 +236,6 @@ exec()
                     $obj->set("size", $size);
                     $db->persist($obj);
                     &nprint("Imported $name into a new object\n");
-                    $bootstrapObj->build_bootstrap($obj);
                 } else {
                     &wprint("Import into one object at a time please!\n");
                 }
@@ -332,6 +329,7 @@ exec()
         }
 
     } elsif ($command eq "rebuild" or $command eq "build") {
+    	my $bootstrapObj = Warewulf::Provision::Bootstrap->new();
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         foreach my $obj ($objectSet->get_list()) {
             $bootstrapObj->build_bootstrap($obj);
