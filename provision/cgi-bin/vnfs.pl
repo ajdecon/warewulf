@@ -72,10 +72,13 @@ if ($q->param('hwaddr')) {
                             if (close($cache_fh)) {
                                 rename("$vnfs_cachedir/$vnfs_name/image.$vnfs_checksum.$rand", "$vnfs_cachedir/$vnfs_name/image.$vnfs_checksum");
                                 foreach my $image (glob("$vnfs_cachedir/$vnfs_name/image.*")) {
-                                    my $basename = basename($image);
-                                    if ($basename ne "image.$vnfs_checksum") {
-                                        &wprint("Clearing old vnfs cache: $image\n");
-                                        unlink($image);
+                                    if ($image =~ /^([a-zA-Z0-9\/\-\._]+?\/image\.[a-zA-Z0-9]+)$/) {
+                                        $image = $1;
+                                        my $basename = basename($image);
+                                        if ($basename ne "image.$vnfs_checksum") {
+                                            &wprint("Clearing old vnfs cache: $image\n");
+                                            unlink($image);
+                                        }
                                     }
                                 }
                                 $use_cache = 1;
