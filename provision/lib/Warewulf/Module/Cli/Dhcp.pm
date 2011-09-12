@@ -30,16 +30,6 @@ new()
 
 
 sub
-description()
-{
-    my $output;
-
-    $output .= "Reconfigure DHCP services manually";
-
-    return($output);
-}
-
-sub
 summary()
 {
     my $output;
