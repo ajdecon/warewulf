@@ -96,21 +96,10 @@ if (! $opt_name and $opt_chroot) {
 }
 
 if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
+    &iprint("Opening configuration files\n");
     $opt_name = $1;
-    $config = Warewulf::Config->new("vnfs/$1.conf", "vnfs.conf");
-    if (! $opt_chroot) {
-        $opt_chroot = $config->get("chroot");
-    }
-    if (! $opt_output) {
-        $opt_output = $config->get("file");
-    }
-    if (! $opt_excludefile) {
-        $opt_excludefile = $config->get("exclude file");
-    }
-    if (! $opt_includefile) {
-        $opt_includefile = $config->get("include file");
-    }
-    push(@exclude_files, $config->get("excludes"));
+    $config = Warewulf::Config->new("vnfs.conf");
+    $config->load("vnfs/$opt_name.conf");
 } elsif ($opt_name) {
     &eprint("VNFS name contains illegal characters!\n");
     exit 1;
@@ -118,6 +107,24 @@ if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
     &eprint("What is the name of this VNFS?!\n");
     exit 1;
 }
+
+if (! $opt_chroot) {
+    $opt_chroot = $config->get("chroot");
+}
+if (! $opt_output) {
+    $opt_output = $config->get("file");
+}
+if (! $opt_excludefile) {
+    $opt_excludefile = $config->get("exclude file");
+}
+if (! $opt_hybrid) {
+    $opt_hybrid = $config->get("hybrid path");
+}
+if (! $opt_includefile) {
+    $opt_includefile = $config->get("include file");
+}
+push(@exclude_files, $config->get("excludes"));
+
 
 if ($opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
     $opt_chroot = $1;
@@ -129,10 +136,26 @@ if ($opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
     exit 1;
 }
 
+if (! $opt_hybrid) {
+    &iprint("Checking for auto hybrid entry\n");
+    if (-f "$opt_chroot/etc/fstab") {
+        if (open(FSTAB, "$opt_chroot/etc/fstab")) {
+            while (my $line = <FSTAB>) {
+                chomp($line);
+                if ($line =~ /^\s*([a-zA-Z0-9\-_\.]+:\/[a-zA-Z0-9\-_\.]+\s+\/hybrid\s+.+)$/) {
+                    &iprint("Automatically using --hybridpath=/hybrid as found in fstab\n");
+                    $opt_hybrid = "/hybrid/$opt_name";
+                }
+            }
+            close(FSTAB);
+        }
+    }
+}
+
 if ($opt_hybrid and $opt_hybrid =~ /^([a-zA-Z0-9\-_\/:\.]+)$/) {
     $opt_hybrid = $1;
 } elsif ($opt_hybrid) {
-    &eprint("Illegal characters in --hybrid option: $opt_hybrid\n");
+    &eprint("Illegal characters in --hybridpath option: $opt_hybrid\n");
     exit 1;
 }
 
