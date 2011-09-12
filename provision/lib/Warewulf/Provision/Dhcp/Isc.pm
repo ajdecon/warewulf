@@ -160,6 +160,23 @@ persist()
         my $dhcpd_contents;
         my %seen;
 
+        if (! $ipaddr) {
+            &wprint("Could not obtain IP address of this system!\n");
+            &wprint("Check provision.conf 'network device'\n");
+            &eprint("Not building DHCP configuration\n");
+            return(1);
+        }
+        if (! $netmask) {
+            &wprint("Could not obtain the netmask of this system!\n");
+            &eprint("Not building DHCP configuration\n");
+            return(1);
+        }
+        if (! $network) {
+            &wprint("Could not obtain the base network of this system!\n");
+            &eprint("Not building DHCP configuration\n");
+            return(1);
+        }
+
         if (-f "$sysconfdir/warewulf/dhcpd-template.conf") {
             open(DHCP, "$sysconfdir/warewulf/dhcpd-template.conf");
             while($line = <DHCP>) {
