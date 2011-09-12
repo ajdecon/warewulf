@@ -217,6 +217,17 @@ persist()
                 my ($domain) = $n->get("domain");
                 my ($master_ipv4_bin) = $n->get("master");
                 my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
+                my $domainname;
+
+                if (defined($cluster) and defined($domain)) {
+                    $domainname = "$cluster.$domain"
+                }
+                if (defined($cluster)) {
+                    $domainname = "$cluster"
+                }
+                if (defined($domain)) {
+                    $domainname = "$domain"
+                }
 
                 foreach my $d ($n->get("netdevs")) {
                     if (ref($d) eq "Warewulf::DSO::Netdev") {
@@ -251,6 +262,9 @@ persist()
 
                             $dhcpd_contents .= "   host $nodename-$netdev {\n";
                             $dhcpd_contents .= "      option host-name $nodename;\n";
+                            if ($domainname) {
+                                $dhcpd_contents .= "      option domain-name $domainname;\n";
+                            }
                             $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
                             $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
                             if ($master_ipv4_bin) {
