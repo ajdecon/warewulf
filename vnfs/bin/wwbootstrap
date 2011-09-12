@@ -148,11 +148,12 @@ if ($config->get("drivers")) {
     my @mod_files;
     my %included_files;
     my @driver_files;
+    my $module_count = 0;
 
     mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion");
 
     if (-f "$opt_root/lib/modules/$opt_kversion/modules.dep") {
-        my $strippath = "$opt_root/lib/modules/$opt_kversion/";
+        my $strippath = "/lib/modules/$opt_kversion/";
         open(DEP, "$opt_root/lib/modules/$opt_kversion/modules.dep");
         while (my $line = <DEP>) {
             chomp($line);
@@ -175,6 +176,8 @@ if ($config->get("drivers")) {
             }
         }
         close(DEP);
+    } else {
+        &wprint("File not found: $opt_root/lib/modules/$opt_kversion/modules.dep\n");
     }
 
     foreach my $d (@drivers) {

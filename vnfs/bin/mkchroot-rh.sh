@@ -67,4 +67,6 @@ else
     sed -i -e 's/^root:\*:/root::/' $VNFSDIR/etc/shadow
 fi
 
+touch $VNFSDIR/fastboot
+
 echo "Done."
