@@ -319,6 +319,7 @@ exec()
                 }
             }
             if ($opt_hwaddr) {
+                $opt_hwaddr = lc($opt_hwaddr);
                 if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
                     $opt_hwaddr = $1;
                 } else {
@@ -355,7 +356,6 @@ exec()
                     }
                 }
                 if ($opt_hwaddr) {
-                    $opt_hwaddr = lc($opt_hwaddr);
                     my $old_hwaddr = $netobj->get("hwaddr");
                     $netobj->set("hwaddr", $opt_hwaddr);
                     if ($old_hwaddr and $old_hwaddr ne $opt_hwaddr) {
@@ -382,20 +382,22 @@ exec()
                     $persist_count++;
                 }
             }
-            if ($opt_ipaddr) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
-            }
-            if ($opt_netmask) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
-            }
-            if ($opt_hwaddr) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
-            }
-            if ($opt_fqdn) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
-            }
-            if ($opt_devremove) {
-                push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
+            if ($opt_netdev) {
+                if ($opt_ipaddr) {
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
+                }
+                if ($opt_netmask) {
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
+                }
+                if ($opt_hwaddr) {
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
+                }
+                if ($opt_fqdn) {
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
+                }
+                if ($opt_devremove) {
+                    push(@changes, sprintf("     SET: %-20s = %s\n", $opt_netdev, "REMOVE"));
+                }
             }
         }
 
