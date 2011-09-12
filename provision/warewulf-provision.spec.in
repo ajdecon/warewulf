@@ -24,7 +24,7 @@ be doing provisioning, be sure to install %{name}-http.
 Summary: This provides the HTTP provsion interface
 Group: System Environment/Clustering
 Requires: %{name} = %{version}-%{release}
-Requires: mod_perl httpd
+Requires: mod_perl httpd tftp-server dhcp
 
 %description server
 Warewulf >= 3 is a set of utilities designed to better enable
