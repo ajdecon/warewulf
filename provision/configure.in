@@ -5,37 +5,31 @@ AC_CONFIG_SRCDIR([.])
 AC_PROG_INSTALL
 AM_INIT_AUTOMAKE([foreign -Wno-portability])
 
-AC_EXPAND_DIR(fulldatadir, "$datadir")
-AC_SUBST(fulldatadir)
-
-AC_EXPAND_DIR(fulllibexecdir, "$libexecdir")
-AC_SUBST(fulllibexecdir)
-
-AC_EXPAND_DIR(fulllocalstatedir, "$localstatedir")
-AC_SUBST(fulllocalstatedir)
-
-AC_EXPAND_DIR(fulldatadir, "$datadir")
-AC_SUBST(fulldatadir)
-
-initramfsdir="$localstatedir/warewulf/initramfs/";
-AC_SUBST(initramfsdir)
-
-
 AC_PATH_PROG(WWCONFIGBIN, wwconfig)
-eval `$WWCONFIGBIN -s prefix statedir 2>/dev/null`
-
-if test -n "$WAREWULF_PREFIX"; then
-   AC_MSG_NOTICE([Setting prefix to match Warewulf common ($WAREWULF_PREFIX)])
-   prefix="$WAREWULF_PREFIX"
+if test -z "$WWCONFIGBIN"; then
+   AC_MSG_ERROR([wwconfig not found! (Warewulf common component)])
 fi
+AC_SUBST(WWCONFIGBIN)
 
-if test -n "$WAREWULF_STATEDIR"; then
-   AC_MSG_NOTICE([Setting prefix to match Warewulf common ($WAREWULF_STATEDIR)])
-   localstatedir="$WAREWULF_STATEDIR"
+AC_EXPAND_DIR(prefix, "${prefix}")
+WAREWULF_PREFIX=`$WWCONFIGBIN PREFIX`
+force_prefix=""
+AC_MSG_CHECKING([warewulf-common prefix vs. current prefix])
+if test "${prefix}" = "$WAREWULF_PREFIX"; then
+   AC_MSG_RESULT([identical (${prefix})])
 else
-   AC_MSG_NOTICE([Setting Warewulf statedir to configure default (${fulllocalstatedir})])
-   localstatedir=${fulllocalstatedir}
+   AC_MSG_RESULT([MISMATCH (${prefix} vs. $WAREWULF_PREFIX), forcing install prefix on all paths])
+   force_prefix="${prefix}"
 fi
+
+AC_MSG_CHECKING([for Warewulf's configuration for statedir])
+eval `$WWCONFIGBIN -s statedir`
+if test -z "$WAREWULF_STATEDIR"; then
+    AC_MSG_ERROR([Warewulf statedir not found])
+fi
+WAREWULF_STATEDIR="$force_prefix$WAREWULF_STATEDIR"
+AC_MSG_RESULT($WAREWULF_STATEDIR)
+AC_SUBST(WAREWULF_STATEDIR)
 
 
 AC_PATH_PROG(PERLBIN, perl)
@@ -59,6 +53,22 @@ AC_SUBST(PERL_VENDORLIB)
 #AC_CHECK_LIB(fuse, fuse_main, , [
 #AC_MSG_ERROR([Fatal:  Fuse libraries not found.])
 #])
+
+AC_EXPAND_DIR(fulldatadir, "$datadir")
+AC_SUBST(fulldatadir)
+
+AC_EXPAND_DIR(fulllibexecdir, "$libexecdir")
+AC_SUBST(fulllibexecdir)
+
+AC_EXPAND_DIR(fulllocalstatedir, "$localstatedir")
+AC_SUBST(fulllocalstatedir)
+
+AC_EXPAND_DIR(fulldatadir, "$datadir")
+AC_SUBST(fulldatadir)
+
+initramfsdir="$localstatedir/warewulf/initramfs/";
+AC_SUBST(initramfsdir)
+
 
 AC_SUBST(PERLBIN)
 
