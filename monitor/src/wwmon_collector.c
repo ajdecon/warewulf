@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include "util.c"
+#include "getstats.c"
 
 int main(int argc, char *argv[]){
   
@@ -42,7 +43,7 @@ int main(int argc, char *argv[]){
   struct hostent *host;
 
   char local_sysname[MAX_SYSNAME_LEN];
-  json_object *jstring;
+  //json_object *jstring;
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {
@@ -73,57 +74,40 @@ int main(int argc, char *argv[]){
   jobj = json_object_new_object();
   json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
 
+  printf("%s\n", json_object_to_json_string(jobj));
   send_json(sock, jobj);
+ 
   json_object_put(jobj);
 
-  char *rbuf;
-
+  gethostname(local_sysname,sizeof(local_sysname));
   while(1) {
 
+    char *rbuf;
     rbuf = recvall(sock);
     printf("Received - %s\n",rbuf);
     free(rbuf);
 
-    array_list *requested_keys = array_list_new(NULL);
-    array_list_add(requested_keys, "MemTotal");
-    array_list_add(requested_keys, "MemFree");
-    array_list_add(requested_keys, "SwapTotal");
-    array_list_add(requested_keys, "SwapFree");
+    jobj = json_object_new_object();
 
-    jobj = fast_data_parser("/proc/meminfo", requested_keys, array_list_length(requested_keys));
-    
-    gethostname(local_sysname,sizeof(local_sysname));
-    jstring = json_object_new_string(local_sysname);
-    json_object_object_add(jobj,"NodeName",jstring);
-    json_object_object_add(jobj, "cpu_util", (json_object *)json_object_new_double(get_cpu_util()));
-    json_object_object_add(jobj, "JSON", (json_object *) json_object_new_string(json_object_to_json_string(jobj)));
+    get_sysinfo(jobj);
+    get_cpu_info(jobj); 
+    get_uname(jobj);
+    get_cpu_util(jobj);
+    get_mem_stats(jobj);
+    get_load_avg(jobj); 
+    get_net_stats(jobj);
+    get_node_status(jobj);
 
-    timer=time(NULL);
-    date=asctime(localtime(&timer));
-    json_object_object_add(jobj,"TimeStamp",(json_object *) json_object_new_string(chop(date)));
+    printf("%s\n", json_object_to_json_string(jobj));
+    send_json(sock,jobj);
 
-    /* This new section of code 'transposes' the current json_object
-       such that it can be formatted as identified by the key/value it holds
-       and is stuffed into another json_object as if it were nested. */
+    //Figure out the best logic to free up all the json objects
+    //json_object_object_delete(jobj);
+    //json_object_put(jobj);
+    //json_object_put(jobj);
+    //json_object_put(jobj);
 
-    json_object *j2 = json_object_new_object();
-    json_object_object_foreach(jobj, key, value){
-      json_object *tmp = json_object_new_object();
-      json_object_object_add(tmp, "NodeName", jstring);
-      json_object_object_add(tmp, "key", (json_object *) json_object_new_string(key));
-      json_object_object_add(tmp, "value", value);
-      json_object_object_add(j2, key, tmp);
-    }
-
-    json_parse_complete(j2); // see output of this line of code for clarification    
-
-    send_json(sock, j2);
-
-    json_object_put(j2); // freeing j2
-    json_object_put(jstring);
-    json_object_put(jobj);
-
-    sleep(10);
+    sleep(5);
   }
 
   close(sock);

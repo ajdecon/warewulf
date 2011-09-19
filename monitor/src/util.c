@@ -18,6 +18,9 @@
 #include<sqlite3.h>
 #include "globals.h"
 
+// Forward declarations
+int sendall(int s, char *buf, int total);
+
 char *
 recvall(int sock)
 {
@@ -55,7 +58,6 @@ recvall(int sock)
 int
 send_json(int sock, json_object *jobj)
 {
-  int sendall(int s, char *buf, int total); // forward declaration
 
   char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
 
@@ -188,6 +190,9 @@ json_parse_complete(json_object *jobj){
     switch (type) {
     case json_type_string: 
       printf("%s : %s\n", key, json_object_get_string(val));
+      break;
+    case json_type_int: 
+      printf("%s : %d\n", key, json_object_get_int(val));
       break;
     case json_type_object:
       json_parse_complete(json_object_object_get(jobj, key));
@@ -329,7 +334,7 @@ get_jiffs(struct cpu_data *cd)
 
 
 float
-get_cpu_util()
+get_cpu_util_old()
 {
   struct cpu_data *fin = malloc(sizeof(struct cpu_data *));
   struct cpu_data *init = malloc(sizeof(struct cpu_data *));
@@ -377,6 +382,7 @@ update_db2(json_object *jobj, sqlite3 *db)
     printf("Command was: %s\n", sqlite_cmd);
 
     rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
+    printf("Done update\n");
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", 0);
       sqlite3_free(0);
@@ -385,5 +391,5 @@ update_db2(json_object *jobj, sqlite3 *db)
     free(sqlite_cmd);
     free(values);
   }
-
+  printf("Exiting update_db2\n");
 }
