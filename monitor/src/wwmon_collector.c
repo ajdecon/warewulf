@@ -102,16 +102,10 @@ int main(int argc, char *argv[]){
     printf("%s\n", json_object_to_json_string(jobj));
     send_json(sock,jobj);
 
-    //Figure out the best logic to free up all the json objects
-    //json_object_object_delete(jobj);
-    //json_object_put(jobj);
-    //json_object_put(jobj);
     json_object_put(jobj);
 
     sleep(1);
   }
-
-
 
   close(sock);
   return 0;

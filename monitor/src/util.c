@@ -25,17 +25,14 @@ char *
 recvall(int sock)
 {
   int bytes_read, bytes_left;
-  /***
-   * free(): invalid next size (fast) Error 
-   * when dynamically allocating rbuf
-   */
-  //char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
-  char rbuf[MAXPKTSIZE];
+
+  // using calloc to avoid some garbage that is getting into the buffers
+  char *rbuf = calloc(MAXPKTSIZE,1);
 
   apphdr *app_h = (apphdr *) rbuf;
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
 
-  if ((bytes_read=recv(sock, rbuf, MAXPKTSIZE-1, 0)) == -1) {
+  if ((bytes_read=recv(sock, rbuf, sizeof(apphdr), 0)) == -1) {
     perror("recv");
     exit(1);
   }
@@ -43,10 +40,14 @@ recvall(int sock)
   //printf("Received - %s\n",app_d->payload);
 
   char *buffer;
-  buffer = (char *) malloc (app_h->len*sizeof(char));
-  strcpy(buffer,app_d->payload);
+  // plus 1 to store the NULL char
+  buffer = (char *) calloc (app_h->len+1,1);
+
+  printf("Len - %d\n",app_h->len);
 
   bytes_left = app_h->len;
+  bytes_read = bytes_read - sizeof(apphdr);
+
   while(bytes_read < bytes_left){
     if((bytes_read += recv(sock, rbuf, MAXPKTSIZE-1,0)) == -1){
       perror("recv");
@@ -54,7 +55,7 @@ recvall(int sock)
     }
     strcat(buffer, rbuf);
   }
-  //  free(rbuf);
+  free(rbuf);
   buffer[bytes_left] = '\0';
   return buffer;
 }
@@ -68,7 +69,7 @@ send_json(int sock, json_object *jobj)
   int  json_len, bytes_left, buffer_len, bytestocopy, bytes_read;
   char *json_str;
 
-  json_len = (int) strlen(json_object_to_json_string(jobj));
+  json_len = (int) strlen(json_object_to_json_string(jobj)); // plus 1 for NULL char
   json_str = (char *) malloc(json_len+1);
   strcpy(json_str, json_object_to_json_string(jobj));
 
