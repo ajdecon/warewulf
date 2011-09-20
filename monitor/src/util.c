@@ -25,8 +25,12 @@ char *
 recvall(int sock)
 {
   int bytes_read, bytes_left;
-
-  char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+  /***
+   * free(): invalid next size (fast) Error 
+   * when dynamically allocating rbuf
+   */
+  //char *rbuf = malloc(sizeof(char)*MAXPKTSIZE);
+  char rbuf[MAXPKTSIZE];
 
   apphdr *app_h = (apphdr *) rbuf;
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
@@ -39,7 +43,7 @@ recvall(int sock)
   //printf("Received - %s\n",app_d->payload);
 
   char *buffer;
-  buffer = (char *) malloc (app_h->len);
+  buffer = (char *) malloc (app_h->len*sizeof(char));
   strcpy(buffer,app_d->payload);
 
   bytes_left = app_h->len;
@@ -50,7 +54,7 @@ recvall(int sock)
     }
     strcat(buffer, rbuf);
   }
-  free(rbuf);
+  //  free(rbuf);
   buffer[bytes_left] = '\0';
   return buffer;
 }

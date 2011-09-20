@@ -37,7 +37,6 @@ int main(int argc, char *argv[]){
 
   char *date;
   time_t timer;
-
   int sock, bytes_read, addr_len = sizeof(struct sockaddr);
   struct sockaddr_in server_addr;
   struct hostent *host;
@@ -80,9 +79,10 @@ int main(int argc, char *argv[]){
   json_object_put(jobj);
 
   gethostname(local_sysname,sizeof(local_sysname));
+
+  char *rbuf;
   while(1) {
 
-    char *rbuf;
     rbuf = recvall(sock);
     printf("Received - %s\n",rbuf);
     free(rbuf);
@@ -98,6 +98,7 @@ int main(int argc, char *argv[]){
     get_net_stats(jobj);
     get_node_status(jobj);
 
+
     printf("%s\n", json_object_to_json_string(jobj));
     send_json(sock,jobj);
 
@@ -105,10 +106,12 @@ int main(int argc, char *argv[]){
     //json_object_object_delete(jobj);
     //json_object_put(jobj);
     //json_object_put(jobj);
-    //json_object_put(jobj);
+    json_object_put(jobj);
 
-    sleep(5);
+    sleep(1);
   }
+
+
 
   close(sock);
   return 0;
