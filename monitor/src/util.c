@@ -26,8 +26,7 @@ recvall(int sock)
 {
   int bytes_read, bytes_left;
 
-  // using calloc to avoid some garbage that is getting into the buffers
-  char *rbuf = calloc(MAXPKTSIZE,1);
+  char *rbuf = malloc(MAXPKTSIZE);
 
   apphdr *app_h = (apphdr *) rbuf;
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
@@ -41,19 +40,23 @@ recvall(int sock)
 
   char *buffer;
   // plus 1 to store the NULL char
-  buffer = (char *) calloc (app_h->len+1,1);
+  buffer = (char *) malloc (app_h->len+1);
+  buffer[0] = '\0';
 
   printf("Len - %d\n",app_h->len);
 
   bytes_left = app_h->len;
   bytes_read = bytes_read - sizeof(apphdr);
 
+  int count;
   while(bytes_read < bytes_left){
-    if((bytes_read += recv(sock, rbuf, MAXPKTSIZE-1,0)) == -1){
+    if((count = recv(sock, rbuf, MAXPKTSIZE-1,0)) == -1){
       perror("recv");
       exit(1);
     }
+    rbuf[count] = '\0';
     strcat(buffer, rbuf);
+    bytes_read += count;
   }
   free(rbuf);
   buffer[bytes_left] = '\0';
