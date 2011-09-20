@@ -71,6 +71,8 @@ help()
     $h .= "     set             Set file attributes/metadata\n";
     $h .= "     show            Show the content of a file\n";
     $h .= "     list            List a summary of imported files\n";
+    $h .= "     print           Print all file attributes\n";
+    $h .= "     sync            Sync the data of a file object with its orgin(s)\n";
     $h .= "     delete          Remove a node configuration from the data store\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
@@ -83,6 +85,7 @@ help()
     $h .= "         --uid       Set the UID of this file\n";
     $h .= "         --gid       Set the GID of this file\n";
     $h .= "         --name      Set the reference name of this file (not path!)\n";
+    $h .= "         --origin    Define where this file comes from (used with sync)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -158,6 +161,7 @@ exec()
     my $opt_mode;
     my $opt_uid;
     my $opt_gid;
+    my @opt_origin;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -168,6 +172,7 @@ exec()
         'n|name=s'      => \$opt_name,
         'p|program=s'   => \$opt_program,
         'l|lookup=s'    => \$opt_lookup,
+        'o|origin=s'    => \@opt_origin,
         'path=s'        => \$opt_path,
         'mode=s'        => \$opt_mode,
         'uid=s'         => \$opt_uid,
@@ -253,6 +258,7 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
+                        $obj->set("origin", $path);
                         $obj->set("mode", sprintf("%05o", $mode & 07777));
                         $db->persist($obj);
                         print "Imported $name into existing object\n";
@@ -279,6 +285,7 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
+                        $obj->set("origin", $path);
                         $obj->set("mode", sprintf("%05o", $mode & 07777));
                         $obj->set("path", $path);
                         $db->persist($obj);
@@ -397,6 +404,19 @@ exec()
                 }
             }
 
+            if (@opt_origin) {
+                my @origins;
+                foreach my $origin (split(",", join(",", @opt_origin))) {
+                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
+                        push(@origins, $1);
+                    } else {
+                        &eprint("Invalid origin path given: $1\n");
+                    }
+                }
+                $obj->set("origin", @origins);
+                $persist_bool = 1;
+            }
+
         }
 
 
@@ -408,6 +428,9 @@ exec()
                 }
                 if ($opt_mode) {
                     print "      MODE = $opt_mode\n";
+                }
+                if (@opt_origin) {
+                    print "    ORIGIN = ". join(",", @opt_origin) . "\n";
                 }
                 if ($opt_uid) {
                     print "       UID = $opt_uid\n";
@@ -522,6 +545,16 @@ exec()
             }
         }
         close(PROG);
+
+    } elsif ($command eq "sync") {
+
+
+
+
+    } elsif ($command eq "print") {
+
+
+
 
     } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
