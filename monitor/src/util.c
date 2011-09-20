@@ -31,7 +31,8 @@ recvall(int sock)
   apphdr *app_h = (apphdr *) rbuf;
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
 
-  if ((bytes_read=recv(sock, rbuf, sizeof(apphdr), 0)) == -1) {
+  //block to receive the whole header
+  if ((bytes_read=recv(sock, rbuf, sizeof(apphdr), MSG_WAITALL)) == -1) {
     perror("recv");
     exit(1);
   }
@@ -42,8 +43,6 @@ recvall(int sock)
   // plus 1 to store the NULL char
   buffer = (char *) malloc (app_h->len+1);
   buffer[0] = '\0';
-
-  printf("Len - %d\n",app_h->len);
 
   bytes_left = app_h->len;
   bytes_read = bytes_read - sizeof(apphdr);
