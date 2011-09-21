@@ -21,6 +21,7 @@ use Getopt::Long;
 use File::Basename;
 use File::Path;
 use Text::ParseWords;
+use Digest::MD5 qw(md5_hex);
 use POSIX;
 
 our @ISA = ('Warewulf::Module::Cli');
@@ -571,7 +572,7 @@ exec()
                     &dprint("Chunked $cur_len of $total_len\n");
                 }
 
-                $o->set("checksum", digest_string_hex_md5($data));
+                $o->set("checksum", md5_hex($data));
                 $o->set("size", $total_len);
             }
         }

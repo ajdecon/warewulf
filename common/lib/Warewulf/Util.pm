@@ -19,8 +19,7 @@ our @ISA = ('Exporter');
 our @EXPORT = ('&rand_string', '&caller_fixed', '&get_backtrace',
     '&backtrace', '&croak', '&progname', '&homedir',
     '&expand_bracket', '&uid_test', '&ellipsis',
-    '&digest_file_hex_md5', '&digest_string_hex_md5', '&is_tainted',
-    '&examine_object');
+    '&digest_file_hex_md5', '&is_tainted', '&examine_object');
 
 =head1 NAME
 
@@ -276,24 +275,6 @@ ellipsis($$$)
     }
     # NOTREACHED
     return undef;
-}
-
-=item digest_string_hex_md5($string)
-
-Return the MD5 checksum of the string
-
-=cut
-
-sub
-digest_string_hex_md5($)
-{
-    my ($string) = @_;
-
-    if ($string) {
-        return md5_hex($string);
-    } else {
-        return undef;
-    }
 }
 
 =item digest_file_hex_md5($filename)
