@@ -14,7 +14,7 @@
 #define MAXDATASIZE 10020
 
 #define MAX_IPADDR_LEN   50
-#define MAX_SYSNAME_LEN  50
+#define MAX_NODENAME_LEN  50
 #define MAX_SQL_SIZE 1024
 
 #define COLLECTOR 0

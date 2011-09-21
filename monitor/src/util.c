@@ -24,7 +24,7 @@ int sendall(int s, char *buf, int total);
 char *
 recvall(int sock)
 {
-  int bytes_read, bytes_left;
+  int count, r_payloadlen;
 
   char *rbuf = malloc(MAXPKTSIZE);
 
@@ -32,7 +32,7 @@ recvall(int sock)
   appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
 
   //block to receive the whole header
-  if ((bytes_read=recv(sock, rbuf, sizeof(apphdr), MSG_WAITALL)) == -1) {
+  if ((count=recv(sock, rbuf, sizeof(apphdr), MSG_WAITALL)) == -1) {
     perror("recv");
     exit(1);
   }
@@ -44,21 +44,20 @@ recvall(int sock)
   buffer = (char *) malloc (app_h->len+1);
   buffer[0] = '\0';
 
-  bytes_left = app_h->len;
-  bytes_read = bytes_read - sizeof(apphdr);
+  r_payloadlen = app_h->len;
 
-  int count;
-  while(bytes_read < bytes_left){
-    if((count = recv(sock, rbuf, MAXPKTSIZE-1,0)) == -1){
+  int numtoread = MAXPKTSIZE-1;
+  while(r_payloadlen > 0){
+    if(r_payloadlen < MAXPKTSIZE-1) numtoread = r_payloadlen;
+    if((count = recv(sock, rbuf, numtoread,0)) == -1){
       perror("recv");
       exit(1);
     }
     rbuf[count] = '\0';
     strcat(buffer, rbuf);
-    bytes_read += count;
+    r_payloadlen -= count;
   }
   free(rbuf);
-  buffer[bytes_left] = '\0';
   return buffer;
 }
 
@@ -399,4 +398,83 @@ update_db2(json_object *jobj, sqlite3 *db)
     free(values);
   }
   printf("Exiting update_db2\n");
+}
+
+int
+getTimeStamp(json_object *jobj)
+{
+  json_object_object_foreach(jobj, key, value) {
+     if(strcmp(key,"TIMESTAMP") == 0) {
+       return(json_object_get_int(value));
+     } else {
+       return -1;
+     } 
+  }
+}
+
+void
+getNodeName(json_object *jobj, char *nname)
+{
+  json_object_object_foreach(jobj, key, value) {
+     if(strcmp(key,"NODENAME") == 0) {
+       strcpy(nname, json_object_get_string(value));
+     } 
+  }
+}
+
+void
+update_dbase(json_object *jobj, sqlite3 *db)
+{
+
+  char NodeName[MAX_NODENAME_LEN];
+  int TimeStamp;
+
+  TimeStamp = getTimeStamp(jobj);
+  getNodeName(jobj,NodeName);
+
+  printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
+
+  int rc;
+  enum json_type type;
+ 
+  json_object_object_foreach(jobj, key, value){
+
+    char *values = malloc(1024);
+
+    strcpy(values, " VALUES('");
+    strcat(values,NodeName);
+    strcat(values,"','");
+    strcat(values,key);
+    strcat(values,"','");
+
+    // Clean the int logic
+    char *vals = malloc(1024);
+    type = json_object_get_type(value);
+    switch(type) {
+	case json_type_int:
+                sprintf(vals, "%d",json_object_get_int(value));
+ 		strcat(values,vals);
+		break;
+	case json_type_string:
+		strcat(values, json_object_get_string(value));
+		break;
+    }
+    free(vals);
+    strcat(values, "' )");
+
+    char *sqlite_cmd = malloc(1024);
+
+    strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
+    strcat(sqlite_cmd, values);
+    free(values);
+
+    rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", 0);
+      sqlite3_free(0);
+    }
+
+    free(sqlite_cmd);
+  }
+
 }

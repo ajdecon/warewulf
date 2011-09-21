@@ -35,13 +35,13 @@ int main(int argc, char *argv[]){
       exit(1);
   }
 
-  char *date;
   time_t timer;
+  char local_sysname[MAX_NODENAME_LEN];
+
   int sock, bytes_read, addr_len = sizeof(struct sockaddr);
   struct sockaddr_in server_addr;
   struct hostent *host;
 
-  char local_sysname[MAX_SYSNAME_LEN];
   //json_object *jstring;
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -75,11 +75,9 @@ int main(int argc, char *argv[]){
 
   printf("%s\n", json_object_to_json_string(jobj));
   send_json(sock, jobj);
- 
   json_object_put(jobj);
 
   gethostname(local_sysname,sizeof(local_sysname));
-
   char *rbuf;
   while(1) {
 
@@ -89,22 +87,24 @@ int main(int argc, char *argv[]){
 
     jobj = json_object_new_object();
 
-    get_sysinfo(jobj);
-    get_cpu_info(jobj); 
-    get_uname(jobj);
-    get_cpu_util(jobj);
-    get_mem_stats(jobj);
-    get_load_avg(jobj); 
-    get_net_stats(jobj);
-    get_node_status(jobj);
+    timer = time(NULL);
+    json_object_object_add(jobj,"TIMESTAMP",json_object_new_int(timer));
 
+    get_sysinfo(jobj);    // PROCS, UPTIME
+    get_cpu_info(jobj);   // CPUCOUNT, CPUCLOCK, CPUMODEL
+    get_uname(jobj);      // SYSNAME, NODENAME, RELEASE, VERSION, MACHINE
+    get_cpu_util(jobj);   // CPUUTIL
+    get_mem_stats(jobj);  // MEMTOTAL, MEMAVAIL, MEMUSED, MEMPERCENT, SWAPTOTAL, SWAPFREE, SWAPUSED, SWAPPERCENT
+    get_load_avg(jobj);   // LOADAVG
+    get_net_stats(jobj);  // NETTRANSMIT, NETRECEIVE
+    get_node_status(jobj);// NODESTATUS
 
     printf("%s\n", json_object_to_json_string(jobj));
     send_json(sock,jobj);
 
     json_object_put(jobj);
 
-    sleep(1);
+    sleep(50);
   }
 
   close(sock);

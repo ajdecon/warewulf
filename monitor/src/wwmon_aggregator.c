@@ -26,7 +26,7 @@
 
 #include "util.c"
 
-char local_sysname[MAX_SYSNAME_LEN];
+char local_sysname[MAX_NODENAME_LEN];
 fd_set rfds, wfds;
 
 //Global structure array with values of each socket
@@ -37,8 +37,9 @@ static sqlite3 *db; // database pointer
 int
 writeHandler(int fd) 
 {
-  // Should we also assume that TCP write's also cannot be made when we want ?
-  // In other words is it possible that TCP send's would wait or get stuck ? -- kmuriki
+  // Should we assume that even the TCP send's cannot be made when we want ?
+  // In other words is it possible that TCP send's would wait or get stuck ? 
+  // If so we cannot use send_json instead improve the logic here -- kmuriki
   
   fprintf(stderr,"About to write on FD - %d\n",fd);
  
@@ -60,8 +61,8 @@ writeHandler(int fd)
   }
 
   send_json(fd,jobj);
-  free(jobj);
-  printf("send successful!\n");
+  json_object_put(jobj);
+  //printf("send successful!\n");
 
   FD_CLR(fd, &wfds);
   FD_SET(fd, &rfds);
@@ -96,7 +97,8 @@ readHandler(int fd)
       return(0);
   }
   rbuf[readbytes]='\0';
-  fprintf(stderr, "Rx a string of size %d \n",readbytes);
+  //fprintf(stderr, "Rx a string of size %d - %s\n",readbytes,rbuf);
+  //fprintf(stderr, "Rx a string of size %d \n",readbytes);
 
   // Is this required ?
   if (strlen(rbuf) == 0)
@@ -119,17 +121,18 @@ readHandler(int fd)
      apphdr *app_h = (apphdr *) rbuf;
      appdata *app_d = (appdata *) (rbuf + sizeof(apphdr));
 
-     printf("Len of the payload - %d, %s\n", app_h->len,app_d->payload);
+     //printf("Len of the payload - %d, %s\n", app_h->len,app_d->payload);
  
-     sock_data[fd].accural_buf = (char *) malloc(app_h->len);
+     // plus 1 to store the NULL char
+     sock_data[fd].accural_buf = (char *) malloc(app_h->len+1);
      strcpy(sock_data[fd].accural_buf,app_d->payload);
      sock_data[fd].r_payloadlen = app_h->len - strlen(sock_data[fd].accural_buf);
-     printf("strlen(sock_data[%d].accural_buf) = %d\n", fd, strlen(sock_data[fd].accural_buf));
+     //printf("strlen(sock_data[%d].accural_buf) = %d\n", fd, strlen(sock_data[fd].accural_buf));
   }
 
   if (sock_data[fd].r_payloadlen > 0) {
      //Still has more reading to do
-    printf("r_payloadlen = %d\n", sock_data[fd].r_payloadlen);
+    //printf("r_payloadlen = %d\n", sock_data[fd].r_payloadlen);
     return(0);
   }
 
@@ -141,13 +144,13 @@ readHandler(int fd)
   // 3) A JSON representation of wwmon_collector.c information
   if(strstr(sock_data[fd].accural_buf, "ctype"))
     {
-      //printf("case 0\n");
+      printf("case 0\n");
       int ctype;
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       ctype = json_object_get_int(json_object_object_get(jobj, "ctype"));
       sock_data[fd].ctype = ctype;
     }
-  if(strstr(sock_data[fd].accural_buf, "sqlite_cmd"))
+  else if(strstr(sock_data[fd].accural_buf, "sqlite_cmd"))
     {
       //printf("case 1\n");
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
@@ -166,7 +169,9 @@ readHandler(int fd)
     }
   else 
     {
-      printf("This statement should never be reached, something went horribly horribly wrong.\n");
+      printf("%s\n",sock_data[fd].accural_buf);
+      jobj = json_tokener_parse(sock_data[fd].accural_buf);
+      update_dbase(jobj, db);
     }  
 
   sock_data[fd].validinfo = 1;
