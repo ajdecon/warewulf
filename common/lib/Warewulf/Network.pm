@@ -85,6 +85,7 @@ ipaddr()
     my ($self, $device) = @_;
 
     if ($device) {
+        &dprint("Retrieving IP address for: $device\n");
         if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
             my $device_clean = $1;
             my ($socket, $buf);
@@ -120,6 +121,7 @@ netmask()
     my ($self, $device) = @_;
 
     if ($device) {
+        &dprint("Retrieving netmask address for: $device\n");
         if ($device =~ /^([a-zA-Z0-9\:\.]+)$/) {
             my $device_clean = $1;
             my ($socket, $buf);
