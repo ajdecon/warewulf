@@ -213,7 +213,7 @@ update_datastore()
     $fileobj->set("checksum", md5_hex($hosts));
     $fileobj->set("path", "/etc/hosts");
     $fileobj->set("format", "data");
-    $fileobj->set("length", $len);
+    $fileobj->set("size", $len);
     $fileobj->set("uid", "0");
     $fileobj->set("gid", "0");
     $fileobj->set("mode", "0644");
