@@ -44,12 +44,16 @@ run_cmd()
             foreach my $module ($modules->list($keyword)) {
                 if ($module->can("exec")) {
                     $run_modules++;
-                    if (! $module->exec(@arg) ) {
+                    if ($module->exec(@arg) ) {
                         $retval++;
                     }
                 } else {
                     &iprint("Warewulf module '$keyword' does not support exec()\n");
                 }
+            }
+            if ($run_modules == 0) {
+               $retval++;
+               &eprint("Warewulf command '$keyword' not available\n");
             }
         }
         &dprint("Command executed by $run_modules modules\n");
@@ -129,45 +133,8 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
 
     while ( defined ($_ = $term->get_input((exists($set{"CMD"}) ? "Warewulf > $set{CMD}: " : "Warewulf> ")))) {
         chomp;
-        if ($_ =~ /^([^=^ ]+)=(.+)$/) {
-            my $key = uc($1);
-            my $val = $2;
-            if ($key and $val) {
-                $set{"$key"} = $val;
-                &dprint("WWSH SET: $key = $val\n");
-            } else {
-                &eprint("Both key and value must be defined\n");
-            }
-        } elsif ($_ =~ /^unset (.+)$/) {
-            my $key = uc($1);
-            if (exists($set{"$key"})) {
-                delete($set{"$key"});
-            }
-        } elsif ($_ eq "..") {
-            if (exists($set{"CMD"})) {
-                delete($set{"CMD"});
-            }
-        } else {
-            my $key;
-            if ($_) {
-                ($key) = split(/\s+/, $_, 0);
-                if (! exists($keyword_hash{"$key"}) and exists($set{"CMD"})) {
-                    $_ = join(" ", $set{"CMD"}, $_);
-                }
-            } elsif (exists($set{"CMD"})) {
-                $_ = $set{"CMD"};
-            }
-
-            if ($_) {
-                ($key) = split(/\s+/, $_, 0);
-                $term->history_add($_);
-                if (exists($keyword_hash{"$key"})) {
-                    &run_cmd(&quotewords('\s+', 1, $_));
-                } else {
-                    &eprint("Unknown command\n");
-                }
-            }
-        }
+        $term->history_add($_);
+        &run_cmd(&quotewords('\s+', 1, $_));
     }
 
     $term->history_save();
