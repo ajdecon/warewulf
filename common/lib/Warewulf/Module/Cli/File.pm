@@ -72,7 +72,7 @@ help()
     $h .= "     show            Show the content of a file\n";
     $h .= "     list            List a summary of imported files\n";
     $h .= "     print           Print all file attributes\n";
-    $h .= "     sync            Sync the data of a file object with its orgin(s)\n";
+    $h .= "     (re)sync        Sync the data of a file object with its orgin(s)\n";
     $h .= "     delete          Remove a node configuration from the data store\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
@@ -258,7 +258,6 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
-                        $obj->set("origin", $path);
                         $obj->set("mode", sprintf("%05o", $mode & 07777));
                         $db->persist($obj);
                         print "Imported $name into existing object\n";
@@ -273,7 +272,7 @@ exec()
                         my $buffer;
                         &dprint("Persisting new File Object\n");
                         open(FILE, $path);
-                        while(my $length = sysread(FILE, $buffer, 15*1024*1024)) {
+                        while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
                             &dprint("Chunked $length bytes of $path\n");
                             $binstore->put_chunk($buffer);
                             if (! $size) {
@@ -285,7 +284,6 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
-                        $obj->set("origin", $path);
                         $obj->set("mode", sprintf("%05o", $mode & 07777));
                         $obj->set("path", $path);
                         $db->persist($obj);
@@ -546,16 +544,55 @@ exec()
         }
         close(PROG);
 
-    } elsif ($command eq "sync") {
+    } elsif ($command eq "sync" or $command eq "resync") {
+        foreach my $o ($objSet->get_list()) {
+            my @origins = $o->get("origin");
+            if (@origins) {
+                my $data;
+                foreach my $origin (@origins) {
+                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
+                        my $path = $1;
+                        open(FILE, $path);
+                        while(my $line = <FILE>) {
+                            $data .= $line;
+                        }
+                        close(FILE);
+                    }
+                }
+                my $binstore = $db->binstore($o->get("_id"));
+                my $total_len = length($data);
+                my $cur_len = 0;
+                my $start = 0;
+                while($total_len >= $cur_len) {
+                    my $buffer = substr($data, $start, $db->chunk_size()));
+                    $binstore->put_chunk($buffer);
+                    $start += $db->chunk_size());
+                    $cur_len += length($buffer);
+                    &dprint("Chunked a total of $cur_leng\n");
+                }
+
+                $o->set("checksum", digest_file_hex_md5($path));
 
 
 
 
+            }
+        }
     } elsif ($command eq "print") {
-
-
-
-
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->get("name");
+            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+            printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
+            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "PATH", ($o->get("path") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "FORMAT", ($o->get("format") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($o->get("checksum") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "SIZE", (defined $o->get("size") ? $o->get("size") : "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "MODE", (defined $o->get("mode") ? $o->get("mode") : "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "UID", (defined $o->get("uid") ? $o->get("uid") : "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "GID", (defined $o->get("gid") ? $o->get("gid") : "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($o->get("origin"))) || "UNDEF"));
+        }
     } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
         my @objList = $objectSet->get_list();
