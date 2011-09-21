@@ -563,21 +563,21 @@ exec()
                 my $total_len = length($data);
                 my $cur_len = 0;
                 my $start = 0;
-                while($total_len >= $cur_len) {
-                    my $buffer = substr($data, $start, $db->chunk_size()));
+                while($total_len > $cur_len) {
+                    my $buffer = substr($data, $start, $db->chunk_size());
                     $binstore->put_chunk($buffer);
-                    $start += $db->chunk_size());
+                    $start += $db->chunk_size();
                     $cur_len += length($buffer);
-                    &dprint("Chunked a total of $cur_leng\n");
+                    &dprint("Chunked $cur_len of $total_len\n");
                 }
 
-                $o->set("checksum", digest_file_hex_md5($path));
-
-
-
-
+                $o->set("checksum", digest_string_hex_md5($data));
+                $o->set("size", $total_len);
             }
         }
+
+        $db->persist($objSet);
+
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name");
