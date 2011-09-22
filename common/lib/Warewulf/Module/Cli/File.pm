@@ -218,6 +218,11 @@ exec()
         &eprint("You must provide a command!\n\n");
         print $self->help();
     } elsif ($command eq "import") {
+        foreach my $o (@opt_origin) {
+            if (!scalar(grep { $_ eq $o} @ARGV)) {
+                push(@ARGV, @opt_origin);
+            }
+        }
         foreach my $tmp_path (@ARGV) {
             if ($tmp_path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
                 my $path = $1;
@@ -259,7 +264,11 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
+                        $obj->set("path", $path);
                         $obj->set("mode", sprintf("%05o", $mode & 07777));
+                        if (scalar(grep { $_ eq $path} @opt_origin)) {
+                            $obj->set("origin", $path);
+                        }
                         $db->persist($obj);
                         print "Imported $name into existing object\n";
                     } elsif (scalar(@objList) == 0) {
@@ -285,8 +294,11 @@ exec()
                         $obj->set("size", $size);
                         $obj->set("uid", $uid);
                         $obj->set("gid", $gid);
-                        $obj->set("mode", sprintf("%05o", $mode & 07777));
                         $obj->set("path", $path);
+                        $obj->set("mode", sprintf("%05o", $mode & 07777));
+                        if (scalar(grep { $_ eq $path} @opt_origin)) {
+                            $obj->set("origin", $path);
+                        }
                         $db->persist($obj);
                         print "Imported $name into a new object\n";
                     } else {
