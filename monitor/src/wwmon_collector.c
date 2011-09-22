@@ -28,6 +28,8 @@
 #include "util.c"
 #include "getstats.c"
 
+#define PROGRAM_TYPE COLLECTOR
+
 int main(int argc, char *argv[]){
   
   if (argc != 3) {
@@ -35,50 +37,17 @@ int main(int argc, char *argv[]){
       exit(1);
   }
 
-  time_t timer;
-  char local_sysname[MAX_NODENAME_LEN];
+  int sock; 
 
-  int sock, bytes_read, addr_len = sizeof(struct sockaddr);
-  struct sockaddr_in server_addr;
-  struct hostent *host;
-
-  //json_object *jstring;
-
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-  {
-    perror("socket");
+  if((sock=setup_ConnectSocket(argv[1], atoi(argv[2])))<0)
     exit(1);
-  }
 
-  if ((host=gethostbyname(argv[1])) == NULL) {  // get the host info 
-      perror("gethostbyname");
-      exit(1);
-  }
-
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(atoi(argv[2]));
-  server_addr.sin_addr = *((struct in_addr *)host->h_addr);
-  bzero(&(server_addr.sin_zero),8);
-
-  printf("\nSocket opened\n");
-
-  if (connect(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
-      perror("connect");
-      exit(1);
-  }
-
+  registerConntype(sock,PROGRAM_TYPE);
+  
+  time_t timer;
+  char *rbuf;
   json_object *jobj;
 
-  // tell aggregator that I am a collector
-  jobj = json_object_new_object();
-  json_object_object_add(jobj, "ctype", json_object_new_int(COLLECTOR));
-
-  printf("%s\n", json_object_to_json_string(jobj));
-  send_json(sock, jobj);
-  json_object_put(jobj);
-
-  gethostname(local_sysname,sizeof(local_sysname));
-  char *rbuf;
   while(1) {
 
     rbuf = recvall(sock);
@@ -104,7 +73,7 @@ int main(int argc, char *argv[]){
 
     json_object_put(jobj);
 
-    sleep(50);
+    sleep(60);
   }
 
   close(sock);

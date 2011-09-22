@@ -10,32 +10,30 @@
  *
  */
 
-#define MAXPKTSIZE 10024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
-#define MAXDATASIZE 10020
+#define MAXPKTSIZE 1024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
+#define MAXDATASIZE 1020
 
 #define MAX_IPADDR_LEN   50
 #define MAX_NODENAME_LEN  50
 #define MAX_SQL_SIZE 1024
 
-#define COLLECTOR 0
-#define APPLICATION 1
+#define UNKNOWN 0
+#define COLLECTOR 1
+#define APPLICATION 2
 
 typedef struct private_info_of_any_socket {
 
         // Variables used by all sockets
-        int     validinfo;  // 1 if this socket has a connection and valid info
-                            // 0 is this socket has not connection and valid info
-	char    *accural_buf;
+        int     ctype;  // connection type
         int     r_payloadlen; // Remaining payload length that needs to be read
 
-        int     ctype;  // connection type, if collector: ctype = COLLECTOR
-                        // connection type, if wwstats: ctype = APPLICATION
-
-        char remote_sock_ipaddr[MAX_IPADDR_LEN];
+	char    *accural_buf;
         char    *sqlite_cmd;
 
-	// Now all the variables for ctype - 0 (the collector socket)
-	// Now all the variables for type - 1  (the app socket)
+        char remote_sock_ipaddr[MAX_IPADDR_LEN];
+
+	// Now all the variables for ctype - 1 (the collector socket)
+	// Now all the variables for ctype - 2 (the app socket)
 
 } sockdata;
 

@@ -151,41 +151,6 @@ array_list_print(array_list *ls)
   printf(" ]\n");
 }
 
-
-void 
-update_db(json_object *jobj, sqlite3 *db)
-{
-  char *sqlite_cmd = malloc(sizeof(char)*1024);
-  strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(");
-  char *values = malloc(sizeof(char)*1024);
-  strcpy(values, " VALUES('");
-  int rc;
-
-  json_object_object_foreach(jobj, key, value){
-    strcat(sqlite_cmd, key);
-    strcat(sqlite_cmd,",");
-    strcat(values, json_object_get_string(value));
-    strcat(values, "','");
-  }
-  sqlite_cmd[strlen(sqlite_cmd)-1] = ')';
-  
-  strcat(sqlite_cmd, values);
-  
-  sqlite_cmd[strlen(sqlite_cmd)-2] = ')';
-  sqlite_cmd[strlen(sqlite_cmd)-1] = '\0';
-  printf("Command was: %s\n", sqlite_cmd);
-
-  rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
-
-  if( rc!=SQLITE_OK ){
-    fprintf(stderr, "SQL error: %s\n", 0);
-    sqlite3_free(0);
-  }
-
-  free(sqlite_cmd);
-  free(values);
-}
-
 void json_parse_complete(json_object *jobj);
 
 void
@@ -208,14 +173,12 @@ json_parse_complete(json_object *jobj){
   }
 } 
 
-
 void
 json_parse(json_object *jobj){
   json_object_object_foreach(jobj, key, value){
     printf("%s: %s\n", key, json_object_get_string(value));
   }
 }
-
 
 /*
 Removes the new line character from the end of the 
@@ -358,123 +321,65 @@ get_cpu_util_old()
 
 }
 
-void
-update_db2(json_object *jobj, sqlite3 *db)
-{
-  
-  int rc;
-  printf("Starting foreach loop...\n");
- 
-  json_object_object_foreach(jobj, key, value){
-    char *sqlite_cmd = malloc(sizeof(char)*1024);
-    strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
-    char *values = malloc(sizeof(char)*1024);
-    strcpy(values, " VALUES('");
-    json_object *tmp = value;
-    json_object *jstring = json_object_object_get(tmp, "NodeName");
-    json_parse_complete(tmp);
-    strcat(values, json_object_get_string(jstring));
-    strcat(values, "' , '");
-    
-    jstring = json_object_object_get(tmp, "key");
-    strcat(values, json_object_get_string(jstring));
-    strcat(values, "' , '");
-    
-    jstring = json_object_object_get(tmp, "value");
-    strcat(values, json_object_get_string(jstring));
-    strcat(values, "' )");
-    
-    strcat(sqlite_cmd, values);
-    printf("Command was: %s\n", sqlite_cmd);
-
-    rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
-    printf("Done update\n");
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", 0);
-      sqlite3_free(0);
-    }
-    
-    free(sqlite_cmd);
-    free(values);
+int
+get_int_from_json(json_object *jobj, char *kname) {
+  json_object_object_foreach(jobj,key,value) {
+     if(strcmp(key,kname) == 0) {
+	return(json_object_get_int(value));
+     } else {
+	return -1;
+     }
   }
-  printf("Exiting update_db2\n");
+}
+
+void
+get_string_from_json(json_object *jobj, char *kname, char *str) {
+  json_object_object_foreach(jobj, key, value) {
+     if(strcmp(key,kname) == 0) {
+       strcpy(str, json_object_get_string(value));
+     }
+  }
 }
 
 int
-getTimeStamp(json_object *jobj)
-{
-  json_object_object_foreach(jobj, key, value) {
-     if(strcmp(key,"TIMESTAMP") == 0) {
-       return(json_object_get_int(value));
-     } else {
-       return -1;
-     } 
-  }
-}
-
-void
-getNodeName(json_object *jobj, char *nname)
-{
-  json_object_object_foreach(jobj, key, value) {
-     if(strcmp(key,"NODENAME") == 0) {
-       strcpy(nname, json_object_get_string(value));
-     } 
-  }
-}
-
-void
-update_dbase(json_object *jobj, sqlite3 *db)
-{
-
-  char NodeName[MAX_NODENAME_LEN];
-  int TimeStamp;
-
-  TimeStamp = getTimeStamp(jobj);
-  getNodeName(jobj,NodeName);
-
-  printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
-
-  int rc;
-  enum json_type type;
+registerConntype(int sock, int type) {
+  json_object *jobj;
+  jobj = json_object_new_object();
+  json_object_object_add(jobj, "CONN_TYPE", json_object_new_int(type));
  
-  json_object_object_foreach(jobj, key, value){
+  send_json(sock, jobj);
+  json_object_put(jobj);
 
-    char *values = malloc(1024);
+  return(0);
+}
 
-    strcpy(values, " VALUES('");
-    strcat(values,NodeName);
-    strcat(values,"','");
-    strcat(values,key);
-    strcat(values,"','");
+int
+setup_ConnectSocket(char *hostname, int port) {
+ 
+  int sock;
+  struct sockaddr_in server_addr;
+  struct hostent *host;
 
-    // Clean the int logic
-    char *vals = malloc(1024);
-    type = json_object_get_type(value);
-    switch(type) {
-	case json_type_int:
-                sprintf(vals, "%d",json_object_get_int(value));
- 		strcat(values,vals);
-		break;
-	case json_type_string:
-		strcat(values, json_object_get_string(value));
-		break;
-    }
-    free(vals);
-    strcat(values, "' )");
-
-    char *sqlite_cmd = malloc(1024);
-
-    strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
-    strcat(sqlite_cmd, values);
-    free(values);
-
-    rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0); 
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", 0);
-      sqlite3_free(0);
-    }
-
-    free(sqlite_cmd);
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+  {
+    perror("socket");
+    return(-1);
   }
 
+  if ((host=gethostbyname(hostname)) == NULL) {  // get the host info
+      perror("gethostbyname");
+      return(-1);
+  }
+
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(port);
+  server_addr.sin_addr = *((struct in_addr *)host->h_addr);
+  bzero(&(server_addr.sin_zero),8);
+
+  if (connect(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
+      perror("connect");
+      return(-1);
+  }
+
+  return(sock);
 }
