@@ -35,3 +35,7 @@ Fri Aug 12 17:37:13 2011                        Michael Jennings (mej)
 
 Adjust version due to incompatible changes.
 ----------------------------------------------------------------------
+Mon Sep 26 16:38:59 2011                        Michael Jennings (mej)
+
+Port of my IPoIB provisioning patch to newer busybox.
+----------------------------------------------------------------------

@@ -7,7 +7,7 @@ top_srcdir = @top_srcdir@
 BUSYBOX_VERSION = 1.18.1
 BUSYBOX_SOURCE = $(top_srcdir)/3rd_party/GPL/busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_DIR = busybox-$(BUSYBOX_VERSION)
-BUSYBOX_PATCHES = 
+BUSYBOX_PATCHES = $(top_srcdir)/3rd_party/GPL/busybox-1.18.1-udhcpc_ipoib.patch
 
 busybox:
 	@ if [ ! -d "_work/$(BUSYBOX_DIR)" ]; then \

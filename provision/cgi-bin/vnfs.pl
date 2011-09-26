@@ -42,7 +42,7 @@ if ($q->param('hwaddr')) {
                     my $use_cache;
 
                     #&nprint("Sending VNFS '$vnfs_name' to node '$node_name'\n");
-                    $q->print("Content-Type:application/octet-stream; name=\"vnfs.img\"\r\n");
+                    $q->print("Content-Type: application/octet-stream; name=\"vnfs.img\"\r\n");
                     if (my $size = $obj->get("size")) {
                         $q->print("Content-length: $size\r\n");
                     }
@@ -109,31 +109,31 @@ if ($q->param('hwaddr')) {
 
                 } else {
                     &eprint("VNFS request for an unset VNFS\n");
-                    $q->print("Content-Type:application/octet-stream\r\n");
+                    $q->print("Content-Type: application/octet-stream\r\n");
                     $q->print("Status: 404\r\n");
                     $q->print("\r\n");
                 }
             } else {
                 &eprint($node->get("name") ." has no VNFS set\n");
-                $q->print("Content-Type:application/octet-stream\r\n");
+                $q->print("Content-Type: application/octet-stream\r\n");
                 $q->print("Status: 404\r\n");
                 $q->print("\r\n");
             }
         } else {
             &eprint("VNFS request for an unknown node\n");
-            $q->print("Content-Type:application/octet-stream\r\n");
+            $q->print("Content-Type: application/octet-stream\r\n");
             $q->print("Status: 404\r\n");
             $q->print("\r\n");
         }
     } else {
         &eprint("VNFS request for a bad hwaddr\n");
-        $q->print("Content-Type:application/octet-stream\r\n");
+        $q->print("Content-Type: application/octet-stream\r\n");
         $q->print("Status: 404\r\n");
         $q->print("\r\n");
     }
 } else {
     &eprint("VNFS request without a hwaddr\n");
-    $q->print("Content-Type:application/octet-stream\r\n");
+    $q->print("Content-Type: application/octet-stream\r\n");
     $q->print("Status: 404\r\n");
     $q->print("\r\n");
 }
