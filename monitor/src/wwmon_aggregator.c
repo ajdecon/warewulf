@@ -34,7 +34,7 @@ sockdata sock_data[FD_SETSIZE];
 //Global Database to hold data of each socket
 static sqlite3 *db; // database pointer
 
-static int
+int
 json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
 {
   int i;
@@ -56,48 +56,19 @@ json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
   } else {
      // If the NodeName key is not present, make a tmp JSON obj
      tmp = json_object_new_object();
+     // add key as NodeName and value as the above tmp JSON obj.
+     json_object_object_add(json_db, col_values[NodeName_idx], tmp);
   }
 
   // add new key and new value to it.
   json_object_object_add(tmp, col_values[key_idx], json_object_new_string(col_values[value_idx]));
 
-  // add key as NodeName and value as the above tmp JSON obj.
+/*
   if(key_exists_in_json(json_db, col_values[NodeName_idx]) == 0) {
-     json_object_object_add(json_db, col_values[NodeName_idx], tmp);
   }
+*/
 
   return 0;
-}
-
-void
-readndumpData(int fd)
-{
-
-  struct sockaddr_in their_addr;
-  int addr_len, numbytes;
-  char buf[MAXPKTSIZE];
-  json_object *json_db = json_object_new_object();
-
-  addr_len = sizeof(struct sockaddr);
-  if ((numbytes=recvfrom(fd, buf, MAXPKTSIZE-1 , 0,
-              (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-      perror("recvfrom");
-  }
-  printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
-  printf("packet is %d bytes long\n",numbytes);
-  buf[numbytes] = '\0';
-  printf("packet contains \"%s\"\n",buf);
-
-  sqlite3_exec(db, "select rowid,NodeName,key,value from wwstats", json_from_db, json_db, NULL);
-
-  // send json_object over socket to wwstats
-  if ((numbytes=sendto(fd, json_object_to_json_string(json_db), strlen(json_object_to_json_string(json_db)), 0,
-		       (struct sockaddr *)&their_addr, sizeof(struct sockaddr))) == -1) {
-    perror("sendto");
-  }  
-  printf("sent %d bytes to %s\n", numbytes, inet_ntoa(their_addr.sin_addr));
-
-  return;
 }
 
 void
@@ -145,7 +116,7 @@ update_dbase(json_object *jobj, sqlite3 *db)
     strcat(values,NodeName);
     strcat(values,"','");
     strcat(values,key);
-    strcat(values,"','");
+    strcat(values,"',");
 
     // Clean the int logic
     char *vals = malloc(MAX_SQL_SIZE);
@@ -156,17 +127,20 @@ update_dbase(json_object *jobj, sqlite3 *db)
                 strcat(values,vals);
                 break;
         case json_type_string:
+                strcat(values, "'");
                 strcat(values, json_object_get_string(value));
+                strcat(values, "'");
                 break;
     }
     free(vals);
-    strcat(values, "' )");
+    strcat(values, " )");
     char *sqlite_cmd = malloc(MAX_SQL_SIZE);
 
     strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
     strcat(sqlite_cmd, values);
     free(values);
-
+    
+    //printf("SQL CMD - %s\n",sqlite_cmd);
     rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", 0);
@@ -177,6 +151,37 @@ update_dbase(json_object *jobj, sqlite3 *db)
   } // end if
  } // end json_foreach
 
+}
+
+void
+readndumpData(int fd)
+{
+
+  struct sockaddr_in their_addr;
+  int addr_len, numbytes;
+  char buf[MAXPKTSIZE];
+  json_object *json_db = json_object_new_object();
+
+  addr_len = sizeof(struct sockaddr);
+  if ((numbytes=recvfrom(fd, buf, MAXPKTSIZE-1 , 0,
+              (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+      perror("recvfrom");
+  }
+  printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
+  printf("packet is %d bytes long\n",numbytes);
+  buf[numbytes] = '\0';
+  printf("packet contains \"%s\"\n",buf);
+
+  sqlite3_exec(db, "select rowid,NodeName,key,value from wwstats", json_from_db, json_db, NULL);
+
+  // send json_object over socket to wwstats
+  if ((numbytes=sendto(fd, json_object_to_json_string(json_db), strlen(json_object_to_json_string(json_db)), 0,
+		       (struct sockaddr *)&their_addr, sizeof(struct sockaddr))) == -1) {
+    perror("sendto");
+  }  
+  printf("sent %d bytes to %s\n", numbytes, inet_ntoa(their_addr.sin_addr));
+
+  return;
 }
 
 int
@@ -203,6 +208,7 @@ writeHandler(int fd)
       if(sock_data[fd].sqlite_cmd != NULL){
           //printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
           sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db, jobj, NULL);
+          // TODO : Check the sql command return values and if failure or no return send proper message to the App
           //printf("JSON - %s\n",json_object_to_json_string(jobj));
   	  free(sock_data[fd].sqlite_cmd);
       } else {
@@ -308,6 +314,7 @@ readHandler(int fd)
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       sock_data[fd].sqlite_cmd = malloc(MAX_SQL_SIZE); 
       strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
+      // TODO : Somehow validate the SQL command that is obtained and avoid the bad commands
    } 
 
   if(sock_data[fd].accural_buf != NULL){
