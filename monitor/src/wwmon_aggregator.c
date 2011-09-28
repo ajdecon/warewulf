@@ -34,6 +34,41 @@ sockdata sock_data[FD_SETSIZE];
 //Global Database to hold data of each socket
 static sqlite3 *db; // database pointer
 
+static int
+json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
+{
+  int i;
+  json_object *json_db = (json_object *) void_json;
+
+  int NodeName_idx, key_idx, value_idx;
+  // Find the indexes 
+  for( i=0; i<ncolumns; i++ ) {
+    if(strcmp(col_names[i],"NodeName") == 0) NodeName_idx = i;
+    if(strcmp(col_names[i],"key") == 0) key_idx = i;
+    if(strcmp(col_names[i],"value") == 0) value_idx = i;
+  }
+  json_object *tmp;
+
+  // Read the json_db and see if there already is a key with NodeName
+  if(key_exists_in_json(json_db, col_values[NodeName_idx])) {
+     // If the key is already present, read the value which will be a JSON object       
+     tmp = json_object_object_get(json_db, col_values[NodeName_idx]);
+  } else {
+     // If the NodeName key is not present, make a tmp JSON obj
+     tmp = json_object_new_object();
+  }
+
+  // add new key and new value to it.
+  json_object_object_add(tmp, col_values[key_idx], json_object_new_string(col_values[value_idx]));
+
+  // add key as NodeName and value as the above tmp JSON obj.
+  if(key_exists_in_json(json_db, col_values[NodeName_idx]) == 0) {
+     json_object_object_add(json_db, col_values[NodeName_idx], tmp);
+  }
+
+  return 0;
+}
+
 void
 readndumpData(int fd)
 {
@@ -53,7 +88,7 @@ readndumpData(int fd)
   buf[numbytes] = '\0';
   printf("packet contains \"%s\"\n",buf);
 
-  sqlite3_exec(db, "select rowid,NodeName,key,value from wwstats", json_from_db2, json_db, NULL);
+  sqlite3_exec(db, "select rowid,NodeName,key,value from wwstats", json_from_db, json_db, NULL);
 
   // send json_object over socket to wwstats
   if ((numbytes=sendto(fd, json_object_to_json_string(json_db), strlen(json_object_to_json_string(json_db)), 0,
@@ -78,6 +113,8 @@ update_dbase(json_object *jobj, sqlite3 *db)
   //printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
 
   int rc;
+
+  // Adding the JSON blob to sqlite table
   char *sqlite_cmd = malloc(MAX_SQL_SIZE);
   strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
   strcat(sqlite_cmd, " VALUES('");
@@ -96,6 +133,7 @@ update_dbase(json_object *jobj, sqlite3 *db)
 
   free(sqlite_cmd);
 
+  // Adding each key value from the JSON blob to sqlite table
   enum json_type type;
   json_object_object_foreach(jobj, key, value){
 
@@ -163,9 +201,9 @@ writeHandler(int fd)
       json_object_object_add(jobj,"COMMAND",json_object_new_string(payload));
   } else if(sock_data[fd].ctype == APPLICATION) {
       if(sock_data[fd].sqlite_cmd != NULL){
-          printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
-          sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db2, jobj, NULL);
-          json_parse_complete(jobj);
+          //printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
+          sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db, jobj, NULL);
+          //printf("JSON - %s\n",json_object_to_json_string(jobj));
   	  free(sock_data[fd].sqlite_cmd);
       } else {
           strcpy(payload,"Send SQL query");

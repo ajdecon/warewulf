@@ -166,6 +166,7 @@ json_parse_complete(json_object *jobj){
       printf("%s : %d\n", key, json_object_get_int(val));
       break;
     case json_type_object:
+      printf("%s :\n",key);
       json_parse_complete(json_object_object_get(jobj, key));
       printf("\n");
       break;
@@ -231,37 +232,6 @@ struct cpu_data{
   long wj;
 };
 
-static int
-json_from_db2(void *void_json, int argc, char **argv, char **azColName)
-{
-  int i;
-  json_object *json_db = (json_object *) void_json;
-  json_object *tmp = json_object_new_object();
-  char *key_buf = malloc(sizeof(char)*1024);
-  for(i = 0; i < argc; i++){
-    json_object_object_add(tmp, azColName[i], json_object_new_string(argv[i]));
-  }  
-// printf("argv[0] = %s\n", argv[0]);
-// printf("argv[1] = %s\n", argv[1]);
-  json_object_object_add(json_db, argv[0], tmp); // REQUIRE ROWID IS FIRST ARG
-  free(key_buf);
-  return 0;
-}
-
-static int
-json_from_db(void *void_json, int argc, char **argv, char **azColName)
-{
-  int i;
-  json_object *json_db = (json_object *) void_json;
-  json_object *tmp = json_object_new_object();
-  printf("\nargv[0] = %s\n", argv[0]);
-  for(i = 0; i < argc; i++){
-    json_object_object_add(tmp, azColName[i], (json_object *) json_object_new_string(argv[i]));
-  }
-  json_object_object_add(json_db, argv[0], tmp);
-  return 0;
-}
-
 long
 get_jiffs(struct cpu_data *cd)
 {
@@ -319,6 +289,16 @@ get_cpu_util_old()
   
   return (float) work_diff/total_diff*100;
 
+}
+
+int
+key_exists_in_json(json_object *jobj, char *kname) {
+  json_object_object_foreach(jobj, key, value) {
+     if(strcmp(key,kname) == 0) {
+       return(1);
+     }
+  }
+  return(0);
 }
 
 int
