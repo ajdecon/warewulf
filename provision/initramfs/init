@@ -180,21 +180,32 @@ msg_white "Getting base node configuration: "
 
 if wwgetnodeconfig > /tmp/nodeconfig; then
     . /tmp/nodeconfig
-    if [ -n "$WWFQDN" ]; then
-        msg_gray "(I am: $WWFQDN)"
-        hostname $WWFQDN
-    elif [ -n "$WWNAME" -a -n "$WWCLUSTER" ]; then
-        msg_gray "(I am: $WWNAME.$WWCLUSTER)"
-        hostname $WWNAME.$WWCLUSTER
-    elif [ -n "$WWNAME" ]; then
-        msg_gray "(I am: $WWNAME)"
-        hostname $WWNAME
-    fi
     wwsuccess
 else
     wwfailure
     wwreboot
 fi
+
+if [ -n "$WWFQDN" ]; then
+    HOSTNAME="$WWFQDN"
+elif [ -n "$WWNAME" ]; then
+    if [ -n "$WWCLUSTER" -a -n "$WWDOMAIN" ]; then
+        HOSTNAME="$WWNAME.$WWCLUSTER.$WWDOMAIN"
+    elif [ -n "$WWCLUSTER" ]; then
+        HOSTNAME="$WWNAME.$WWCLUSTER"
+    elif [ -n "$WWDOMAIN" ]; then
+        HOSTNAME="$WWNAME.$WWDOMAIN"
+    else
+        HOSTNAME="$WWNAME"
+    fi
+    msg_white "Setting the hostname ($HOSTNAME): "
+    hostname $HOSTNAME
+    wwsuccess
+else
+    msg_white "Setting the hostname: "
+    wwskipped
+fi
+
 
 if [ -n "$WWPRESHELL" -a "$WWPRESHELL" != "0" ]; then
     wwlogger "PRESHELL defined, waiting for local shell to exit"
