@@ -92,6 +92,9 @@ help()
     $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
     $h .= "         --netdel        Remove a network device from the system\n";
     $h .= "         --cluster       Define the cluster of nodes that this node is a part of\n";
+    $h .= "         --domain        Define the domain name of nodes that this node is a part of\n";
+    $h .= "         --fqdn          Define the FQDN of this node (if this is passed with the\n";
+    $h .= "                         --netdev argument it will assign it to the device specified)\n";
     $h .= "         --name          Rename this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
@@ -171,6 +174,8 @@ exec()
     my $opt_devremove;
     my $opt_cluster;
     my $opt_name;
+    my $opt_domain;
+    my $opt_fqdn;
     my @opt_print;
     my @opt_groups;
     my @opt_groupadd;
@@ -197,6 +202,8 @@ exec()
         'netmask=s'     => \$opt_netmask,
         'cluster=s'     => \$opt_cluster,
         'name=s'        => \$opt_name,
+        'fqdn=s'        => \$opt_fqdn,
+        'domain=s'      => \$opt_domain,
         'l|lookup=s'    => \$opt_lookup,
 
     );
@@ -270,20 +277,22 @@ exec()
             printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
             printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
             printf("%15s: %-16s = %s\n", $name, "CLUSTER", ($o->get("cluster") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "DOMAIN", ($o->get("domain") || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "FQDN", ($o->get("fqdn") || "UNDEF"));
             printf("%15s: %-16s = %s\n", $name, "GROUPS", join(",", $o->get("groups")));
             foreach my $n ($o->get("netdevs")) {
                 if ( my $device = $n->get("name")) {
                     if (my $hwaddr = $n->get("hwaddr")) {
-                        printf("%15s: %-16s = %s\n", $name, "HWADDR($device)", $hwaddr);
+                        printf("%15s: %-16s = %s\n", $name, "$device.HWADDR", $hwaddr);
                     }
                     if (my $ipaddr = $n->get("ipaddr")) {
-                        printf("%15s: %-16s = %s\n", $name, "IPADDR($device)", $ipaddr);
+                        printf("%15s: %-16s = %s\n", $name, "$device.IPADDR", $ipaddr);
                     }
                     if (my $netmask = $n->get("netmask")) {
-                        printf("%15s: %-16s = %s\n", $name, "NETMASK($device)", $netmask);
+                        printf("%15s: %-16s = %s\n", $name, "$device.NETMASK", $netmask);
                     }
                     if (my $fqdn = $n->get("fqdn")) {
-                        printf("%15s: %-16s = %s\n", $name, "FQDN($device)", $fqdn);
+                        printf("%15s: %-16s = %s\n", $name, "$device.FQDN", $fqdn);
                     }
                 }
             }
@@ -401,6 +410,23 @@ exec()
             }
         }
 
+        if ($opt_name) {
+            if (uc($opt_name) eq "UNDEF") {
+                &eprint("You must define the name you wish to reference the node as!\n");
+            } elsif ($opt_name =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+                $opt_name = $1;
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("name", $opt_name);
+                    &dprint("Setting name for node name: $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "NAME", $opt_name));
+            } else {
+                &eprint("Option 'name' has invalid characters\n");
+            }
+        }
+
         if ($opt_cluster) {
             if (uc($opt_cluster) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
@@ -410,7 +436,8 @@ exec()
                     $persist_count++;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", "UNDEF"));
-            } else {
+            } elsif ($opt_cluster =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+                $opt_cluster = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
                     $obj->set("cluster", $opt_cluster);
@@ -418,20 +445,54 @@ exec()
                     $persist_count++;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
+            } else {
+                &eprint("Option 'cluster' has invalid characters\n");
             }
         }
 
-        if ($opt_name) {
-            if (uc($opt_name) eq "UNDEF") {
-                &eprint("You must define the name you wish to reference the node as!\n");
-            } else {
+        if ($opt_domain) {
+            if (uc($opt_domain) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("name", $opt_name);
-                    &dprint("Setting name for node name: $name\n");
+                    $obj->del("domain");
+                    &dprint("Deleting domain for node name: $name\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "NAME", $opt_name));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "DOMAIN", "UNDEF"));
+            } elsif ($opt_domain =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+                $opt_domain = $1;
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("domain", $opt_domain);
+                    &dprint("Setting domain for node name: $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "DOMAIN", $opt_domain));
+            } else {
+                &eprint("Option 'domain' has invalid characters\n");
+            }
+        }
+
+        if ($opt_fqdn) {
+            if (uc($opt_fqdn) eq "UNDEF") {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->del("fqdn");
+                    &dprint("Deleting fqdn for node name: $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "FQDN", "UNDEF"));
+            } elsif ($opt_domain =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+                $opt_domain = $1;
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->set("fqdn", $opt_fqdn);
+                    &dprint("Setting fqdn for node name: $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "FQDN", $opt_fqdn));
+            } else {
+                &eprint("Option 'fqdn' has invalid characters\n");
             }
         }
 
