@@ -285,11 +285,11 @@ exec()
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("ipmi_password", $opt_username);
+                    $obj->set("ipmi_password", $opt_password);
                     &dprint("Setting IPMI password for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PASSWORD", $opt_username));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PASSWORD", $opt_password));
             }
         }
 
@@ -339,7 +339,7 @@ exec()
 
     } elsif ($command eq "poweron") {
         my $pcmd = Warewulf::ParallelCmd->new();
-        my $pcmd->fanout(4);
+        $pcmd->fanout(4);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
@@ -355,7 +355,7 @@ exec()
         $pcmd->run();
     } elsif ($command eq "powercycle") {
         my $pcmd = Warewulf::ParallelCmd->new();
-        my $pcmd->fanout(4);
+        $pcmd->fanout(4);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
