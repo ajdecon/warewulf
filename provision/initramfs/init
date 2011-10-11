@@ -22,7 +22,7 @@ mount -t sysfs none /sys
 NEWROOT=/newroot
 export NEWROOT
 
-# Old habbits die hard.
+# Old habits die hard.
 DESTDIR=$NEWROOT
 export DESTDIR
 
@@ -189,15 +189,15 @@ fi
 if [ -n "$WWFQDN" ]; then
     HOSTNAME="$WWFQDN"
 elif [ -n "$WWNAME" ]; then
-    if [ -n "$WWCLUSTER" -a -n "$WWDOMAIN" ]; then
-        HOSTNAME="$WWNAME.$WWCLUSTER.$WWDOMAIN"
-    elif [ -n "$WWCLUSTER" ]; then
-        HOSTNAME="$WWNAME.$WWCLUSTER"
-    elif [ -n "$WWDOMAIN" ]; then
-        HOSTNAME="$WWNAME.$WWDOMAIN"
-    else
-        HOSTNAME="$WWNAME"
+    HOSTNAME="$WWNAME"
+    if [ -n "$WWCLUSTER" ]; then
+        HOSTNAME="$HOSTNAME.$WWCLUSTER"
     fi
+    if [ -n "$WWDOMAIN" ]; then
+        HOSTNAME="$HOSTNAME.$WWDOMAIN"
+    fi
+fi
+if [ -n "$HOSTNAME" ]; then
     msg_white "Setting the hostname ($HOSTNAME): "
     hostname $HOSTNAME
     wwsuccess
