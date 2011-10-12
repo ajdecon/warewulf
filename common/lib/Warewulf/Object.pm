@@ -302,6 +302,20 @@ del()
     return @{$self->{$key}};
 }
 
+=item members()
+
+Return a list of the member names within the object.
+
+=cut
+
+sub
+members()
+{
+    my ($self) = @_;
+    
+    return(keys(%{$self}));
+}
+
 =item get_hash()
 
 Return a hash (or hashref) containing all member variables and their
