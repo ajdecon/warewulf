@@ -24,7 +24,7 @@ sub
 build_bootstrap()
 {
     foreach my $obj (@_) {
-        $bootstrapObj->build($obj);
+        $bootstrapObj->build_bootstrap($obj);
     }
 }
 
