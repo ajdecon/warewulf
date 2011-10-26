@@ -184,8 +184,7 @@ exec()
                 $name =~ s/\.wwbs$//;
                 my $digest = digest_file_hex_md5($path);
                 $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-                my @objList = $objectSet->get_list();
-                if (scalar(@objList) == 1) {
+                if ($objectSet->count() == 1) {
                     if ($term->interactive()) {
                         print "Are you sure you wish to overwrite the Warewulf Bootstrap Image '$name'?\n\n";
                         my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
@@ -194,7 +193,7 @@ exec()
                             return();
                         }
                     }
-                    my $obj = $objList[0];
+                    my $obj = $objectSet->get_object(0);
                     $obj->set("checksum", $digest);
                     my $binstore = $db->binstore($obj->get("_id"));
                     my $size;
@@ -212,7 +211,7 @@ exec()
                     $obj->set("size", $size);
                     $db->persist($obj);
                     &nprint("Imported $name into existing object\n");
-                } elsif (scalar(@objList) == 0) {
+                } elsif ($objectSet->count() == 0) {
                     &nprint("Creating new Bootstrap Object: $name\n");
                     my $obj = Warewulf::DSOFactory->new("bootstrap");
                     $db->persist($obj);
@@ -257,10 +256,9 @@ exec()
             return();
         }
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
 
         if (-d $opt_export) {
-            foreach my $obj (@objList) {
+            foreach my $obj ($objectSet->get_list()) {
                 my $name = $obj->get("name");
                 my $binstore = $db->binstore($obj->get("_id"));
 
@@ -285,7 +283,7 @@ exec()
                 &nprint("Exported: $opt_export/$name\n");
             }
         } elsif (-f $opt_export) {
-            if (scalar(@objList) == 1) {
+            if ($objectSet->count() == 1) {
                 if ($term->interactive()) {
                     print "Are you sure you wish to overwrite $opt_export?\n\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
@@ -294,7 +292,7 @@ exec()
                         return();
                     }
                 }
-                my $obj = $objList[0];
+                my $obj = $objectSet->get_object(0);
                 my $binstore = $db->binstore($obj->get("_id"));
                 open(SCRIPT, "> $opt_export");
                 while(my $buffer = $binstore->get_chunk()) {
@@ -306,7 +304,7 @@ exec()
                 &eprint("Can only export 1 Bootstrap image into a file, perhaps export to a directory?\n");
             }
         } else {
-            my $obj = $objList[0];
+            my $obj = $objectSet->get_object(0);
             my $binstore = $db->binstore($obj->get("_id"));
             if ($opt_export =~ /\/$/) {
                 mkpath($opt_export, {error => \my $err});
@@ -336,28 +334,31 @@ exec()
         }
     } elsif ($command eq "list" or $command eq "delete") {
         $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        &nprint("BOOTSTRAP NAME                      SIZE (M)\n");
-        foreach my $obj ($objectSet->get_list()) {
-            printf("%-35s %-8.1f\n",
-                $obj->get("name") || "UNDEF",
-                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
-            );
-        }
-
-        if ($command eq "delete") {
-
-            if ($term->interactive()) {
-                print "\nAre you sure you wish to delete the above Bootstrap image?\n\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    &nprint("No update performed\n");
-                    return();
-                }
+        if ($objectSet and $objectSet->count() > 0) {
+            &nprint("BOOTSTRAP NAME                      SIZE (M)\n");
+            foreach my $obj ($objectSet->get_list()) {
+                printf("%-35s %-8.1f\n",
+                    $obj->get("name") || "UNDEF",
+                    $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
+                );
             }
 
-            my $return_count = $db->del_object($objectSet);
+            if ($command eq "delete") {
+                if ($term->interactive()) {
+                    print "\nAre you sure you wish to delete the above Bootstrap image?\n\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                        &nprint("No update performed\n");
+                        return();
+                    }
+                }
 
-            &nprint("Deleted $return_count objects\n");
+                my $return_count = $db->del_object($objectSet);
+
+                &nprint("Deleted $return_count objects\n");
+            }
+        } else {
+           &nprint("No objects found\n");
         }
     } elsif ($command eq "help") {
         print $self->help();

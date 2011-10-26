@@ -141,6 +141,11 @@ build_bootstrap()
         my $bootstrap_name = $bootstrapObj->get("name");
         my $bootstrap_id = $bootstrapObj->get("_id");
 
+        if (!$bootstrap_name) {
+            &dprint("Skipping build_bootstrap() as the name is undefined\n");
+            return();
+        }
+
         if ($bootstrap_id =~ /^([0-9]+)$/) {
             my $id = $1;
             my $ds = Warewulf::DataStore->new();
@@ -199,8 +204,11 @@ build_bootstrap()
             print COOKIE $bootstrapObj->get("checksum");
             close COOKIE;
             &nprint("Bootstrap image '$bootstrap_name' is ready\n");
-
+        } else {
+            &dprint("Bootstrap ID is invalid\n");
         }
+    } else {
+        &dprint("Bootstrap object is undefined\n");
     }
 
 }
