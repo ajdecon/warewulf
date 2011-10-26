@@ -12,7 +12,6 @@ package Warewulf::ObjectSet;
 
 use Warewulf::Object;
 use Warewulf::Logger;
-use Warewulf::DSOFactory;
 
 our @ISA = ('Warewulf::Object');
 
@@ -46,16 +45,12 @@ Create and return a new ObjectSet instance.
 sub
 new($$)
 {
-    my ($proto, $arrayref) = @_;
+    my ($proto) = @_;
     my $class = ref($proto) || $proto;
     my $self;
 
     $self = $class->SUPER::new();
     bless($self, $class);
-
-    if ($arrayref) {
-        $self->add_hashes($arrayref);
-    }
 
     return $self;
 }
@@ -238,32 +233,6 @@ count()
     &dprint("Found '$count' objects in Set\n");
 
     return $count;
-}
-
-=item add_hashes($array_obj)
-
-Add an array of hashes to this ObjectSet.
-
-=cut
-
-sub
-add_hashes($$)
-{
-    my ($self, $array_obj) = @_;
-
-    foreach my $h (@{$array_obj}) {
-        my $obj;
-
-        if (ref($h) eq "HASH") {
-            if (exists($h->{"TYPE"})) {
-                $obj = Warewulf::DSOFactory->new($h->{"TYPE"}, $h);
-            } else {
-                $obj = Warewulf::Object->new($h);
-            }
-            $self->add($obj);
-        }
-    }
-
 }
 
 =back
