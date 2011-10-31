@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(warewulf-ipmi, 0.0.1, warewulf-devel@lbl.gov)
+AC_INIT(warewulf-ipmi, 3.1, warewulf-devel@lbl.gov)
 AC_CONFIG_SRCDIR([.])
 
 AC_PROG_INSTALL
@@ -28,6 +28,15 @@ if test -z "$WWCONFIGBIN"; then
    AC_MSG_ERROR([wwconfig not found! (Warewulf common component)])
 fi
 AC_SUBST(WWCONFIGBIN)
+
+force_prefix=""
+AC_MSG_CHECKING([warewulf-common prefix vs. current prefix])
+if test "${prefix}" = "$WAREWULF_PREFIX"; then
+   AC_MSG_RESULT([identical (${prefix})])
+else
+   AC_MSG_RESULT([MISMATCH (${prefix} vs. $WAREWULF_PREFIX), forcing install prefix on all paths])
+   force_prefix="${prefix}"
+fi
 
 AC_MSG_CHECKING([for Warewulf's configuration for statedir])
 eval `$WWCONFIGBIN -s statedir`
