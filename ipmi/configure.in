@@ -29,6 +29,8 @@ if test -z "$WWCONFIGBIN"; then
 fi
 AC_SUBST(WWCONFIGBIN)
 
+AC_EXPAND_DIR(prefix, "${prefix}")
+WAREWULF_PREFIX=`$WWCONFIGBIN PREFIX`
 force_prefix=""
 AC_MSG_CHECKING([warewulf-common prefix vs. current prefix])
 if test "${prefix}" = "$WAREWULF_PREFIX"; then
