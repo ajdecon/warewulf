@@ -160,13 +160,18 @@ update()
                     $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
                 }
 
-                if (! $bootstrapid) {
-                    &iprint("Skipping $nodename-$device-$hwaddr: No bootstrap defined\n");
+                if (! $device) {
+                    &iprint("Skipping unknown device name for: $nodename\n");
                     next;
                 }
 
                 if (! $hwaddr) {
                     &iprint("Skipping $nodename-$device: No hwaddr defined\n");
+                    next;
+                }
+
+                if (! $bootstrapid) {
+                    &iprint("Skipping $nodename-$device-$hwaddr: No bootstrap defined\n");
                     next;
                 }
 
