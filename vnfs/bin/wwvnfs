@@ -29,6 +29,7 @@ my @opt_excludes;
 my $opt_excludefile;
 my $opt_includefile;
 my $opt_hybrid;
+my $opt_yes;
 my @exclude_files;
 my $wwsh_bin;
 
@@ -50,6 +51,7 @@ GetOptions(
     'excludefile=s' => \$opt_excludefile,
     'includefile=s' => \$opt_includefile,
     'hybridpath=s'  => \$opt_hybrid,
+    'y|yes'             => \$opt_yes
 );
 
 &set_log_level("NOTICE");
@@ -75,6 +77,7 @@ if ($opt_help) {
     print "                     exclude from the VNFS image\n";
     print "       --hybridpath  Path to use within the VNFS where the links will be pointed to in\n";
     print "                     the final image (this needs to be added to the VNFS fstab!)\n";
+    print "   -y, --yes         Skips yes/no prompt if you're importing into an existing VNFS\n";
     print "\nEXAMPLES:\n\n";
     print "   # wwvnfs --root=/var/chroots/rhel-6\n";
     print "   # wwvnfs custom_name --root=/var/chroots/rhel-6\n";
@@ -253,7 +256,11 @@ if (-d $opt_chroot) {
 		&nprint("Wrote VNFS image to $opt_output\n");
 		&nprint("Done.\n");
             } else {
-                system("$wwsh_bin vnfs import $output --name=$opt_name");
+                if ($opt_yes) {
+                    system("yes | $wwsh_bin vnfs import $output --name=$opt_name");
+                } else {
+                    system("$wwsh_bin vnfs import $output --name=$opt_name");
+                }
                 unlink($output);
                 &nprint("Done.\n");
             }
