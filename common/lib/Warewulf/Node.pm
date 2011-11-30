@@ -278,7 +278,11 @@ netdel()
         }
         if ($netdevObject) {
             &dprint("Object $name del netdev $device\n");
+            my $hwaddr = $netdevObject->get("hwaddr");
             $self->del("netdevs", $netdevObject);
+            if ($hwaddr) {
+                $self->del("_hwaddr", $hwaddr);
+            }
         } else {
             &eprint("Object $name has no netdev '$device' configured!\n");
         }
@@ -317,6 +321,7 @@ hwaddr()
             if ($string =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
                 &dprint("Setting object $name: $device.$key = $1\n");
                 $netdevObject->set($key, $1);
+                $self->add("_hwaddr", $1);
             } else {
                 &eprint("Invalid characters to set $key = '$string'\n");
             }
