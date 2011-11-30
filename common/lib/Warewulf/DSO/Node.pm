@@ -11,47 +11,37 @@
 package Warewulf::DSO::Node;
 
 use Warewulf::DSO;
+use Warewulf::Node;
 
 our @ISA = ('Warewulf::DSO');
 
+push(@Warewulf::Node::ISA, 'Warewulf::DSO::Node');
+
 =head1 NAME
 
-Warewulf::Node - Warewulf's general object instance object interface.
+Warewulf::DSO::Node - DSO extentions to the Warewulf::Node object type.
 
 =head1 ABOUT
 
+Warewulf object types that need to be persisted via the DataStore need to have
+various extentions so they can be persisted. This module enhances the object
+capabilities.
 
 =head1 SYNOPSIS
 
+    use Warewulf::Node;
     use Warewulf::DSO::Node;
 
-    my $obj = Warewulf::DSO::Node->new();
+    my $obj = Warewulf::Node->new();
+
+    my $type = $obj->type();
+    my @lookups = $obj->lookups();
 
 
 =head1 METHODS
 
 =over 12
 =cut
-
-
-=item new()
-
-The new constructor will create the object that references configuration the
-stores.
-
-=cut
-sub
-new($$)
-{
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $self = ();
-
-    $self = $class->SUPER::new();
-    bless($self, $class);
-
-    return $self->init(@_);
-}
 
 
 =item type()
