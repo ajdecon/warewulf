@@ -37,6 +37,10 @@ capabilities.
     my $type = $obj->type();
     my @lookups = $obj->lookups();
 
+    my $s = $obj->serialize();
+
+    my $objCopy = Warewulf::DSO->unserialize($s);
+
 
 =head1 METHODS
 
@@ -73,7 +77,7 @@ lookups($)
 
 =head1 SEE ALSO
 
-Warewulf::Object
+Warewulf::DSO, Warewulf::Object
 
 =head1 COPYRIGHT
 

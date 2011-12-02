@@ -239,7 +239,7 @@ count()
 
 =head1 SEE ALSO
 
-Warewulf::Object, Warewulf::DSOFactory
+Warewulf::Object
 
 =head1 COPYRIGHT
 

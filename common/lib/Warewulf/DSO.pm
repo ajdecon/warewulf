@@ -12,6 +12,8 @@ package Warewulf::DSO;
 
 use Warewulf::Object;
 use Warewulf::DataStore;
+use Storable qw(freeze thaw);
+
 
 our @ISA = ('Warewulf::Object');
 
@@ -57,13 +59,44 @@ new($$)
     return $self->init(@args);
 }
 
+
+=item unserialize($seralized_object)
+
+Unserialize the serialized data from an object. It makes sense to call this
+method statically as Warewulf::DSO->unserialize($s) and have it return the
+serialized object itself.
+
+=cut
+sub
+unserialize($)
+{
+    my ($self, $serialized) = @_;
+
+    return(thaw($serialized));
+}
+
+
+=item serialize()
+
+Return a serialized string of the object. This is useful for persisting,
+transferring, or copying. See unserialize() for additional information.
+
+=cut
+sub
+serialize()
+{
+    my ($self) = @_;
+
+    return(freeze($self));
+}
+
+
 =item type()
 
 Returns a string that defines this object type as it will be stored in
 the datastore.
 
 =cut
-
 sub
 type($)
 {
@@ -83,24 +116,24 @@ type($)
     return lc($type);
 }
 
+
 =item lookups()
 
 Return a list of lookup names for this DSO type.
 
 =cut
-
 sub
 lookups($)
 {
     return ("_ID", "NAME");
 }
 
+
 =item persist()
 
 Persist this object into the datastore
 
 =cut
-
 sub
 persist($)
 {

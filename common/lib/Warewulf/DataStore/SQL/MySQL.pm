@@ -12,8 +12,8 @@ package Warewulf::DataStore::SQL::MySQL;
 
 use Warewulf::Config;
 use Warewulf::Logger;
+use Warewulf::DSO;
 use Warewulf::Object;
-use Warewulf::DSOFactory;
 use Warewulf::ObjectSet;
 use Warewulf::EventHandler;
 use DBI;
@@ -188,7 +188,7 @@ get_objects($$$@)
     while (my $h = $sth->fetchrow_hashref()) {
         my $id = $h->{"id"};
         my $type = $h->{"type"};
-        my $o = Warewulf::DSOFactory->new($type, $self->unserialize($h->{"serialized"}));
+        my $o = Warewulf::DSO->unserialize($h->{"serialized"});
         $o->set("_id", $id);
         $o->set("_type", $type);
         $objectSet->add($o);
