@@ -69,6 +69,20 @@ new($$)
 }
 
 
+=item id()
+
+Return the Database ID for this object.
+
+=cut
+sub
+id()
+{
+    my ($self) = @_;
+
+    return($self->get("_id") || "UNDEF");
+}
+
+
 
 =item name($string)
 
@@ -88,7 +102,7 @@ name()
             &dprint("Object $name delete $key\n");
             $self->del($key);
         } elsif ($string =~ /^([a-zA-Z0-9_\.\-]+)$/) {
-            my $name = $self->get("name");
+            my $name = $self->get("name") || "UNDEF";
             &dprint("Object $name set $key = '$1'\n");
             $self->set($key, $1);
         } else {
@@ -269,7 +283,8 @@ netdel()
     my ($self, $device) = @_;
     my $netdevObject;
 
-    if ($device) {
+    if ($device and $device =~ /^([a-z]+\d*)$/) {
+        $device = $1;
         my $name = $self->get("name") || "UNDEF";
         foreach my $ndev ($self->get("netdevs")) {
             if ($ndev->get("name") eq $device) {
@@ -286,6 +301,8 @@ netdel()
         } else {
             &eprint("Object $name has no netdev '$device' configured!\n");
         }
+    } else {
+        &eprint("Bad device name!\n");
     }
 
     return();
@@ -304,7 +321,8 @@ hwaddr()
     my $key = "hwaddr";
     my $netdevObject;
 
-    if ($device) {
+    if ($device and $device =~ /^([a-z]+\d*)$/) {
+        $device = $1;
         my $name = $self->get("name") || "UNDEF";
         foreach my $ndev ($self->get("netdevs")) {
             if ($ndev->get("name") eq $device) {
@@ -329,6 +347,8 @@ hwaddr()
         if ($netdevObject) {
             return($netdevObject->get($key));
         }
+    } else {
+        &eprint("Bad device name!\n");
     }
 
     return();
@@ -347,7 +367,8 @@ ipaddr()
     my $key = "ipaddr";
     my $netdevObject;
 
-    if ($device) {
+    if ($device and $device =~ /^([a-z]+\d*)$/) {
+        $device = $1;
         my $name = $self->get("name") || "UNDEF";
         foreach my $ndev ($self->get("netdevs")) {
             if ($ndev->get("name") eq $device) {
@@ -371,6 +392,8 @@ ipaddr()
         if ($netdevObject) {
             return($netdevObject->get($key));
         }
+    } else {
+        &eprint("Bad device name!\n");
     }
 
     return();
@@ -389,7 +412,8 @@ netmask()
     my $key = "netmask";
     my $netdevObject;
 
-    if ($device) {
+    if ($device and $device =~ /^([a-z]+\d*)$/) {
+        $device = $1;
         my $name = $self->get("name") || "UNDEF";
         foreach my $ndev ($self->get("netdevs")) {
             if ($ndev->get("name") eq $device) {
@@ -413,6 +437,8 @@ netmask()
         if ($netdevObject) {
             return($netdevObject->get($key));
         }
+    } else {
+        &eprint("Bad device name!\n");
     }
 
     return();
@@ -431,7 +457,8 @@ fqdn()
     my $key = "fqdn";
     my $netdevObject;
 
-    if ($device) {
+    if ($device and $device =~ /^([a-z]+\d*)$/) {
+        $device = $1;
         my $name = $self->get("name") || "UNDEF";
         foreach my $ndev ($self->get("netdevs")) {
             if ($ndev->get("name") eq $device) {
@@ -455,6 +482,8 @@ fqdn()
         if ($netdevObject) {
             return($netdevObject->get($key));
         }
+    } else {
+        &eprint("Bad device name!\n");
     }
 
     return();

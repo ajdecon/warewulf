@@ -16,7 +16,7 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::DSOFactory;
+#use Warewulf::DSOFactory;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -195,7 +195,7 @@ exec()
         $objSet = Warewulf::ObjectSet->new();
         foreach my $string (&expand_bracket(@ARGV)) {
             my $obj;
-            $obj = Warewulf::DSOFactory->new($entity_type);
+            #$obj = Warewulf::DSOFactory->new($entity_type);
 
             $obj->set($opt_lookup, $string);
 
@@ -273,7 +273,8 @@ exec()
                         print "Imported $name into existing object\n";
                     } elsif (scalar(@objList) == 0) {
                         &dprint("Creating new File Object\n");
-                        my $obj = Warewulf::DSOFactory->new("file");
+                        my $obj;
+                        #my $obj = Warewulf::DSOFactory->new("file");
                         $db->persist($obj);
                         $obj->set($opt_lookup, $name);
                         $obj->set("checksum", digest_file_hex_md5($path));
@@ -323,7 +324,8 @@ exec()
             &eprint("Only specify one object to edit at a time\n");
             return();
         } elsif (scalar(@objList) == 0) {
-            my $obj = Warewulf::DSOFactory->new("file");
+            my $obj;
+            #my $obj = Warewulf::DSOFactory->new("file");
             $obj->set($opt_lookup, $name);
             $db->persist($obj);
             push(@objList, $obj);

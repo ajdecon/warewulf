@@ -184,7 +184,8 @@ exec()
             if (@ARGV) {
                 foreach my $string (&expand_bracket(@ARGV)) {
                     &dprint("New object known by: $opt_lookup=$string\n");
-                    my $obj = Warewulf::DSOFactory->new($opt_type);
+                    #my $obj = Warewulf::DSOFactory->new($opt_type);
+                    my $obj;
 
                     if ($obj) {
                         $obj->set($opt_lookup, $string);
@@ -201,7 +202,8 @@ exec()
                 }
             } else {
                 &dprint("Creating a blank object\n");
-                my $obj = Warewulf::DSOFactory->new($opt_type);
+                #my $obj = Warewulf::DSOFactory->new($opt_type);
+                my $obj;
                 if ($obj) {
                     $db->persist($obj);
                     &nprint("Created new blank '$opt_type' object\n");

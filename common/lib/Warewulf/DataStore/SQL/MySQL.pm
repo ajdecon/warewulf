@@ -339,7 +339,7 @@ persist($$)
 
             dprint("Updating datastore ID = $id\n");
             $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-            $sth->execute($self->serialize(scalar($o->get_hash())), $id);
+            $sth->execute(Warewulf::DSO->serialize($o), $id);
 
             $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             $sth->execute($id);

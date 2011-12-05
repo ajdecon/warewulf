@@ -85,9 +85,13 @@ transferring, or copying. See unserialize() for additional information.
 sub
 serialize()
 {
-    my ($self) = @_;
+    my ($self, $object) = @_;
 
-    return(freeze($self));
+    if ($object) {
+        return(freeze($object));
+    } else {
+        return(freeze($self));
+    }
 }
 
 
