@@ -12,6 +12,8 @@ use Warewulf::Object;
 use Warewulf::Logger;
 use Warewulf::DataStore;
 use Warewulf::Util;
+use File::Basename;
+use File::Path;
 
 
 our @ISA = ('Warewulf::Object');
@@ -331,6 +333,41 @@ import()
         }
     }
 }
+
+
+
+=item export($file)
+
+Export the data from a file object to a location on the file system.
+
+=cut
+sub
+export()
+{
+    my ($self, $file) = @_;
+
+    if ($file) {
+        if (! -f $file) {
+            my $dirname = dirname($file);
+
+            if (! -d $dirname) {
+                mkpath($dirname);
+            }
+        }
+
+        my $binstore = $db->binstore($obj->get("_id"));
+        if (open(FILE, "> $file")) {
+            while(my $buffer = $binstore->get_chunk()) {
+                print FILE $buffer;
+            }
+            close FILE;
+        } else {
+            &eprint("Could not open file for writing: $!\n");
+        }
+    }
+}
+
+
 
 
 
