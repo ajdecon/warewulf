@@ -269,3 +269,9 @@ Object tests are finally done.  I think I've got full coverage now,
 and several bugs were fixed that hadn't appeared yet.  Now at 1774
 tests.
 ----------------------------------------------------------------------
+Mon Dec 19 11:55:07 2011                        Michael Jennings (mej)
+
+We're trying out a new concept for calling conventions:  A RetVal
+object that handles both normal return values and error returns
+(a.k.a. Exceptions).
+----------------------------------------------------------------------
