@@ -34,6 +34,7 @@ The Warewulf::DataStore::SQL interface simplies typically used DB calls.
 Create the object.
 
 =cut
+
 sub
 new($$)
 {

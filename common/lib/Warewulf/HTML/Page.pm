@@ -43,8 +43,8 @@ use CGI;
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -84,6 +84,7 @@ This method will retrieve a paramater that was passed to the current page
 either by POST/GET or cookie).
 
 =cut
+
 sub
 get($$)
 {
@@ -111,6 +112,7 @@ set($$$)
 Get the file handle of a file that was uploaded via a form.
 
 =cut
+
 sub
 upload($$)
 {
@@ -128,6 +130,7 @@ pass a value, the cookie will be set. Without it, a cookie will be retrieved.
 This can be called multiple times to create multiple cookies.
 
 =cut
+
 sub
 cookie($$$)
 {
@@ -148,6 +151,7 @@ cookie($$$)
 Set the domain that will be used for things like cookies
 
 =cut
+
 sub
 domain($$)
 {
@@ -167,6 +171,7 @@ domain($$)
 Return the session ID for this connection
 
 =cut
+
 sub
 session($)
 {
@@ -181,6 +186,7 @@ session($)
 Print the page header
 
 =cut
+
 sub
 header($)
 {
@@ -202,5 +208,6 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
 
 1;

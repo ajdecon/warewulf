@@ -275,3 +275,7 @@ We're trying out a new concept for calling conventions:  A RetVal
 object that handles both normal return values and error returns
 (a.k.a. Exceptions).
 ----------------------------------------------------------------------
+Mon Dec 19 16:33:15 2011                        Michael Jennings (mej)
+
+Fix POD formatting for =cut directive.
+----------------------------------------------------------------------

@@ -46,8 +46,8 @@ configuration of node objects.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -55,6 +55,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -74,6 +75,7 @@ new($$)
 Return the Database ID for this object.
 
 =cut
+
 sub
 id()
 {
@@ -90,6 +92,7 @@ Set or return the name of this object. The string "UNDEF" will delete this
 key from the object.
 
 =cut
+
 sub
 name()
 {
@@ -120,6 +123,7 @@ Set or return the cluster of this object. The string "UNDEF" will delete this
 key from the object.
 
 =cut
+
 sub
 cluster()
 {
@@ -150,6 +154,7 @@ Set or return the domain of this object. The string "UNDEF" will delete this
 key from the object.
 
 =cut
+
 sub
 domain()
 {
@@ -179,6 +184,7 @@ domain()
 Set or return the groups of this object.
 
 =cut
+
 sub
 groups()
 {
@@ -208,6 +214,7 @@ groups()
 Add a group or list of groups to the current object.
 
 =cut
+
 sub
 groupadd()
 {
@@ -235,6 +242,7 @@ groupadd()
 Delete a group or list of groups to the current object.
 
 =cut
+
 sub
 groupdel()
 {
@@ -256,6 +264,7 @@ groupdel()
 List the configured network devices configured for this node object
 
 =cut
+
 sub
 netdevs()
 {
@@ -277,6 +286,7 @@ netdevs()
 Delete a network device from the object
 
 =cut
+
 sub
 netdel()
 {
@@ -314,6 +324,7 @@ netdel()
 Set or return the hwaddr for a given device
 
 =cut
+
 sub
 hwaddr()
 {
@@ -360,6 +371,7 @@ hwaddr()
 Set or return the ipaddr for a given device
 
 =cut
+
 sub
 ipaddr()
 {
@@ -405,6 +417,7 @@ ipaddr()
 Set or return the netmask for a given device
 
 =cut
+
 sub
 netmask()
 {
@@ -450,6 +463,7 @@ netmask()
 Set or return the FQDN for a given device
 
 =cut
+
 sub
 fqdn()
 {

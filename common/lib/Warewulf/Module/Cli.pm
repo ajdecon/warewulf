@@ -37,6 +37,7 @@ Warewulf::Module::Cli -
 Define the command line options of this module interface.
 
 =cut
+
 #sub options() { };
 
 
@@ -45,6 +46,7 @@ Define the command line options of this module interface.
 Verbose description of the module
 
 =cut
+
 #sub description() { };
 
 
@@ -53,6 +55,7 @@ Verbose description of the module
 A very short summary describing this module
 
 =cut
+
 #sub summary() { };
 
 
@@ -61,6 +64,7 @@ A very short summary describing this module
 Return an array of usage examples
 
 =cut
+
 #sub examples() { };
 
 
@@ -69,6 +73,7 @@ Return an array of usage examples
 What happens when this module gets called by a command
 
 =cut
+
 sub exec() {};
 
 
@@ -77,6 +82,7 @@ sub exec() {};
 What to do when this module gets called for autocompletion
 
 =cut
+
 sub complete() {};
 
 
@@ -93,5 +99,6 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
 
 1;

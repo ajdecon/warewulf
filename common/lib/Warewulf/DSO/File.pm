@@ -31,8 +31,8 @@ Warewulf::File - Warewulf's general object instance object interface.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -40,6 +40,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -61,6 +62,7 @@ Return a string that defines this object type as it will be stored in the
 datastore.
 
 =cut
+
 sub
 type($)
 {

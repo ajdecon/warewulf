@@ -36,8 +36,8 @@ Warewulf DataStore.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -45,6 +45,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -64,6 +65,7 @@ new($$)
 Return the Database ID for this object.
 
 =cut
+
 sub
 id()
 {
@@ -80,6 +82,7 @@ Set or return the name of this object. The string "UNDEF" will delete this
 key from the object.
 
 =cut
+
 sub
 name()
 {
@@ -109,6 +112,7 @@ name()
 Set the numeric permission "mode" of this file (e.g. 0644).
 
 =cut
+
 sub
 mode()
 {
@@ -138,6 +142,7 @@ mode()
 Set or get the checksum of this file.
 
 =cut
+
 sub
 checksum()
 {
@@ -167,6 +172,7 @@ checksum()
 Set or return the UID of this file.
 
 =cut
+
 sub
 uid()
 {
@@ -196,6 +202,7 @@ uid()
 Set or return the GID of this file.
 
 =cut
+
 sub
 gid()
 {
@@ -225,6 +232,7 @@ gid()
 Set or return the target path of this file.
 
 =cut
+
 sub
 path()
 {
@@ -255,6 +263,7 @@ path()
 Set or return the origin(s) of this object.
 
 =cut
+
 sub
 origin()
 {
@@ -288,6 +297,7 @@ exhaust memory.
 Note: This will also update the object metadata for this file.
 
 =cut
+
 sub
 import()
 {
@@ -341,6 +351,7 @@ import()
 Export the data from a file object to a location on the file system.
 
 =cut
+
 sub
 export()
 {

@@ -67,6 +67,7 @@ method statically as Warewulf::DSO->unserialize($s) and have it return the
 serialized object itself.
 
 =cut
+
 sub
 unserialize($)
 {
@@ -82,6 +83,7 @@ Return a serialized string of the object. This is useful for persisting,
 transferring, or copying. See unserialize() for additional information.
 
 =cut
+
 sub
 serialize()
 {
@@ -101,6 +103,7 @@ Returns a string that defines this object type as it will be stored in
 the datastore.
 
 =cut
+
 sub
 type($)
 {
@@ -126,6 +129,7 @@ type($)
 Return a list of lookup names for this DSO type.
 
 =cut
+
 sub
 lookups($)
 {
@@ -138,6 +142,7 @@ lookups($)
 Persist this object into the datastore
 
 =cut
+
 sub
 persist($)
 {

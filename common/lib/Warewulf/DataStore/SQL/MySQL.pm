@@ -127,6 +127,7 @@ init()
 Return the proper chunk size.
 
 =cut
+
 sub
 chunk_size()
 {
@@ -516,6 +517,7 @@ del_lookup($$$$)
 Create a new entity
 
 =cut
+
 sub
 new_object($)
 {
@@ -549,6 +551,7 @@ data put or gotten (put_chunk or get_chunk methods respectively) from this
 object.
 
 =cut
+
 sub
 binstore()
 {
@@ -571,6 +574,7 @@ Put data into the binstore object one chunk at a time. Iterate through the
 entire datastream until all data has been added.
 
 =cut
+
 sub
 put_chunk()
 {
@@ -605,6 +609,7 @@ put_chunk()
 Get all of the data out of the binstore object one chunk at a time.
 
 =cut
+
 sub
 get_chunk()
 {

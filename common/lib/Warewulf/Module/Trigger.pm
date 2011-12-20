@@ -37,6 +37,7 @@ Warewulf::Module::Trigger -
 What happens when an object is added to the database
 
 =cut
+
 sub object_add() {};
 
 
@@ -46,6 +47,7 @@ sub object_add() {};
 What happens when an object is deleted from the database
 
 =cut
+
 sub object_del() {};
 
 
@@ -55,6 +57,7 @@ sub object_del() {};
 What happens when an object is persisted to the datastore
 
 =cut
+
 sub object_persist() {};
 
 

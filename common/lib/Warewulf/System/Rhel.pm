@@ -32,8 +32,8 @@ Warewulf::Rhel - Warewulf's general object instance object interface.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -41,6 +41,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -59,6 +60,7 @@ new($$)
 Run a command on a service script (e.g. /etc/init.d/service restart).
 
 =cut
+
 sub
 service($$$)
 {
@@ -90,6 +92,7 @@ Enable a service script to be enabled or disabled at boot (e.g.
 /sbin/chkconfig service on).
 
 =cut
+
 sub
 chkconfig($$$)
 {
@@ -119,6 +122,7 @@ chkconfig($$$)
 return the output cache on a command
 
 =cut
+
 sub
 output($)
 {
