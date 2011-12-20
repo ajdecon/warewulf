@@ -40,6 +40,7 @@ configuration file 'provision.conf' and use the paramater 'dhcp server' as
 the type.
 
 =cut
+
 sub
 new($$)
 {
@@ -114,8 +115,6 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
-
-
 
 
 1;

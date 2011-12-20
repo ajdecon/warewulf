@@ -36,8 +36,8 @@ Warewulf::Tftp - Tftp integration
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -45,6 +45,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -95,6 +96,7 @@ init()
 Get/set the system's TFTP directory.
 
 =cut
+
 sub
 tftpdir()
 {

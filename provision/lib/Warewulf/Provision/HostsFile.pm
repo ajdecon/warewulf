@@ -41,8 +41,8 @@ datastore.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -50,6 +50,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -79,6 +80,7 @@ init()
 This will generate the content of the /etc/hosts file.
 
 =cut
+
 sub
 generate()
 {
@@ -188,6 +190,7 @@ generate()
 Update the Warewulf datastore with the current hosts file.
 
 =cut
+
 sub
 update_datastore()
 {

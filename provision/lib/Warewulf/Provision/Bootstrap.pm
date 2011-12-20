@@ -40,8 +40,8 @@ Warewulf::Bootstrap - Bootstrap integration
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -49,6 +49,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -75,6 +76,7 @@ init()
 Remove a bootable bootstrap image from the local file system.
 
 =cut
+
 sub
 delete_bootstrap()
 {
@@ -132,6 +134,7 @@ appropriate Warewulf initrd userspace components for the provision master in
 question.
 
 =cut
+
 sub
 build_bootstrap()
 {

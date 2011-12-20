@@ -39,8 +39,8 @@ Warewulf::Provision::Dhcp::Isc - Warewulf's ISC DHCP server interface.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -48,6 +48,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -117,6 +118,7 @@ init()
 Restart the DHCP service
 
 =cut
+
 sub
 restart()
 {
@@ -137,6 +139,7 @@ restart()
 This will update the DHCP file.
 
 =cut
+
 sub
 persist()
 {

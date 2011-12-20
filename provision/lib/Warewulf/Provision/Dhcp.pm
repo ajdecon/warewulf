@@ -31,8 +31,8 @@ Warewulf::Dhcp - Warewulf's general DHCP object interface base class.
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 sub new() { undef };
 sub init() { undef };
@@ -42,6 +42,7 @@ sub init() { undef };
 This will update the DHCP file.
 
 =cut
+
 sub persist() { undef };
 
 =item restart()
@@ -49,6 +50,7 @@ sub persist() { undef };
 This will start/restart the DHCP service.
 
 =cut
+
 sub restart() { undef };
 
 =back

@@ -37,6 +37,7 @@ Warewulf should do nothing.
 =head1 METHODS
 
 =over 12
+
 =cut
 
 =item new()
@@ -44,6 +45,7 @@ Warewulf should do nothing.
 New object constructor
 
 =cut
+
 sub
 new($$)
 {

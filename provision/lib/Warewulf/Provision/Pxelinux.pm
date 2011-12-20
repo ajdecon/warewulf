@@ -38,8 +38,8 @@ Warewulf::Pxelinux - Pxelinux integration
 =head1 METHODS
 
 =over 12
-=cut
 
+=cut
 
 =item new()
 
@@ -47,6 +47,7 @@ The new constructor will create the object that references configuration the
 stores.
 
 =cut
+
 sub
 new($$)
 {
@@ -74,6 +75,7 @@ init()
 Setup the basic pxelinux environment (e.g. gpxelinux.0).
 
 =cut
+
 sub
 setup()
 {
@@ -114,6 +116,7 @@ Update or create (if not already present) a pxelinux config for the passed
 node object
 
 =cut
+
 sub
 update()
 {
@@ -231,6 +234,7 @@ update()
 Delete a pxelinux configuration for the passed node object.
 
 =cut
+
 sub
 delete()
 {
