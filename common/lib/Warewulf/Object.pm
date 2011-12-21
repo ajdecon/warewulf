@@ -302,6 +302,110 @@ del()
     return @{$self->{$key}};
 }
 
+=item prop(I<key>, I<value>, [ I<validator> ])
+
+Wrapper for object properties (member variables that have matching
+combined getter/setter methods).  The I<key> is the member name.
+I<value> is a reference to a scalar value or an array of values.  If
+I<value> is itself undefined, the current value(s) for the I<key>
+member are returned.  If I<value> is a valid reference to a scalar,
+but that scalar has an undefined value, the I<key> member will be
+deleted.  Likewise, if I<value> is a reference to an empty array, the
+I<key> member will be deleted.  (This is consistent with the behavior
+of the C<del()> method.)
+
+The optional validator is a reference to a regular expression
+(supplied via qr/.../) or a coderef.  Each value must match the regex
+(or the coderef must return true); otherwise, the entire set operation
+is aborted.  If a regex is used, the first parenthesized subgroup must
+refer to the final value for the member (for untainting purposes).  If
+a coderef is used, the return value of the subroutine must be the
+validated value or undef (if the value is invalid).
+
+C<prop()> returns the current (possibly new) value of the member in
+all cases.
+
+Generally speaking, this method should be used to create the combined
+getter/setter method like so:
+
+    sub
+    membervar()
+    {
+        my ($self, $value) = @_;
+
+        if ($value eq "UNDEF") {
+            $value = undef;
+        }
+        return $self->prop("membervar", \$value, qr/^(\w+)$/);
+    }
+
+=cut
+
+sub
+prop()
+{
+    my ($self, $key, $val, $validator) = @_;
+
+    if (!defined($key)) {
+        return undef;
+    }
+    if (defined($val) && ref($val)) {
+        my $name;
+
+        $name = $self->get("name") || "??UNKNOWN??";
+        if (defined($validator)) {
+            if (ref($validator) eq "Regexp") {
+                my $match = $validator;
+
+                $validator = sub {
+                    if ($_[0] =~ $match) {
+                        return $1;
+                    } else {
+                        &eprint("Invalid value for ${name}->$key:  \"$_[0]\"\n");
+                        return undef;
+                    }
+                };
+            } elsif (ref($validator) ne "CODE") {
+                $validator = sub { return $_[0]; };
+            }
+        } else {
+            $validator = sub { return $_[0]; };
+        }
+        if ((ref($val) eq "SCALAR") || (ref($val) eq "REF")) {
+            if (defined(${$val})) {
+                $val = &{$validator}(${$val});
+                if (defined($val)) {
+                    &dprint("Object $name set $key = '$val'\n");
+                    $self->{$key} = $val;
+                }
+            } else {
+                &dprint("Object $name delete $key\n");
+                delete $self->{$key};
+            }
+        } elsif (ref($val) eq "ARRAY") {
+            if (scalar(@{$val})) {
+                my @newvals;
+
+                foreach my $newval (@{$val}) {
+                    $newval = &{$validator}($newval);
+                    if (defined($newval)) {
+                        push @newvals, $newval;
+                    } else {
+                        break;
+                    }
+                }
+                if (scalar(@newvals) == scalar(@{$val})) {
+                    @{$self->{$key}} = @newvals;
+                }
+            } else {
+                &dprint("Object $name delete $key\n");
+                delete $self->{$key};
+            }
+        }
+    }
+    return ((exists($self->{$key})) ? ($self->{$key}) : (undef));
+}
+
 =item get_hash()
 
 Return a hash (or hashref) containing all member variables and their
