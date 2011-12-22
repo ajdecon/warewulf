@@ -16,7 +16,8 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-#use Warewulf::DSOFactory;
+use Warewulf::File;
+use Warewulf::DSO::File;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -187,475 +188,501 @@ exec()
         return();
     }
 
-    if (! $command) {
-        &eprint("You must provide a command!\n\n");
-        print $self->help();
-        return();
-    } elsif ($command eq "new") {
-        $objSet = Warewulf::ObjectSet->new();
-        foreach my $string (&expand_bracket(@ARGV)) {
-            my $obj;
-            #$obj = Warewulf::DSOFactory->new($entity_type);
-
-            $obj->set($opt_lookup, $string);
-
-            $objSet->add($obj);
-        }
-        $db->persist($objSet);
-    } else {
-        $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
-    }
-
-    if ($objSet) {
-        $object_count = $objSet->count();
-    } else {
-        &nprint("No nodes found\n");
-        return();
-    }
-
-
-    if (! $command) {
-        &eprint("You must provide a command!\n\n");
-        print $self->help();
-    } elsif ($command eq "import") {
-        foreach my $o (@opt_origin) {
-            if (!scalar(grep { $_ eq $o} @ARGV)) {
-                push(@ARGV, @opt_origin);
+    if ($command) {
+        if ($command eq "delete") {
+            if (@ARGV) {
+                my $objSet = $db->get_objects("file", $opt_lookup, &expand_bracket(@ARGV));
+                if ($term->interactive()) {
+                    print "Are you sure you want to delete $object_count files(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                    }
+                    print "\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
+                        return();
+                    }
+                }
+                $db->del_object($objSet);
+            } else {
+                &eprint("Specify the files you wish to delete!\n");
             }
-        }
-        foreach my $tmp_path (@ARGV) {
-            if ($tmp_path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-                my $path = $1;
-                if (-f $path) {
+
+        } elsif ($command eq "import") {
+            foreach my $o (@opt_origin) {
+                if (!scalar(grep { $_ eq $o} @ARGV)) {
+                    push(@ARGV, @opt_origin);
+                }
+            }
+            foreach my $path (@ARGV) {
+                if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
+                    $path = $1;
+                    if (-f $path) {
+                        my $name;
+                        my $objSet;
+                        my $obj;
+                        if ($opt_name) {
+                            $name = $opt_name;
+                        } else {
+                            $name = basename($path);
+                        }
+                        $objSet = $db->get_objects("file", $opt_lookup, $name);
+
+                        if ($objSet->count() > 0) {
+                            $obj = $objSet->get_object(0);
+                        } else {
+                            &dprint("Creating a new Warewulf file object\n");
+                            $obj = Warewulf::File->new();
+                            $obj->name($name);
+                            &dprint("Persisting the new Warewulf file object with name: $name\n");
+                            $db->persist($obj);
+                        }
+
+                        $obj->file_import($path);
+
+                    } else {
+                        &eprint("File not Found: $path\n");
+                    }
+                } else {
+                    &eprint("File contains illegal characters: $path\n");
+                }
+            }
+        } else {
+            my $objSet;
+            if ($command eq "new") {
+                $objSet = Warewulf::ObjectSet->new();
+                foreach my $string (&expand_bracket(@ARGV)) {
+                    my $obj;
+                    $obj = Warewulf::DSO::File->new();
+
+                    $obj->set($opt_lookup, $string);
+
+                    $objSet->add($obj);
+
+                    $persist_count++;
+
+                    push(@changes, sprintf("     NEW: %-20s = %s\n", "FILE", $string));
+                }
+                $db->persist($objSet);
+            } else {
+                $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+            }
+
+            if ($command eq "set" or $command eq "new") {
+                if ($objSet) {
+                    $object_count = $objSet->count();
+                } else {
+                    &nprint("No nodes found\n");
+                    return();
+                }
+
+            } elsif ($command eq "edit") {
+                my $program;
+                if ($opt_program) {
+                    $program = $opt_program;
+                } else {
+                    $program = "/bin/vi";
+                }
+
+                if ($objSet->count() eq 0) {
                     my $name;
                     if ($opt_name) {
                         $name = $opt_name;
                     } else {
-                        $name = basename($path);
+                        $name = shift(@ARGV);
                     }
-                    my $digest = digest_file_hex_md5($path);
-                    $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-                    my @objList = $objectSet->get_list();
-                    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size, $atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
-                    if (scalar(@objList) == 1) {
-                        if ($term->interactive()) {
-                            print("Are you sure you wish to overwrite the Warewulf file '$name'?\n\n");
-                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                            if ($yesno ne "y" and $yesno ne "yes" ) {
-                                print "No import performed\n";
-                                return();
-                            }
-                        }
-                        my $obj = $objList[0];
-                        $obj->set("checksum", $digest);
-                        my $binstore = $db->binstore($obj->get("_id"));
-                        my $size;
-                        my $buffer;
-                        open(FILE, $path);
-                        while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
-                            &dprint("Chunked $length bytes of $path\n");
-                            $binstore->put_chunk($buffer);
-                            if (! $size) {
-                                $obj->set("format", &format($buffer));
-                            }
-                            $size += $length;
-                        }
-                        close FILE;
-                        $obj->set("size", $size);
-                        $obj->set("uid", $uid);
-                        $obj->set("gid", $gid);
-                        $obj->set("path", $path);
-                        $obj->set("mode", sprintf("%05o", $mode & 07777));
-                        if (scalar(grep { $_ eq $path} @opt_origin)) {
-                            $obj->set("origin", $path);
-                        }
-                        $db->persist($obj);
-                        print "Imported $name into existing object\n";
-                    } elsif (scalar(@objList) == 0) {
-                        &dprint("Creating new File Object\n");
-                        my $obj;
-                        #my $obj = Warewulf::DSOFactory->new("file");
-                        $db->persist($obj);
-                        $obj->set($opt_lookup, $name);
-                        $obj->set("checksum", digest_file_hex_md5($path));
-                        my $binstore = $db->binstore($obj->get("_id"));
-                        my $size;
-                        my $buffer;
-                        &dprint("Persisting new File Object\n");
-                        open(FILE, $path);
-                        while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
-                            &dprint("Chunked $length bytes of $path\n");
-                            $binstore->put_chunk($buffer);
-                            if (! $size) {
-                                $obj->set("format", &format($buffer));
-                            }
-                            $size += $length;
-                        }
-                        close FILE;
-                        $obj->set("size", $size);
-                        $obj->set("uid", $uid);
-                        $obj->set("gid", $gid);
-                        $obj->set("path", $path);
-                        $obj->set("mode", sprintf("%05o", $mode & 07777));
-                        if (scalar(grep { $_ eq $path} @opt_origin)) {
-                            $obj->set("origin", $path);
-                        }
-                        $db->persist($obj);
-                        print "Imported $name into a new object\n";
-                    } else {
-                        print "Import into one object at a time please!\n";
-                    }
-                } else {
-                    &eprint("Could not import '$path' (file not found)\n");
-                }
-            }
-        }
-    } elsif ($command eq "edit") {
-        my $program;
-        if ($opt_program) {
-            $program = $opt_program;
-        } else {
-            $program = "/bin/vi";
-        }
-        my $name = shift(@ARGV);
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-        my @objList = $objectSet->get_list();
-        if (scalar(@objList) > 1) {
-            &eprint("Only specify one object to edit at a time\n");
-            return();
-        } elsif (scalar(@objList) == 0) {
-            my $obj;
-            #my $obj = Warewulf::DSOFactory->new("file");
-            $obj->set($opt_lookup, $name);
-            $db->persist($obj);
-            push(@objList, $obj);
-        }
-        my $obj = $objList[0];
-        my $binstore = $db->binstore($obj->get("_id"));
-        my $rand = &rand_string("16");
-        my $tmpfile = "/tmp/wwsh.$rand";
-        my $digest1;
-        my $digest2;
-        open(TMPFILE, "> $tmpfile");
-        while(my $buffer = $binstore->get_chunk()) {
-            print TMPFILE $buffer;
-        }
-        close TMPFILE;
-        $digest1 = $obj->get("checksum") || "";
-        if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/]+?)"?$/) {
-            if (system("$1 $tmpfile") == 0) {
-                $digest2 = digest_file_hex_md5($tmpfile);
-                if ($digest1 ne $digest2) {
-                    my $binstore = $db->binstore($obj->get("_id"));
-                    my $size;
-                    my $buffer;
-                    open(FILE, $tmpfile);
-                    while(my $length = sysread(FILE, $buffer, 15*1024*1024)) {
-                        &dprint("Chunked $length bytes of $tmpfile\n");
-                        $binstore->put_chunk($buffer);
-                        if (! $size) {
-                            $obj->set("format", &format($buffer));
-                        }
-                        $size += $length;
-                    }
-                    close FILE;
-                    $obj->set("checksum", $digest2);
-                    $obj->set("size", $size);
-                    $obj->set("uid", geteuid);
-                    $obj->set("gid", getegid);
-                    $obj->set("mode", "0644");
+                    &dprint("Creating a new Warewulf file object\n");
+                    $obj = Warewulf::File->new();
+                    $obj->name($name);
+                    &dprint("Persisting the new Warewulf file object with name: $name\n");
                     $db->persist($obj);
-                    &nprint("Updated datastore\n");
-                } else {
-                    &nprint("Not updating datastore\n");
+                    $objSet->add($obj);
                 }
-            } else {
-                &iprint("Command errored out, not updating datastore\n");
-            }
-        } else {
-            &eprint("Program name contains illegal characters\n");
-        }
-        &dprint("Removing temporary file: $tmpfile\n");
-        unlink($tmpfile);
 
-    } elsif ($command eq "set") {
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-        my $persist_bool;
+                foreach my $obj ($objSet->get_list()) {
+                    my $rand = &rand_string("16");
+                    my $tmpfile = "/tmp/wwsh.$rand";
 
-        foreach my $obj (@objList) {
-            if (defined($opt_path)) {
-                if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
-                    $obj->set("path", $1);
-                    $persist_bool = 1;
-                } else {
-                    &eprint("Illegal characters in the given PATH\n");
-                }
-            }
-            if (defined($opt_mode)) {
-                if ($opt_mode=~ /^(\d\d\d\d)$/) {
-                    $obj->set("mode", $1);
-                    $persist_bool = 1;
-                } else {
-                    &eprint("Invalid MODE given (four numeric digits are required)\n");
-                }
-            }
-            if (defined($opt_uid)) {
-                if ($opt_uid=~ /^(\d+)$/) {
-                    $obj->set("uid", $1);
-                    $persist_bool = 1;
-                } else {
-                    &eprint("Invalid UID given (single numeric digit is required)\n");
-                }
-            }
-            if (defined($opt_gid)) {
-                if ($opt_gid=~ /^(\d+)$/) {
-                    $obj->set("gid", $1);
-                    $persist_bool = 1;
-                } else {
-                    &eprint("Invalid GID given (single numeric digit is required)\n");
-                }
-            }
+                    $obj->file_export($tmpfile);
 
-            if (@opt_origin) {
-                my @origins;
-                foreach my $origin (split(",", join(",", @opt_origin))) {
-                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
-                        push(@origins, $1);
-                    } else {
-                        &eprint("Invalid origin path given: $1\n");
-                    }
-                }
-                $obj->set("origin", @origins);
-                $persist_bool = 1;
-            }
-
-        }
-
-
-        if ($persist_bool) {
-            if ($term->interactive()) {
-                print "Are you sure you want to make the following changes to ". scalar($objectSet->get_list()) ." files(s):\n\n";
-                if ($opt_path) {
-                    print "      PATH = $opt_path\n";
-                }
-                if ($opt_mode) {
-                    print "      MODE = $opt_mode\n";
-                }
-                if (@opt_origin) {
-                    print "    ORIGIN = ". join(",", @opt_origin) . "\n";
-                }
-                if ($opt_uid) {
-                    print "       UID = $opt_uid\n";
-                }
-                if ($opt_gid) {
-                    print "       GID = $opt_gid\n";
-                }
-                print "\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes") {
-                    &nprint("No update performed\n");
-                    return();
-                }
-            }
-
-            $return_count = $db->persist($objectSet);
-
-            &iprint("Updated $return_count objects\n");
-        }
-
-
-
-    } elsif ($command eq "export") {
-        my $path = pop(@ARGV);
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-
-        if ($path =~ /^([a-zA-Z0-9\/\-_\.\s]+)$/) {
-            $path = $1;
-        } else {
-            &eprint("Bad characters in export path\n");
-            return();
-        }
-
-        if (-d $path) {
-            foreach my $obj (@objList) {
-                my $file = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("_id"));
-
-                if (-f "$path/$file" and $term->interactive()) {
-                    print("Are you sure you wish to overwrite $path/$file?\n\n");
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        print "Skipped export of $path/$file\n";
-                        next;
-                    }
-                }
-                open(FILE, "> $path/$file");
-                while(my $buffer = $binstore->get_chunk()) {
-                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
-                    print FILE $buffer;
-                }
-                close FILE;
-                print "Exported: $path/$file\n";
-            }
-        } elsif (-f $path) {
-            if ($term->interactive()) {
-                print("Are you sure you wish to overwrite $path?\n\n");
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    print "No export performed\n";
-                    return();
-                }
-            }
-            if (scalar(@objList) == 1) {
-                my $obj = $objList[0];
-                my $binstore = $db->binstore($obj->get("_id"));
-                open(FILE, "> $path");
-                while(my $buffer = $binstore->get_chunk()) {
-                    print FILE $buffer;
-                }
-                close FILE;
-                print "Exported: $path\n";
-            } else {
-                &eprint("Can only export 1 file, perhaps export to a directory?\n");
-            }
-        } else {
-            my $obj = $objList[0];
-            my $binstore = $db->binstore($obj->get("_id"));
-            if ($path =~ /\/$/) {
-                mkpath($path, {error => \my $err});
-                if (@$err) {
-                    &eprint("Could not create $path\n");
-                    return;
-                }
-                my $name = $obj->get("name");
-                $path .= $name;
-            }
-            open(FILE, "> $path");
-            while(my $buffer = $binstore->get_chunk()) {
-                print FILE $buffer;
-            }
-            close FILE;
-            print "Exported: $path\n";
-        }
-    } elsif ($command eq "show") {
-        my $program;
-        if ($opt_program) {
-            $program = $opt_program;
-        } else {
-            $program = "/bin/more";
-        }
-        open(PROG, "| $program");
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-        foreach my $obj (@objList) {
-            my $binstore = $db->binstore($obj->get("_id"));
-            my $name = $obj->get("name");
-            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-            while(my $buffer = $binstore->get_chunk()) {
-                print PROG $buffer;
-            }
-        }
-        close(PROG);
-
-    } elsif ($command eq "sync" or $command eq "resync") {
-        foreach my $o ($objSet->get_list()) {
-            my @origins = $o->get("origin");
-            if (@origins) {
-                my $data;
-                foreach my $origin (@origins) {
-                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
-                        my $path = $1;
-                        open(FILE, $path);
-                        while(my $line = <FILE>) {
-                            $data .= $line;
+                    if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/]+?)"?$/) {
+                        &dprint("Running command: $1 $tmpfile\n");
+                        if (system("$1 $tmpfile") == 0) {
+                            if ($obj->checksum() ne digest_file_hex_md5($tmpfile)) {
+                                $obj->file_import($tmpfile);
+                            } else {
+                                &nprint("Not updating datastore\n");
+                            }
+                        } else {
+                            &iprint("Command errored out, not updating datastore\n");
                         }
-                        close(FILE);
+                    } else {
+                        &eprint("Program name contains illegal characters: $program\n");
                     }
                 }
-                my $binstore = $db->binstore($o->get("_id"));
-                my $total_len = length($data);
-                my $cur_len = 0;
-                my $start = 0;
-                while($total_len > $cur_len) {
-                    my $buffer = substr($data, $start, $db->chunk_size());
-                    $binstore->put_chunk($buffer);
-                    $start += $db->chunk_size();
-                    $cur_len += length($buffer);
-                    &dprint("Chunked $cur_len of $total_len\n");
-                }
 
-                $o->set("checksum", md5_hex($data));
-                $o->set("size", $total_len);
+
+            } else {
+                &eprint("Invalid command: $command\n");
             }
         }
-
-        $db->persist($objSet);
-
-    } elsif ($command eq "print") {
-        foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name");
-            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-            printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
-            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "PATH", ($o->get("path") || "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "FORMAT", ($o->get("format") || "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($o->get("checksum") || "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "SIZE", (defined $o->get("size") ? $o->get("size") : "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "MODE", (defined $o->get("mode") ? $o->get("mode") : "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "UID", (defined $o->get("uid") ? $o->get("uid") : "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "GID", (defined $o->get("gid") ? $o->get("gid") : "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($o->get("origin"))) || "UNDEF"));
-        }
-    } elsif ($command eq "list" or $command eq "delete") {
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-        &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
-        &nprint("================================================================================\n");
-        foreach my $obj (@objList) {
-            my $nodeSet = $db->get_objects("node", "fileids", $obj->get("_id"));
-            my $node_count = 0;
-            if ($nodeSet) {
-                $node_count = $nodeSet->count();
-            }
-            printf("%-18s %-14s %4s %9.1f   %s\n",
-                $obj->get("name") || "UNDEF",
-                $obj->get("format") || "unknwon",
-                $node_count,
-                $obj->get("size") ? $obj->get("size")/1024 : "0",
-                $obj->get("path") || "");
-        }
-
-        if ($command eq "delete") {
-            if ($term->interactive()) {
-                print("\nAre you sure you wish to make the delete the above file(s)?\n\n");
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    print "No update performed\n";
-                    return();
-                }
-            }
-
-            my $return_count = $db->del_object($objectSet);
-
-            &nprint("Deleted $return_count objects\n");
-        }
-
-    } elsif ($command eq "help") {
-        print $self->help();
-
     } else {
-        &eprint("Unknown command: $command\n\n");
+        &eprint("You must provide a command!\n\n");
         print $self->help();
+        return();
+
     }
-
-
-    # We are done with ARGV, and it was internally modified, so lets reset
-    @ARGV = ();
-
-    return($return_count);
 }
+
+
+
+#    } elsif ($command eq "edit") {
+#        my $program;
+#        if ($opt_program) {
+#            $program = $opt_program;
+#        } else {
+#            $program = "/bin/vi";
+#        }
+#        my $name = shift(@ARGV);
+#        $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
+#        my @objList = $objectSet->get_list();
+#        if (scalar(@objList) > 1) {
+#            &eprint("Only specify one object to edit at a time\n");
+#            return();
+#        } elsif (scalar(@objList) == 0) {
+#            my $obj;
+#            #my $obj = Warewulf::DSOFactory->new("file");
+#            $obj->set($opt_lookup, $name);
+#            $db->persist($obj);
+#            push(@objList, $obj);
+#        }
+#        my $obj = $objList[0];
+#        my $binstore = $db->binstore($obj->get("_id"));
+#        my $rand = &rand_string("16");
+#        my $tmpfile = "/tmp/wwsh.$rand";
+#        my $digest1;
+#        my $digest2;
+#        open(TMPFILE, "> $tmpfile");
+#        while(my $buffer = $binstore->get_chunk()) {
+#            print TMPFILE $buffer;
+#        }
+#        close TMPFILE;
+#        $digest1 = $obj->get("checksum") || "";
+#        if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/]+?)"?$/) {
+#            if (system("$1 $tmpfile") == 0) {
+#                $digest2 = digest_file_hex_md5($tmpfile);
+#                if ($digest1 ne $digest2) {
+#                    my $binstore = $db->binstore($obj->get("_id"));
+#                    my $size;
+#                    my $buffer;
+#                    open(FILE, $tmpfile);
+#                    while(my $length = sysread(FILE, $buffer, 15*1024*1024)) {
+#                        &dprint("Chunked $length bytes of $tmpfile\n");
+#                        $binstore->put_chunk($buffer);
+#                        if (! $size) {
+#                            $obj->set("format", &format($buffer));
+#                        }
+#                        $size += $length;
+#                    }
+#                    close FILE;
+#                    $obj->set("checksum", $digest2);
+#                    $obj->set("size", $size);
+#                    $obj->set("uid", geteuid);
+#                    $obj->set("gid", getegid);
+#                    $obj->set("mode", "0644");
+#                    $db->persist($obj);
+#                    &nprint("Updated datastore\n");
+#                } else {
+#                    &nprint("Not updating datastore\n");
+#                }
+#            } else {
+#                &iprint("Command errored out, not updating datastore\n");
+#            }
+#        } else {
+#            &eprint("Program name contains illegal characters\n");
+#        }
+#        &dprint("Removing temporary file: $tmpfile\n");
+#        unlink($tmpfile);
+#
+#    } elsif ($command eq "set") {
+#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+#        my @objList = $objectSet->get_list();
+#        my $persist_bool;
+#
+#        foreach my $obj (@objList) {
+#            if (defined($opt_path)) {
+#                if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+#                    $obj->set("path", $1);
+#                    $persist_bool = 1;
+#                } else {
+#                    &eprint("Illegal characters in the given PATH\n");
+#                }
+#            }
+#            if (defined($opt_mode)) {
+#                if ($opt_mode=~ /^(\d\d\d\d)$/) {
+#                    $obj->set("mode", $1);
+#                    $persist_bool = 1;
+#                } else {
+#                    &eprint("Invalid MODE given (four numeric digits are required)\n");
+#                }
+#            }
+#            if (defined($opt_uid)) {
+#                if ($opt_uid=~ /^(\d+)$/) {
+#                    $obj->set("uid", $1);
+#                    $persist_bool = 1;
+#                } else {
+#                    &eprint("Invalid UID given (single numeric digit is required)\n");
+#                }
+#            }
+#            if (defined($opt_gid)) {
+#                if ($opt_gid=~ /^(\d+)$/) {
+#                    $obj->set("gid", $1);
+#                    $persist_bool = 1;
+#                } else {
+#                    &eprint("Invalid GID given (single numeric digit is required)\n");
+#                }
+#            }
+#
+#            if (@opt_origin) {
+#                my @origins;
+#                foreach my $origin (split(",", join(",", @opt_origin))) {
+#                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
+#                        push(@origins, $1);
+#                    } else {
+#                        &eprint("Invalid origin path given: $1\n");
+#                    }
+#                }
+#                $obj->set("origin", @origins);
+#                $persist_bool = 1;
+#            }
+#
+#        }
+#
+#
+#        if ($persist_bool) {
+#            if ($term->interactive()) {
+#                print "Are you sure you want to make the following changes to ". scalar($objectSet->get_list()) ." files(s):\n\n";
+#                if ($opt_path) {
+#                    print "      PATH = $opt_path\n";
+#                }
+#                if ($opt_mode) {
+#                    print "      MODE = $opt_mode\n";
+#                }
+#                if (@opt_origin) {
+#                    print "    ORIGIN = ". join(",", @opt_origin) . "\n";
+#                }
+#                if ($opt_uid) {
+#                    print "       UID = $opt_uid\n";
+#                }
+#                if ($opt_gid) {
+#                    print "       GID = $opt_gid\n";
+#                }
+#                print "\n";
+#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+#                if ($yesno ne "y" and $yesno ne "yes") {
+#                    &nprint("No update performed\n");
+#                    return();
+#                }
+#            }
+#
+#            $return_count = $db->persist($objectSet);
+#
+#            &iprint("Updated $return_count objects\n");
+#        }
+#
+#
+#
+#    } elsif ($command eq "export") {
+#        my $path = pop(@ARGV);
+#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+#        my @objList = $objectSet->get_list();
+#
+#        if ($path =~ /^([a-zA-Z0-9\/\-_\.\s]+)$/) {
+#            $path = $1;
+#        } else {
+#            &eprint("Bad characters in export path\n");
+#            return();
+#        }
+#
+#        if (-d $path) {
+#            foreach my $obj (@objList) {
+#                my $file = $obj->get("name");
+#                my $binstore = $db->binstore($obj->get("_id"));
+#
+#                if (-f "$path/$file" and $term->interactive()) {
+#                    print("Are you sure you wish to overwrite $path/$file?\n\n");
+#                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+#                    if ($yesno ne "y" and $yesno ne "yes" ) {
+#                        print "Skipped export of $path/$file\n";
+#                        next;
+#                    }
+#                }
+#                open(FILE, "> $path/$file");
+#                while(my $buffer = $binstore->get_chunk()) {
+#                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
+#                    print FILE $buffer;
+#                }
+#                close FILE;
+#                print "Exported: $path/$file\n";
+#            }
+#        } elsif (-f $path) {
+#            if ($term->interactive()) {
+#                print("Are you sure you wish to overwrite $path?\n\n");
+#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+#                if ($yesno ne "y" and $yesno ne "yes" ) {
+#                    print "No export performed\n";
+#                    return();
+#                }
+#            }
+#            if (scalar(@objList) == 1) {
+#                my $obj = $objList[0];
+#                my $binstore = $db->binstore($obj->get("_id"));
+#                open(FILE, "> $path");
+#                while(my $buffer = $binstore->get_chunk()) {
+#                    print FILE $buffer;
+#                }
+#                close FILE;
+#                print "Exported: $path\n";
+#            } else {
+#                &eprint("Can only export 1 file, perhaps export to a directory?\n");
+#            }
+#        } else {
+#            my $obj = $objList[0];
+#            my $binstore = $db->binstore($obj->get("_id"));
+#            if ($path =~ /\/$/) {
+#                mkpath($path, {error => \my $err});
+#                if (@$err) {
+#                    &eprint("Could not create $path\n");
+#                    return;
+#                }
+#                my $name = $obj->get("name");
+#                $path .= $name;
+#            }
+#            open(FILE, "> $path");
+#            while(my $buffer = $binstore->get_chunk()) {
+#                print FILE $buffer;
+#            }
+#            close FILE;
+#            print "Exported: $path\n";
+#        }
+#    } elsif ($command eq "show") {
+#        my $program;
+#        if ($opt_program) {
+#            $program = $opt_program;
+#        } else {
+#            $program = "/bin/more";
+#        }
+#        open(PROG, "| $program");
+#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+#        my @objList = $objectSet->get_list();
+#        foreach my $obj (@objList) {
+#            my $binstore = $db->binstore($obj->get("_id"));
+#            my $name = $obj->get("name");
+#            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+#            while(my $buffer = $binstore->get_chunk()) {
+#                print PROG $buffer;
+#            }
+#        }
+#        close(PROG);
+#
+#    } elsif ($command eq "sync" or $command eq "resync") {
+#        foreach my $o ($objSet->get_list()) {
+#            my @origins = $o->get("origin");
+#            if (@origins) {
+#                my $data;
+#                foreach my $origin (@origins) {
+#                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
+#                        my $path = $1;
+#                        open(FILE, $path);
+#                        while(my $line = <FILE>) {
+#                            $data .= $line;
+#                        }
+#                        close(FILE);
+#                    }
+#                }
+#                my $binstore = $db->binstore($o->get("_id"));
+#                my $total_len = length($data);
+#                my $cur_len = 0;
+#                my $start = 0;
+#                while($total_len > $cur_len) {
+#                    my $buffer = substr($data, $start, $db->chunk_size());
+#                    $binstore->put_chunk($buffer);
+#                    $start += $db->chunk_size();
+#                    $cur_len += length($buffer);
+#                    &dprint("Chunked $cur_len of $total_len\n");
+#                }
+#
+#                $o->set("checksum", md5_hex($data));
+#                $o->set("size", $total_len);
+#            }
+#        }
+#
+#        $db->persist($objSet);
+#
+#    } elsif ($command eq "print") {
+#        foreach my $o ($objSet->get_list()) {
+#            my $name = $o->get("name");
+#            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+#            printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
+#            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "PATH", ($o->get("path") || "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "FORMAT", ($o->get("format") || "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($o->get("checksum") || "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "SIZE", (defined $o->get("size") ? $o->get("size") : "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "MODE", (defined $o->get("mode") ? $o->get("mode") : "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "UID", (defined $o->get("uid") ? $o->get("uid") : "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "GID", (defined $o->get("gid") ? $o->get("gid") : "UNDEF"));
+#            printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($o->get("origin"))) || "UNDEF"));
+#        }
+#    } elsif ($command eq "list" or $command eq "delete") {
+#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+#        my @objList = $objectSet->get_list();
+#        &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
+#        &nprint("================================================================================\n");
+#        foreach my $obj (@objList) {
+#            my $nodeSet = $db->get_objects("node", "fileids", $obj->get("_id"));
+#            my $node_count = 0;
+#            if ($nodeSet) {
+#                $node_count = $nodeSet->count();
+#            }
+#            printf("%-18s %-14s %4s %9.1f   %s\n",
+#                $obj->get("name") || "UNDEF",
+#                $obj->get("format") || "unknwon",
+#                $node_count,
+#                $obj->get("size") ? $obj->get("size")/1024 : "0",
+#                $obj->get("path") || "");
+#        }
+#
+#        if ($command eq "delete") {
+#            if ($term->interactive()) {
+#                print("\nAre you sure you wish to make the delete the above file(s)?\n\n");
+#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+#                if ($yesno ne "y" and $yesno ne "yes" ) {
+#                    print "No update performed\n";
+#                    return();
+#                }
+#            }
+#
+#            my $return_count = $db->del_object($objectSet);
+#
+#            &nprint("Deleted $return_count objects\n");
+#        }
+#
+#    } elsif ($command eq "help") {
+#        print $self->help();
+#
+#    } else {
+#        &eprint("Unknown command: $command\n\n");
+#        print $self->help();
+#    }
+#
+#
+#    # We are done with ARGV, and it was internally modified, so lets reset
+#    @ARGV = ();
+#
+#    return($return_count);
+#}
 
 
 1;

@@ -227,6 +227,36 @@ gid()
 }
 
 
+=item size($string)
+
+Set or return the size of the raw file stored within the datastore.
+
+=cut
+sub
+size()
+{
+    my ($self, $string) = @_;
+    my $key = "size";
+
+    if (defined($string)) {
+        if (uc($string) eq "UNDEF") {
+            my $name = $self->get("name");
+            &dprint("Object $name delete $key\n");
+            $self->del($key);
+        } elsif ($string =~ /^([0-9]+)$/) {
+            my $name = $self->get("name");
+            &dprint("Object $name set $key = '$1'\n");
+            $self->set($key, $1);
+        } else {
+            &eprint("Invalid characters to set $key = '$string'\n");
+        }
+    }
+
+    return($self->get($key) || "UNDEF");
+}
+
+
+
 =item path($string)
 
 Set or return the target path of this file.
@@ -288,7 +318,61 @@ origin()
 }
 
 
-=item import($file)
+=item sync()
+
+Resync any file objects to their origin(s) on the local file system. This will
+persist immeadiatly to the DataStore.
+
+Note: This will also update some metadata for this file.
+
+=cut
+sub
+sync()
+{
+    my ($self) = @_;
+    
+    if ($self->origin()) {
+        my $data;
+
+        foreach my $origin ($self->origin()) {
+            if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
+                if (-f $origin) {
+                    if (open(FILE, $origin)) {
+                        while(my $line = <FILE>) {
+                            $data .= $line;
+                        }
+                        close FILE;
+                    }
+                }
+            }
+
+        }
+
+        if ($data) {
+            my $db = Warewulf::DataStore->new();
+            my $binstore = $db->binstore($self->id());
+            my $total_len = length($data);
+            my $cur_len = 0;
+            my $start = 0;
+
+            while($total_len > $cur_len) {
+                my $buffer = substr($data, $start, $db->chunk_size());
+                $binstore->put_chunk($buffer);
+                $start += $db->chunk_size();
+                $cur_len += length($buffer);
+                &dprint("Chunked $cur_len of $total_len\n");
+            }
+
+            $self->checksum(md5_hex($data));
+            $self->size($total_len);
+            $db->persist($self);
+        }
+
+    }
+}
+
+
+=item file_import($file)
 
 Import a file at the defined path into the datastore directly. This will
 interact directly with the DataStore because large file imports may
@@ -299,19 +383,24 @@ Note: This will also update the object metadata for this file.
 =cut
 
 sub
-import()
+file_import()
 {
     my ($self, $path) = @_;
+
+    my $id = $self->id();
+
+    if (! $id) {
+        &eprint("This object has no ID!\n");
+        return();
+    }
 
     if ($path) {
         if ($path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
             if (-f $path) {
                 my $db = Warewulf::DataStore->new();
-                my $binstore = $db->binstore($self->id());
+                my $binstore = $db->binstore($id);
                 my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
-                my $size;
 
-                my $size;
                 my $buffer;
                 if (open(FILE, $path)) {
                     while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
@@ -322,11 +411,19 @@ import()
                     close FILE;
 
                     if ($size) {
+                        if (! $self->uid()) {
+                            $self->uid($uid);
+                        }
+                        if (! $self->gid()) {
+                            $self->gid($gid);
+                        }
+                        if (! $self->path()) {
+                            $self->path($path);
+                        }
+                        if (! $self->mode()) {
+                            $self->mode(sprintf("%05o", $mode & 07777));
+                        }
                         $self->size($size);
-                        $self->uid($uid);
-                        $self->gid($gid);
-                        $self->path($path);
-                        $self->mode(sprintf("%05o", $mode & 07777));
                         $self->checksum(digest_file_hex_md5($path));
                         $db->persist($self);
                     } else {
@@ -346,18 +443,19 @@ import()
 
 
 
-=item export($file)
+=item file_export($file)
 
 Export the data from a file object to a location on the file system.
 
 =cut
 
 sub
-export()
+file_export()
 {
     my ($self, $file) = @_;
 
     if ($file) {
+        my $db = Warewulf::DataStore->new();
         if (! -f $file) {
             my $dirname = dirname($file);
 
@@ -366,7 +464,7 @@ export()
             }
         }
 
-        my $binstore = $db->binstore($obj->get("_id"));
+        my $binstore = $db->binstore($self->id());
         if (open(FILE, "> $file")) {
             while(my $buffer = $binstore->get_chunk()) {
                 print FILE $buffer;

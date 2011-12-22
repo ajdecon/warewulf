@@ -11,8 +11,12 @@
 package Warewulf::DSO::File;
 
 use Warewulf::DSO;
+use Warewulf::File;
 
 our @ISA = ('Warewulf::DSO');
+
+push(@Warewulf::File::ISA, 'Warewulf::DSO::File');
+
 
 =head1 NAME
 
@@ -23,38 +27,19 @@ Warewulf::File - Warewulf's general object instance object interface.
 
 =head1 SYNOPSIS
 
+    use Warewulf::File;
     use Warewulf::DSO::File;
 
-    my $obj = Warewulf::DSO::File->new();
+    my $obj = Warewulf::File->new();
 
+    my $type = $obj->type();
+    my @lookups = $obj->lookups();
 
 =head1 METHODS
 
 =over 12
 
 =cut
-
-=item new()
-
-The new constructor will create the object that references configuration the
-stores.
-
-=cut
-
-sub
-new($$)
-{
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $self = ();
-
-    $self = {};
-
-    bless($self, $class);
-
-    return $self->init(@_);
-}
-
 
 =item type()
 
