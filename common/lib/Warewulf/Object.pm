@@ -391,7 +391,7 @@ prop()
                     if (defined($newval)) {
                         push @newvals, $newval;
                     } else {
-                        break;
+                        last;
                     }
                 }
                 if (scalar(@newvals) == scalar(@{$val})) {
