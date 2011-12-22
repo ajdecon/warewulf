@@ -20,6 +20,8 @@ our @EXPORT = ('ret_ok', 'ret_success', 'ret_err', 'ret_msg',
 our @EXPORT_OK = @EXPORT;
 our %EXPORT_TAGS = (':all' => [ @EXPORT_OK ], ':clean' => [ ]);
 
+my $last_retval;
+
 =head1 NAME
 
 Warewulf::RetVal - A mechanism for returning results/exceptions
@@ -46,6 +48,17 @@ from functions in a flexible, extensible manner.
     return Warewulf::RetVal->ret_success(@list);
     return Warewulf::RetVal::ret_err(EPERM);
     return Warewulf::RetVal::ret_msg("Unable to open $filename -- $msg");
+
+    # Value of last RetVal object created is attainable statically.
+    my $lrv = Warewulf::RetVal->lastrv();
+
+    # You can use it like this, too.
+    if (! $obj->some_func($param)->is_ok()) {
+        &eprint("Something failed (%d):  %s\n",
+                Warewulf::RetVal->lastrv()->error(),
+                Warewulf::RetVal->lastrv()->msg());
+        return 0;
+    }
 
 
 =head1 DESCRIPTION
@@ -105,6 +118,7 @@ init()
         @{$self->{"RESULTS"}} = ();
     }
 
+    $last_retval = $self;
     return $self;
 }
 
@@ -377,6 +391,32 @@ ret_libc()
     my $msg = $!;
 
     return Warewulf::RetVal->new($code, $msg, @_);
+}
+
+=back
+
+=head2 Last RetVal Created
+
+The last C<RetVal> object which was created or initialized is stored
+in a shared member variable.  It can be obtained at any time by
+invoking the static method C<lastrv()>.
+
+=over 4
+
+=item lastrv()
+
+Returns the last C<RetVal> object created or initialized (via C<new()>
+or C<init()>).  NOTE: This is NOT thread-safe and should not be
+expected to work predictably in multithreaded programs.  Also, don't
+call it before any C<RetVal> objects have been created.  That would be
+bad.
+
+=cut
+
+sub
+lastrv()
+{
+    return $last_retval;
 }
 
 =back

@@ -288,3 +288,7 @@ Thu Dec 22 11:20:14 2011                        Michael Jennings (mej)
 
 Minor syntax fix for =cut.
 ----------------------------------------------------------------------
+Thu Dec 22 14:12:34 2011                        Michael Jennings (mej)
+
+Add static method for retrieving last RetVal.
+----------------------------------------------------------------------
