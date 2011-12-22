@@ -284,3 +284,7 @@ Wed Dec 21 15:36:09 2011                        Michael Jennings (mej)
 Created a single unified wrapper for object properties (i.e., object
 member variables and the accessor methods that go with them).
 ----------------------------------------------------------------------
+Thu Dec 22 11:20:14 2011                        Michael Jennings (mej)
+
+Minor syntax fix for =cut.
+----------------------------------------------------------------------

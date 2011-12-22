@@ -232,6 +232,7 @@ gid()
 Set or return the size of the raw file stored within the datastore.
 
 =cut
+
 sub
 size()
 {
@@ -326,6 +327,7 @@ persist immeadiatly to the DataStore.
 Note: This will also update some metadata for this file.
 
 =cut
+
 sub
 sync()
 {
