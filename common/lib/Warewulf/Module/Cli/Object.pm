@@ -65,7 +65,8 @@ help()
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
-    $h .= "     Warewulf> object -p id,name,type\n";
+    $h .= "     Warewulf> object -p :all\n";
+    $h .= "     Warewulf> object -p _id,name,_type\n";
     $h .= "\n";
 
     return($h);

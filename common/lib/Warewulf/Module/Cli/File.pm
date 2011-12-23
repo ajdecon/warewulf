@@ -48,7 +48,7 @@ init()
 {
     my ($self) = @_;
 
-    $self->{"DB"} = Warewulf::DataStore->new();
+    return $self;
 }
 
 sub
@@ -118,7 +118,7 @@ sub
 complete()
 {
     my ($self, $text) = @_;
-    my $db = $self->{"DB"};
+    my $db = Warewulf::DataStore->new();
 
     return($db->get_lookups($entity_type, "name"));
 }
@@ -153,7 +153,7 @@ sub
 exec()
 {
     my $self = shift;
-    my $db = $self->{"DB"};
+    my $db = Warewulf::DataStore->new();
     my $term = Warewulf::Term->new();
     my $command;
     my $opt_lookup = "name";
@@ -192,6 +192,7 @@ exec()
         if ($command eq "delete") {
             if (@ARGV) {
                 my $objSet = $db->get_objects("file", $opt_lookup, &expand_bracket(@ARGV));
+                my $object_count = $objSet->count();
                 if ($term->interactive()) {
                     print "Are you sure you want to delete $object_count files(s):\n\n";
                     foreach my $o ($objSet->get_list()) {
@@ -231,6 +232,15 @@ exec()
 
                         if ($objSet->count() > 0) {
                             $obj = $objSet->get_object(0);
+                            if ($term->interactive()) {
+                                my $name = $obj->name() || "UNDEF";
+                                &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
+                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                if ($yesno ne "y" and $yesno ne "yes") {
+                                    &nprint("Not exporting '$name'\n");
+                                    return();
+                                }
+                            }
                         } else {
                             &dprint("Creating a new Warewulf file object\n");
                             $obj = Warewulf::File->new();
@@ -269,15 +279,8 @@ exec()
                 $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
             }
 
-            if ($command eq "set" or $command eq "new") {
-                if ($objSet) {
-                    $object_count = $objSet->count();
-                } else {
-                    &nprint("No nodes found\n");
-                    return();
-                }
 
-            } elsif ($command eq "edit") {
+            if ($command eq "edit") {
                 my $program;
                 if ($opt_program) {
                     $program = $opt_program;
@@ -306,7 +309,7 @@ exec()
 
                     $obj->file_export($tmpfile);
 
-                    if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/]+?)"?$/) {
+                    if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
                         &dprint("Running command: $1 $tmpfile\n");
                         if (system("$1 $tmpfile") == 0) {
                             if ($obj->checksum() ne digest_file_hex_md5($tmpfile)) {
@@ -320,9 +323,138 @@ exec()
                     } else {
                         &eprint("Program name contains illegal characters: $program\n");
                     }
+
+                    unlink($tmpfile);
+                }
+
+            } elsif ($command eq "export") {
+                if ($objSet) {
+                    $object_count = $objSet->count();
+                } else {
+                    &nprint("File(s) not found\n");
+                    return();
+                }
+                
+                foreach my $obj ($objSet->get_list) {
+                    my $name = $obj->name();
+                    my $path = getcwd();
+                    if (-f $name) {
+                        if ($term->interactive()) {
+                            &wprint("Do you wish to overwrite this file: $path/$name?");
+                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                            if ($yesno ne "y" and $yesno ne "yes") {
+                                &nprint("Not exporting '$name'\n");
+                                return();
+                            }
+                        }
+                    }
+                    $obj->file_export("$path/$name");
+                }
+
+            } elsif ($command eq "set" or $command eq "new") {
+                my $persist_count = 0;
+                my @changes;
+                if ($objSet) {
+                    $object_count = $objSet->count();
+                } else {
+                    &nprint("File(s) not found\n");
+                    return();
+                }
+
+                if (defined($opt_path)) {
+                    if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+                        my $path = $1;
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->path($path);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "PATH", $path));
+                    }
+                }
+                if (defined($opt_mode)) {
+                    if ($opt_mode =~ /^(\d\d\d\d)$/) {
+                        my $mode = $1;
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->mode($mode);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "MODE", $mode));
+                    }
+                }
+                if (defined($opt_uid)) {
+                    if ($opt_uid =~ /^(\d+)$/) {
+                        my $uid = $1;
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->uid($uid);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "UID", $uid));
+                    }
+                }
+                if (defined($opt_gid)) {
+                    if ($opt_gid =~ /^(\d+)$/) {
+                        my $gid = $1;
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->gid($gid);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "GID", $gid));
+                    }
+                }
+                if (@opt_origin) {
+                    my @origins;
+                    foreach my $origin (split(",", join(",", @opt_origin))) {
+                        if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
+                            push(@origins, $1);
+                            $persist_count++;
+                        } else {
+                            &eprint("Invalid origin path given: $origin\n");
+                        }
+                    }
+                    if (@origins) {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->origin(@origins);
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "ORIGIN", join(",", @origins)));
+                    }
                 }
 
 
+                if ($persist_count > 0) {
+                    if ($term->interactive()) {
+                        my $file_count = $objSet->count();
+                        print "Are you sure you want to make the following $persist_count actions(s) to $file_count file(s):\n\n";
+                        foreach my $change (@changes) {
+                            print $change;
+                        }
+                        print "\n";
+                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                        if ($yesno ne "y" and $yesno ne "yes") {
+                            &nprint("No update performed\n");
+                            return();
+                        }
+                    }
+
+                    $return_count = $db->persist($objSet);
+
+                    &iprint("Updated $return_count objects\n");
+                }
+
+            } elsif ($command eq "print") {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+                    printf("%15s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
+                    printf("%15s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
+#                    printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "MODE", ($obj->mode() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "UID", ($obj->uid() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "GID", ($obj->gid() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
+                }
             } else {
                 &eprint("Invalid command: $command\n");
             }
@@ -337,235 +469,6 @@ exec()
 
 
 
-#    } elsif ($command eq "edit") {
-#        my $program;
-#        if ($opt_program) {
-#            $program = $opt_program;
-#        } else {
-#            $program = "/bin/vi";
-#        }
-#        my $name = shift(@ARGV);
-#        $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-#        my @objList = $objectSet->get_list();
-#        if (scalar(@objList) > 1) {
-#            &eprint("Only specify one object to edit at a time\n");
-#            return();
-#        } elsif (scalar(@objList) == 0) {
-#            my $obj;
-#            #my $obj = Warewulf::DSOFactory->new("file");
-#            $obj->set($opt_lookup, $name);
-#            $db->persist($obj);
-#            push(@objList, $obj);
-#        }
-#        my $obj = $objList[0];
-#        my $binstore = $db->binstore($obj->get("_id"));
-#        my $rand = &rand_string("16");
-#        my $tmpfile = "/tmp/wwsh.$rand";
-#        my $digest1;
-#        my $digest2;
-#        open(TMPFILE, "> $tmpfile");
-#        while(my $buffer = $binstore->get_chunk()) {
-#            print TMPFILE $buffer;
-#        }
-#        close TMPFILE;
-#        $digest1 = $obj->get("checksum") || "";
-#        if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/]+?)"?$/) {
-#            if (system("$1 $tmpfile") == 0) {
-#                $digest2 = digest_file_hex_md5($tmpfile);
-#                if ($digest1 ne $digest2) {
-#                    my $binstore = $db->binstore($obj->get("_id"));
-#                    my $size;
-#                    my $buffer;
-#                    open(FILE, $tmpfile);
-#                    while(my $length = sysread(FILE, $buffer, 15*1024*1024)) {
-#                        &dprint("Chunked $length bytes of $tmpfile\n");
-#                        $binstore->put_chunk($buffer);
-#                        if (! $size) {
-#                            $obj->set("format", &format($buffer));
-#                        }
-#                        $size += $length;
-#                    }
-#                    close FILE;
-#                    $obj->set("checksum", $digest2);
-#                    $obj->set("size", $size);
-#                    $obj->set("uid", geteuid);
-#                    $obj->set("gid", getegid);
-#                    $obj->set("mode", "0644");
-#                    $db->persist($obj);
-#                    &nprint("Updated datastore\n");
-#                } else {
-#                    &nprint("Not updating datastore\n");
-#                }
-#            } else {
-#                &iprint("Command errored out, not updating datastore\n");
-#            }
-#        } else {
-#            &eprint("Program name contains illegal characters\n");
-#        }
-#        &dprint("Removing temporary file: $tmpfile\n");
-#        unlink($tmpfile);
-#
-#    } elsif ($command eq "set") {
-#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-#        my @objList = $objectSet->get_list();
-#        my $persist_bool;
-#
-#        foreach my $obj (@objList) {
-#            if (defined($opt_path)) {
-#                if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
-#                    $obj->set("path", $1);
-#                    $persist_bool = 1;
-#                } else {
-#                    &eprint("Illegal characters in the given PATH\n");
-#                }
-#            }
-#            if (defined($opt_mode)) {
-#                if ($opt_mode=~ /^(\d\d\d\d)$/) {
-#                    $obj->set("mode", $1);
-#                    $persist_bool = 1;
-#                } else {
-#                    &eprint("Invalid MODE given (four numeric digits are required)\n");
-#                }
-#            }
-#            if (defined($opt_uid)) {
-#                if ($opt_uid=~ /^(\d+)$/) {
-#                    $obj->set("uid", $1);
-#                    $persist_bool = 1;
-#                } else {
-#                    &eprint("Invalid UID given (single numeric digit is required)\n");
-#                }
-#            }
-#            if (defined($opt_gid)) {
-#                if ($opt_gid=~ /^(\d+)$/) {
-#                    $obj->set("gid", $1);
-#                    $persist_bool = 1;
-#                } else {
-#                    &eprint("Invalid GID given (single numeric digit is required)\n");
-#                }
-#            }
-#
-#            if (@opt_origin) {
-#                my @origins;
-#                foreach my $origin (split(",", join(",", @opt_origin))) {
-#                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
-#                        push(@origins, $1);
-#                    } else {
-#                        &eprint("Invalid origin path given: $1\n");
-#                    }
-#                }
-#                $obj->set("origin", @origins);
-#                $persist_bool = 1;
-#            }
-#
-#        }
-#
-#
-#        if ($persist_bool) {
-#            if ($term->interactive()) {
-#                print "Are you sure you want to make the following changes to ". scalar($objectSet->get_list()) ." files(s):\n\n";
-#                if ($opt_path) {
-#                    print "      PATH = $opt_path\n";
-#                }
-#                if ($opt_mode) {
-#                    print "      MODE = $opt_mode\n";
-#                }
-#                if (@opt_origin) {
-#                    print "    ORIGIN = ". join(",", @opt_origin) . "\n";
-#                }
-#                if ($opt_uid) {
-#                    print "       UID = $opt_uid\n";
-#                }
-#                if ($opt_gid) {
-#                    print "       GID = $opt_gid\n";
-#                }
-#                print "\n";
-#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-#                if ($yesno ne "y" and $yesno ne "yes") {
-#                    &nprint("No update performed\n");
-#                    return();
-#                }
-#            }
-#
-#            $return_count = $db->persist($objectSet);
-#
-#            &iprint("Updated $return_count objects\n");
-#        }
-#
-#
-#
-#    } elsif ($command eq "export") {
-#        my $path = pop(@ARGV);
-#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-#        my @objList = $objectSet->get_list();
-#
-#        if ($path =~ /^([a-zA-Z0-9\/\-_\.\s]+)$/) {
-#            $path = $1;
-#        } else {
-#            &eprint("Bad characters in export path\n");
-#            return();
-#        }
-#
-#        if (-d $path) {
-#            foreach my $obj (@objList) {
-#                my $file = $obj->get("name");
-#                my $binstore = $db->binstore($obj->get("_id"));
-#
-#                if (-f "$path/$file" and $term->interactive()) {
-#                    print("Are you sure you wish to overwrite $path/$file?\n\n");
-#                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-#                    if ($yesno ne "y" and $yesno ne "yes" ) {
-#                        print "Skipped export of $path/$file\n";
-#                        next;
-#                    }
-#                }
-#                open(FILE, "> $path/$file");
-#                while(my $buffer = $binstore->get_chunk()) {
-#                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
-#                    print FILE $buffer;
-#                }
-#                close FILE;
-#                print "Exported: $path/$file\n";
-#            }
-#        } elsif (-f $path) {
-#            if ($term->interactive()) {
-#                print("Are you sure you wish to overwrite $path?\n\n");
-#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-#                if ($yesno ne "y" and $yesno ne "yes" ) {
-#                    print "No export performed\n";
-#                    return();
-#                }
-#            }
-#            if (scalar(@objList) == 1) {
-#                my $obj = $objList[0];
-#                my $binstore = $db->binstore($obj->get("_id"));
-#                open(FILE, "> $path");
-#                while(my $buffer = $binstore->get_chunk()) {
-#                    print FILE $buffer;
-#                }
-#                close FILE;
-#                print "Exported: $path\n";
-#            } else {
-#                &eprint("Can only export 1 file, perhaps export to a directory?\n");
-#            }
-#        } else {
-#            my $obj = $objList[0];
-#            my $binstore = $db->binstore($obj->get("_id"));
-#            if ($path =~ /\/$/) {
-#                mkpath($path, {error => \my $err});
-#                if (@$err) {
-#                    &eprint("Could not create $path\n");
-#                    return;
-#                }
-#                my $name = $obj->get("name");
-#                $path .= $name;
-#            }
-#            open(FILE, "> $path");
-#            while(my $buffer = $binstore->get_chunk()) {
-#                print FILE $buffer;
-#            }
-#            close FILE;
-#            print "Exported: $path\n";
-#        }
 #    } elsif ($command eq "show") {
 #        my $program;
 #        if ($opt_program) {
