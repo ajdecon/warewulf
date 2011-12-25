@@ -190,6 +190,17 @@ get_objects($$$@)
         my $id = $h->{"id"};
         my $type = $h->{"type"};
         my $o = Warewulf::DSO->unserialize($h->{"serialized"});
+        my $modname = ucfirst($type);
+        my $modfile = "Warewulf/$modname.pm";
+        if (exists($INC{"$modfile"})) {
+            if (ref($o) eq "HASH") {
+                &iprint("Working around old datatype format for type: $type\n");
+                bless($o, "Warewulf::$modname");
+            }
+        } else {
+            &eprint("Skipping data store object type '$type' (is Warewulf::$modname loaded?)\n");
+            next;
+        }
         $o->set("_id", $id);
         $o->set("_type", $type);
         $objectSet->add($o);
