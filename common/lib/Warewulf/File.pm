@@ -124,7 +124,7 @@ mode()
             my $name = $self->get("name");
             &dprint("Object $name delete $key\n");
             $self->del($key);
-        } elsif ($string =~ /^(\d+)$/) {
+        } elsif ($string =~ /^([0-7]{3,4})$/) {
             my $name = $self->get("name");
             &dprint("Object $name set $key = '$1'\n");
             $self->set($key, $1);
@@ -133,7 +133,7 @@ mode()
         }
     }
 
-    return($self->get($key) || "UNDEF");
+    return(sprintf("%04d", $self->get($key) || "0"));
 }
 
 
@@ -193,7 +193,7 @@ uid()
         }
     }
 
-    return($self->get($key) || "UNDEF");
+    return($self->get($key) || "0");
 }
 
 
@@ -223,7 +223,7 @@ gid()
         }
     }
 
-    return($self->get($key) || "UNDEF");
+    return($self->get($key) || "0");
 }
 
 
@@ -413,17 +413,17 @@ file_import()
                     close FILE;
 
                     if ($size) {
-                        if (! $self->uid()) {
+                        if (! defined($self->get("uid"))) {
                             $self->uid($uid);
                         }
-                        if (! $self->gid()) {
+                        if (! defined($self->get("gid"))) {
                             $self->gid($gid);
                         }
-                        if (! $self->path()) {
+                        if (! defined($self->get("path"))) {
                             $self->path($path);
                         }
-                        if (! $self->mode()) {
-                            $self->mode(sprintf("%05o", $mode & 07777));
+                        if (! defined($self->get("mode"))) {
+                            $self->mode(sprintf("%04o", $mode & 0777));
                         }
                         $self->size($size);
                         $self->checksum(digest_file_hex_md5($path));

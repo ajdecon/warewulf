@@ -189,25 +189,83 @@ exec()
     }
 
     if ($command) {
-        if ($command eq "delete") {
-            if (@ARGV) {
+        # Import and export commands are done seperately because they take a
+        # slightly different argument syntax.
+        if ($command eq "export") {
+            if (scalar(@ARGV) >= 2) {
+                my $path = pop(@ARGV);
                 my $objSet = $db->get_objects("file", $opt_lookup, &expand_bracket(@ARGV));
-                my $object_count = $objSet->count();
-                if ($term->interactive()) {
-                    print "Are you sure you want to delete $object_count files(s):\n\n";
-                    foreach my $o ($objSet->get_list()) {
-                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                if ($objSet->count() eq 0) {
+                    &nprint("File(s) not found\n");
+                    return();
+                }
+
+                if ($path =~ /^([a-zA-Z0-9\.\-_\/]+?)\/?$/) {
+                    $path = $1;
+                } else {
+                    &eprint("Destination path contains illegal characters: $path\n");
+                }
+                
+                if ($objSet->count() == 1) {
+                    my $obj = $objSet->get_object(0);
+                    my $name = $obj->name();
+                    if (-f $path) {
+                        if ($term->interactive()) {
+                            &wprint("Do you wish to overwrite this file: $path?");
+                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                            if ($yesno ne "y" and $yesno ne "yes") {
+                                &nprint("Not exporting '$name'\n");
+                                return();
+                            }
+                        }
+
+                        &iprint("Exporting single file object to defined file: $path\n");
+                        $obj->file_export($path);
+                    } elsif (-d $path) {
+                        if (-f "$path/$name") {
+                            if ($term->interactive()) {
+                                &wprint("Do you wish to overwrite this file: $path/$name?");
+                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                if ($yesno ne "y" and $yesno ne "yes") {
+                                    &nprint("Not exporting '$name'\n");
+                                    return();
+                                }
+                            }
+                        }
+                        &iprint("Exporting single file object to defined directory path: $path/$name\n");
+                        $obj->file_export("$path/$name");
+                    } else {
+                        my $dirname = dirname($path);
+                        if (-d $dirname) {
+                            &iprint("Exporting single file object to extrapolated directory path: $path/$name\n");
+                            $obj->file_export($path);
+                        } else {
+                            &eprint("Can not export to non-existant directory: $path\n");
+                        }
                     }
-                    print "\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes") {
-                        &nprint("No update performed\n");
-                        return();
+                } elsif ($objSet->count() > 1) {
+                    if (-d $path) {
+                        foreach my $obj ($objSet->get_list()) {
+                            my $name = $obj->name();
+                            if (-f "$path/$name") {
+                                if ($term->interactive()) {
+                                    &wprint("Do you wish to overwrite this file: $path/$name?");
+                                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                    if ($yesno ne "y" and $yesno ne "yes") {
+                                        &nprint("Not exporting '$name'\n");
+                                        next;
+                                    }
+                                }
+                            }
+                            &iprint("Exporting multiple file objects to defined directory path: $path/$name\n");
+                            $obj->file_export("$path/$name");
+                        }
+                    } else {
+                        &eprint("Can not export to non-existant directory: $path\n");
                     }
                 }
-                $db->del_object($objSet);
             } else {
-                &eprint("Specify the files you wish to delete!\n");
+                &eprint("USAGE: file export [file name sources...] [destination]\n");
             }
 
         } elsif ($command eq "import") {
@@ -280,7 +338,23 @@ exec()
             }
 
 
-            if ($command eq "edit") {
+            if ($command eq "delete") {
+                my $object_count = $objSet->count();
+                if ($term->interactive()) {
+                    print "Are you sure you want to delete $object_count files(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                    }
+                    print "\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
+                        return();
+                    }
+                }
+                $db->del_object($objSet);
+
+            } elsif ($command eq "edit") {
                 my $program;
                 if ($opt_program) {
                     $program = $opt_program;
@@ -325,30 +399,6 @@ exec()
                     }
 
                     unlink($tmpfile);
-                }
-
-            } elsif ($command eq "export") {
-                if ($objSet) {
-                    $object_count = $objSet->count();
-                } else {
-                    &nprint("File(s) not found\n");
-                    return();
-                }
-                
-                foreach my $obj ($objSet->get_list) {
-                    my $name = $obj->name();
-                    my $path = getcwd();
-                    if (-f $name) {
-                        if ($term->interactive()) {
-                            &wprint("Do you wish to overwrite this file: $path/$name?");
-                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                            if ($yesno ne "y" and $yesno ne "yes") {
-                                &nprint("Not exporting '$name'\n");
-                                return();
-                            }
-                        }
-                    }
-                    $obj->file_export("$path/$name");
                 }
 
             } elsif ($command eq "set" or $command eq "new") {
@@ -440,6 +490,41 @@ exec()
                     &iprint("Updated $return_count objects\n");
                 }
 
+            } elsif ($command eq "list" or $command eq "ls") {
+                #&nprint("NAME               FORMAT       SIZE(K)  FILE PATH\n");
+                #&nprint("================================================================================\n");
+                foreach my $obj ($objSet->get_list()) {
+                    my $perms = "-";
+                    foreach my $m (split(//, substr($obj->mode(), -3))) {
+                        if ($m eq 7) {
+                            $perms .= "rwx";
+                        } elsif ($m eq 6) {
+                            $perms .= "rw-";
+                        } elsif ($m eq 5) {
+                            $perms .= "r-x";
+                        } elsif ($m eq 4) {
+                            $perms .= "r--";
+                        } elsif ($m eq 3) {
+                            $perms .= "-wx";
+                        } elsif ($m eq 2) {
+                            $perms .= "-w-";
+                        } elsif ($m eq 1) {
+                            $perms .= "--x";
+                        } else {
+                            $perms .= "---";
+                        }
+                    }
+                    my $user_group = getpwuid($obj->uid()) ." ". getgrgid($obj->gid());
+                    my @o = $obj->origin();
+                    printf("%-10s %10s %d %-16s %9d %s\n",
+                        $obj->name() .":",
+                        $perms,
+                        scalar @o,
+                        $user_group,
+                        $obj->size(),
+                        $obj->path(),
+                    );
+                }
             } elsif ($command eq "print") {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
@@ -449,10 +534,10 @@ exec()
                     printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
 #                    printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
                     printf("%15s: %-16s = %s\n", $name, "MODE", ($obj->mode() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "UID", ($obj->uid() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "GID", ($obj->gid() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "UID", $obj->uid());
+                    printf("%15s: %-16s = %s\n", $name, "GID", $obj->gid());
                     printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
                 }
             } else {
