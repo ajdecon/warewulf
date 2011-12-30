@@ -80,6 +80,10 @@ GetOptions(
 
 &set_log_level("NOTICE");
 
+$modules = Warewulf::ModuleLoader->new("Cli");
+$db = Warewulf::DataStore->new();
+$term = Warewulf::Term->new();
+
 if ($opt_debug) {
     &set_log_level("DEBUG");
 } elsif ($opt_verbose) {
@@ -88,10 +92,6 @@ if ($opt_debug) {
     $term->interactive(0);
     &set_log_level("WARNING");
 }
-
-$modules = Warewulf::ModuleLoader->new("Cli");
-$db = Warewulf::DataStore->new();
-$term = Warewulf::Term->new();
 
 foreach my $module ($modules->list()) {
     push(@keywords, $module->keyword());
