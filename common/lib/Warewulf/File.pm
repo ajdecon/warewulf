@@ -14,6 +14,8 @@ use Warewulf::DataStore;
 use Warewulf::Util;
 use File::Basename;
 use File::Path;
+use Digest::MD5 qw(md5_hex);
+
 
 
 our @ISA = ('Warewulf::Object');
@@ -288,6 +290,36 @@ path()
 }
 
 
+=item format($string)
+
+Set or return the format of this file.
+
+=cut
+
+sub
+format()
+{
+    my ($self, $string) = @_;
+    my $key = "format";
+
+    if (defined($string)) {
+        if (uc($string) eq "UNDEF") {
+            my $name = $self->get("name");
+            &dprint("Object $name delete $key\n");
+            $self->del($key);
+        } elsif ($string =~ /^([a-z]+)$/) {
+            my $name = $self->get("name");
+            &dprint("Object $name set $key = '$1'\n");
+            $self->set($key, $1);
+        } else {
+            &eprint("Invalid characters to set $key = '$string'\n");
+        }
+    }
+
+    return($self->get($key) || "UNDEF");
+}
+
+
 
 =item origin(@strings)
 
@@ -332,18 +364,24 @@ sub
 sync()
 {
     my ($self) = @_;
+    my $name = $self->name();
     
     if ($self->origin()) {
         my $data;
+
+        &dprint("Syncing file object: $name\n");
 
         foreach my $origin ($self->origin()) {
             if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
                 if (-f $origin) {
                     if (open(FILE, $origin)) {
+                        &dprint("   Including file to sync: $origin\n");
                         while(my $line = <FILE>) {
                             $data .= $line;
                         }
                         close FILE;
+                    } else {
+                        &wprint("Could not open origin ($origin) for file object '$name'\n");
                     }
                 }
             }
@@ -356,6 +394,8 @@ sync()
             my $total_len = length($data);
             my $cur_len = 0;
             my $start = 0;
+
+            &dprint("Persisting file object '$name' origins\n");
 
             while($total_len > $cur_len) {
                 my $buffer = substr($data, $start, $db->chunk_size());
@@ -370,6 +410,8 @@ sync()
             $db->persist($self);
         }
 
+    } else {
+        &dprint("Skipping file objct '$name' as it has no origins set\n");
     }
 }
 
@@ -401,18 +443,33 @@ file_import()
             if (-f $path) {
                 my $db = Warewulf::DataStore->new();
                 my $binstore = $db->binstore($id);
+                my $format;
+                my $import_size = 0;
+                my $buffer;
                 my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
 
-                my $buffer;
                 if (open(FILE, $path)) {
                     while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
+                        if ($import_size eq 0) {
+                            if ($buffer =~ /^#!\/bin\/sh/) {
+                                $format = "shell";
+                            } elsif ($buffer =~ /^#!\/bin\/bash/) {
+                                $format = "bash";
+                            } elsif ($buffer =~ /^#!\/[a-zA-Z0-9\/_\.]+\/perl/) {
+                                $format = "perl";
+                            } elsif ($buffer =~ /^#!\/[a-zA-Z0-9\/_\.]+\/python/) {
+                                $format = "python";
+                            } else {
+                                $format = "data";
+                            }
+                        }
                         &dprint("Chunked $length bytes of $path\n");
                         $binstore->put_chunk($buffer);
-                        $size += $length;
+                        $import_size += $length;
                     }
                     close FILE;
 
-                    if ($size) {
+                    if ($import_size) {
                         if (! defined($self->get("uid"))) {
                             $self->uid($uid);
                         }
@@ -425,8 +482,9 @@ file_import()
                         if (! defined($self->get("mode"))) {
                             $self->mode(sprintf("%04o", $mode & 0777));
                         }
-                        $self->size($size);
+                        $self->size($import_size);
                         $self->checksum(digest_file_hex_md5($path));
+                        $self->format($format);
                         $db->persist($self);
                     } else {
                         &eprint("Could not import file!\n");
@@ -477,9 +535,6 @@ file_export()
         }
     }
 }
-
-
-
 
 
 

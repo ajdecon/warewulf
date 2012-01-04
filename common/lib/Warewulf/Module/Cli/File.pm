@@ -357,7 +357,12 @@ exec()
             } elsif ($command eq "edit") {
                 my $program;
                 if ($opt_program) {
-                    $program = $opt_program;
+                    if ($opt_program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
+                        $program = $1;
+                    } else {
+                        &eprint("Program name contains illegal characters: $program\n");
+                        return();
+                    }
                 } else {
                     $program = "/bin/vi";
                 }
@@ -383,19 +388,15 @@ exec()
 
                     $obj->file_export($tmpfile);
 
-                    if ($program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
-                        &dprint("Running command: $1 $tmpfile\n");
-                        if (system("$1 $tmpfile") == 0) {
-                            if ($obj->checksum() ne digest_file_hex_md5($tmpfile)) {
-                                $obj->file_import($tmpfile);
-                            } else {
-                                &nprint("Not updating datastore\n");
-                            }
+                    &dprint("Running command: $program $tmpfile\n");
+                    if (system("$program $tmpfile") == 0) {
+                        if ($obj->checksum() ne digest_file_hex_md5($tmpfile)) {
+                            $obj->file_import($tmpfile);
                         } else {
-                            &iprint("Command errored out, not updating datastore\n");
+                            &nprint("Not updating datastore\n");
                         }
                     } else {
-                        &eprint("Program name contains illegal characters: $program\n");
+                        &iprint("Command errored out, not updating datastore\n");
                     }
 
                     unlink($tmpfile);
@@ -490,6 +491,37 @@ exec()
                     &iprint("Updated $return_count objects\n");
                 }
 
+            } elsif ($command eq "show") {
+                my $program;
+                if ($opt_program) {
+                    if ($opt_program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
+                        $program = $1;
+                    } else {
+                        &eprint("Program name contains illegal characters: $program\n");
+                        return();
+                    }
+                } else {
+                    $program = "/bin/cat";
+                }
+
+                foreach my $obj ($objSet->get_list()) {
+                    my $rand = &rand_string("16");
+                    my $tmpfile = "/tmp/wwsh.$rand";
+
+                    $obj->file_export($tmpfile);
+
+                    if (system("$program $tmpfile") == 0) {
+                        unlink($tmpfile);
+                    } else {
+                        &eprint("Program failed: $program $tmpfile\n");
+                    }
+
+                }
+
+            } elsif ($command eq "sync" or $command eq "resync") {
+                foreach my $obj ($objSet->get_list()) {
+                    $obj->sync();
+                }
             } elsif ($command eq "list" or $command eq "ls") {
                 #&nprint("NAME               FORMAT       SIZE(K)  FILE PATH\n");
                 #&nprint("================================================================================\n");
@@ -532,7 +564,7 @@ exec()
                     printf("%15s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
                     printf("%15s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
-#                    printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
                     printf("%15s: %-16s = %s\n", $name, "MODE", ($obj->mode() || "UNDEF"));
@@ -553,124 +585,6 @@ exec()
 }
 
 
-
-#    } elsif ($command eq "show") {
-#        my $program;
-#        if ($opt_program) {
-#            $program = $opt_program;
-#        } else {
-#            $program = "/bin/more";
-#        }
-#        open(PROG, "| $program");
-#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-#        my @objList = $objectSet->get_list();
-#        foreach my $obj (@objList) {
-#            my $binstore = $db->binstore($obj->get("_id"));
-#            my $name = $obj->get("name");
-#            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-#            while(my $buffer = $binstore->get_chunk()) {
-#                print PROG $buffer;
-#            }
-#        }
-#        close(PROG);
-#
-#    } elsif ($command eq "sync" or $command eq "resync") {
-#        foreach my $o ($objSet->get_list()) {
-#            my @origins = $o->get("origin");
-#            if (@origins) {
-#                my $data;
-#                foreach my $origin (@origins) {
-#                    if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
-#                        my $path = $1;
-#                        open(FILE, $path);
-#                        while(my $line = <FILE>) {
-#                            $data .= $line;
-#                        }
-#                        close(FILE);
-#                    }
-#                }
-#                my $binstore = $db->binstore($o->get("_id"));
-#                my $total_len = length($data);
-#                my $cur_len = 0;
-#                my $start = 0;
-#                while($total_len > $cur_len) {
-#                    my $buffer = substr($data, $start, $db->chunk_size());
-#                    $binstore->put_chunk($buffer);
-#                    $start += $db->chunk_size();
-#                    $cur_len += length($buffer);
-#                    &dprint("Chunked $cur_len of $total_len\n");
-#                }
-#
-#                $o->set("checksum", md5_hex($data));
-#                $o->set("size", $total_len);
-#            }
-#        }
-#
-#        $db->persist($objSet);
-#
-#    } elsif ($command eq "print") {
-#        foreach my $o ($objSet->get_list()) {
-#            my $name = $o->get("name");
-#            &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-#            printf("%15s: %-16s = %s\n", $name, "ID", ($o->get("_id") || "ERROR"));
-#            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->get("name") || "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "PATH", ($o->get("path") || "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "FORMAT", ($o->get("format") || "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($o->get("checksum") || "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "SIZE", (defined $o->get("size") ? $o->get("size") : "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "MODE", (defined $o->get("mode") ? $o->get("mode") : "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "UID", (defined $o->get("uid") ? $o->get("uid") : "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "GID", (defined $o->get("gid") ? $o->get("gid") : "UNDEF"));
-#            printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($o->get("origin"))) || "UNDEF"));
-#        }
-#    } elsif ($command eq "list" or $command eq "delete") {
-#        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-#        my @objList = $objectSet->get_list();
-#        &nprint("NAME               FORMAT       #NODES    SIZE(K)  FILE PATH\n");
-#        &nprint("================================================================================\n");
-#        foreach my $obj (@objList) {
-#            my $nodeSet = $db->get_objects("node", "fileids", $obj->get("_id"));
-#            my $node_count = 0;
-#            if ($nodeSet) {
-#                $node_count = $nodeSet->count();
-#            }
-#            printf("%-18s %-14s %4s %9.1f   %s\n",
-#                $obj->get("name") || "UNDEF",
-#                $obj->get("format") || "unknwon",
-#                $node_count,
-#                $obj->get("size") ? $obj->get("size")/1024 : "0",
-#                $obj->get("path") || "");
-#        }
-#
-#        if ($command eq "delete") {
-#            if ($term->interactive()) {
-#                print("\nAre you sure you wish to make the delete the above file(s)?\n\n");
-#                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-#                if ($yesno ne "y" and $yesno ne "yes" ) {
-#                    print "No update performed\n";
-#                    return();
-#                }
-#            }
-#
-#            my $return_count = $db->del_object($objectSet);
-#
-#            &nprint("Deleted $return_count objects\n");
-#        }
-#
-#    } elsif ($command eq "help") {
-#        print $self->help();
-#
-#    } else {
-#        &eprint("Unknown command: $command\n\n");
-#        print $self->help();
-#    }
-#
-#
-#    # We are done with ARGV, and it was internally modified, so lets reset
-#    @ARGV = ();
-#
-#    return($return_count);
-#}
 
 
 1;
