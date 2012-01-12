@@ -10,6 +10,8 @@
 
 package Warewulf::Object;
 
+use Warewulf::Logger;
+
 our @ISA = ();
 
 =head1 NAME
@@ -307,12 +309,12 @@ del()
 Wrapper for object properties (member variables that have matching
 combined getter/setter methods).  The I<key> is the member name.
 I<value> is a reference to a scalar value or an array of values.  If
-I<value> is itself undefined, the current value(s) for the I<key>
-member are returned.  If I<value> is a valid reference to a scalar,
-but that scalar has an undefined value, the I<key> member will be
-deleted.  Likewise, if I<value> is a reference to an empty array, the
-I<key> member will be deleted.  (This is consistent with the behavior
-of the C<del()> method.)
+I<value> is not present, the current value(s) for the I<key> member
+are returned.  If I<value> is a valid reference to a scalar, but that
+scalar has an undefined value, the I<key> member will be deleted.
+Likewise, if I<value> is a reference to an empty array, the I<key>
+member will be deleted.  (This is consistent with the behavior of the
+C<del()> method.)
 
 The optional validator is a reference to a regular expression
 (supplied via qr/.../) or a coderef.  Each value must match the regex
@@ -336,7 +338,7 @@ getter/setter method like so:
         if ($value eq "UNDEF") {
             $value = undef;
         }
-        return $self->prop("membervar", \$value, qr/^(\w+)$/);
+        return $self->prop("membervar", ((scalar(@_) == 1) ? (undef) : (\$value)), qr/^(\w+)$/);
     }
 
 =cut

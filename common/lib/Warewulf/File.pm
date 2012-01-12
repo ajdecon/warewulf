@@ -354,7 +354,7 @@ origin()
 =item sync()
 
 Resync any file objects to their origin(s) on the local file system. This will
-persist immeadiatly to the DataStore.
+persist immediately to the DataStore.
 
 Note: This will also update some metadata for this file.
 
