@@ -312,7 +312,7 @@ is_tainted($) {
 
 Returns a string representation of a deep examination of the value of
 a reference.  Useful for debugging complex data structures and
-objects.  Results are appeneded to the contents of $buffer (default
+objects.  Results are appended to the contents of $buffer (default
 "") and returned.  $indent is the numerical value for the initial
 indent level (default 0).  $indent_step determines how many spaces to
 indent each subsequent level (default 4).

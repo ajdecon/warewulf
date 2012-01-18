@@ -14,8 +14,8 @@ use Test::More;
 use Warewulf::Object;
 
 my $modname = "Warewulf::Object";
-my @methods = ("new", "init", "get", "set", "add", "del", "get_hash",
-               "to_string", "debug_string");
+my @methods = ("new", "init", "get", "set", "add", "del", "prop",
+               "get_hash", "to_string", "debug_string");
 
 plan("tests" => (
          + 8              # Instantiation, method, and initialization tests
@@ -23,6 +23,7 @@ plan("tests" => (
          + 1              # get_hash() method tests
          + 29             # get()/set() method tests
          + 5+5+3+3+7+7+3  # add()/del() method tests
+         + 3+2+2+2        # prop() wrapper method tests
 ));
 
 my ($obj1, $obj2, $obj3);
@@ -185,3 +186,49 @@ $obj1->init("stuff" => 5);
 is_deeply($obj1->get("stuff"), 5, "Before obj->del(), we have a scalar");
 is(scalar($obj1->del("stuff", 2)), 1, "obj->del(\"key\", <nonexistent item>) still has a single value");
 is_deeply(scalar($obj1->get("stuff")), [ 5 ], "But now it's an array");
+
+#######################################
+### prop() wrapper method tests
+#######################################
+sub
+name
+{
+    # Accept only alphanumeric values
+    return ((scalar(@_) > 1) ? ($_[0]->prop("name", $_[1], qr/^(\w+)$/)) : ($_[0]->prop("name")));
+}
+
+sub
+id
+{
+    # Anything goes
+    return $_[0]->prop("id", @_[1..$#_]);
+}
+
+sub
+base
+{
+    # Accept only even numbers
+    return ((scalar(@_) > 1) ? ($_[0]->prop("base", $_[1], sub { return (($_[0] % 2) ? (undef) : ($_[0])); }))
+                             : ($_[0]->prop("base")));
+}
+
+$obj1->init();
+name($obj1, "test");  # Simulate $obj1->name("test")
+id($obj1, 1);         # Simulate $obj1->id(1)
+base($obj1, 2);       # Simulate $obj1->base(2)
+
+is(name($obj1), "test", "obj->prop() works for get/set with regexp match");
+is(id($obj1), 1, "obj->prop() works for get/set without regexp match");
+is(base($obj1), 2, "obj->prop() works for get/set with coderef validator");
+
+is(name($obj1, "\t\t\t\t"), "test", "obj->prop() returns original value if new value fails regexp match");
+is(base($obj1, 3), 2, "obj->prop() returns original value if new value fails coderef validator");
+
+id($obj1);
+is(id($obj1), 1, "obj->prop() doesn't delete value if undef isn't explicitly passed");
+id($obj1, undef);
+ok(!defined(id($obj1)), "obj->prop() deletes value if undef is explicitly passed");
+
+is(name($obj1, "newname"), "newname", "obj->prop() can reset existing member value");
+name($obj1, undef);
+ok(!defined(name($obj1)), "obj->prop() deletes value for member with validator");

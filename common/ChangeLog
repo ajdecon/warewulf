@@ -292,3 +292,14 @@ Thu Dec 22 14:12:34 2011                        Michael Jennings (mej)
 
 Add static method for retrieving last RetVal.
 ----------------------------------------------------------------------
+Wed Jan 18 15:02:37 2012                        Michael Jennings (mej)
+
+Convert the prop() wrapper method to use the parameter count rather
+than references to distinguish between the presence or absence of a
+value.  This removes the need for the "UNDEF" hack-around and makes
+one-liner wrappers possible.
+
+Add unit tests to illustrate possible techniques for using prop().
+The goal is to promote code reuse and cut down on cut-and-pasted
+functions and the errors which can result.
+----------------------------------------------------------------------
