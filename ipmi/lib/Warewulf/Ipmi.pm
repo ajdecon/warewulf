@@ -65,9 +65,9 @@ ipmi_ipaddr()
             &dprint("Object $name delete $key\n");
             $self->del($key);
             $self->del("ipmi_provision");
-        } elsif ($string =~ /^((\d{3}\.){3}\d+)$/) {
+        } elsif ($string =~ /^((\d{1,3}\.){3}\d+)$/) {
             my $name = $self->get("name");
-            my $serialized = &ip_serialize($1);
+            my $serialized = Warewulf::Network->ip_serialize($1);
             if ($serialized) {
                 &dprint("Object $name set $key = '$serialized'\n");
                 $self->set($key, $serialized);
@@ -82,7 +82,7 @@ ipmi_ipaddr()
     $ret = $self->get($key);
 
     if ($ret) {
-        my $unserialized = &ip_unserialize($ret);
+        my $unserialized = Warewulf::Network->ip_unserialize($ret);
         if ($unserialized) {
             $ret = $unserialized;
         } else {
@@ -103,13 +103,9 @@ Set or return the IPMI IPv4 netmask of this object.
 sub
 ipmi_netmask()
 {
-    my ($self, $value) = @_; 
+    my $self = shift;
 
-    if ($value eq "UNDEF") {
-        $value = undef;
-        $self->del("ipmi_provision");
-    }   
-    return $self->prop("ipmi_netmask", \$value, qr/^((\d{3}\.){3}\d+)$/);
+    return $self->prop("ipmi_netmask", qr/^((\d{3}\.){3}\d+)$/, @_);
 }
 
 
@@ -122,14 +118,29 @@ Set or return the IPMI username of this object.
 sub
 ipmi_username()
 {
-    my ($self, $value) = @_; 
+    my $self = shift;
 
-    if ($value eq "UNDEF") {
-        $value = undef;
-        $self->del("ipmi_provision");
-    }   
-    return $self->prop("ipmi_username", \$value, qr/^([a-z0-9]+)$/);
+    return $self->prop("ipmi_username", qr/^([a-z0-9]+)$/, @_);
 }
+
+
+=item ipmi_password($string)
+
+Set or return the IPMI password of this object.
+
+=cut
+
+sub
+ipmi_password()
+{
+    my $self = shift;
+
+    return $self->prop("ipmi_password", qr/^([a-z0-9]+)$/, @_);
+}
+
+
+
+
 
 
 =item ipmi_proto($string)
@@ -163,26 +174,6 @@ ipmi_proto()
     }
 
     return($self->get("ipmi_proto") || "lan");
-}
-
-
-=item ipmi_password($string)
-
-Set or return the IPMI password of this object.
-
-=cut
-
-sub
-ipmi_password()
-{
-    my ($self, $value) = @_; 
-
-    if ($value eq "UNDEF") {
-        $value = undef;
-        $self->del("ipmi_provision");
-    }   
-    return $self->prop("ipmi_password", \$value, qr/^([a-zA-Z0-9_]+)$/);
-
 }
 
 
@@ -243,8 +234,6 @@ ipmi_command()
     my $proto = $self->ipmi_proto();
     my $ret = "ipmitool ";
 
-    print "->$username<-\n";
-
     if ($ipaddr and $username and $password and $proto) {
         $ret .= "-I $proto -U $username -P $password -H $ipaddr ";
         if ($action eq "poweron") {
@@ -257,30 +246,16 @@ ipmi_command()
             $ret .= "chassis power status";
         } else {
             &eprint("Unsupported IPMI action: $action\n");
+            return();
         }
     } else {
-        &eprint("Could not build command for $name, unconfigured requirement(s)\n");
+        &eprint("Could not build IPMI command for $name, unconfigured requirement(s)\n");
+        return()
     }
 
     return($ret);
 }
 
-
-
-&set_log_level("DEBUG");
-
-my $o = Warewulf::Node->new();
-
-# GMK/MEJ: Object::Prop() deletes key if value reference is empty.
-
-$o->name("moo");
-$o->ipmi_ipaddr("10.1.1.1");
-$o->ipmi_username("rootme");
-$o->ipmi_password("pass1234");
-
-my $cmd = $o->ipmi_command("poweron");
-
-print "->$cmd<-\n\n";
 
 =back
 
