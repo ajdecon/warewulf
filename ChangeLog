@@ -1,7 +1,0 @@
-Thu Jan 12 06:51:09 2012                        Michael Jennings (mej)
-
-Fix bug in prop() wrapper method.  If this technique doesn't work, we
-can do it the slightly more verbose way, but this whole property
-concept is still being refined and is thus subject to change,
-replacement, and other machinations.
-----------------------------------------------------------------------
