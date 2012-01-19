@@ -303,3 +303,8 @@ Add unit tests to illustrate possible techniques for using prop().
 The goal is to promote code reuse and cut down on cut-and-pasted
 functions and the errors which can result.
 ----------------------------------------------------------------------
+Wed Jan 18 16:10:27 2012                        Michael Jennings (mej)
+
+Rearrange order of prop() parameters to remove need for conditional.
+See updated examples in unit tests.
+----------------------------------------------------------------------

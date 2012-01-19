@@ -330,34 +330,34 @@ getter/setter method like so:
     sub
     membervar
     {
-        return (
-                (scalar(@_) > 1)
-                ? ($_[0]->prop("membervar", $_[1], qr/^(\w+)$/))
-                : ($_[0]->prop("membervar"))
-               );
+        my $self = shift;
+
+        return $self->prop("membervar", qr/^(\w+)$/, @_);
     }
 
-(Spacing added for readability.)
+If no validator is required, pass a false value (e.g., 0 or undef) as
+the validator parameter.
 
-If no validator is required, a single-line wrapper is possible:
+A single-line property method is also possible, though slightly less
+readable:
 
-    sub membervar {return $_[0]->prop("membervar", @_[1..$#_]);}
+    sub membervar {return $_[0]->prop("membervar", qr/^(\w+)$/, @_[1..$#_]);}
 
 =cut
 
 sub
 prop()
 {
-    my ($self, $key, $val, $validator) = @_;
+    my ($self, $key, $validator, @vals) = @_;
 
     if ((scalar(@_) <= 1) || !defined($key)) {
         return undef;
     }
-    if (scalar(@_) > 2) {
+    if (scalar(@vals)) {
         my $name;
 
         $name = $self->get("name") || "??UNKNOWN??";
-        if (defined($validator)) {
+        if ($validator) {
             if (ref($validator) eq "Regexp") {
                 my $match = $validator;
 
@@ -375,17 +375,20 @@ prop()
         } else {
             $validator = sub { return $_[0]; };
         }
-        if (defined($val)) {
-            $val = &{$validator}($val);
-            if (defined($val)) {
-                &dprint("Object $name set $key = '$val'\n");
-                $self->set($key, $val);
-            } else {
-                &dprint("Object $name set $key = '$_[2]' REFUSED\n");
-            }
-        } else {
+        if ((scalar(@vals) == 1) && (!defined($vals[0]))) {
             &dprint("Object $name delete $key\n");
             $self->set($key, undef);
+        } else {
+            for (my $i = 0; $i < scalar(@vals); $i++) {
+                my $val = &{$validator}($vals[$i]);
+                if (defined($val)) {
+                    $vals[$i] = $val;
+                } else {
+                    return $self->get($key);
+                }
+            }
+            &dprint("Object $name set $key = '@vals'\n");
+            $self->set($key, @vals);
         }
     }
     return $self->get($key);

@@ -190,26 +190,27 @@ is_deeply(scalar($obj1->get("stuff")), [ 5 ], "But now it's an array");
 #######################################
 ### prop() wrapper method tests
 #######################################
-sub
-name
-{
-    # Accept only alphanumeric values
-    return ((scalar(@_) > 1) ? ($_[0]->prop("name", $_[1], qr/^(\w+)$/)) : ($_[0]->prop("name")));
-}
-
-sub
-id
-{
-    # Anything goes
-    return $_[0]->prop("id", @_[1..$#_]);
-}
-
+sub name { return $_[0]->prop("name", qr/^(\w+)$/, @_[1..$#_]); }
+sub id { return $_[0]->prop("id", 0, @_[1..$#_]); }
 sub
 base
 {
-    # Accept only even numbers
-    return ((scalar(@_) > 1) ? ($_[0]->prop("base", $_[1], sub { return (($_[0] % 2) ? (undef) : ($_[0])); }))
-                             : ($_[0]->prop("base")));
+    # This example is more complex, so we'll make it more readable.
+    my ($self, @vals) = @_;
+    my $vsub = sub {
+        my $a = $_[0];
+
+        # Only accept even numbers.
+        if ($a != int($a)) {
+            return undef;
+        } elsif ($a % 2 == 0) {
+            return $a;
+        } else {
+            return undef;
+        }
+    };
+
+    return $self->prop("base", $vsub, @vals);
 }
 
 $obj1->init();
