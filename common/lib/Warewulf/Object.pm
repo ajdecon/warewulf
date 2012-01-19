@@ -348,12 +348,12 @@ readable:
 sub
 prop()
 {
-    my ($self, $key, $validator, @vals) = @_;
+    my ($self, $key, $validator, $val) = @_;
 
     if ((scalar(@_) <= 1) || !defined($key)) {
         return undef;
     }
-    if (scalar(@vals)) {
+    if (scalar(@_) > 3) {
         my $name;
 
         $name = $self->get("name") || "??UNKNOWN??";
@@ -375,20 +375,17 @@ prop()
         } else {
             $validator = sub { return $_[0]; };
         }
-        if ((scalar(@vals) == 1) && (!defined($vals[0]))) {
+        if (defined($val)) {
+            $val = &{$validator}($val);
+            if (defined($val)) {
+                &dprint("Object $name set $key = '$val'\n");
+                $self->set($key, $val);
+            } else {
+                &dprint("Object $name set $key = '$_[2]' REFUSED\n");
+            }
+        } else {
             &dprint("Object $name delete $key\n");
             $self->set($key, undef);
-        } else {
-            for (my $i = 0; $i < scalar(@vals); $i++) {
-                my $val = &{$validator}($vals[$i]);
-                if (defined($val)) {
-                    $vals[$i] = $val;
-                } else {
-                    return $self->get($key);
-                }
-            }
-            &dprint("Object $name set $key = '@vals'\n");
-            $self->set($key, @vals);
         }
     }
     return $self->get($key);
