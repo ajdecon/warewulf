@@ -53,15 +53,15 @@ new($$)
 
     if (! $singleton) {
         $singleton = {};
-        $singleton->{"TERM"} = Term::ReadLine->new("Warewulf");
-        $singleton->{"ATTRIBS"} = $singleton->{"TERM"}->Attribs;
-
-        $singleton->{"TERM"}->ornaments(0);
-        $singleton->{"TERM"}->MinLine(undef);
-
-        $singleton->{"ATTRIBS"}->{completion_function} = \&auto_complete;
-
         if ( -t STDIN && -t STDOUT ) {
+            $singleton->{"TERM"} = Term::ReadLine->new("Warewulf");
+            $singleton->{"ATTRIBS"} = $singleton->{"TERM"}->Attribs;
+
+            $singleton->{"TERM"}->ornaments(0);
+            $singleton->{"TERM"}->MinLine(undef);
+
+            $singleton->{"ATTRIBS"}->{completion_function} = \&auto_complete;
+
             $singleton->{"INTERACTIVE"} = "1";
         } else {
             $singleton->{"INTERACTIVE"} = undef;
