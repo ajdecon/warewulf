@@ -16,8 +16,9 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Network;
 use Warewulf::ParallelCmd;
+use Warewulf::Ipmi::Config;
+use Warewulf::Ipmi::Command;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -212,110 +213,61 @@ exec()
         &eprint("You must provide a command!\n\n");
         print $self->help();
     } elsif ($command eq "set") {
+        my $ipmi = Warewulf::Ipmi::Config->new();
+        $ipmi->nodeset($objSet);
         if ($opt_ipaddr) {
             if (uc($opt_ipaddr) eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("ipmi_ipaddr");
-                    &dprint("Deleting IPMI IP address for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_IPADDR"));
+                $ipmi->ipaddr(undef);
+                push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_IPADDR"));
+                $persist_bool = 1;
             } else {
-                my $n = Warewulf::Network->new();
-                my $ip_serialized = $n->ip_serialize($opt_ipaddr);
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    my $ip = $n->ip_unserialize($ip_serialized);
-                    $obj->set("ipmi_ipaddr", $ip);
-                    &dprint("Setting IPMI IP address for node name: $name\n");
-                    $persist_bool = 1;
-                    push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_IPADDR($name)", $ip));
-                    $ip_serialized ++;
-                }
+                $ipmi->ipaddr($opt_ipaddr);
+                push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_IPADDR", $opt_ipaddr));
+                $persist_bool = 1;
             }
         }
         if ($opt_netmask) {
             if (uc($opt_netmask) eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("ipmi_netmask");
-                    &dprint("Deleting IPMI netmask for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_NETMASK"));
+                $ipmi->netmask(undef);
+                push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_NETMASK"));
+                $persist_bool = 1;
             } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("ipmi_netmask", $opt_netmask);
-                    &dprint("Setting IPMI netmask for node name: $name\n");
-                    $persist_bool = 1;
-                }
+                $ipmi->netmask($opt_netmask);
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_NETMASK", $opt_netmask));
+                $persist_bool = 1;
             }
         }
         if ($opt_username) {
             if (uc($opt_username) eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("ipmi_username");
-                    &dprint("Deleting IPMI username for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_USERNAME"));
+                $ipmi->username(undef);
+                push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_USERNAME"));
+                $persist_bool = 1;
             } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("ipmi_username", $opt_username);
-                    &dprint("Setting IPMI username for node name: $name\n");
-                    $persist_bool = 1;
-                }
+                $ipmi->username($opt_username);
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_USERNAME", $opt_username));
+                $persist_bool = 1;
             }
         }
         if ($opt_password) {
             if (uc($opt_password) eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("ipmi_password");
-                    &dprint("Deleting IPMI password for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_PASSWORD"));
+                $ipmi->password(undef);
+                push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_PASSWORD"));
+                $persist_bool = 1;
             } else {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("ipmi_password", $opt_password);
-                    &dprint("Setting IPMI password for node name: $name\n");
-                    $persist_bool = 1;
-                }
+                $ipmi->password($opt_password);
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PASSWORD", $opt_password));
-            }
-        }
-
-        if ($opt_autoconfig) {
-            foreach my $obj ($objSet->get_list()) {
-                my $name = $obj->get("name") || "UNDEF";
-                $obj->set("ipmi_autoconfig", "1");
-                &dprint("Setting the IPMI auto configure tag for node name: $name\n");
-                if (! $obj->get("ipmi_username")) {
-                    $obj->set("ipmi_username", "wwadmin");
-                }
-                if (! $obj->get("ipmi_password")) {
-                    $obj->set("ipmi_password", &rand_string("8"));
-                }
                 $persist_bool = 1;
             }
+        }
+        if ($opt_autoconfig) {
+            $ipmi->autoconfig(1);
             push(@changes, sprintf("     SET: %-20s\n", "IPMI_AUTOCONFIG"));
+            $persist_bool = 1;
         }
         if ($opt_noautoconfig) {
-            foreach my $obj ($objSet->get_list()) {
-                my $name = $obj->get("name") || "UNDEF";
-                $obj->del("ipmi_autoconfig");
-                &dprint("Deleting the IPMI auto configure tag for node name: $name\n");
-                $persist_bool = 1;
-            }
-            push(@changes, sprintf("   UNSET: %-20s\n", "IPMI_AUTOCONFIGURE"));
+            $ipmi->autoconfig();
+            push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_AUTOCONFIGURE"));
+            $persist_bool = 1;
         }
 
         if ($persist_bool) {
@@ -338,67 +290,21 @@ exec()
         }
 
     } elsif ($command eq "poweron") {
-        my $pcmd = Warewulf::ParallelCmd->new();
-        $pcmd->fanout(4);
-        foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-               $name .= ".$cluster";
-            }
-            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &dprint("Sending IPMI command to $name: chassis power on\n");
-                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power on");
-            } else {
-                &iprint("Skipping poweron for unconfigured node $name\n");
-            }
-        }
-        $pcmd->run();
+        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
+        $ipmi_cmd->nodeset($objSet);
+        $ipmi_cmd->poweron();
     } elsif ($command eq "powercycle") {
-        my $pcmd = Warewulf::ParallelCmd->new();
-        $pcmd->fanout(4);
-        foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-               $name .= ".$cluster";
-            }
-            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &dprint("Sending IPMI command to $name: chassis power cycle\n");
-                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power cycle");
-            } else {
-                &iprint("Skipping powercycle for unconfigured node $name\n");
-            }
-        }
-        $pcmd->run();
+        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
+        $ipmi_cmd->nodeset($objSet);
+        $ipmi_cmd->powercycle();
     } elsif ($command eq "poweroff") {
-        my $pcmd = Warewulf::ParallelCmd->new();
-        foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-               $name .= ".$cluster";
-            }
-            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &dprint("Sending IPMI command to $name: chassis power off\n");
-                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power off");
-            } else {
-                &iprint("Skipping poweroff for unconfigured node $name\n");
-            }
-        }
-        $pcmd->run();
+        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
+        $ipmi_cmd->nodeset($objSet);
+        $ipmi_cmd->poweroff();
     } elsif ($command eq "powerstatus") {
-        my $pcmd = Warewulf::ParallelCmd->new();
-        foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-               $name .= ".$cluster";
-            }
-            if (my $ipaddr = $o->get("ipmi_ipaddr") and my $username = $o->get("ipmi_username") and my $password = $o->get("ipmi_password")) {
-                &dprint("Sending IPMI command to $name: chassis power status\n");
-                $pcmd->queue("echo -n '$name: '; ipmitool -I lan -U $username -P $password -H $ipaddr chassis power status");
-            } else {
-                &iprint("Skipping powerstatus for unconfigured node $name\n");
-            }
-        }
-        $pcmd->run();
+        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
+        $ipmi_cmd->nodeset($objSet);
+        $ipmi_cmd->powerstatus();
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->get("name") || "UNDEF";
