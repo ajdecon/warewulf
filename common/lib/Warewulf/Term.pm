@@ -53,24 +53,43 @@ new($$)
 
     if (! $singleton) {
         $singleton = {};
-        if ( -t STDIN && -t STDOUT ) {
-            $singleton->{"TERM"} = Term::ReadLine->new("Warewulf");
-            $singleton->{"ATTRIBS"} = $singleton->{"TERM"}->Attribs;
-
-            $singleton->{"TERM"}->ornaments(0);
-            $singleton->{"TERM"}->MinLine(undef);
-
-            $singleton->{"ATTRIBS"}->{completion_function} = \&auto_complete;
-
-            $singleton->{"INTERACTIVE"} = "1";
-        } else {
-            $singleton->{"INTERACTIVE"} = undef;
-        }
-
         bless($singleton, $class);
+        $singleton->init();
     }
 
     return $singleton;
+}
+
+=item init(...)
+
+Initialize a Term object.  All data currently stored in the object
+will be cleared.
+
+=cut
+
+sub
+init(@)
+{
+    my $self = shift;
+
+    # Clear current data from object.
+    %{$self} = ();
+
+    if ( -t STDIN && -t STDOUT ) {
+        $singleton->term(Term::ReadLine->new("Warewulf"));
+        $singleton->attribs($singleton->{"TERM"}->Attribs);
+
+        $singleton->term()->ornaments(0);
+        $singleton->term()->MinLine(undef);
+
+        $singleton->attribs()->{"completion_function"} = \&auto_complete;
+
+        $singleton->interactive(1);
+    } else {
+        $singleton->interactive(0);
+    }
+
+    return $self;
 }
 
 =item history_load($filename)
@@ -85,12 +104,12 @@ history_load()
     my ($self, $file) = @_;
     my $dir = dirname($file);
 
-    if ($self->{"TERM"}->can("ReadHistory")) {
+    if ($self->term()->can("ReadHistory")) {
         if ($file) {
             if (! -d $dir) {
                 mkpath($dir);
             }
-            $self->{"TERM"}->ReadHistory($file);
+            $self->term()->ReadHistory($file);
             $self->{"HISTFILE"} = $file;
         }
     }
@@ -113,21 +132,21 @@ history_save()
     my ($self, $file) = @_;
     my $dir;
     
-    if ($self->{"TERM"}->can("WriteHistory")) {
+    if ($self->term()->can("WriteHistory")) {
         if ($file) {
             $dir = dirname($file);
         }
 
-        if (exists($self->{"TERM"})) {
-            $self->{"TERM"}->StifleHistory(1000);
+        if (exists($self->term())) {
+            $self->term()->StifleHistory(1000);
 
             if ($file) {
                 if (! -d $dir) {
                     mkpath($dir);
                 }
-                $self->{"TERM"}->WriteHistory($file);
+                $self->term()->WriteHistory($file);
             } elsif (exists($self->{"HISTFILE"})) {
-                $self->{"TERM"}->WriteHistory($self->{"HISTFILE"});
+                $self->term()->WriteHistory($self->{"HISTFILE"});
             }
         }
     }
@@ -146,9 +165,9 @@ history_add($)
 {
     my ($self, $set) = @_;
 
-    if ($self->{"TERM"}->can("AddHistory")) {
+    if ($self->term()->can("AddHistory")) {
         if ($set) {
-            $self->{"TERM"}->AddHistory($set);
+            $self->term()->AddHistory($set);
         }
     }
 
@@ -173,29 +192,15 @@ complete()
     }
 }
 
-=item interactive($is_interactive)
+=item interactive([$is_interactive])
 
-Test to see if the terminal is interactive. If you pass a "1" or "0"
-to it you can override the default behavior and make it so that it
-will return true or false for subsequent calls (respectively).
+Test to see if the terminal is interactive.  Pass a true or false
+value to override the default behavior and make it so that it will
+return true or false for subsequent calls (respectively).
 
 =cut
 
-sub
-interactive($)
-{
-    my ($self, $interactive) = @_;
-
-    if (defined($interactive)) {
-        if ($interactive eq "1") {
-            $self->{"INTERACTIVE"} = 1;
-        } elsif ($interactive eq "0") {
-            $self->{"INTERACTIVE"} = undef;
-        }
-    }
-
-    return $self->{"INTERACTIVE"};
-}
+sub interactive { return $_[0]->prop("interactive", 0, @_[1..$#_]); }
 
 =item get_input($prompt, $array_ref_of_completions)
 
@@ -208,14 +213,13 @@ sub
 get_input($)
 {
     my ($self, $prompt, @completions) = @_;
-    my $attribs = $self->{"TERM"}->Attribs;
     my $ret;
 
-    if ($self->interactive) {
+    if ($self->interactive()) {
         if (@completions) {
             @{$self->{"ARRAY"}} = @completions;
         }
-        $ret = $self->{"TERM"}->readline($prompt);
+        $ret = $self->term()->readline($prompt);
         if (@completions) {
             delete($self->{"ARRAY"});
         }
@@ -277,7 +281,9 @@ auto_complete()
     return @ret;
 }
 
-
+# Undocumented properties
+sub term { return $_[0]->prop("term", 0, @_[1..$#_]); }
+sub attribs { return $_[0]->prop("attribs", 0, @_[1..$#_]); }
 
 ## Initial tests
 #my $obj = Warewulf::Term->new();

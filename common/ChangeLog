@@ -314,3 +314,7 @@ Too fancy.  Keep the simple cases simple.  Only accept a single
 scalar.  Anything more complex (e.g., arrays) can be done using a
 custom validator and the existing smart handling of arrays in set().
 ----------------------------------------------------------------------
+Mon Jan 23 13:33:24 2012                        Michael Jennings (mej)
+
+Terminal object cleanups.
+----------------------------------------------------------------------
