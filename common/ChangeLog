@@ -318,3 +318,7 @@ Mon Jan 23 13:33:24 2012                        Michael Jennings (mej)
 
 Terminal object cleanups.
 ----------------------------------------------------------------------
+Tue Jan 24 11:15:25 2012                        Michael Jennings (mej)
+
+Fix search-and-replace error in Term.pm.
+----------------------------------------------------------------------

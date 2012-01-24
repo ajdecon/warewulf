@@ -137,7 +137,7 @@ history_save()
             $dir = dirname($file);
         }
 
-        if (exists($self->term())) {
+        if ($self->term()) {
             $self->term()->StifleHistory(1000);
 
             if ($file) {
