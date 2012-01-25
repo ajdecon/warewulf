@@ -65,7 +65,7 @@ foreach my $key (@VARS) {
 
     if ($opt_sh) {
         print "WAREWULF_$key=\"$val\"\n";
-        print "export $key\n";
+        print "export WAREWULF_$key\n";
     } elsif ($opt_csh) {
         print "setenv WAREWULF_$key \"$val\"\n";
     } else {
