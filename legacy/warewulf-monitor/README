@@ -1,0 +1,48 @@
+Readme file for the Warewulf 3.x series
+
+Earlier versions of Warewulf were focused on the entire cluster
+solution. While this is the proper solution for many midsized HPC
+clusters, it was not the right solution for many power users and other
+provisoining requirements. It also limited its development.
+
+Warewulf 3 implements a new paradigym. It seperates out the provisioning
+subsystems from the user facilitating and management tools. Warewulf3 is
+now strictly the distributed monitoring system. Provisoining is now
+handled by a new solution called 'Perceus'.
+
+Motivations for seperating the user tools from the provisioning
+subsystem is as follows:
+
+   - Some clusters may not implement a seperate monitoring from the
+     schedule system. The provisioning model in Warewulf <= 2 required
+     knowing exactly the status of the nodes because it managed an
+     active role in management and syncronization.
+   - We have had *many* requests to have the management subsystem
+     seperated so it can be used to run on other cluster systems, other
+     infrastuctures, etc...
+   - Some people prefered the use of other cluster monitoring solutions.
+     While we personally are biased to Warewulf's implementation, we
+     understand that 1 size doesn't fit all.
+   - This model ensures the greatest amount of flexiability and
+     simplifies the management of the projects.
+
+Warewulf is now strictly the user space and management cluster toolkit.
+This toolkit is no longer dependant on how the cluster is maintained, or
+which provisioning model is used. There are already people using the
+Warewulf toolkit on non-Warewulf clusters, so this is simply making it
+easier for them.
+
+All node provisoining (eg. network booting, OS installation, etc) has
+been migrated to a new project called Perceus. Perceus is a completly
+new design offering a very advanced and platform neutral provisioning
+mechanism. The model can be used to boot statefull or stateless nodes as
+well as drive other mechanisms. It can also provision stateless clusters
+and systems just as easy as an entire enterprise including workstations.
+Its goals and design stay true to the original goals of the Warewulf
+project, being: simple, intuitive, reliable, scalable, and as neutral to
+the provisioned operating system as possiable. Perceus can be found at
+http://www.perceus.org/.
+
+The combination of Perceus and Warewulf allow for greater scalibility,
+flexiability, and ease of use.
+

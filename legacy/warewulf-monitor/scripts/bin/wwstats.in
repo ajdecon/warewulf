@@ -1,0 +1,194 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use Warewulf::Config;
+use Warewulf::Status;
+use Warewulf::Util;
+use Getopt::Long;
+use IO::Socket;
+#use strict;
+
+Getopt::Long::Configure ("bundling");
+
+my (
+   $usage,
+   $help,
+   $only_summary,
+   $quiet,
+   $entry,
+   $value,
+   $nodename,
+   %nodestatus,
+   %nodes,
+   $string,
+   $summary,
+   $total_cpu,
+   $nodes_up,
+   $nodes_down,
+   $nodes_disabled,
+   $nodes_unavailable,
+   $nodes_error,
+   @ready,
+   @unavail,
+   @other,
+   @error,
+   @down,
+   $master,
+   @nodes,
+   @node_config,
+   @filtered,
+   %node_access,
+   @master_config,
+   %mastercfg,
+   %swapstat,
+);
+
+$usage = "USAGE: $0 [options]
+  About:
+    wwstatus.cmd displays the current usage summary for your cluster by
+    querying and pulling the information from the warewulfd daemon directly.
+  Options:
+   -s, --summary    Only display the summary
+   -q, --quiet      Only show the node data
+   -h, --help       Show this banner
+
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+GetOptions(
+   'summary|s'   => \$only_summary,
+   'quiet|q'     => \$quiet,
+   'help|h'      => \$help,
+);
+
+if ( $help ) {
+   print $usage;
+   exit;
+}
+
+%config = &client_config();
+if ( $ARGV[0] ) {
+   $master = $ARGV[0];
+} else {
+   $master = $config{'warewulf master'};
+}
+%nodestatus = &node_status($master);
+@filtered = &users_filter(keys %nodestatus);
+
+die "Ack! Help me, please!\n" unless %nodestatus;
+
+$nodes_up = $nodes_error = $nodes_disabled = $nodes_down = $nodes_unavailable = '0';
+
+foreach ( sort @filtered ) {
+   if ( $nodestatus{$_}{SWAPTOTAL} > 0 ) {
+      $swapstat{$_} = "$nodestatus{$_}{SWAPPERCENT}% $nodestatus{$_}{SWAPUSED}/$nodestatus{$_}{SWAPTOTAL}";
+   } else {
+      $swapstat{$_} = 'none';
+   }
+   if ( $nodestatus{$_}{LASTCONTACT} <= 300 ) {
+      push(@nodes_ready, $_);
+      $total_cpu += $nodestatus{$_}{CPUUTIL};
+      $nodes_up++;
+   } else {
+      push(@nodes_down, $_);
+      $nodes_down++;
+   }
+}
+
+
+
+$summary .= sprintf("%21s: %-10s\n", 'Total Nodes', $nodes_up + $nodes_down + $nodes_unavailable, "Warewulf");
+$summary .= sprintf("%21s: %-27s %s\n", 'Living', $nodes_up, "Warewulf");
+$summary .= sprintf("%21s: %-22s %s\n", 'Unavailable', $nodes_unavailable, "Cluster Statistics");
+$summary .= sprintf("%21s: %-17s %s\n", 'Disabled', $nodes_disabled, "http://warewulf-cluster.org/");
+$summary .= sprintf("%21s: %-10s\n", 'Error', $nodes_error);
+$summary .= sprintf("%21s: %-10s\n", 'Dead', $nodes_down);
+
+if ( $nodes_up ) {
+   $total_cpu = sprintf("%d", ( $total_cpu / ( $nodes_up + $nodes_unavailable )));
+} else {
+   $total_cpu = '0';
+}
+
+if ( ! $quiet || $only_summary ) {
+   print "--------------------------------------------------------------------------------\n";
+   printf("%21s: %-28s\n", "Total CPU utilization", "$total_cpu%");
+   print "$summary";
+   print "--------------------------------------------------------------------------------\n";
+
+   exit if $only_summary;
+   
+   print " Node      Cluster        CPU       Memory (MB)      Swap (MB)      Current\n";
+   print " Name       Name       [util/num] [% used/total]   [% used/total]   Status\n";
+}
+
+#foreach ( sort keys %nodes ) {
+#   if ( ! $node_access{$_} and $< != '0' and ! $mastercfg{$_} ) {
+#      next;
+#   }
+#   if ( $nodes{$_}{SWAPTOTAL} > 0 ) {
+#      $swapstat{$_} = "$nodes{$_}{SWAPPERCENT}% $nodes{$_}{SWAPUSED}/$nodes{$_}{SWAPTOTAL}";
+#   } else {
+#      $swapstat{$_} = 'none';
+#   }
+#   if ( $nodes{$_}{NODESTATUS} eq 'READY' ) {
+#      push (@ready, $_);
+#   } elsif ( $nodes{$_}{NODESTATUS} eq 'unavailable' ) {
+#      push (@unavail, $_);
+#   } elsif ( $nodes{$_}{NODESTATUS} eq 'DOWN' ) {
+#      push (@down, $_);
+#   } elsif ( $nodes{$_}{NODESTATUS} eq 'ERROR' ) {
+#      push (@error, $_);
+#   } else {
+#      push (@other, $_);
+#   }
+#}
+
+$~ = 'OUTPUT';
+foreach ( @nodes_ready ) {
+   write;
+}
+foreach ( @nodes_unavailable ) {
+   write;
+}
+$~ = 'DOWN';
+foreach ( @nodes_down ) {
+   write;
+}
+foreach ( @nodes_unknown ) {
+   write;
+}
+
+#foreach ( sort keys %nodes ) {
+#   if ( $nodes{$_}{NODESTATUS} eq 'DOWN' ) {
+#      $~ = 'DOWN';
+#      write;
+#      next;
+#   }
+#   $nodes{$_}{LASTCONTACT} ++;
+#   $~ = 'OUTPUT';
+#   write;
+#   
+#}
+
+#@<<<<<<<< @|||||@||||||||||||||||||||||@|||||||||||||||||@||||||||@<<<<<<<<<<<<
+#$_, "($nodes{$_}{CPUCOUNT})$nodes{$_}{CPUUTIL}%", "$nodes{$_}{MEMPERCENT}% $nodes{$_}{MEMUSED}/$nodes{$_}{MEMTOTAL}", "$nodes{$_}{NETTRANSMIT} - $nodes{$_}{NETRECIEVE} Mb", $nodes{$_}{LASTCONTACT}, $nodes{$_}{NODESTATUS}
+format OUTPUT =
+@<<<<<<<<< @<<<<<<<<<<< @<<< @<<< @<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<< @<<<<<<<<<<<
+$nodestatus{$_}{NODENAME}, $nodestatus{$_}{CLUSTERNAME}, "$nodestatus{$_}{CPUUTIL}%", "($nodestatus{$_}{CPUCOUNT})", "$nodestatus{$_}{MEMPERCENT}% $nodestatus{$_}{MEMUSED}/$nodestatus{$_}{MEMTOTAL}", $swapstat{$_}, $nodestatus{$_}{NODESTATUS}
+.
+format DOWN =
+@<<<<<<<<<< @<<<<<<<<<< @|||||||||||||||||||||||||||||||||||||| @<<<<<<<<<<<
+$nodestatus{$_}{NODENAME}, $nodestatus{$_}{CLUSTERNAME}, "Last Contact was $nodestatus{$_}{LASTCONTACT} seconds ago", $nodestatus{$_}{NODESTATUS}
+.

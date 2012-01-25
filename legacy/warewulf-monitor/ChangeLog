@@ -1,0 +1,24 @@
+The log is in Subversion, not kept here. You can view it via the TRAC
+developers interface at:
+
+http://www.warewulf-cluster.org/cgi-bin/trac.cgi/timeline?changeset=on
+Thu Aug  5 15:54:40 2010                        Michael Jennings (mej)
+
+Commit latest warewulfd.
+----------------------------------------------------------------------
+Thu Aug  5 17:03:40 2010                        Michael Jennings (mej)
+
+Refactor RPM packaging and clean up SVN tree.
+----------------------------------------------------------------------
+Thu Aug  5 17:05:22 2010                        Michael Jennings (mej)
+
+Include spec in tarball.
+----------------------------------------------------------------------
+Thu Aug  5 17:21:38 2010                        Michael Jennings (mej)
+
+Fix location of perl module files.
+----------------------------------------------------------------------
+Mon Aug 16 17:28:29 2010                        Michael Jennings (mej)
+
+Work in progress:  Merging warewulfd and wwproxy
+----------------------------------------------------------------------

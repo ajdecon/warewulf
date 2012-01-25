@@ -1,0 +1,180 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use Warewulf::Config;
+use Warewulf::Status;
+use Warewulf::Util;
+use Getopt::Long;
+use Sys::Hostname;
+use IO::Socket;
+#use strict;
+
+Getopt::Long::Configure ("bundling");
+
+my (
+   $usage,
+   $ready,
+   $help,
+   $lam,
+   $mpi,
+   $idle,
+   $down,
+   $quiet,
+   $mine,
+   $entry,
+   $value,
+   $nodename,
+   %nodestatus,
+   %nodes,
+   %master,
+   %node_ips,
+   $type,
+   $out_ready,
+   $out_notready,
+   %node_access,
+   @filtered,
+   @nodes_ready,
+   @nodes_unavailable,
+   @nodes_down,
+   @nodes_unknown,
+   @nodes_sleeping,
+   $banners,
+   $i,
+   $mastername,
+   %config,
+   $master,
+   $hostname,
+   %masterinfo,
+   $status,
+   %nodes,
+   $config,
+   $show_cluster,
+   $name,
+   $remote_master,
+   $cpus,
+);
+
+$usage = "USAGE: $0 [options] [hostname]
+  About:
+    wwlist shows a list of the currently running nodes in the cluster. You 
+    can use it to make a MPI or PVM machine file, or just get a list of the 
+    nodes in the current ready position.
+  Options:
+   -i, --idle       Only show nodes that are idle
+   -d, --down       Only show nodes that are _NOT_ ready (shortcut again)
+   -c, --cluster    Display the cluster name in the output
+   -q, --quiet      Only show nodes that are up with no extra verbage
+   -h, --help       Show this banner
+
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+GetOptions(
+   'quiet|q'     => \$quiet,
+   's|status=s'  => \$status,
+   'idle|i'      => \$idle,
+   'down|d'      => \$down,
+   'cluster|c'   => \$show_cluster,
+   'help|h'      => \$help,
+);
+
+if ( $help ) {
+   print $usage;
+   exit;
+}
+
+if ( $quiet ) {
+   # clean up output
+   $banners = '1';
+}
+
+if ( $lam and $mpi ) {
+   die "You selected options that should not be mixed!\n" ;
+}
+
+%config = &client_config();
+if ( $ARGV[0] ) {
+   $master = $hostname = $ARGV[0];
+   $remote_master = '1';
+} else {
+   $master = $config{'warewulf master'};
+   if ( $master eq "localhost" ) {
+      $hostname = hostname();
+   } else {
+      $hostname = $config{'warewulf master'};
+   }
+}
+
+$cpus = 0;
+
+%nodestatus = &node_status($master);
+@filtered = &users_filter(keys %nodestatus);
+
+if ( ! system("which pbsnodes >/dev/null 2>&1") ) {
+   open(FOO, "pbsnodes |");
+   while ($line=<FOO>) {
+      chomp $line;
+      if ( $line =~ /^([^ ]+)/ ) {
+          $name = $1;
+      } elsif ( $line =~ /^\s+state = (.+)$/ ) {
+         $pbsnodes{"$name"}{state} = $1;
+      } elsif ( $line =~ /^\s+properties = (.+)$/ ) {
+         $pbsnodes{"$name"}{properties} = $1;
+      } elsif ( $line =~ /^\s+jobs = (.+)$/ ) {
+         $pbsnodes{"$name"}{jobs} = $1;
+         $pbsnodes{"$name"}{jobs} =~ s/\..+?,/,/g;
+         $pbsnodes{"$name"}{jobs} =~ s/\..+$//g;
+      }
+   }
+   close FOO;
+}
+
+foreach ( sort @filtered ) {
+   if ( $idle and ( $nodestatus{$_}{USERPROC} > 0 or $nodestatus{$_}{CPUUTIL} >= 5 ) ) {
+     next;
+   }
+   if ( $nodestatus{$_}{LASTCONTACT} >= 300 or ( $nodestatus{$_}{NODESTATUS} and $nodestatus{$_}{NODESTATUS} ne "READY" )) {
+      push(@nodes_down, $_);
+   } else {
+      push(@nodes_ready, $_);
+   }
+   if ( ! exists($pbsnodes{"$_"}) ) {
+      $pbsnodes{"$_"}{state} = "n/a";
+      $pbsnodes{"$_"}{properties} = "interactive";
+   }
+}
+
+if ( @nodes_ready and ! $down ) {
+   printf("%-15s %-15s %-20s %s\n", "NodeName", "Queue", "State", "Running Jobs");
+   foreach (sort @nodes_ready ) {
+      $tmp = $nodestatus{$_}{NODENAME};
+      if ( $show_cluster ) {
+         printf("%-15s %-15s %-20s %s\n", $_, $pbsnodes{$tmp}{properties}, $pbsnodes{$tmp}{state}, $pbsnodes{$tmp}{jobs});
+      } else {
+         printf("%-15s %-15s %-20s %s\n", $nodestatus{"$_"}{NODENAME}, $pbsnodes{$tmp}{properties}, $pbsnodes{$tmp}{state}, $pbsnodes{$tmp}{jobs});
+      }
+   }
+}
+
+if ( @nodes_down ) {
+   foreach (sort @nodes_down ) {
+      if ( $show_cluster ) {
+         printf("%-15s %-15s %-20s %s\n", $_, undef, $nodestatus{$_}{NODESTATUS}, undef);
+      } else {
+         printf("%-15s %-15s %-20s %s\n", $nodestatus{$_}{NODENAME}, undef, $nodestatus{$_}{NODESTATUS}, undef);
+      }
+   }
+}
+
+exit;

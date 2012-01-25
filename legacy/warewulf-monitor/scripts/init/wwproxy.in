@@ -1,0 +1,96 @@
+#!/bin/bash
+#
+# chkconfig: 345 95 05
+# description: wwproxy is an aggregating proxy service for the Warewulf
+#              daemon.
+# processname: wwproxy
+# pidfile: /var/run/wwproxy.pid
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+localstatedir=@localstatedir@
+sbindir=@sbindir@
+tftpdir=/tftpboot
+sysconfdir=@sysconfdir@
+
+
+if [ ! -f "$sysconfdir/sysconfig/wwproxy.conf" ]; then
+   exit
+fi
+
+# source function library
+. /etc/init.d/functions
+. $sysconfdir/sysconfig/wwproxy.conf
+
+RETVAL=0
+
+if [ -z $WAREWULFD_HOSTS ]; then
+   echo "You need to define some Warewulfd hosts in $sysconfdir/wwproxy.conf!"
+   exit
+else
+   HOSTS="--hosts=$WAREWULFD_HOSTS"
+fi
+
+if [ -z $WAREWULFD_PORT ]; then
+   exit
+else
+   WPORT="--port=$WAREWULFD_PORT"
+fi
+
+if [ -z $WAREWULFD_REFRESH ]; then
+   REFRESH=
+else
+   REFRESH="--refresh=$WAREWULFD_REFRESH"
+fi
+
+if [ $LEGACY_SUPPORT -gt 0 ]; then
+   LEGACY="--legacy"
+fi
+
+start() {
+   if [ -x $sbindir/wwproxy ]; then
+      if [ -f /var/run/wproxy.pid ]; then
+         status wwproxy
+         exit 1
+      else
+         daemon $sbindir/wwproxy $LEGACY $HOSTS $WPORT $GPORT $REFRESH </dev/null
+         RETVAL=$?
+      fi
+   fi
+}
+
+stop() {
+   if [ -f /var/run/wwproxy.pid ]; then
+      killproc wwproxy
+      RETVAL=$?
+   fi
+}
+
+stats() {
+   if [ -x $sbindir/wwproxy ]; then
+      status wwproxy
+      RETVAL=0
+   fi
+}
+
+case "$1" in
+  start)
+   start
+   ;;
+  stop)
+   stop
+   ;;
+  restart)
+   stop
+   start
+   RETVAL=0
+   ;;
+  status)
+   stats
+   ;;
+  *)
+   echo $"Usage: $0 {start|stop|restart|status}"
+   exit 1
+esac
+
+exit $RETVAL

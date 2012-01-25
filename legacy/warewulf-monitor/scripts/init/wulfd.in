@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# chkconfig: 345 95 05
+# description: WULFD watches the status of the slave nodes on the cluster
+#              and keeps them configured properly and available to cluster
+#              users.
+# processname: wulfd
+# pidfile: /var/run/wulfd.pid
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+localstatedir=@localstatedir@
+sbindir=@sbindir@
+tftpdir=/tftpboot
+sysconfdir=@sysconfdir@
+
+
+# source function library
+. /etc/init.d/functions
+if [ -f $sysconfdir/sysconfig/wulfd.conf ]; then
+   . $sysconfdir/sysconfig/wulfd.conf
+fi
+
+if test -n "$WAREWULF_MASTER"; then
+   MASTERIP=$WAREWULF_MASTER
+elif grep -qi "masterip=" /proc/cmdline; then
+   MASTERIP=`sed -e 's@.*masterip=\([^ ]\+\).*@\1@' /proc/cmdline`
+   export MASTERIP
+fi
+
+if [ -z $MASTERIP ]; then
+   echo "WAREWULF_MASTER is not set!"
+   exit 1
+fi
+
+RETVAL=0
+
+start() {
+   if [ -x $sbindir/wulfd ]; then
+      if [ -f /var/run/wulfd.pid ]; then
+         status wulfd
+         exit 1
+      else
+         daemon $sbindir/wulfd -m $MASTERIP $WULFD_OPTIONS </dev/null
+         echo READY > /.nodestatus
+         RETVAL=$?
+         echo
+      fi
+   fi
+}
+
+stop() {
+   if [ -f /var/lock/subsys/wulfd ]; then
+      killproc wulfd
+      RETVAL=$?
+      echo
+   fi
+   rm -f /var/lock/subsys/wulfd
+   rm -f /.nodestatus
+}
+
+stats() {
+   if [ -x $sbindir/wulfd ]; then
+      status wulfd
+      RETVAL=0
+   fi
+}
+
+case "$1" in
+  start)
+   start
+   ;;
+  stop)
+   stop
+   ;;
+  restart)
+   stop
+   start
+   RETVAL=0
+   ;;
+  status)
+   stats
+   ;;
+  *)
+   echo $"Usage: $0 {start|stop|restart|status}"
+   exit 1
+esac
+
+exit $RETVAL

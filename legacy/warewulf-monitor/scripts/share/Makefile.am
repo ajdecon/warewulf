@@ -1,0 +1,3 @@
+SUBDIRS = web
+
+MAINTAINERCLEANFILES = Makefile.in

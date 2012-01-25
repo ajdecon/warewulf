@@ -1,0 +1,207 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+use IO::Socket;
+use IO::Select;
+use IO::Poll;
+use Authen::Libwrap qw( hosts_ctl STRING_UNKNOWN );
+
+use threads;
+use threads::shared;
+#use strict;
+use constant MAXLEN => 1024;
+use Getopt::Long;
+
+$SIG{PIPE} = 'IGNORE';
+
+my %stats :shared;
+my %locks :shared;
+my $critical_loop :shared;
+
+$critical_loop = '1';
+
+my $usage = "USAGE: $0 [options]
+  About:
+    wwproxy can aggregate multiple warewulfd daemons together lightening
+    the load of warewulfd (sometimes needed on larger clusters) and also
+    has the ability of redistributing the node statistics in ganglia
+    XML suitable for being slurped by gmetad.
+
+  Options:
+    --debug     Do not fork into the background, and show debugging output
+    --port      Port to dump output [default:9873] (can be none)
+    --hosts     List of hostnames (comma delim) [default: localhost]
+    --refresh   Time in seconds to refresh data from warewulfd(s) [default:5]
+    --legacy    Enable legacy support for warewulfd versions < 2.5
+    --help      Show this banner
+
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+GetOptions(
+   'debug'     => \$debug,
+   'refresh=s' => \$refresh,
+   'port=s'   => \$wport,
+   'hosts=s'   => \$hostnames,
+   'legacy'    => \$enable_legacy,
+   'help'      => \$help,
+);
+
+if ( $help ) {
+   print $usage;
+   exit;
+}
+
+unless ( $debug ) {
+   if ( -f '/var/run/wwproxy.pid' ) {
+      print "Warewulf proxy daemon already running!\n";
+      open(PID, "/var/run/wwproxy.pid");
+      $pid = <PID>;
+      close PID;
+      print "PID=$pid (/var/run/wwproxy.pid)\n";
+      exit 1;
+   }
+   open(STDIN, "/dev/null");
+   open(STDOUT, ">/dev/null");
+   open(STDERR, ">/dev/null");
+   fork and exit;
+}   
+
+$0 = "wwproxy: accepting connections";
+
+$pid = $$;
+open(PID, '> /var/run/wwproxy.pid')
+   or warn "Could not create PID file at: '/var/run/wwproxy.pid'\n";
+print PID $pid;
+close PID;
+
+$SIG{HUP} = sub {
+   #&get_hosts;
+   return('1');
+};
+$SIG{TERM} = sub {
+   unlink('/var/run/wwproxy.pid');
+   exit 1;
+};
+$SIG{INT} = sub {
+   warn "-Cought Signal Interrupt, exiting...\n";
+   unlink('/var/run/wwproxy.pid');
+   $critical_loop = ();
+   foreach $thr ( keys %thread ) {
+      $thread{$thr}->join();
+   }
+   exit 1;
+};
+
+if ( $wport ) {
+   $warewulf_port = $port;
+} else {
+   $warewulf_port = '9873';
+}
+
+if ( ! $refresh) {
+   $refresh = '5';
+}
+
+my $data;
+
+$debug and warn "Building TCP socket at '$warewulf_port'\n";
+$S = IO::Socket::INET->new(Proto     => 'tcp',
+                           LocalPort => $warewulf_port,
+                           Listen    => 1,
+                           Reuse     => 1,
+                           Timeout   => 1)
+   or die "can't make socket: $!";
+
+$debug and warn "Adding the socket handles to IO::Select\n";
+$sel = new IO::Select();
+$debug and warn "Adding warewulf_port to IO:Select\n";
+$sel->add($S);
+
+sub node_status {
+   my ( $host, @NULL ) = @_;
+   my ( %nodes, %nodecfg, @s, $entry, $value, $nodename, $sock );
+
+   while (1) {
+      if ( $locks{"$host"} ) {
+         return;
+      }
+      $locks{"$host"} = 1;
+   
+      $debug and warn "getting stats from $host\n";
+   
+      unless ( $host ) {
+         $host = 'localhost';
+      }
+      unless ( $port ) {
+         $port = '9873';
+      }
+      unless ( $timeout ) {
+         $timeout = '5';
+      }
+   
+      my $sock = new IO::Socket::INET ( PeerAddr => $host,
+                                        PeerPort => 9873,
+                                        Proto    => 'tcp',
+                                      );
+      unless ( $sock ) {
+         warn "Could not connect to $host:$port!\n";
+      }
+      
+      $tmp = ();
+      while (<$sock>) {
+         $tmp .= $_;
+      }
+      $stats{"$host"} = $tmp;
+      
+      $locks{"$host"} = ();
+      for ($i=0;$i<$refresh;$i++) {
+         if ( ! $critical_loop ) {
+            exit;
+         }
+         sleep 1;
+      }
+   }
+   return;
+}
+
+# start some threads for syncing...
+@hosts = split(/,/, $hostnames);
+foreach $hostname ( @hosts ) {
+   $thread{"$hostname"} = threads->create("node_status", "$hostname");
+}
+
+$debug and warn "Starting IO::Select loop\n";
+$debug and warn "Listening on port $monitor_port\n";
+while (1) {
+   while (@ready = $sel->can_read()) {
+      foreach $fh (@ready) {
+         if ( $fh == $S ) {
+            my $new_sock = $S->accept();
+            $addr = $new_sock->peerhost();
+            if ( ! hosts_ctl("wwproxy", $new_sock) ) {
+               print $new_sock "Access Denied!\n";
+               $debug and warn "TCP Access denied from $addr\n";
+               next;
+            }
+            $debug and warn "Sending=>TCP:$warewulf_port -> stats to $addr ($network)\n";
+            foreach $cluster ( keys %stats ) {
+               if ( $enable_legacy ) {
+                  print $new_sock "CLUSTER=$cluster\n";
+               }
+               print $new_sock "$stats{$cluster}\n";
+            }
+            close($new_sock);
+         }
+      }
+   }
+}
+         
+exit;

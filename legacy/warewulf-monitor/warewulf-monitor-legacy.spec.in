@@ -1,0 +1,165 @@
+Name: warewulf-monitor-legacy
+Summary: A suite of tools for clustering
+Version: @PACKAGE_VERSION@
+Release: 1
+License: GPL
+Group: System Environment/Clustering
+Source: %{name}-%{version}.tar.gz
+ExclusiveOS: linux
+Requires: %{name}-common = %{version}-%{release}
+Prefix: %{_prefix}
+Buildroot: %{_tmppath}/%{name}-%{version}-root
+
+%description
+Warewulf is a cluster management/monitoring toolset.
+
+This package contains the warewulfd server daemon.
+
+%package common
+Summary: Files common to all warewulf packages
+Group: System Environment/Clustering
+
+%description common
+Warewulf is a cluster management/monitoring toolset.
+
+This package contains files needed by other warewulf subpackages.
+
+%package tools
+Summary: The Warewulf user tools
+Group: System Enviornment/Clustering
+Requires: %{name}-common = %{version}-%{release}
+
+%description tools
+Warewulf is a cluster management/monitoring toolset.
+
+This subpackage includes the tools to communicate with the main
+daemon or a proxy.
+
+%package wulfd
+Summary: The Warewulf node daemon
+Group: System Enviornment/Daemons
+Requires: chkconfig
+
+%description wulfd
+Warewulf is a cluster management/monitoring toolset.
+
+This subpackage includes the node daemon that will communicate its
+stats to the master node.
+
+%package proxy
+Summary: The Warewulf node daemon proxy service
+Group: System Enviornment/Daemons
+Requires: chkconfig
+Requires: %{name}-common = %{version}-%{release}
+
+%description proxy
+Warewulf is a cluster management/monitoring toolset.
+
+This subpackage provides support for aggregating multiple Warewulf
+daemons together, or "relaying" the data to multiple login nodes.
+
+%package web
+Summary: The Warewulf web frontend
+Group: System Enviornment/monitoring
+Requires: httpd
+Requires: %{name}-common = %{version}-%{release}
+
+%description web
+Warewulf is a cluster management/monitoring toolset.
+
+This subpackage provides a web-based CGI/frontend to the Warewulf
+daemon or proxy daemon.  It can monitor 1 or more clusters.
+
+%prep
+%setup -q
+
+%build
+%configure
+%{__make} %{?mflags}
+
+%install
+%{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
+
+%post
+/sbin/chkconfig --add warewulf
+/sbin/chkconfig warewulf on
+
+%post wulfd
+/sbin/chkconfig --add wulfd
+/sbin/chkconfig wulfd on
+
+%post web
+/sbin/service httpd condrestart >/dev/null 2>&1 ||:
+/sbin/service apache2 condrestart >/dev/null 2>&1 ||:
+
+%post proxy
+/sbin/chkconfig --add wwproxy
+/sbin/chkconfig wwproxy on
+
+%preun
+if [ $1 -eq '0' ]; then
+   /sbin/service warewulf stop >/dev/null ||:
+   /sbin/chkconfig --del warewulf
+fi
+
+%preun wulfd
+if [ $1 -eq '0' ]; then
+   /sbin/service wulfd stop >/dev/null ||:
+   /sbin/chkconfig --del wulfd
+fi
+
+%preun proxy
+if [ $1 -eq '0' ]; then
+   /sbin/service wwproxy stop >/dev/null ||:
+   /sbin/chkconfig --del wwproxy
+fi
+
+%postun web
+/sbin/service httpd condrestart >/dev/null 2>&1 ||:
+/sbin/service apache2 condrestart >/dev/null 2>&1 ||:
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%{_sysconfdir}/init.d/warewulf
+%{_sbindir}/warewulfd
+
+%files common
+%defattr(-,root,root)
+%{_prefix}/lib/warewulf-legacy
+
+%files tools
+%defattr(-,root,root)
+%dir %{_sysconfdir}/warewulf-legacy
+%config(noreplace) %{_sysconfdir}/warewulf-legacy/client.conf
+%{_bindir}/wwnodes
+%{_bindir}/wwstats
+%{_bindir}/wwsummary
+%{_bindir}/wwtop
+%{_bindir}/wwmpirun
+#%{_bindir}/wwps
+
+%files wulfd
+%defattr(-,root,root)
+%config(noreplace) %{_sysconfdir}/sysconfig/wulfd.conf
+%{_sysconfdir}/init.d/wulfd
+%{_sbindir}/wulfd
+
+%files proxy
+%defattr(-,root,root)
+%config(noreplace) %{_sysconfdir}/sysconfig/wwproxy.conf
+%{_sysconfdir}/init.d/wwproxy
+%{_sbindir}/wwproxy
+
+%files web
+%defattr(-,root,root)
+%dir %{_datadir}/warewulf-legacy
+%dir %{_datadir}/warewulf-legacy/web
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/*.conf
+%{_datadir}/warewulf-legacy/web/cgi
+%{_datadir}/warewulf-legacy/web/images
+
+%changelog

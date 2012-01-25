@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# chkconfig: 345 95 05
+# description: WAREWULFD watches the status of the slave nodes on the cluster
+#              and keeps them configured properly and available to cluster
+#              users.
+# processname: warewulfd
+# pidfile: /var/run/warewulfd.pid
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+localstatedir=@localstatedir@
+sbindir=@sbindir@
+tftpdir=/tftpboot
+sysconfdir=@sysconfdir@
+
+
+# source function library
+. /etc/init.d/functions
+
+RETVAL=0
+
+start() {
+   if [ -x $sbindir/warewulfd ]; then
+      if [ -f /var/run/warewulfd.pid ]; then
+         status warewulfd
+      else
+         daemon $sbindir/warewulfd </dev/null
+         RETVAL=$?
+         if [ $RETVAL -eq 0 ]; then
+            touch /var/lock/subsys/warewulfd
+         fi
+         echo
+      fi
+   fi
+}
+
+stop() {
+   if [ -f /var/run/warewulfd.pid ]; then
+      killproc warewulfd
+      RETVAL=$?
+      echo
+   fi
+   rm -f /var/lock/subsys/warewulfd
+}
+
+stats() {
+   if [ -x $sbindir/warewulfd ]; then
+      status warewulfd
+      RETVAL=0
+   fi
+}
+
+case "$1" in
+  start)
+   start
+   ;;
+  stop)
+   stop
+   ;;
+  restart)
+   stop
+   start
+   RETVAL=0
+   ;;
+  status)
+   stats
+   ;;
+  *)
+   echo $"Usage: $0 {start|stop|restart|status}"
+   exit 1
+esac
+
+exit $RETVAL

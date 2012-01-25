@@ -1,0 +1,184 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use Warewulf::Config;
+use Warewulf::Status;
+use Warewulf::Util;
+use Getopt::Long;
+use Sys::Hostname;
+#use strict;
+
+#Getopt::Long::Configure ("bundling");
+
+
+$usage = "USAGE: $0 [options] [hostname]
+  About:
+    wwmpirun 
+  Options:
+   -np              Number of processes to run
+   -what            Just display 'what' wwmpirun would be doing
+   -slots           Number of processes to run on each node (default is
+                     equal to the number of CPU's per node)
+   -mpi             Define which MPI enviornment you wish to use.
+                     eg. ompi, lam, generic
+   -h, --help       Show this banner
+  
+  Enviornment Variables
+   MPIRUN           The mpirun command to use (default `which mpirun`)
+  
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+GetOptions(
+   'np=s'        => \$mpirun_np,
+   'slots=s'     => \$slots,
+   'mpi=s'       => \$mpi,
+   'what'        => \$what,
+   'help|h'      => \$help,
+);
+
+if ( $mpi eq "ompi" ) {
+      print "Using Open MPI schema\n";
+      $ompi = '1';
+} elsif ( $mpi eq "lam" ) {
+      print "Using LAM-MPI schema\n";
+      $lam = '1';
+} elsif ( $mpi eq "generic" ) {
+      print "Using generic MPI schema\n";
+} else {
+   if ( ! system("which ompi_info >/dev/null 2>&1") ) {
+      print "Using Open MPI schema\n";
+      $ompi = '1';
+   } elsif ( ! system("which lamboot >/dev/null 2>&1") ) {
+      print "Using LAM-MPI schema\n";
+      $lam = '1';
+   }
+}
+
+if ( ! system("which $ENV{MPIRUN} >/dev/null 2>&1")) {
+   print "Using the MPIRUN configured in your enviornment\n";
+} else {
+   if ( ! system("which mpirun_ssh >/dev/null 2>&1")) {
+      print "Using generic MPI over SSH schema\n";
+   } elsif ( ! system("which mpirun_rsh >/dev/null 2>&1")) {
+      print "Using generic MPI over RSH schema\n";
+   } elsif ( ! system("which mpirun >/dev/null 2>&1")) {
+      print "Using generic MPI schema\n";
+   } else {
+      print "I didn't find any MPI on your system\n";
+   }
+}
+
+if ( ! $mpirun_np ) {
+   warn "ERROR: You must specify how many processes you wish to run!\n";
+   $help = 1;
+}
+
+if ( ! @ARGV ) {
+   warn "ERROR: You must specify a command to be run!\n";
+   $help = 1;
+}
+
+if ( $help ) {
+   print $usage;
+   exit;
+}
+
+if ( $ENV{MPIRUN} ) {
+   $mpirun = $ENV{MPIRUN};
+} else {
+   $mpirun = 'mpirun';
+}
+
+$CWD = $ENV{PWD};
+$cpus = 0;
+
+%config = &client_config();
+%nodestatus = &node_status($config{'warewulf master'});
+@filtered = &users_filter(keys %nodestatus);
+
+foreach ( sort @filtered ) {
+   if ( $nodestatus{$_}{USERPROC} > 0 or $nodestatus{$_}{CPUUTIL} >= 5 ) {
+#     next;
+   }
+   if ( $slots ) {
+      $nodestatus{$_}{CPUCOUNT} = $slots;
+   }
+   push(@nodes_ready, $_);
+}
+
+if ( $lam ) {
+   if ( ! $include_master ) {
+      $include_master = 1;
+   }
+   $machine_file = "$ENV{HOSTNAME} cpu=$include_master\n";
+   $nodes_selected = "$ENV{HOSTNAME} ";
+} elsif ( $include_master ) {
+   for ($i=0;$i<$include_master;$i++) {
+      $machine_file .= "$ENV{HOSTNAME}\n";
+   }
+   $nodes_selected = "$ENV{HOSTNAME} ";
+}
+
+$cpus += $include_master;
+
+if ( @nodes_ready ) {
+   foreach (sort @nodes_ready ) {
+      if ( $lam ) {
+         $machine_file .= "$nodestatus{$_}{NODENAME} cpu=$nodestatus{$_}{CPUCOUNT}\n";
+         $cpus += $nodestatus{$_}{CPUCOUNT};
+      } elsif ( $ompi ) {
+         $machine_file .= "$nodestatus{$_}{NODENAME} slots=$nodestatus{$_}{CPUCOUNT}\n";
+         $cpus += $nodestatus{$_}{CPUCOUNT};
+      } else {
+         for ($i=0; $i<$nodestatus{$_}{CPUCOUNT}; $i++) {
+            $machine_file .= "$nodestatus{$_}{NODENAME}\n";
+            $cpus++;
+         }
+      }
+      $nodes_selected .= "$nodestatus{$_}{NODENAME} ";
+      if ( $cpus >= $mpirun_np ) {
+         last;
+      }
+   }
+}
+
+$tmp_hostfile = "$ENV{HOME}/hostfile.";
+$tmp_hostfile .= &generate_random_string(8);
+
+if ( $mpirun_np > $cpus ) {
+   die "ERROR: $cpus processors available and you want $mpirun_np!\n";
+}
+
+warn "Running job on:\n$nodes_selected\n\n";
+
+open(HOSTFILE, "> $tmp_hostfile");
+print HOSTFILE $machine_file;
+close HOSTFILE;
+
+chdir("$CWD");
+if ( $lam ) {
+   warn "CMD: lamboot $tmp_hostfile\n";
+   system("lamboot $tmp_hostfile");
+   warn "CMD: $mpirun -np $mpirun_np @ARGV\n";
+   system("$mpirun -np $mpirun_np @ARGV");
+   warn "CMD: lamhalt\n";
+   system("lamhalt");
+} else {
+   warn "CMD: $mpirun -hostfile $tmp_hostfile -np $mpirun_np @ARGV\n";
+   system("$mpirun -hostfile $tmp_hostfile -np $mpirun_np @ARGV");
+}
+
+unlink("$tmp_hostfile");
+
+exit;

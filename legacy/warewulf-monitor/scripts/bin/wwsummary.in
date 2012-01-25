@@ -1,0 +1,147 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use Warewulf::Config;
+use Warewulf::Status;
+use Exporter;
+use Getopt::Long;
+use strict;
+
+Getopt::Long::Configure ("bundling");
+
+my ($nodes_up,
+    $nodes_disabled,
+    $nodes_unavailable,
+    $nodes_error,$nodes_down,
+    @hosts, 
+    $host, 
+    $help, 
+    $usage,
+    $out,
+    $quiet,
+    $warnings,
+    $sock,
+    %nodestatus,
+    $nodes_up,
+    $nodes_unavailable,
+    $nodes_disabled,
+    $nodes_error,
+    $nodes_down,
+    $node,
+    $total_cpu_util,
+    $total_mem_util,
+    %config
+);
+my $error = '0';
+my $timeout = '5';
+
+$usage = "USAGE: $0 [optional list hostnames]...
+  About:
+     wwsummary is a tool for facilitating monitoring of Warewulf clusters. It
+     can work locally or remotely, and recommended to be run via a cron script
+     with the output emailed to a group of users or admins. It also makes use of
+     exit codes where 0 is good and >0 is not so good.
+
+  Options:
+   -t, --timeout    Timeout network connection (default 5 sec)
+   -w, --warnings   Only show problems (good for cron with email alerts)
+   -q, --quiet      Only show major things
+   -h, --help       Show this banner
+
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+
+
+GetOptions(
+   'help|h'       => \$help,
+   'quiet|q'      => \$quiet,
+   'warnings|w'   => \$warnings,
+   'timeout|t=s'  => \$timeout,
+);
+
+if ( $help ) {
+   die $usage;
+}
+
+%config = &client_config();
+if ( $ARGV[0] ) {
+   push(@hosts, @ARGV);
+} else {
+   #chomp(my $hostname = `hostname -s`);
+   #push(@hosts, $hostname);
+   push(@hosts, "localhost");
+}
+
+foreach $host ( sort @hosts ) {
+   $out = ();
+   %nodestatus = &node_status($host, 9873, $timeout);
+   if ( ! %nodestatus ) {
+      $error += 1000;
+   }
+   $nodes_up = $nodes_unavailable = $nodes_disabled = $nodes_error = $nodes_down = 0;
+   foreach $node ( keys %nodestatus ) {
+      if ( $nodestatus{$node}{LASTCONTACT} <= 300 ) {
+         $total_cpu_util += $nodestatus{$node}{CPUUTIL};
+         if ( $nodestatus{$node}{MEMTOTAL} > 0 ) {
+            $total_mem_util += sprintf("%d", ($nodestatus{$node}{MEMUSED} / $nodestatus{$node}{MEMTOTAL})*100);
+         } else {
+            $total_mem_util = 0;
+         }
+         $nodes_up++;
+      } else {
+         $nodes_down++;
+      }
+   }
+   if ( $nodes_up > '0' ) {
+      $total_cpu_util = sprintf("%d", $total_cpu_util / $nodes_up);
+      if ( ( $total_cpu_util >= '95' or ! $quiet ) and ! $warnings ) {
+         $out .= "$total_cpu_util% CPU";
+      }
+      $total_mem_util = sprintf("%d", $total_mem_util / $nodes_up);
+      if ( ( $total_mem_util >= '95' or ! $quiet ) and ! $warnings ) {
+         $out .= ", $total_mem_util% Mem Util";
+      }
+   }
+   if ( $nodes_down ) {
+      $out .= ", " if $out;
+      $out .= "$nodes_down Node(s) Down";
+      $error++;
+   }
+   if ( $nodes_error ) {
+      $out .= ", " if $out;
+      $out .= "$nodes_error Node(s) in Error";
+      $error++;
+   }
+   if ( $nodes_unavailable ) {
+      $out .= ", " if $out;
+      $out .= "$nodes_unavailable Node(s) Unavailable";
+      $error++;
+   }
+   if ( $nodes_disabled and ! $quiet and ! $warnings ) {
+      $out .= ", " if $out;
+      $out .= "$nodes_disabled Node(s) Disabled";
+      $error++;
+   }
+   if ( $nodes_up and ! $quiet and ! $warnings ) {
+      $out .= ", " if $out;
+      $out .= "$nodes_up Node(s) Ready";
+   }
+   if ( $out ) {
+      printf("%-20.20s ", $host);
+      print "$out\n";
+   }
+}
+
+exit($error);

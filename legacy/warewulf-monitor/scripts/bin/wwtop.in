@@ -1,0 +1,784 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+# 
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use Warewulf::Config;
+use Warewulf::Status;
+use Warewulf::Util;
+use Getopt::Long;
+use IO::Socket;
+use Term::Screen;
+use Sys::Hostname;
+#use strict;
+
+Getopt::Long::Configure ("bundling");
+
+my (
+   $usage,
+   $help,
+   $only_summary,
+   $quiet,
+   $entry,
+   $value,
+   $nodename,
+   %nodestatus,
+   %nodes,
+   $string,
+   $summary,
+   $total_cpu,
+   $nodes_up,
+   $nodes_down,
+   $nodes_disabled,
+   $nodes_unavailable,
+   $nodes_unknown,
+   @ready,
+   @unavail,
+   @other,
+   @error,
+   @down,
+   $master,
+   @nodes,
+   @node_config,
+   @filtered,
+   %node_access,
+   %mastercfg,
+   %swapstat,
+   %config,
+   @nodes_ready,
+   @nodes_down,
+   @nodes_shutdown,
+   @nodes_unavailable,
+   @nodes_unknown,
+   $uptime_high,
+   $uptime_low,
+   $uptime_avg,
+   $uptime_total,
+   $load_high,
+   $load_low,
+   $load_avg,
+   $load_total,
+   $tasks_high,
+   $tasks_low,
+   $tasks_avg,
+   $tasks_total,
+   $cpu_high,
+   $cpu_low,
+   $cpu_avg,
+   $cpu_total,
+   $mem_high,
+   $mem_low,
+   $mem_avg,
+   $mem_total,
+   $cpu_mhz,
+   $mem_avail,
+   $mem_used,
+   $uptime,
+   $l1,
+   $l2,
+   $l3,
+   $l4,
+   $l5,
+   $rows,
+   $key,
+   $Second,
+   $Minute,
+   $Hour,
+   $Day,
+   $Month,
+   $Year,
+   $WeekDay,
+   $DayOfYear,
+   $IsDST,
+   $time,
+   $hostname,
+   $net_h,
+   $metric_sort_util,
+   $show_only_idle,
+   $show_only_dead,
+   $show_only_utilized,
+   $flush_filters,
+   $reverse_sort_order,
+);
+
+$usage = "USAGE: $0 [options]
+  About:
+    wwtop is the Warewulf 'top' like monitor. It shows the nodes ordered by
+    the highest utilization, and important statics about each node and
+    general summary type data. This is an interactive curses based tool.
+
+  Options:
+   -h, --help       Show this banner
+
+  Runtime Options:
+    Filters (can also be used as command line options):
+       i   Display only idle nodes
+       d   Display only dead and non 'Ready' nodes
+       f   Flush any current filters
+    Commands:
+       s   Sort by: nodename, CPU, memory, network utilization
+       r   Reverse the sort order
+       p   Pause the display
+       q   Quit
+    Views:
+       You can use the page up, page down, home and end keys to scroll through
+       multiple pages.
+
+  This tool is part of the Warewulf cluster distribution
+     http://warewulf-cluster.org/
+";
+
+GetOptions(
+   'help|h'      => \$help,
+   'i'           => \$show_only_idle,
+   'd'           => \$show_only_dead,
+   'u'           => \$show_only_utilized,
+);
+
+if ( $help ) {
+   print $usage;
+   exit;
+}
+
+%config = &client_config();
+if ( $ARGV[0] ) {
+   $master = $hostname = $ARGV[0];
+} else {
+   $master = $config{'warewulf master'};
+   if ( $master eq "localhost" ) {
+      chomp($hostname = `hostname -s`);
+   } else {
+      $hostname = $config{'warewulf master'};
+   }
+}
+
+%nodestatus = &node_status($master);
+@filtered = &users_filter(keys %nodestatus);
+#die "\rAck! Help me, please!\n\n\r" unless %nodestatus;
+
+# set the default sort mechanism
+$metric_sort_util = "nodename";
+
+sub cpu_sort {
+   if ( $metric_sort_util eq "nodename" and $reverse_sort_order ) {
+      $a =~ /^([^\.]+)(.*)$/;
+      my $a1 = $1;
+      my $a2 = $2;
+      $b =~ /^([^\.]+)(.*)$/;
+      my $b1 = $1;
+      my $b2 = $2;
+      if ( $a2 eq $b2 ) {
+         $b1 cmp $a1;
+      } else {
+         $b2 cmp $a2;
+      }
+   } elsif ( $metric_sort_util eq "nodename" ) {
+      $a =~ /^([^\.]+)(.*)$/;
+      my $a1 = $1;
+      my $a2 = $2;
+      $b =~ /^([^\.]+)(.*)$/;
+      my $b1 = $1;
+      my $b2 = $2;
+      if ( $a2 eq $b2 ) {
+         $a1 cmp $b1;
+      } else {
+         $a2 cmp $b2;
+      }
+   } elsif ( $metric_sort_util eq "cpuutil" and $reverse_sort_order ) {
+      $nodestatus{$a}{CPUUTIL} <=> $nodestatus{$b}{CPUUTIL};
+   } elsif ( $metric_sort_util eq "cpuutil") {
+      $nodestatus{$b}{CPUUTIL} <=> $nodestatus{$a}{CPUUTIL};
+   } elsif ( $metric_sort_util eq "memutil" and $reverse_sort_order ) {
+      $nodestatus{$a}{MEMUSED} <=> $nodestatus{$b}{MEMUSED};
+   } elsif ( $metric_sort_util eq "memutil") {
+      $nodestatus{$b}{MEMUSED} <=> $nodestatus{$a}{MEMUSED};
+   } elsif ( $metric_sort_util eq "swaputil" and $reverse_sort_order ) {
+      $nodestatus{$a}{SWAPUSED} <=> $nodestatus{$b}{SWAPUSED};
+   } elsif ( $metric_sort_util eq "swaputil") {
+      $nodestatus{$b}{SWAPUSED} <=> $nodestatus{$a}{SWAPUSED};
+   } elsif ( $metric_sort_util eq "uptime" and $reverse_sort_order ) {
+      $nodestatus{$a}{UPTIME} <=> $nodestatus{$b}{UPTIME};
+   } elsif ( $metric_sort_util eq "uptime") {
+      $nodestatus{$b}{UPTIME} <=> $nodestatus{$a}{UPTIME};
+   } elsif ( $metric_sort_util eq "cpuclk" and $reverse_sort_order ) {
+      $nodestatus{$a}{CPUCLOCK} <=> $nodestatus{$b}{CPUCLOCK};
+   } elsif ( $metric_sort_util eq "cpuclk") {
+      $nodestatus{$b}{CPUCLOCK} <=> $nodestatus{$a}{CPUCLOCK};
+   } elsif ( $metric_sort_util eq "netutil" and $reverse_sort_order ) {
+      ($nodestatus{$a}{NETTRANSMIT} + $nodestatus{$a}{NETRECIEVE}) <=> 
+         ($nodestatus{$b}{NETTRANSMIT} + $nodestatus{$b}{NETRECIEVE});
+   } elsif ( $metric_sort_util eq "netutil") {
+      ($nodestatus{$b}{NETTRANSMIT} + $nodestatus{$b}{NETRECIEVE}) <=> 
+         ($nodestatus{$a}{NETTRANSMIT} + $nodestatus{$a}{NETRECIEVE});
+   } elsif ( $metric_sort_util eq "load" and $reverse_sort_order ) {
+      $nodestatus{$a}{LOADAVG} <=> $nodestatus{$b}{LOADAVG};
+   } elsif ( $metric_sort_util eq "load" ) {
+      $nodestatus{$b}{LOADAVG} <=> $nodestatus{$a}{LOADAVG};
+   }
+}
+
+$scr = new Term::Screen;
+unless ($scr) { die "Ack! Couldn't get control of the screen!\n"; }
+$scr->clrscr();
+$scr->def_key("home","\eOH");
+$scr->def_key("home","\e[H");
+$scr->def_key("end","\e[F");
+$scr->def_key("end","\eOF");
+
+
+
+$nodes_up = $nodes_error = $nodes_disabled = $nodes_down = $nodes_unavailable = '0';
+
+$display_page = 1;
+$display_line = 0;
+
+while (1) {
+   $scr->resize();
+   $rows = $scr->rows();
+   $line=7;
+   $total_nodes = 0;
+   $nodes_shown = $nodes_total = $nodes_up = $nodes_down = $nodes_unavailable = $nodes_unknown = 0;
+   @nodes_ready = ();
+   @nodes_down = ();
+   @nodes_shutdown = ();
+   @nodes_unavailable = ();
+   @nodes_unknown = ();
+   $uptime_high = $uptime_low = $uptime_total = ();
+   $load_high = $load_low = $load_total = $load_avg = ();
+   $tasks_high = $tasks_low = $tasks_total = $tasks_avg = ();
+   $cpu_high = $cpu_low = $cpu_total = $cpu_avg = $cpu_mhz = ();
+   $mem_high = $mem_low = $mem_total = $mem_avg = $mem_used = ();
+
+   foreach ( sort @filtered ) {
+      $nodes_total++;
+      $nodename = $nodestatus{$_}{NODENAME};
+      if ( defined %filter and ! exists($filter{$nodename}) ) {
+         next;
+      }
+      if ( $nodestatus{$_}{NODESTATUS} eq "SHUTDOWN" ) {
+         push(@nodes_down, $_);
+         $nodes_down++;
+      } elsif ( $nodestatus{$_}{LASTCONTACT } <= 300 ) {
+         push(@nodes_ready, $_);
+         $total_cpu += $nodestatus{$_}{CPUUTIL};
+         if ( $uptime_high < $nodestatus{$_}{UPTIME} or ! $uptime_high ) {
+            $uptime_high = $nodestatus{$_}{UPTIME};
+         }
+         if ( $uptime_low > $nodestatus{$_}{UPTIME} or ! $uptime_low ) {
+            $uptime_low = $nodestatus{$_}{UPTIME};
+         }
+         $uptime_total += $nodestatus{$_}{UPTIME};
+         if ( $load_high < $nodestatus{$_}{LOADAVG} or ! $load_high) {
+            $load_high = $nodestatus{$_}{LOADAVG};
+         }
+         if ( $load_low > $nodestatus{$_}{LOADAVG} or ! $load_low ) {
+            $load_low = $nodestatus{$_}{LOADAVG};
+         }
+         $load_total += $nodestatus{$_}{LOADAVG};
+         if ( $tasks_high < $nodestatus{$_}{PROCS} or ! $tasks_high) {
+            $tasks_high = $nodestatus{$_}{PROCS};
+         }
+         if ( $tasks_low > $nodestatus{$_}{PROCS} or ! $tasks_low ) {
+            $tasks_low = $nodestatus{$_}{PROCS};
+         }
+         $tasks_total += $nodestatus{$_}{PROCS};
+         if ( $cpu_high < $nodestatus{$_}{CPUUTIL} or ! $cpu_high) {
+            $cpu_high = $nodestatus{$_}{CPUUTIL};
+         }
+         if ( $cpu_low > $nodestatus{$_}{CPUUTIL} or ! $cpu_low ) {
+            $cpu_low = $nodestatus{$_}{CPUUTIL};
+         }
+         if ( $mem_high < $nodestatus{$_}{MEMUSED} or ! $mem_high) {
+            $mem_high = $nodestatus{$_}{MEMUSED};
+         }
+         if ( $mem_low > $nodestatus{$_}{MEMUSED} or ! $mem_low) {
+            $mem_low = $nodestatus{$_}{MEMUSED};
+         }
+         $cpu_total += $nodestatus{$_}{CPUCOUNT};
+         $cpu_mhz += $nodestatus{$_}{CPUCLOCK};
+         $mem_total += $nodestatus{$_}{MEMTOTAL};
+         $mem_avail += $nodestatus{$_}{MEMTOTAL} - $nodestatus{$_}{MEMUSED};
+         $mem_used += $nodestatus{$_}{MEMUSED};
+         $cpu_avg += $nodestatus{$_}{CPUUTIL};
+         $nodes_up++;
+      } else {
+         push(@nodes_down, $_);
+         $nodes_down++;
+      }
+   }
+
+   if ( $nodes_up ) {
+      $uptime_avg = sprintf("%d", $uptime_total / $nodes_up );
+      $tasks_avg = sprintf("%d", $tasks_total / $nodes_up );
+      $load_avg = sprintf("%.2f", $load_total / $nodes_up );
+      $mem_avg = sprintf("%d", $mem_used / $nodes_up );
+      $cpu_avg = sprintf("%d", $cpu_avg / $nodes_up );
+   }
+   
+   ($Second, $Minute, $Hour, $Day, $Month, $Year, $WeekDay, $DayOfYear, $IsDST) = localtime(time);
+   
+   $l1 = sprintf("Cluster totals: %0d nodes, %0d cpus, %0d MHz, %0.2f GB mem",
+           $nodes_up,
+           $cpu_total,
+           $cpu_mhz,
+           $mem_total / 1024,
+   );
+   
+   $l2 = sprintf("Avg:  %3d%s cputil, %6.2f MB memutil, load %0.2f, %3d procs, uptime %3d day(s)",
+           $cpu_avg, "%",
+           $mem_avg,
+           $load_avg,
+           $tasks_avg,
+           $uptime_avg,
+   );
+   
+   $l3 = sprintf("High: %3d%s cputil, %6.2f MB memutil, load %0.2f, %3d procs, uptime %3d day(s)",
+           $cpu_high, "%",
+           $mem_high,
+           $load_high,
+           $tasks_high,
+           $uptime_high,
+   );
+   
+   $l4 = sprintf("Low:  %3d%s cputil, %6.2f MB memutil, load %0.2f, %3d procs, uptime %3d day(s)",
+           $cpu_low, "%",
+           $mem_low,
+           $load_low,
+           $tasks_low,
+           $uptime_low,
+   );
+   
+   $l5 = sprintf("Node status: %4d ready, %4d unavailable, %4d down, %4d unknown",
+           $nodes_up,
+           $nodes_unavailable,
+           $nodes_down,
+           $nodes_unknown);
+   $scr->at(0,0);
+   $scr->clreol();
+   $scr->puts("$l1");
+   $scr->at(1,0);
+   $scr->clreol();
+   $scr->puts("$l2");
+   $scr->at(2,0);
+   $scr->clreol();
+   $scr->puts("$l3");
+   $scr->at(3,0);
+   $scr->clreol();
+   $scr->puts("$l4");
+   $scr->at(4,0);
+   $scr->clreol();
+   $scr->puts("$l5");
+   
+   $scr->at(6,0);
+   $scr->clreol();
+   $scr->reverse();
+   if ( $metric_sort_util eq "nodename" ) {
+      $scr->bold();
+      $scr->puts("Node name");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts("Node name");
+   }
+   if ( $metric_sort_util eq "cpuutil" ) {
+      $scr->bold();
+      $scr->puts("    CPU");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts("    CPU");
+   }
+   if ( $metric_sort_util eq "memutil" ) {
+      $scr->bold();
+      $scr->puts("  MEM");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts("  MEM");
+   }
+   if ( $metric_sort_util eq "swaputil" ) {
+      $scr->bold();
+      $scr->puts(" SWAP");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" SWAP");
+   }
+   if ( $metric_sort_util eq "uptime" ) {
+      $scr->bold();
+      $scr->puts(" Uptime");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" Uptime");
+   }
+   if ( $metric_sort_util eq "cpuclk" ) {
+      $scr->bold();
+      $scr->puts("   MHz  ");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts("   MHz  ");
+   }
+   if ( $metric_sort_util eq "arch" ) {
+      $scr->bold();
+      $scr->puts("  Arch");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts("  Arch");
+   }
+   if ( $metric_sort_util eq "proc" ) {
+      $scr->bold();
+      $scr->puts(" Procs ");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" Procs ");
+   }
+   if ( $metric_sort_util eq "load" ) {
+      $scr->bold();
+      $scr->puts(" Load ");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" Load ");
+   }
+   if ( $metric_sort_util eq "netutil" ) {
+      $scr->bold();
+      $scr->puts(" Net:KB/s");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" Net:KB/s");
+   }
+   if ( $show_only_idle or $show_only_utilized or $show_only_dead ) {
+      $scr->bold();
+      $scr->puts(" Stat/Util");
+      $scr->normal();
+      $scr->reverse();
+   } else {
+      $scr->puts(" Stats/Util");
+   }
+   $scr->normal();
+
+   #$total_pages = int((@nodes_ready+@nodes_down)/($rows-6))+1;
+   $display_line = 0;
+
+   if ( $show_only_dead ) {
+      @nodes_ready = ();
+   }
+
+   foreach ( sort cpu_sort sort @nodes_ready ) {
+      if ( $show_only_idle and ( $nodestatus{$_}{CPUUTIL} > '4' or $nodestatus{$_}{USERPROC} != 0 ) ) {
+         next;
+      }
+      if ( $show_only_utilized and $nodestatus{$_}{CPUUTIL} <= '17' ) {
+         next;
+      }
+
+      $total_nodes++;
+
+      if ( $display_line < ($display_page-1)*($rows-7) ) {
+         $display_line++;
+         next;
+      }
+
+      if ( $nodes_shown + 7 >= $rows ) {
+          next;
+      }
+      #$uptime = sprintf("%.2f", $nodestatus{$_}{UPTIME} / 86400);
+      if ( $nodestatus{$_}{MEMTOTAL} > 0 ) {
+         $mempercent = sprintf("%3d", $nodestatus{$_}{MEMUSED} / $nodestatus{$_}{MEMTOTAL}*100);
+      } else {
+         # This should really never happen... If it does, one would
+         # think that the node is hosed or something else funky is going
+         # on. Well, just in case...
+         $mempercent = 0;
+      }
+      if ( $nodestatus{$_}{SWAPTOTAL} > 0 ) {
+         $swappercent = sprintf("%3d", $nodestatus{$_}{SWAPUSED} / $nodestatus{$_}{SWAPTOTAL}*100);
+      } else {
+         $swappercent = 0;
+      }
+      if ( $nodestatus{$_}{CPUUTIL} > '95' or 
+           $mempercent > '95' or 
+           $nodestatus{$_}{LOADAVG} > $nodestatus{$_}{CPUCOUNT} * 2 ) {
+         $scr->bold();
+      }
+      if ( $nodestatus{$_}{CPUUTIL} <= '4' and $nodestatus{$_}{USERPROC} == 0 ) {
+         $status = "|  IDLE  |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} <= '4' and ! $nodestatus{$_}{USERPROC} ) {
+         $status = "|  IDLE  |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '95' ) {
+         $status = "|=======>|";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '82' ) {
+         $status = "|======> |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '69' ) {
+         $status = "|=====>  |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '56' ) {
+         $status = "|====>   |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '43' ) {
+         $status = "|===>    |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '30' ) {
+         $status = "|==>     |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '17' ) {
+         $status = "|=>      |";
+      } elsif ( $nodestatus{$_}{CPUUTIL} > '4' ) {
+         $status = "|>       |";
+      } else {
+         $status = "|        |";
+      }
+      if ( $nodestatus{$_}{NODESTATUS} eq 'SHUTDOWN' ) {
+         $status = "|SHUTDOWN|";
+      }
+      $nodes_shown++;
+      $net_h = $nodestatus{$_}{NETTRANSMIT} + $nodestatus{$_}{NETRECIEVE};
+      $net_h =~ s/(\d)(\d\d\d)$/$1,$2/g;
+      $out = sprintf("%-11.11s %4s %4s %4s %6.6s %5.5s %7.7s %4.4s %6.6s %9.9s %10.10s",
+           $nodestatus{$_}{NODENAME}, 
+           "$nodestatus{$_}{CPUUTIL}%", 
+           "$mempercent%", 
+           "$swappercent%", 
+           $nodestatus{$_}{UPTIME}, 
+           $nodestatus{$_}{CPUCLOCK}, 
+           $nodestatus{$_}{MACHINE}, 
+           $nodestatus{$_}{PROCS}, 
+           $nodestatus{$_}{LOADAVG}, 
+           $net_h,
+           $status);
+      $scr->at($line,0);
+      $scr->clreol();
+      $scr->puts("$out");
+      $scr->normal();
+      $line++;
+   
+   }
+
+   foreach ( sort @nodes_down) {
+
+      $total_nodes++;
+
+      if ( $display_line < ($display_page-1)*($rows-6) ) {
+         $display_line++;
+         next;
+      }
+
+      if ( $nodes_shown + 7 >= $rows ) {
+          next;
+      }
+      $nodes_shown++;
+      $out = sprintf("%-11.11s %4s %4s %4s %6.6s %5.5s %7.7s %4.4s %6.6s %9.9s |%8.8s|",
+           $nodestatus{$_}{NODENAME}, "----", "----", "----", "------", "-----", "-------", "----", "------", "-------", $nodestatus{$_}{NODESTATUS});
+      $scr->at($line,0);
+      $scr->clreol();
+      $scr->puts("$out");
+      $line++;
+   }
+
+   $total_pages = int($total_nodes/($rows-6))+1;
+
+   $time = sprintf("%02d:%02d:%02d", $Hour,$Minute,$Second);
+
+   $scr->at(5,0);
+   $scr->clreol();
+   $scr->puts("$time ");
+   $scr->puts("$hostname> ");
+
+
+
+   if ( $scr->key_pressed(1) ) {
+      $key = $scr->getch();
+      if ( $key eq 'q' ) {
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         $scr->puts("Quitting!");
+         $scr->normal();
+         $scr->at($rows,0);
+         print "\n";
+         exit;
+      } elsif ( $key eq 's' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         if ( $metric_sort_util eq "nodename" ) {
+            $metric_sort_util = "cpuutil";
+         } elsif ( $metric_sort_util eq "cpuutil") {
+            $metric_sort_util = "memutil";
+         } elsif ( $metric_sort_util eq "memutil") {
+            $metric_sort_util = "swaputil";
+         } elsif ( $metric_sort_util eq "swaputil") {
+            $metric_sort_util = "uptime";
+         } elsif ( $metric_sort_util eq "uptime") {
+            $metric_sort_util = "cpuclk"
+         } elsif ( $metric_sort_util eq "cpuclk") {
+            $metric_sort_util = "arch";
+         } elsif ( $metric_sort_util eq "arch") {
+            $metric_sort_util = "proc";
+         } elsif ( $metric_sort_util eq "proc") {
+            $metric_sort_util = "load";
+         } elsif ( $metric_sort_util eq "load") {
+            $metric_sort_util = "netutil";
+         } elsif ( $metric_sort_util eq "netutil") {
+            $metric_sort_util = "nodename";
+         }
+         $scr->normal();
+         $scr->at($rows,0);
+      } elsif ( $key eq 'i' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         if ( $show_only_idle == 0 ) {
+            $scr->puts("Displaying idle nodes only...");
+            $show_only_idle = '1';
+         } else {
+            $scr->puts("Redisplaying nodes that are not idle...");
+            $show_only_idle = '0';
+         }
+         sleep 1;
+         $scr->normal();
+         $scr->at($rows,0);
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'u' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         if ( $show_only_utilized == 0 ) {
+            $scr->puts("Displaying utilized nodes only...");
+            $show_only_utilized = '1';
+         } else {
+            $scr->puts("Redisplaying nodes that are not utilized...");
+            $show_only_utilized = '0';
+         }
+         sleep 1;
+         $scr->normal();
+         $scr->at($rows,0);
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'd' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         if ( $show_only_dead == 0 ) {
+            $scr->puts("Displaying dead/problem nodes only...");
+            $show_only_dead = '1';
+         } else {
+            $scr->puts("Redisplaying nodes that are not dead/problem...");
+            $show_only_dead = '0';
+         }
+         sleep 1;
+         $scr->normal();
+         $scr->at($rows,0);
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'r' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         if ( ! $reverse_sort_order ) {
+            $scr->puts("Reversing sort order...");
+            $reverse_sort_order = '1';
+         } else {
+            $scr->puts("Unreversing sort order...");
+            $reverse_sort_order = ();
+         }
+         sleep 1;
+         $scr->normal();
+         $scr->at($rows,0);
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'f' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         $scr->puts("Flushing current filters...");
+         sleep 1;
+         $scr->normal();
+         $scr->at($rows,0);
+         $show_only_dead = '0';
+         $show_only_idle = '0';
+         $show_only_utilized = '0';
+         $metric_sort_util = "nodename";
+         $reverse_sort_order = ();
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'c' ) {
+         $display_page = 1;
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } elsif ( $key eq 'p' ) {
+         $display_page = 1;
+         $scr->flush_input();
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         $scr->puts("Press any key to unpause");
+         $scr->normal();
+         $scr->key_pressed(100000);
+         $scr->flush_input();
+      } elsif ( $key eq "pgdn" || $key eq "pgup" || $key eq "home" || $key eq "end" ) {
+         if ( $key eq "home" ) {
+            $display_page = 1;
+         }
+         if ( $key eq "end" ) {
+            $display_page = $total_pages;
+         }
+         if ( $key eq "pgdn" and $display_page < $total_pages ) {
+           $display_page++;
+         }
+         if ( $key eq "pgup" and $display_page > 1 ) {
+           $display_page--;
+         }
+         $scr->normal();
+         $scr->at($rows,0);
+         $scr->clrscr();
+         $scr->resize();
+         $rows = $scr->rows();
+         $scr->flush_input();
+      } else {
+         $scr->at(5,0);
+         $scr->clreol();
+         $scr->bold();
+         $scr->puts("Unknown key '$key' pressed...");
+         $scr->normal();
+         $scr->flush_input();
+         sleep 1;
+      }
+   }
+   %nodestatus = &node_status($master);
+#   die "\rAck! Help me, please!\n\n\r" unless %nodestatus;
+}

@@ -1,0 +1,12 @@
+Todo:
+
+   - Fix up cgi generator
+   - update the CGI frontend to wwproxy/warewulfd
+   - Better warnings/errors when warewulfd is unreachable
+
+Done
+
+   - wulfd init script should be smarter about where the master is
+   - Seperate out monitoring code from warewulf proper
+   - Make changes to tools so they work on a more general basis
+   - Make new 3.0 development tree

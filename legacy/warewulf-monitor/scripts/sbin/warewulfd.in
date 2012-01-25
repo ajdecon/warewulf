@@ -1,0 +1,425 @@
+#!/usr/bin/perl -Tw
+#
+# Warewulf monitor daemon
+#
+# Michael Jennings <mej@lbl.gov>
+# 02 August 2010
+#
+# Copyright (c) 2001-2010, Michael Jennings <mej@eterm.org>
+#
+# Copyright (c) 2010, The Regents of the University of California, through
+# Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License, version 2, as
+# published by the Free Software Foundation.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# $Id: warewulfd 8 2010-08-17 00:28:29Z mej $
+#
+
+
+my $prefix = "@prefix@";
+
+use lib "../lib", "@prefix@/lib/warewulf-legacy";
+use strict;
+#use File::Basename;
+use POSIX;
+use Getopt::Long;
+use IO::Socket;
+use IO::Socket::INET;
+use IO::Select;
+use Sys::Syslog 0.07;
+use Authen::Libwrap (':all');
+use Warewulf::MzUtil;
+use Warewulf::Event;
+use Warewulf::Timer;
+
+### Global variables
+my $CONFIG_FILE = "/etc/warewulf-legacy/warewulfd.conf";
+my $MAXLEN = 4096;
+my $RM_PIDFILE = 0;
+my $PIDFILE = "/var/run/warewulfd.pid";
+my $LISTEN_ADDR = "0.0.0.0";
+my $LISTEN_PORT = 9873;
+my @NODES;
+my %STATS;
+my %KEYS = ("CPUCLOCK" => 1, "CPUCOUNT" => 1, "CPUMODEL" => 1,
+            "CPUUTIL" => 1, "DISTRO" => 1, "LASTCONTACT" => 1,
+            "LOADAVG" => 1, "MACHINE" => 1, "MEMTOTAL" => 1,
+            "MEMUSED" => 1, "NETRECIEVE" => 1, "NETTRANSMIT" => 1,
+            "NODE" => 1, "NODENAME" => 1, "NODESTATUS" => 1,
+            "PROCS" => 1, "RELEASE" => 1, "SWAPTOTAL" => 1,
+            "SWAPUSED" => 1, "SYSNAME" => 1, "UPTIME" => 1,
+            "USERPROC" => 1, "VERSION" => 1);
+
+END {
+    # Only remove the PID file if we created it.
+    if ($RM_PIDFILE) {
+        &ilog("Removing $PIDFILE and exiting.");
+        unlink($PIDFILE);
+    } else {
+        &ilog("Exiting.");
+    }
+}
+
+# Print usage information
+sub
+print_usage_info
+{
+    my ($leader, $underbar);
+
+    print "\n";
+    $leader = "$PROGNAME $VERSION Usage Information";
+    $underbar = $leader;
+    $underbar =~ s/./-/g;
+    print "$leader\n$underbar\n";
+    print "\n";
+    print "  Syntax:   $0 [ options ]\n";
+    print "\n";
+    print "    -h --help                        Show this usage information\n";
+    print "    -d --debug                       Turn on debugging\n";
+    print "    -v --version                     Show version and copyright\n";
+    print "    -f --foreground                  Do not fork into the background on startup\n";
+    print "    -a --address <addr>[:<port>]     Bind listening sockets to the specified address\n";
+    print "    -l --logfile <logfile>           Write to the specified log instead of stderr\n";
+    #print "                                     \n";
+    print "\n";
+    exit(0);
+}
+
+sub
+dlog
+{
+    my $fmt = shift;
+
+    chomp($fmt);
+    if (! &debug_get()) {
+        return 0;
+    }
+    syslog("debug", $fmt, @_);
+    dprintf("$fmt\n", @_);
+}
+
+sub
+ilog
+{
+    my $fmt = shift;
+
+    chomp($fmt);
+    syslog("info", $fmt, @_);
+    printf("$fmt\n", @_);
+}
+
+sub
+wlog
+{
+    my $fmt = shift;
+
+    chomp($fmt);
+    syslog("warning", $fmt, @_);
+    wprintf("$fmt\n", @_);
+}
+
+sub
+elog
+{
+    my $fmt = shift;
+
+    chomp($fmt);
+    syslog("err", $fmt, @_);
+    eprintf("$fmt\n", @_);
+}
+
+sub
+flog
+{
+    my $fmt = shift;
+
+    chomp($fmt);
+    syslog("err", "FATAL:  $fmt", @_);
+    &fatal_error(sprintf("$fmt\n", @_));
+}
+
+sub
+check_pid_file
+{
+    local *PID;
+    my $pid;
+
+    if (! -f $PIDFILE) {
+        &dlog("PID file $PIDFILE does not exist.");
+        return 0;
+    }
+    if (!open(PID, $PIDFILE)) {
+        &dlog("Unable to open PID file $PIDFILE -- $!");
+        return 0;
+    }
+    $pid = <PID>;
+    chomp($pid);
+    close(PID);
+    if ($pid =~ /^\s*(\d+)\s*$/) {
+        $pid = $1;
+    } else {
+        &dlog("PID file contents invalid.");
+        return 0;
+    }
+    if ($pid && kill(0, $pid)) {
+        &dlog("Got valid PID $pid");
+        return $pid;
+    } else {
+        &dlog("$PROGNAME (PID $pid) is no longer running.");
+        return 0;
+    }
+}
+
+sub
+write_pid_file
+{
+    local *PID;
+
+    # Write our PID to the pidfile, then check to make sure it's still there.
+    if (!open(PID, ">$PIDFILE")) {
+        &dlog("Unable to write PID file $PIDFILE -- $!");
+        return 0;
+    }
+    print PID "$$\n";
+    close(PID);
+    &dlog("Wrote PID $$ to $PIDFILE");
+    return check_pid_file();
+}
+
+sub
+add_node($$)
+{
+    my ($ip, $node) = @_;
+
+    # This is basically an insertion sort for @NODES, which
+    # holds the sorting for the keys (IP's) of the %STATS hash.
+    for (my $i = 0; $i < scalar(@NODES); $i++) {
+        my $this_ip = $NODES[$i];
+
+        if ($node lt $STATS{$this_ip}{"HOST"}) {
+            &dlog("Inserting new node $ip ($node) at position $i.");
+            splice(@NODES, $i, 0, $ip);
+            return $i;
+        }
+    }
+    push @NODES, $ip;
+    &dlog("Appending new node $ip ($node) at end, position $#NODES.");
+    return $#NODES;
+}
+
+sub
+main
+{
+    my $retval = MEZZANINE_SUCCESS;
+    my ($tcp_listen, $udp_listen, $sel, $pid);
+    my @ready;
+
+    # For taint checks
+    delete @ENV{("IFS", "CDPATH", "ENV", "BASH_ENV")};
+    $ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin:/mako/sched/gold/bin";
+    foreach my $shell ("/bin/bash", "/usr/bin/ksh", "/bin/ksh", "/bin/sh", "/sbin/sh") {
+        if (-f $shell) {
+            $ENV{"SHELL"} = $shell;
+            last;
+        }
+    }
+
+    # Parse options and set config variables.
+    &mezz_init("warewulfd", "2.9.13", "help|h", "version|v", "debug|d!", "foreground|f",
+               "address|a=s", "logfile|l=s");
+    if ($OPTION{"version"}) {
+        # Do not edit this.  It is updated automatically by CVS when you commit.
+        &print_version($PROGNAME, $VERSION, "Michael Jennings",
+                       'SVN Revision $Revision: 8 $ created on $Date: 2010-08-16 17:28:29 -0700 (Mon, 16 Aug 2010) $ by $Author: mej $ ');
+    } elsif ($OPTION{"help"}) {
+        &print_usage_info();
+    }
+    if (!defined($OPTION{"debug"})) {
+        &debug_set(0);
+    } else {
+        &debug_set($OPTION{"debug"});
+    }
+
+    if (! $OPTION{"address"}) {
+        $OPTION{"address"} = "$LISTEN_ADDR:$LISTEN_PORT";
+    } elsif (index($OPTION{"address"}, ':') < 0) {
+        $OPTION{"address"} .= ":$LISTEN_PORT";
+    }
+
+    # Fork into the background.
+    if (! $OPTION{"foreground"}) {
+        if (fork()) {
+            # Do not execute END block, as that removes the PID file.
+            return 0;
+        }
+    }
+
+    # Check for duplicate daemons.  Duplication is fatal, but failure to write the PID file isn't.
+    $pid = &check_pid_file();
+    if ($pid) {
+        &flog("Another $PROGNAME is already running (pid $pid)");
+    }
+    $pid = &write_pid_file();
+    if (! $pid) {
+        &elog("Unable to write PID file $PIDFILE -- $!.  Weird things may happen!");
+    } elsif ($pid != $$) {
+        &flog("Another $PROGNAME (PID $pid) started while this one (PID $$) was initializing.");
+    }
+    $RM_PIDFILE = 1;
+
+    # Open log file if requested.
+    if ($OPTION{"logfile"}) {
+        local *LOG;
+
+        if (open(LOG, ">$OPTION{logfile}")) {
+            close(STDERR);
+            open(STDERR, ">&LOG");
+        } else {
+            &elog("Unable to write to log file $OPTION{logfile} -- $!\n");
+        }
+    }
+
+    # Open syslog for logging.  Failure is fatal by default.
+    openlog($PROGNAME, "ndelay,pid", "daemon");
+
+    # Open listening sockets.
+    $tcp_listen = IO::Socket::INET->new("Proto" => "tcp", "LocalAddr" => $OPTION{"address"},
+                                        "Type" => SOCK_STREAM, "Listen" => 128, "Timeout" => 0.05,
+                                        "ReuseAddr" => 1);
+    if (! $tcp_listen) {
+        &flog("Unable to open TCP listener on $OPTION{address} -- $!");
+    }
+    $udp_listen = IO::Socket::INET->new("Proto" => "udp", "LocalAddr" => $OPTION{"address"},
+                                        "Type" => SOCK_DGRAM, "Timeout" => 0.05);
+    if (! $udp_listen) {
+        &flog("Unable to open UDP listener on $OPTION{address} -- $!");
+    }
+
+    # Create Select object to listen for connections.
+    $sel = IO::Select->new();
+    $sel->add($tcp_listen, $udp_listen);
+
+    # Set process name
+    $0 = sprintf("$PROGNAME:  listening on %s:%d", $tcp_listen->sockhost(), $tcp_listen->sockport());
+    &ilog("$PROGNAME listening for connections on %s:%d.", $tcp_listen->sockhost(), $tcp_listen->sockport());
+
+    while (@ready = $sel->can_read()) {
+        &dlog("Incoming connection detected.");
+        foreach my $listener (@ready) {
+            if ($listener == $tcp_listen) {
+                my $sock = $tcp_listen->accept();
+                my ($remote_host, $remote_ip, $remote_port, $buff);
+
+                # Resolve IP/port and name of client.
+                $remote_ip = $sock->peerhost();
+                $remote_port = $sock->peerport();
+                if ((! $remote_ip) || (! $remote_port)) {
+                    &elog("Unable to determine remote IP/port for socket %d.  Closing connection.",
+                          $sock->fileno());
+                    $sock->shutdown(2);
+                    next;
+                }
+                $remote_host = gethostbyaddr(inet_aton($remote_ip), AF_INET);
+                if (! $remote_host) {
+                    &wlog("Unable to resolve $remote_ip.");
+                    $remote_host = STRING_UNKNOWN;
+                }
+
+                # Check for TCPwrappers permission.
+                if (!hosts_ctl($PROGNAME, $remote_host, $remote_ip)) {
+                    &elog("tcpwrappers[$PROGNAME] rejected access for $remote_host ($remote_ip).");
+                    next;
+                }
+
+                # Make sure we're still connected.
+                if (! $sock->connected()) {
+                    &elog("Lost connection to $remote_host ($remote_ip:$remote_port) while authenticating.");
+                    next;
+                }
+
+                # Send data to remote host.
+                &dlog("Sending data to $remote_host ($remote_ip:$remote_port)");
+                foreach my $ip (@NODES) {
+                    my $last = time() - $STATS{$ip}{"TIME"};
+                    my $data = $STATS{$ip}{"DATA"};
+                    my $buff;
+
+                    $buff = "NODE=$STATS{$ip}{HOST}\nLASTCONTACT=$last\n";
+                    foreach my $key (sort(keys(%{$data}))) {
+                        $buff .= "$key=$data->{$key}\n";
+                    }
+                    if (!$sock->print($buff)) {
+                        &elog("Unable to write data to $remote_host ($remote_ip:$remote_port) -- $!.");
+                        last;
+                    }
+                }
+                $sock->shutdown(2);
+
+            } elsif ($listener == $udp_listen) {
+                my ($sender, $data, $remote_host, $remote_ip, $remote_port);
+
+                # Receive data from remote node.
+                $sender = $udp_listen->recv($data, $MAXLEN, 0);
+                if (! $sender) {
+                    &elog("Unable to read from UDP socket -- $!");
+                    next;
+                }
+
+                # Resolve IP/port and name of sender.
+                ($remote_port, $remote_ip) = sockaddr_in($sender);
+                $remote_host = gethostbyaddr($remote_ip, AF_INET) || "";
+                $remote_ip = inet_ntoa($remote_ip);
+                if (! $remote_host) {
+                    &wlog("Unable to resolve $remote_ip -- %s.  Rejecting data.", ($! || "Unknown error"));
+                    next;
+                } elsif ($remote_host =~ /\w+\.(testbed|fixme|undef|lustre)$/i) {
+                    &dlog("Skipping stats from non-cluster node $remote_host ($remote_ip).");
+                    next;
+                }
+
+                # Check for TCPwrappers permission.
+                if (!hosts_ctl($PROGNAME, $remote_host, $remote_ip)) {
+                    &elog("tcpwrappers[$PROGNAME] rejected access for $remote_host ($remote_ip)");
+                    next;
+                }
+
+                # Parse data into key/value pairs and store.
+                &dlog("Receiving data from $remote_host ($remote_ip:$remote_port)");
+                chomp($data);
+                if (!exists($STATS{$remote_ip})) {
+                    &add_node($remote_ip, $remote_host);
+                }
+                $STATS{$remote_ip}{"TIME"} = time();
+                $STATS{$remote_ip}{"HOST"} = $remote_host;
+                foreach my $line (split('\n', $data)) {
+                    if ($line =~ /^\s*(\w+)\s*=\s*(.*)\s*$/) {
+                        my ($key, $value) = (uc($1), $2);
+
+                        # Check to see if we recognize each key.  Warn if not (non-fatal for now).
+                        if (!exists($KEYS{$key})) {
+                            &wlog("Unrecognized data field \"$key\" received from $remote_host.");
+                        }
+                        $STATS{$remote_ip}{"DATA"}{$key} = $value;
+                    } else {
+                        &dlog("Received non-matching line \"$line\" from $remote_host");
+                    }
+                }
+            } else {
+                &elog("Impossible condition:  Received data on unknown socket %d (%s)\n",
+                      $listener->fileno(), $listener->sockaddr());
+            }
+        }
+    }
+
+    return $retval;
+}
+
+exit &main();
