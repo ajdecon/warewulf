@@ -425,13 +425,15 @@ exec()
                     }
                 }
                 if (defined($opt_mode)) {
-                    if ($opt_mode =~ /^(\d\d\d\d)$/) {
+                    if ($opt_mode =~ /^([0-7]{3,4})$/) {
                         my $mode = $1;
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->mode($mode);
+                            $obj->mode(oct($mode));
                             $persist_count++;
                         }
                         push(@changes, sprintf("     SET: %-20s = %s\n", "MODE", $mode));
+                    } else {
+## FIXME
                     }
                 }
                 if (defined($opt_uid)) {
@@ -539,7 +541,7 @@ exec()
                     "NAME", "PERMS", "O", "USER GROUP", "SIZE", "DEST");
                 foreach my $obj ($objSet->get_list()) {
                     my $perms = "-";
-                    foreach my $m (split(//, substr(sprintf("%04d", $obj->mode()), -3))) {
+                    foreach my $m (split(//, substr(sprintf("%04o", $obj->mode()), -3))) {
                         if ($m eq 7) {
                             $perms .= "rwx";
                         } elsif ($m eq 6) {
@@ -580,7 +582,7 @@ exec()
                     printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
-                    printf("%15s: %-16s = %s\n", $name, "MODE", (sprintf("%04d", $obj->mode()) || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "MODE", (sprintf("%04o", $obj->mode()) || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "UID", $obj->uid());
                     printf("%15s: %-16s = %s\n", $name, "GID", $obj->gid());
                 }

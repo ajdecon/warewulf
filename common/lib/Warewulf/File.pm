@@ -126,7 +126,7 @@ mode()
             my $name = $self->get("name");
             &dprint("Object $name delete $key\n");
             $self->del($key);
-        } elsif ($string =~ /^([0-7]{3,4})$/) {
+        } elsif ($string =~ /^(\d+)$/) {
             my $name = $self->get("name");
             &dprint("Object $name set $key = '$1'\n");
             $self->set($key, $1);
@@ -489,7 +489,7 @@ file_import()
                         }
                         # This needs to be converted!!!!
                         if ($self->mode() == 0) {
-                            $self->mode(sprintf("%04o", $mode & 0777));
+                            $self->mode($mode & 07777);
                         }
                         $self->size($import_size);
                         $self->checksum(digest_file_hex_md5($path));
