@@ -42,12 +42,13 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
                         printf("%s %s %s %s %s %s\n",
-                            $obj->get("_id") || "NULL",
-                            $obj->get("name") || "NULL",
-                            $obj->get("uid") || "0",
-                            $obj->get("gid") || "0",
-                            $obj->get("mode") || "0000",
-                            $obj->get("path") || "NULL");
+                            $obj->id() || "NULL",
+                            $obj->name() || "NULL",
+                            $obj->uid() || "0",
+                            $obj->gid() || "0",
+                            $obj->mode() || "0000",
+                            $obj->dest() || "NULL"
+                        );
                     }
                 }
             }
@@ -55,7 +56,6 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
             $fileid = $1;
             my $output;
             my $fileObj = $db->get_objects("file", "_id", $fileid)->get_object(0);;
-            my %nhash = $node->get_hash();
 
             if ($fileObj) {
                 my $binstore = $db->binstore($fileObj->get("_id"));
