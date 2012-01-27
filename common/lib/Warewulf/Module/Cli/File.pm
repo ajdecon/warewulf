@@ -74,7 +74,7 @@ help()
     $h .= "     show            Show the content of a file\n";
     $h .= "     list            List a summary of imported files\n";
     $h .= "     print           Print all file attributes\n";
-    $h .= "     (re)sync        Sync the data of a file object with its orgin(s)\n";
+    $h .= "     (re)sync        Sync the data of a file object with its source(s)\n";
     $h .= "     delete          Remove a node configuration from the data store\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
@@ -82,19 +82,19 @@ help()
     $h .= "\n";
     $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
     $h .= "     -p, --program   What external program should be used (vi/show)\n";
-    $h .= "         --path      Set path attribute for this file\n";
+    $h .= "         --dest      Set destination path attribute for this file\n";
+    $h .= "         --source    Set source path attribute (use 'UNDEF' to delete)\n";
     $h .= "         --mode      Set permission attribute for this file\n";
     $h .= "         --uid       Set the UID of this file\n";
     $h .= "         --gid       Set the GID of this file\n";
     $h .= "         --name      Set the reference name of this file (not path!)\n";
-    $h .= "         --origin    Define where this file comes from (used with sync)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
     $h .= "     Warewulf> file import /path/to/file/to/import --name=hosts-file\n";
     $h .= "     Warewulf> file import /path/to/file/to/import/with/given-name\n";
     $h .= "     Warewulf> file edit given-name\n";
-    $h .= "     Warewulf> file set hosts-file --path=/etc/hosts --mode=0644 --uid=0\n";
+    $h .= "     Warewulf> file set hosts-file --dest=/etc/hosts --mode=0644 --uid=0\n";
     $h .= "     Warewulf> file list\n";
     $h .= "     Warewulf> file delete name123 given-name\n";
     $h .= "\n";
@@ -159,11 +159,11 @@ exec()
     my $opt_lookup = "name";
     my $opt_name;
     my $opt_program;
-    my $opt_path;
+    my $opt_dest;
     my $opt_mode;
     my $opt_uid;
     my $opt_gid;
-    my @opt_origin;
+    my @opt_source;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -174,8 +174,10 @@ exec()
         'n|name=s'      => \$opt_name,
         'p|program=s'   => \$opt_program,
         'l|lookup=s'    => \$opt_lookup,
-        'o|origin=s'    => \@opt_origin,
-        'path=s'        => \$opt_path,
+        'origin=s'      => \@opt_source,
+        'source=s'      => \@opt_source,
+        'path=s'        => \$opt_dest,
+        'dest=s'        => \$opt_dest,
         'mode=s'        => \$opt_mode,
         'uid=s'         => \$opt_uid,
         'gid=s'         => \$opt_gid,
@@ -269,9 +271,9 @@ exec()
             }
 
         } elsif ($command eq "import") {
-            foreach my $o (@opt_origin) {
+            foreach my $o (@opt_source) {
                 if (!scalar(grep { $_ eq $o} @ARGV)) {
-                    push(@ARGV, @opt_origin);
+                    push(@ARGV, @opt_source);
                 }
             }
             foreach my $path (@ARGV) {
@@ -412,14 +414,14 @@ exec()
                     return();
                 }
 
-                if (defined($opt_path)) {
-                    if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+                if (defined($opt_dest)) {
+                    if ($opt_dest =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
                         my $path = $1;
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->path($path);
+                            $obj->dest($path);
                             $persist_count++;
                         }
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "PATH", $path));
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "DEST", $path));
                     }
                 }
                 if (defined($opt_mode)) {
@@ -452,21 +454,29 @@ exec()
                         push(@changes, sprintf("     SET: %-20s = %s\n", "GID", $gid));
                     }
                 }
-                if (@opt_origin) {
-                    my @origins;
-                    foreach my $origin (split(",", join(",", @opt_origin))) {
-                        if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
-                            push(@origins, $1);
-                            $persist_count++;
-                        } else {
-                            &eprint("Invalid origin path given: $origin\n");
-                        }
-                    }
-                    if (@origins) {
+                if (@opt_source) {
+                    if (uc($opt_source[0]) eq "UNDEF") {
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->origin(@origins);
+                            $obj->source("UNDEF");
+                            $persist_count++;
                         }
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "ORIGIN", join(",", @origins)));
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "SOURCE"));
+                    } else {
+                        my @sources;
+                        foreach my $source (split(",", join(",", @opt_source))) {
+                            if ($source =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
+                                push(@sources, $1);
+                                $persist_count++;
+                            } else {
+                                &eprint("Invalid source path given: $source\n");
+                            }
+                        }
+                        if (@source) {
+                            foreach my $obj ($objSet->get_list()) {
+                                $obj->source(@sources);
+                            }
+                            push(@changes, sprintf("     SET: %-20s = %s\n", "SOURCE", join(",", @sources)));
+                        }
                     }
                 }
 
@@ -525,9 +535,11 @@ exec()
             } elsif ($command eq "list" or $command eq "ls") {
                 #&nprint("NAME               FORMAT       SIZE(K)  FILE PATH\n");
                 #&nprint("================================================================================\n");
+                &iprintf("%-10s %10s %s %-16s %9s %s\n",
+                    "NAME", "PERMS", "O", "USER GROUP", "SIZE", "DEST");
                 foreach my $obj ($objSet->get_list()) {
                     my $perms = "-";
-                    foreach my $m (split(//, substr($obj->mode(), -3))) {
+                    foreach my $m (split(//, substr(sprintf("%04d", $obj->mode()), -3))) {
                         if ($m eq 7) {
                             $perms .= "rwx";
                         } elsif ($m eq 6) {
@@ -546,15 +558,15 @@ exec()
                             $perms .= "---";
                         }
                     }
-                    my $user_group = getpwuid($obj->uid()) ." ". getgrgid($obj->gid());
-                    my @o = $obj->origin();
+                    my $user_group = getpwuid($obj->uid() || "0") ." ". getgrgid($obj->gid() || "0");
+                    my @o = $obj->source();
                     printf("%-10s %10s %d %-16s %9d %s\n",
                         $obj->name() .":",
-                        $perms,
+                        $perms || "UNDEF",
                         scalar @o,
                         $user_group,
-                        $obj->size(),
-                        $obj->path(),
+                        $obj->size() || "0",
+                        $obj->dest() || "",
                     );
                 }
             } elsif ($command eq "print") {
@@ -563,14 +575,14 @@ exec()
                     &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                     printf("%15s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
                     printf("%15s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "DEST", ($obj->dest() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "SOURCE", (join(",", ($obj->source())) || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
-                    printf("%15s: %-16s = %s\n", $name, "MODE", ($obj->mode() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "MODE", (sprintf("%04d", $obj->mode()) || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "UID", $obj->uid());
                     printf("%15s: %-16s = %s\n", $name, "GID", $obj->gid());
-                    printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
                 }
             } else {
                 &eprint("Invalid command: $command\n");
