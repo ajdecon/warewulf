@@ -108,7 +108,7 @@ help()
     $h .= "     Warewulf> node set --groupadd=mygroup,hello,bye --cluster=mycluster n0000\n";
     $h .= "     Warewulf> node set --groupdel=bye --set=vnfs=sl6.vnfs\n";
     $h .= "     Warewulf> node set xx:xx:xx:xx:xx:xx --lookup=hwaddr\n";
-    $h .= "     Warewulf> node print --lookup=groups --print=id,name,groups mygroup hello group123\n";
+    $h .= "     Warewulf> node print --lookup=groups mygroup hello group123\n";
     $h .= "\n";
 
     return($h);
