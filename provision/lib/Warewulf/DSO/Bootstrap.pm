@@ -1,31 +1,45 @@
 # Copyright (c) 2001-2003 Gregory M. Kurtzer
 #
-# Copyright (c) 2003-2011, The Regents of the University of California,
+# Copyright (c) 2003-2012, The Regents of the University of California,
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
-# $Id: Bootstrap.pm 50 2010-11-02 01:15:57Z gmk $
+# $Id: Bootstrap.pm 689 2011-12-20 00:34:04Z gmk $
 #
 
 package Warewulf::DSO::Bootstrap;
 
 use Warewulf::DSO;
+use Warewulf::Bootstrap;
 
 our @ISA = ('Warewulf::DSO');
 
+push(@Warewulf::Bootstrap::ISA, 'Warewulf::DSO::Bootstrap');
+
 =head1 NAME
 
-Warewulf::Bootstrap - Warewulf's general object instance object interface.
+Warewulf::DSO::Bootstrap - DSO extentions to the Warewulf::Bootstrap object type.
 
 =head1 ABOUT
 
+Warewulf object types that need to be persisted via the DataStore need to have
+various extentions so they can be persisted. This module enhances the object
+capabilities.
 
 =head1 SYNOPSIS
 
     use Warewulf::Bootstrap;
+    use Warewulf::DSO::Bootstrap;
 
     my $obj = Warewulf::Bootstrap->new();
+
+    my $type = $obj->type();
+    my @lookups = $obj->lookups();
+
+    my $s = $obj->serialize();
+
+    my $objCopy = Warewulf::DSO->unserialize($s);
 
 
 =head1 METHODS
@@ -33,28 +47,6 @@ Warewulf::Bootstrap - Warewulf's general object instance object interface.
 =over 12
 
 =cut
-
-=item new()
-
-The new constructor will create the object that references configuration the
-stores.
-
-=cut
-
-sub
-new($$)
-{
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $self = ();
-
-    $self = {};
-
-    bless($self, $class);
-
-    return $self->init(@_);
-}
-
 
 =item type()
 
@@ -68,7 +60,7 @@ type($)
 {
     my $self = shift;
 
-    return("bootstrap");
+    return("vnfs");
 }
 
 
@@ -77,7 +69,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("NAME", "_ID");
+    return("_ID", "NAME");
 }
 
 
@@ -86,13 +78,13 @@ lookups($)
 
 =head1 SEE ALSO
 
-Warewulf::Object
+Warewulf::DSO, Warewulf::Object
 
 =head1 COPYRIGHT
 
 Copyright (c) 2001-2003 Gregory M. Kurtzer
 
-Copyright (c) 2003-2011, The Regents of the University of California,
+Copyright (c) 2003-2012, The Regents of the University of California,
 through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
