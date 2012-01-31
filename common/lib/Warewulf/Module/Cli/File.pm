@@ -82,8 +82,8 @@ help()
     $h .= "\n";
     $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
     $h .= "     -p, --program   What external program should be used (vi/show)\n";
-    $h .= "         --dest      Set destination path attribute for this file\n";
-    $h .= "         --source    Set source path attribute (use 'UNDEF' to delete)\n";
+    $h .= "         --path      Set destination path attribute for this file\n";
+    $h .= "         --origin    Set origin path attribute (use 'UNDEF' to delete)\n";
     $h .= "         --mode      Set permission attribute for this file\n";
     $h .= "         --uid       Set the UID of this file\n";
     $h .= "         --gid       Set the GID of this file\n";
@@ -94,7 +94,7 @@ help()
     $h .= "     Warewulf> file import /path/to/file/to/import --name=hosts-file\n";
     $h .= "     Warewulf> file import /path/to/file/to/import/with/given-name\n";
     $h .= "     Warewulf> file edit given-name\n";
-    $h .= "     Warewulf> file set hosts-file --dest=/etc/hosts --mode=0644 --uid=0\n";
+    $h .= "     Warewulf> file set hosts-file --path=/etc/hosts --mode=0644 --uid=0\n";
     $h .= "     Warewulf> file list\n";
     $h .= "     Warewulf> file delete name123 given-name\n";
     $h .= "\n";
@@ -159,11 +159,11 @@ exec()
     my $opt_lookup = "name";
     my $opt_name;
     my $opt_program;
-    my $opt_dest;
+    my $opt_path;
     my $opt_mode;
     my $opt_uid;
     my $opt_gid;
-    my @opt_source;
+    my @opt_origin;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -174,10 +174,10 @@ exec()
         'n|name=s'      => \$opt_name,
         'p|program=s'   => \$opt_program,
         'l|lookup=s'    => \$opt_lookup,
-        'origin=s'      => \@opt_source,
-        'source=s'      => \@opt_source,
-        'path=s'        => \$opt_dest,
-        'dest=s'        => \$opt_dest,
+        'origin=s'      => \@opt_origin,
+        'source=s'      => \@opt_origin,
+        'path=s'        => \$opt_path,
+        'dest=s'        => \$opt_path,
         'mode=s'        => \$opt_mode,
         'uid=s'         => \$opt_uid,
         'gid=s'         => \$opt_gid,
@@ -271,9 +271,9 @@ exec()
             }
 
         } elsif ($command eq "import") {
-            foreach my $o (@opt_source) {
+            foreach my $o (@opt_origin) {
                 if (!scalar(grep { $_ eq $o} @ARGV)) {
-                    push(@ARGV, @opt_source);
+                    push(@ARGV, @opt_origin);
                 }
             }
             foreach my $path (@ARGV) {
@@ -414,14 +414,16 @@ exec()
                     return();
                 }
 
-                if (defined($opt_dest)) {
-                    if ($opt_dest =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+                if (defined($opt_path)) {
+                    if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
                         my $path = $1;
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->dest($path);
+                            $obj->path($path);
                             $persist_count++;
                         }
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "DEST", $path));
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "PATH", $path));
+                    } else {
+                        &eprint("Destination path contains illegal characters\n");
                     }
                 }
                 if (defined($opt_mode)) {
@@ -433,7 +435,7 @@ exec()
                         }
                         push(@changes, sprintf("     SET: %-20s = %s\n", "MODE", $mode));
                     } else {
-## FIXME
+                        &eprint("Mode should in octal format\n");
                     }
                 }
                 if (defined($opt_uid)) {
@@ -444,6 +446,8 @@ exec()
                             $persist_count++;
                         }
                         push(@changes, sprintf("     SET: %-20s = %s\n", "UID", $uid));
+                    } else {
+                        &eprint("UID should be in numeric form\n");
                     }
                 }
                 if (defined($opt_gid)) {
@@ -454,30 +458,32 @@ exec()
                             $persist_count++;
                         }
                         push(@changes, sprintf("     SET: %-20s = %s\n", "GID", $gid));
+                    } else {
+                        &eprint("UID should be in numeric form\n");
                     }
                 }
-                if (@opt_source) {
-                    if (uc($opt_source[0]) eq "UNDEF") {
+                if (@opt_origin) {
+                    if (uc($opt_origin[0]) eq "UNDEF") {
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->source("UNDEF");
+                            $obj->origin("UNDEF");
                             $persist_count++;
                         }
                         push(@changes, sprintf("   UNDEF: %-20s\n", "SOURCE"));
                     } else {
-                        my @sources;
-                        foreach my $source (split(",", join(",", @opt_source))) {
-                            if ($source =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
-                                push(@sources, $1);
+                        my @origins;
+                        foreach my $origin (split(",", join(",", @opt_origin))) {
+                            if ($origin =~ /^(\/[a-zA-Z0-9\-_\.\/]+)$/) {
+                                push(@origins, $1);
                                 $persist_count++;
                             } else {
-                                &eprint("Invalid source path given: $source\n");
+                                &eprint("Invalid origin path given: $origin\n");
                             }
                         }
-                        if (@source) {
+                        if (@origins) {
                             foreach my $obj ($objSet->get_list()) {
-                                $obj->source(@sources);
+                                $obj->origin(@origins);
                             }
-                            push(@changes, sprintf("     SET: %-20s = %s\n", "SOURCE", join(",", @sources)));
+                            push(@changes, sprintf("     SET: %-20s = %s\n", "ORIGIN", join(",", @origins)));
                         }
                     }
                 }
@@ -561,14 +567,14 @@ exec()
                         }
                     }
                     my $user_group = getpwuid($obj->uid() || "0") ." ". getgrgid($obj->gid() || "0");
-                    my @o = $obj->source();
+                    my @o = $obj->origin();
                     printf("%-10s %10s %d %-16s %9d %s\n",
                         $obj->name() .":",
                         $perms || "UNDEF",
                         scalar @o,
                         $user_group,
                         $obj->size() || "0",
-                        $obj->dest() || "",
+                        $obj->path() || "",
                     );
                 }
             } elsif ($command eq "print") {
@@ -577,8 +583,8 @@ exec()
                     &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
                     printf("%15s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
                     printf("%15s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "DEST", ($obj->dest() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "SOURCE", (join(",", ($obj->source())) || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
+                    printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
                     printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));

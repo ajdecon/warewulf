@@ -260,17 +260,17 @@ size()
 
 
 
-=item dest($string)
+=item path($string)
 
-Set or return the destination path of this file.
+Set or return the file system path of this file.
 
 =cut
 
 sub
-dest()
+path()
 {
     my ($self, $string) = @_;
-    my $key = "dest";
+    my $key = "path";
 
     if (defined($string)) {
         if (uc($string) eq "UNDEF") {
@@ -321,17 +321,17 @@ format()
 
 
 
-=item source(@strings)
+=item origin(@strings)
 
-Set or return the sources(s) of this object. "UNDEF" will delete all data.
+Set or return the origin(s) of this object. "UNDEF" will delete all data.
 
 =cut
 
 sub
-source()
+origin()
 {
     my ($self, @strings) = @_;
-    my $key = "source";
+    my $key = "origin";
 
     if (@strings) {
         my $name = $self->get("name");
@@ -358,8 +358,8 @@ source()
 
 =item sync()
 
-Resync any file objects to their origin/source on the local file system. This
-will persist immediately to the DataStore.
+Resync any file objects to their origin on the local file system. This will
+persist immediately to the DataStore.
 
 Note: This will also update some metadata for this file.
 
@@ -371,22 +371,22 @@ sync()
     my ($self) = @_;
     my $name = $self->name();
     
-    if ($self->source()) {
+    if ($self->origin()) {
         my $data;
 
         &dprint("Syncing file object: $name\n");
 
-        foreach my $source ($self->source()) {
-            if ($source =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
-                if (-f $source) {
-                    if (open(FILE, $source)) {
-                        &dprint("   Including file to sync: $source\n");
+        foreach my $origin ($self->origin()) {
+            if ($origin =~ /^(\/[a-zA-Z0-9\-_\/\.]+)$/) {
+                if (-f $origin) {
+                    if (open(FILE, $origin)) {
+                        &dprint("   Including file to sync: $origin\n");
                         while(my $line = <FILE>) {
                             $data .= $line;
                         }
                         close FILE;
                     } else {
-                        &wprint("Could not open source path ($source) for file object '$name'\n");
+                        &wprint("Could not open origin path ($origin) for file object '$name'\n");
                     }
                 }
             }
@@ -400,7 +400,7 @@ sync()
             my $cur_len = 0;
             my $start = 0;
 
-            &dprint("Persisting file object '$name' sources\n");
+            &dprint("Persisting file object '$name' origin(s)\n");
 
             while($total_len > $cur_len) {
                 my $buffer = substr($data, $start, $db->chunk_size());
@@ -416,7 +416,7 @@ sync()
         }
 
     } else {
-        &dprint("Skipping file objct '$name' as it has no source paths set\n");
+        &dprint("Skipping file objct '$name' as it has no origin paths set\n");
     }
 }
 
@@ -481,13 +481,12 @@ file_import()
                         if (! $self->gid()) {
                             $self->gid($gid);
                         }
-                        if (! $self->dest()) {
-                            $self->dest($path);
+                        if (! $self->path()) {
+                            $self->path($path);
                         }
-                        if (! $self->source()) {
-                            $self->source($path);
+                        if (! $self->origin()) {
+                            $self->origin($path);
                         }
-                        # This needs to be converted!!!!
                         if ($self->mode() == 0) {
                             $self->mode($mode & 07777);
                         }
