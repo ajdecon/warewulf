@@ -119,6 +119,7 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
     open(INPUT, $ARGV[0]);
     while(my $line = <INPUT>) {
         chomp($line);
+        $line =~ s/[^\\]#.*$//;
 
         &run_cmd(&quotewords('\s+', 1, $line));
     }
