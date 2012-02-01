@@ -119,7 +119,8 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
     open(INPUT, $ARGV[0]);
     while(my $line = <INPUT>) {
         chomp($line);
-        $line =~ s/[^\\]#.*$//;
+        $line =~ s/[^\\]?#.*$//; # There may be nothing in front of the #
+        $line =~ s/\s+$//; # Get rid of the trailing whitespace. Warewulf/Util.pm doesn't like it
 
         &run_cmd(&quotewords('\s+', 1, $line));
     }
