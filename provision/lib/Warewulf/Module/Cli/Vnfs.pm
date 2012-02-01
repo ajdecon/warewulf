@@ -16,7 +16,6 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::DSOFactory;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -168,209 +167,171 @@ exec()
         return();
     }
 
-    if (! $command) {
-        &eprint("You must provide a command!\n\n");
-        print $self->help();
-    } elsif ($command eq "import") {
-        my $import = shift(@ARGV);
-        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
-            my $path = $1;
-            if (-f $path) {
-                my $name;
-                if (defined($opt_name)) {
-                    $name = $opt_name;
-                } else {
-                    $name = basename($path);
+    if ($command) {
+        if ($command eq "export") {
+            if (scalar(@ARGV) >= 2) {
+                my $path = pop(@ARGV);
+                my $objSet = $db->get_objects("vnfs", $opt_lookup, &expand_bracket(@ARGV));
+                if ($objSet->count() eq 0) {
+                    &nprint("Vnfs(s) not found\n");
+                    return();
                 }
-                my $digest = digest_file_hex_md5($path);
-                $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-                my @objList = $objectSet->get_list();
-                if (scalar(@objList) == 1) {
-                    if ($term->interactive()) {
-                        print "Are you sure you wish to overwrite the Warewulf VNFS Image '$name'?\n\n";
-                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                        if ($yesno ne "y" and $yesno ne "yes" ) {
-                            &nprint("No import performed\n");
-                            return();
-                        }
-                    }
-                    &nprint("Importing into existing VNFS Object: $name\n");
-                    my $obj = $objList[0];
-                    $obj->set("checksum", $digest);
-                    my $binstore = $db->binstore($obj->get("_id"));
-                    my $size;
-                    my $buffer;
-                    open(SCRIPT, $path);
-                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
-                        &dprint("Chunked $length bytes of $path\n");
-                        if (! $binstore->put_chunk($buffer)) {
-                            &eprint("VNFS import failure!\n");
-                            return();
-                        }
-                        $size += $length;
-                    }
-                    close SCRIPT;
-                    $obj->set("size", $size);
-                    $db->persist($obj);
-                } elsif (scalar(@objList) == 0) {
-                    my $vnfsname = $name;
-                    $vnfsname =~ s/\.vnfs$//;
-                    &nprint("Importing new VNFS Object: $name\n");
-                    my $obj = Warewulf::DSOFactory->new("vnfs");
-                    $db->persist($obj);
-                    $obj->set("name", $vnfsname);
-                    $obj->set("checksum", digest_file_hex_md5($path));
-                    my $binstore = $db->binstore($obj->get("_id"));
-                    my $size;
-                    my $buffer;
-                    &dprint("Persisting new VNFS Object\n");
-                    open(SCRIPT, $path);
-                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
-                        &dprint("Chunked $length bytes of $path\n");
-                        if (! $binstore->put_chunk($buffer)) {
-                            $db->del_object($obj);
-                            &eprint("VNFS import failure!\n");
-                            return();
-                        }
-                        $size += $length;
-                    }
-                    close SCRIPT;
-                    $obj->set("size", $size);
-                    $db->persist($obj);
+
+                if ($path =~ /^([a-zA-Z0-9\.\-_\/]+?)\/?$/) {
+                    $path = $1;
                 } else {
-                    &wprint("Import into one object at a time please!\n");
+                    &eprint("Destination path contains illegal characters: $path\n");
+                }
+
+                if ($objSet->count() == 1) {
+                    my $obj = $objSet->get_object(0);
+                    my $name = $obj->name();
+                    if (-f $path) {
+                        if ($term->interactive()) {
+                            &wprint("Do you wish to overwrite this file: $path?");
+                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                            if ($yesno ne "y" and $yesno ne "yes") {
+                                &nprint("Not exporting '$name'\n");
+                                return();
+                            }
+                        }
+
+                        &iprint("Exporting single file object to defined file: $path\n");
+                        $obj->file_export($path);
+                    } elsif (-d $path) {
+                        if (-f "$path/$name") {
+                            if ($term->interactive()) {
+                                &wprint("Do you wish to overwrite this file: $path/$name?");
+                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                if ($yesno ne "y" and $yesno ne "yes") {
+                                    &nprint("Not exporting '$name'\n");
+                                    return();
+                                }
+                            }
+                        }
+                        &iprint("Exporting single file object to defined directory path: $path/$name\n");
+                        $obj->file_export("$path/$name");
+                    } else {
+                        my $dirname = dirname($path);
+                        if (-d $dirname) {
+                            &iprint("Exporting single file object to extrapolated directory path: $path/$name\n");
+                            $obj->file_export($path);
+                        } else {
+                            &eprint("Can not export to non-existant directory: $path\n");
+                        }
+                    }
+                } elsif ($objSet->count() > 1) {
+                    if (-d $path) {
+                        foreach my $obj ($objSet->get_list()) {
+                            my $name = $obj->name();
+                            if (-f "$path/$name") {
+                                if ($term->interactive()) {
+                                    &wprint("Do you wish to overwrite this file: $path/$name?");
+                                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                    if ($yesno ne "y" and $yesno ne "yes") {
+                                        &nprint("Not exporting '$name'\n");
+                                        next;
+                                    }
+                                }
+                            }
+                            &iprint("Exporting multiple file objects to defined directory path: $path/$name\n");
+                            $obj->file_export("$path/$name");
+                        }
+                    } else {
+                        &eprint("Can not export to non-existant directory: $path\n");
+                    }
                 }
             } else {
-                &eprint("Could not import '$path' (file not found)\n");
+                &eprint("USAGE: file export [file name sources...] [destination]\n");
             }
-        }
-
-    } elsif ($command eq "export") {
-        if (scalar(@ARGV) <= 1) {
-            &eprint("You must supply a vnfs name to export, and a local path to export to\n");
-            return();
-        }
-        my $opt_export = pop(@ARGV);
-        if ($opt_export =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-            $opt_export = $1;
-        } else {
-            &eprint("Illegal characters in export path\n");
-            return();
-        }
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-
-        if (-d $opt_export) {
-            foreach my $obj (@objList) {
-                my $name = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("_id"));
-
-                if ($name !~ /\.vnfs$/) {
-                    $name .= ".vnfs";
+        } elsif ($command eq "import") {
+            foreach my $o (@opt_origin) {
+                if (!scalar(grep { $_ eq $o} @ARGV)) {
+                    push(@ARGV, @opt_origin);
                 }
+            }
+            foreach my $path (@ARGV) {
+                if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
+                    $path = $1;
+                    if (-f $path) {
+                        my $name;
+                        my $objSet;
+                        my $obj;
+                        if ($opt_name) {
+                            $name = $opt_name;
+                        } else {
+                            $name = basename($path);
+                        }
+                        $objSet = $db->get_objects("file", $opt_lookup, $name);
 
-                if (-f "$opt_export/$name" and $term->interactive()) {
-                    print "Are you sure you wish to overwrite $opt_export/$name?\n\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("Skipped export of $opt_export/$name\n");
-                        next;
+                        if ($objSet->count() > 0) {
+                            $obj = $objSet->get_object(0);
+                            if ($term->interactive()) {
+                                my $name = $obj->name() || "UNDEF";
+                                &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
+                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                if ($yesno ne "y" and $yesno ne "yes") {
+                                    &nprint("Not exporting '$name'\n");
+                                    return();
+                                }
+                            }
+                        } else {
+                            &dprint("Creating a new Warewulf file object\n");
+                            $obj = Warewulf::File->new();
+                            $obj->name($name);
+                            &dprint("Persisting the new Warewulf file object with name: $name\n");
+                            $db->persist($obj);
+                        }
+
+                        $obj->file_import($path);
+
+                    } else {
+                        &eprint("File not Found: $path\n");
                     }
-                }
-                if (open(SCRIPT, "> $opt_export/$name")) {
-                    while(my $buffer = $binstore->get_chunk()) {
-                        &dprint("Writing ". length($buffer) ." bytes to buffer\n");
-                        print SCRIPT $buffer;
-                    }
-                    close SCRIPT;
-                    &nprint("Exported: $opt_export/$name\n");
                 } else {
-                    &eprint($!);
+                    &eprint("File contains illegal characters: $path\n");
                 }
             }
-        } elsif (-f $opt_export) {
-            if (scalar(@objList) == 1) {
+        } else {
+            $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+            if ($command eq "delete") {
+                my $object_count = $objSet->count();
                 if ($term->interactive()) {
-                    print "Are you sure you wish to overwrite $opt_export?\n\n";
+                    print "Are you sure you want to delete $object_count files(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                    }
+                    print "\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("No export performed\n");
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
                         return();
                     }
                 }
-                my $obj = $objList[0];
-                my $binstore = $db->binstore($obj->get("_id"));
-                open(SCRIPT, "> $opt_export");
-                while(my $buffer = $binstore->get_chunk()) {
-                    print SCRIPT $buffer;
+                $db->del_object($objSet);
+            } elsif ($command eq "print") {
+                &nprint("VNFS NAME                 SIZE (M)\n");
+                foreach my $obj ($objSet->get_list()) {
+                    printf("%-25s %-8.1f\n",
+                        $obj->get("name") || "UNDEF",
+                        $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
+                    );
                 }
-                close SCRIPT;
-                &nprint("Exported: $opt_export\n");
             } else {
-                &eprint("Can only export 1 VNFS image into a file, perhaps export to a directory?\n");
+                &eprint("Invalid command: $command\n");
             }
-        } else {
-            my $obj = $objList[0];
-            my $binstore = $db->binstore($obj->get("_id"));
-            if ($opt_export =~ /\/$/) {
-                mkpath($opt_export, {error => \my $err});
-                if (@$err) {
-                    &eprint("Could not create $opt_export\n");
-                    return;
-                }
-                my $name = $obj->get("name");
-                if ($name !~ /\.vnfs$/) {
-                    $name .= ".vnfs";
-                }
-                $opt_export .= $name;
-            }
-            open(SCRIPT, "> $opt_export");
-            while(my $buffer = $binstore->get_chunk()) {
-                print SCRIPT $buffer;
-            }
-            close SCRIPT;
-            &nprint("Exported: $opt_export\n");
         }
-
-    } elsif ($command eq "list" or $command eq "delete") {
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
-        &nprint("VNFS NAME                 SIZE (M)\n");
-        foreach my $obj (@objList) {
-            printf("%-25s %-8.1f\n",
-                $obj->get("name") || "UNDEF",
-                $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
-            );
-        }
-
-        if ($command eq "delete") {
-
-            if ($term->interactive()) {
-                print "\nAre you sure you wish to delete the above VNFS image?\n\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes" ) {
-                    &nprint("No update performed\n");
-                    return();
-                }
-            }
-
-            my $return_count = $db->del_object($objectSet);
-
-            &nprint("Deleted $return_count objects\n");
-        }
-    } elsif ($command eq "help") {
-        print $self->help();
-
     } else {
-        &eprint("Unknown command: $command\n\n");
+        &eprint("You must provide a command!\n\n");
         print $self->help();
-    }
+        return();
 
+    }
 
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();
 
-    return($return_count);
+    return;
 }
 
 
