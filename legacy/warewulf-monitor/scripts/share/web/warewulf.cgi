@@ -10,7 +10,7 @@
 
 
 use CGI;
-use lib "/usr/lib/warewulf/", "/usr/lib64/warewulf/";
+use lib "/usr/lib/warewulf-legacy/", "/usr/lib64/warewulf-legacy/";
 use Warewulf::Status;
 
 $q = new CGI;
@@ -79,39 +79,39 @@ foreach $node ( sort keys %nodestats ) {
    $cluster_cpu_hash{$cluster}{$rack}{COUNT} ++;
    $rowcount++;
    $nodecount++;
-   $cluster{$cluster}{NODE_DISPLAY} .= "<a href='/warewulf/$nodestats{$node}{CLUSTERNAME}/$nodename'>";
+   $cluster{$cluster}{NODE_DISPLAY} .= "<a href='/warewulf-legacy/$nodestats{$node}{CLUSTERNAME}/$nodename'>";
    next if ( $cluster_view and $cluster_view ne $nodestats{$node}{CLUSTERNAME} );
    if ( $nodestats{$node}{NODESTATUS} eq 'DOWN' ) {
-      $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-dead.png alt='' title='$node status: $nodestats{$node}{NODESTATUS}'>";
+      $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-dead.png alt='' title='$node status: $nodestats{$node}{NODESTATUS}'>";
       $nodes_down++;
    } elsif ( $nodestats{$node}{NODESTATUS} ne 'READY' ) {
-      $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-unknown.png alt='' title='$node status: UNKNOWN'>";
+      $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-unknown.png alt='' title='$node status: UNKNOWN'>";
       $nodes_unknown++;
    } else {
       if ( $nodestats{$node}{LOADAVG} > $nodestats{$node}{CPUCOUNT} * 2 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-over.png alt='' title='$nodestring load: $nodestats{$node}{LOADAVG}'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-over.png alt='' title='$nodestring load: $nodestats{$node}{LOADAVG}'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 10 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-00.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-00.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 20 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-10.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-10.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 30 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-20.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-20.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 40 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-30.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-30.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 50 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-40.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-40.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 60 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-50.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-50.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 70 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-60.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-60.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 80 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-70.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-70.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 90 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-80.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-80.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 90 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-90.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-90.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       } elsif ( $nodestats{$node}{CPUUTIL} <= 100 ) {
-         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf/images/node-100.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
+         $cluster{$cluster}{NODE_DISPLAY} .= "<img border=0 src=/warewulf-legacy/images/node-100.png alt='' title='$nodestring cpu: $nodestats{$node}{CPUUTIL}%'>";
       }
       $nodes_up++;
       $cpuutil_total += $nodestats{$node}{CPUUTIL};
@@ -137,7 +137,7 @@ foreach $cluster ( sort keys %cluster ) {
    }
    $cluster_table .= "<tr>\n";
    if ( ! $cluster_view ) {
-      $cluster_table .= "<td valign=center align=left><a href='/warewulf/$cluster'><b>$cluster</b></a><br />\n";
+      $cluster_table .= "<td valign=center align=left><a href='/warewulf-legacy/$cluster'><b>$cluster</b></a><br />\n";
    }
    $cluster_table .= "<td valign=center align=left NOWRAP>$cluster{$cluster}{NODE_DISPLAY}</td>\n";
    $cluster_table .= "</tr>\n";
@@ -160,28 +160,28 @@ foreach $cluster ( sort keys %cluster ) {
    next if ( $cluster_view and $cluster_view ne $cluster );
    $tmp_html = $nodedispl_html;
    $clusters_html .= "<table border=0 cellpadding=15 style='display:inline;'><tr><td align=center NOWRAP>";
-   $clusters_html .= "<a href='/warewulf/$cluster'><b>$cluster</b></a><br />";
+   $clusters_html .= "<a href='/warewulf-legacy/$cluster'><b>$cluster</b></a><br />";
    foreach $rack ( sort keys %{$cluster_cpu_hash{$cluster}} ) {
       $rack_util = sprintf("%d", $cluster_cpu_hash{$cluster}{$rack}{CPUUTIL}/$cluster_cpu_hash{$cluster}{$rack}{COUNT});
       if ( $rack_util == 00 ) {
-         $clusters_html .= "<a href='/warewulf/$cluster'>";
-         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf/images/cluster-00.png>";
+         $clusters_html .= "<a href='/warewulf-legacy/$cluster'>";
+         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf-legacy/images/cluster-00.png>";
          $clusters_html .= "</a>\n";
       } elsif ( $rack_util < 25 ) {
-         $clusters_html .= "<a href='/warewulf/$cluster'>";
-         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf/images/cluster-25.png>";
+         $clusters_html .= "<a href='/warewulf-legacy/$cluster'>";
+         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf-legacy/images/cluster-25.png>";
          $clusters_html .= "</a>\n";
       } elsif ( $rack_util < 50 ) {
-         $clusters_html .= "<a href='/warewulf/$cluster'>";
-         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf/images/cluster-50.png>";
+         $clusters_html .= "<a href='/warewulf-legacy/$cluster'>";
+         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf-legacy/images/cluster-50.png>";
          $clusters_html .= "</a>\n";
       } elsif ( $rack_util < 75 ) {
-         $clusters_html .= "<a href='/warewulf/$cluster'>";
-         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf/images/cluster-75.png>";
+         $clusters_html .= "<a href='/warewulf-legacy/$cluster'>";
+         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf-legacy/images/cluster-75.png>";
          $clusters_html .= "</a>\n";
       } elsif ( $rack_util <= 100 ) {
-         $clusters_html .= "<a href='/warewulf/$cluster'>";
-         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf/images/cluster-100.png>";
+         $clusters_html .= "<a href='/warewulf-legacy/$cluster'>";
+         $clusters_html .= "<img alt='' title='$cluster rack $rack utilization: $rack_util%' border=0 src=/warewulf-legacy/images/cluster-100.png>";
          $clusters_html .= "</a>\n";
       }
    }
@@ -189,11 +189,11 @@ foreach $cluster ( sort keys %cluster ) {
 }
 
 if ( $node_view and $cluster_count <= 1 ) {
-   $grid_html .= "<a href='/warewulf/'><b>Cluster View</b></a>\n";
+   $grid_html .= "<a href='/warewulf-legacy/'><b>Cluster View</b></a>\n";
 } elsif ( $node_view ) {
-   $grid_html .= "<a href='/warewulf/$cluster_view'><b>Cluster View</b></a>\n";
+   $grid_html .= "<a href='/warewulf-legacy/$cluster_view'><b>Cluster View</b></a>\n";
 } elsif ( $cluster_view ) {
-   $grid_html .= "<a href='/warewulf'><b>View all clusters</b></a>\n";
+   $grid_html .= "<a href='/warewulf-legacy'><b>View all clusters</b></a>\n";
 }
 
 
