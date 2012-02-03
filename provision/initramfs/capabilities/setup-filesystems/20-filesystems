@@ -7,8 +7,34 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-if [ -z "$WWFILESYSTEMS" ]; then
-    WWFILESYSTEMS="mountpoint=/:type=tmpfs"
+[ -f /etc/functions ] && . /etc/functions
+
+DEFAULTFS="mountpoint=/:type=tmpfs";
+
+# This is also done below, but by that point we need
+# to already have the WWFILESYSTEMS variable setup correctly
+# go through, and make sure there's a '/' filesystem. If not
+# add in the default tmpfs mount
+if [ ! -z "$WWFILESYSTEMS" ]; then
+    ROOTFOUND=0
+    for fs in $WWFILESYSTEMS; do
+        if echo $fs | grep 'mountpoint=' 2>&1 >/dev/null; then
+            for mnt in `echo $fs | tr ':' ' '`; do
+              tvar=$(echo $mnt | cut -f1 -d=)
+              tval=$(echo $mnt | cut -f2 -d=)
+              if [ "x${tvar}" = "xmountpoint" -a "x${tval}" = "x/" ]; then
+                ROOTFOUND=1
+                break 2 # break out of both for loops
+              fi
+            done
+        fi
+    done
+
+    if [ $ROOTFOUND -ne 1 ]; then
+      WWFILESYSTEMS="${WWFILESYSTEMS},${DEFAULTFS}"
+    fi
+else
+    WWFILESYSTEMS="$DEFAULTFS"
 fi
 
 #WWDISKPARTITION="sda"
@@ -117,6 +143,18 @@ for DEV in `echo $WWDISKFORMAT | sed 's/,/ /g'` ; do
                 ext2)
                     /sbin/mkfs.ext2 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
+                ext3)
+                    wwlogger "Full ext3 support during provisioning does not currently exist";
+                    if [ -x /sbin/mkfs.ext3 ]; then
+                        /sbin/mkfs.ext3 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
+                    fi
+                ;;
+                ext4)
+                    wwlogger "Full ext4 support during provisioning does not currently exist";
+                    if [ -x /sbin/mkfs.ext4 ]; then
+                        /sbin/mkfs.ext4 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
+                    fi
+                ;;
             esac
         fi
     )
@@ -124,14 +162,24 @@ done
 
 
 sort /tmp/mptab | while read mp dev type opts; do
-    if [ ! -d "$NEWROOT/$mp" ]; then
-        mkdir -p $NEWROOT/$mp
-    fi
-    if mount -o $opts -t $type $dev $NEWROOT/$mp; then
-        if [ $mp == "/" -a $dev != "none" ]; then
-            echo $dev > /tmp/rootdev
+    # This is meaningless for swap space
+    if [ "x${type}" != "xswap" ]; then
+        if [ ! -d "$NEWROOT/$mp" ]; then
+            mkdir -p $NEWROOT/$mp
         fi
-        echo "$dev $mp $type $opts 0 0" >> /tmp/mtab
+
+        # TODO: Here we error with busybox's mount command
+        #  ext3/4 support at this point will require the
+        #  util-linux/e2fsprogs packages in the bootstrap 
+        #  image... or some other method to make ext3/4 and
+        #  a 'mount' program that'll handle mounting the 
+        #  filesystems here. -jms
+        if mount -o $opts -t $type $dev $NEWROOT/$mp; then
+            if [ $mp == "/" -a $dev != "none" ]; then
+                echo $dev > /tmp/rootdev
+            fi
+            echo "$dev $mp $type $opts 0 0" >> /tmp/mtab
+        fi
     fi
 done
 
