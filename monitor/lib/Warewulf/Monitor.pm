@@ -12,6 +12,8 @@ use Warewulf::Object;
 use Warewulf::ObjectSet;
 use Warewulf::Logger;
 use JSON::XS;
+use IO::Socket;
+
 
 @ISA = ('Warewulf::Object');
 
@@ -28,10 +30,10 @@ Blah blah blah
     use Warewulf::Monitor;
 
     my $monitor = Warewulf::Monitor->new();
-    my $ObjectSet = $monitor->query();
+    my $ObjectSet = $monitor->query("select * from wwstats");
 
     foreach my $node_object ( $ObjectSet->get_list()) {
-        printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpu_util"));
+        printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("CPUUTIL"));
     }
 
 
@@ -51,13 +53,16 @@ stores.
 
 =cut
 
+my $HEADERSIZE=4;
+my $APPLICATION=2;
+
 sub
 new($$)
 {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = ();
-
+    
     $self = $class->SUPER::new();
     bless($self, $class);
 
@@ -66,60 +71,117 @@ new($$)
 
 
 sub
-init()
+    init()
 {
-	my ($self, @args) = @_;
-
-	return $self;
+    my ($self, @args) = @_;
+    
+    return $self;
 }
 
 sub
-persist_socket()
+    persist_socket()
 {
-	my ($self, $bool) = @_;
+    my ($self, $bool) = @_;
 
-	if ($bool) {
-		$self->set("persist_socket", "1");
-	}
+    if ($bool) {
+	$self->set("persist_socket", "1");
+    }
 
-	return;
+    return;
 }
 
 
 sub
-query()
+    query()
 {
-	my ($self, $query) = @_;
-	my $json = JSON::XS->new();
-	my $ObjectSet = Warewulf::ObjectSet->new();
+    my ($self, $query) = @_;
+    my $json = JSON::XS->new();
+    my $ObjectSet = Warewulf::ObjectSet->new();
+    my $data;
+    my $sock;
 
-	# Build Socket conditionally if ! exists
-	if (! $self->get("socket")) {
-		# Make socket connection
-		$self->set("socket", "");
+    # Build Socket conditionally if ! exists
+    if (! $self->get("socket")) {
+	# Make socket connection
+	my $host = 'localhost';
+	my $port = 9000;
+	my $socket = IO::Socket::INET->new(PeerAddr => $host,
+					   PeerPort => $port,
+					   Proto => 'tcp');
+	unless ( $socket ) {
+	    print "Could not connect to $host:$port!\n";
 	}
 
-	my %decoded_json = decode_json($data);
-	foreach my $node (keys %decoded_json) {
-		my $tmpObject = Warewulf::Object->new();
-		foreach my $entry (keys %{$decoded_json{$node}}) {
-			$tmpObject->set($entry, $decoded_json{"$node"}{"$entry"});
-			&dprint("Set entry for node: $node ($entry....)\n");
-		}
-		$ObjectSet->add($tmpObject);
-	}
+	$self->set("socket", $socket);
+    }
+    $sock=$self->get("socket");
 
-	if (! $self->get("persist_socket")) {
-		# tear down socket
-	}
+    registerConntype ($sock,$APPLICATION);
 
-	return $ObjectSet;
+    my $registerData=recvAll($sock);
+    sendQuery($sock,$query);
+    my $data=recvAll($sock);
+
+
+    my %decoded_json = %{decode_json($data)};
+    foreach my $node (keys %decoded_json) {
+	my $tmpObject = Warewulf::Object->new();
+	$tmpObject->set("name",$node);
+	foreach my $entry (keys %{$decoded_json{$node}}) {
+	    $tmpObject->set($entry, $decoded_json{"$node"}{"$entry"});
+	    &dprint("Set entry for node: $node ($entry....)\n");
+	}
+	$ObjectSet->add($tmpObject);
+    }
+
+    if (! $self->get("persist_socket")) {
+	# tear down socket
+	close($sock);
+    }
+    return $ObjectSet;
 }
 
+sub registerConntype {
+    my ($socket, $type) = @_;
+    my $json = JSON::XS->new();
+    my $jsonStruc;
+    $jsonStruc->{CONN_TYPE} = $type;
+    my $json_text = $json->encode($jsonStruc);
+    sendAll($socket,$json_text);
+}
+
+sub sendQuery {
+    my ($socket, $sql) = @_;
+    my $sqlJson = JSON::XS->new();
+    my $jsonStruc;
+    $jsonStruc->{"sqlite_cmd"}=$sql;
+    my $jsonQuery=$sqlJson->encode($jsonStruc);
+    sendAll($socket,$jsonQuery);
+}
+
+sub sendAll {
+    my ($socket, $payload) = @_;
+    my $length=length($payload);
+#as of now, $length is the only packet header
+    $socket->send(pack('ia*', $length,$payload));
+}
+
+sub recvAll {
+    my ($socket) = @_;
+    my $header;
+    my $rawdata;
+    $socket->recv($header, $HEADERSIZE,MSG_WAITALL);
+    my $pktsize=unpack('i',$header);
+    $socket->recv($rawdata, $pktsize,MSG_WAITALL);
+    my $data=unpack('a*',$rawdata);
+    return $data;
+}
+
+
 sub
-update_node_entry()
+    update_node_entry()
 {
-	# will send post to monitor
+    # will send post to monitor
 
 }
 
@@ -141,30 +203,5 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
-
-
-
-
-
-
-
-
-
-
-# This happens in client code
-&set_log_level("DEBUG");
-
-&dprint("This comes from Warewulf Logger\n");
-
-
-
-my $monitor = Warewulf::Monitor->new();
-
-my $ObjectSet = $monitor->query();
-
-foreach my $node_object ( $ObjectSet->get_list()) {
-	printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpu_util"));
-}
-
 
 1;
