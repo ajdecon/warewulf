@@ -55,3 +55,9 @@ Mon Dec 19 16:37:42 2011                        Michael Jennings (mej)
 
 Fix POD formatting for =cut directive.
 ----------------------------------------------------------------------
+Tue Feb  7 11:12:14 2012                        Michael Jennings (mej)
+
+Refactored wwnodescan to use tcpdump to listen for broadcast DHCP
+requests from unconfigured hosts and add them as new Warewulf nodes.
+Also added a test mode and fixed the output levels.
+----------------------------------------------------------------------
