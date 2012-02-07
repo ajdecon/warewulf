@@ -16,6 +16,8 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
+use Warewulf::Vnfs;
+use Warewulf::DSO::Vnfs;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -276,20 +278,20 @@ exec()
                                 }
                             }
                         } else {
-                            &dprint("Creating a new Warewulf file object\n");
-                            $obj = Warewulf::File->new();
+                            &dprint("Creating a new Warewulf VNFS object\n");
+                            $obj = Warewulf::Vnfs->new();
                             $obj->name($name);
-                            &dprint("Persisting the new Warewulf file object with name: $name\n");
+                            &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
                             $db->persist($obj);
                         }
 
-                        $obj->file_import($path);
+                        $obj->vnfs_import($path);
 
                     } else {
-                        &eprint("File not Found: $path\n");
+                        &eprint("VNFS not Found: $path\n");
                     }
                 } else {
-                    &eprint("File contains illegal characters: $path\n");
+                    &eprint("VNFS contains illegal characters: $path\n");
                 }
             }
         } else {
