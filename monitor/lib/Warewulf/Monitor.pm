@@ -19,7 +19,8 @@ use IO::Socket;
 
 =head1 NAME
 
-Warewulf::Monitor - Put something useful here
+Warewulf::Monitor - Warewulf Monitor module to provide abilies to communicate
+                    with Warewulf monitor database.
 
 =head1 ABOUT
 
@@ -33,7 +34,7 @@ Blah blah blah
     my $ObjectSet = $monitor->query("select * from wwstats");
 
     foreach my $node_object ( $ObjectSet->get_list()) {
-        printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("CPUUTIL"));
+        printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpuutil"));
     }
 
 
@@ -74,7 +75,7 @@ sub
     init()
 {
     my ($self, @args) = @_;
-    
+    $self->master('localhost',9000);
     return $self;
 }
 
@@ -87,7 +88,23 @@ sub
 	$self->set("persist_socket", "1");
     }
 
-    return;
+    return $self->get("persist_socket");
+}
+
+
+sub
+    master()
+{
+    my ($self, $remotehost, $port) = @_;
+
+    if ($remotehost) {
+	$self->set("remotehost", $remotehost);
+    }
+    if ($port) {
+	$self->set("port", $port);
+    }
+
+    return ($self->get("remotehost"),$self->get("port"));
 }
 
 
@@ -103,8 +120,7 @@ sub
     # Build Socket conditionally if ! exists
     if (! $self->get("socket")) {
 	# Make socket connection
-	my $host = 'localhost';
-	my $port = 9000;
+	my ($host,$port) = $self->master();
 	my $socket = IO::Socket::INET->new(PeerAddr => $host,
 					   PeerPort => $port,
 					   Proto => 'tcp');
@@ -116,11 +132,11 @@ sub
     }
     $sock=$self->get("socket");
 
-    registerConntype ($sock,$APPLICATION);
+    register_conntype ($sock,$APPLICATION);
 
-    my $registerData=recvAll($sock);
-    sendQuery($sock,$query);
-    my $data=recvAll($sock);
+    my $register_data=recv_all($sock);
+    send_query($sock,$query);
+    my $data=recv_all($sock);
 
 
     my %decoded_json = %{decode_json($data)};
@@ -134,39 +150,39 @@ sub
 	$ObjectSet->add($tmpObject);
     }
 
-    if (! $self->get("persist_socket")) {
+    if (! $self->persist_socket()) {
 	# tear down socket
 	close($sock);
     }
     return $ObjectSet;
 }
 
-sub registerConntype {
+sub register_conntype {
     my ($socket, $type) = @_;
     my $json = JSON::XS->new();
     my $jsonStruc;
     $jsonStruc->{CONN_TYPE} = $type;
     my $json_text = $json->encode($jsonStruc);
-    sendAll($socket,$json_text);
+    send_all($socket,$json_text);
 }
 
-sub sendQuery {
+sub send_query {
     my ($socket, $sql) = @_;
     my $sqlJson = JSON::XS->new();
     my $jsonStruc;
     $jsonStruc->{"sqlite_cmd"}=$sql;
     my $jsonQuery=$sqlJson->encode($jsonStruc);
-    sendAll($socket,$jsonQuery);
+    send_all($socket,$jsonQuery);
 }
 
-sub sendAll {
+sub send_all {
     my ($socket, $payload) = @_;
     my $length=length($payload);
 #as of now, $length is the only packet header
     $socket->send(pack('ia*', $length,$payload));
 }
 
-sub recvAll {
+sub recv_all {
     my ($socket) = @_;
     my $header;
     my $rawdata;
@@ -203,5 +219,6 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
 
 1;
