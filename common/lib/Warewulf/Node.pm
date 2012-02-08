@@ -9,6 +9,7 @@
 package Warewulf::Node;
 
 use Warewulf::Object;
+use Warewulf::ObjectSet;
 use Warewulf::Logger;
 
 our @ISA = ('Warewulf::Object');
@@ -259,26 +260,81 @@ groupdel()
 }
 
 
-=item netdevs()
+=item netdevs($match)
 
-List the configured network devices configured for this node object
+List the configured network devices configured for this node object. If a
+match string is given, it will return just that device name.
 
 =cut
 
 sub
 netdevs()
 {
-    my ($self) = @_;
+    my ($self, $match) = @_;
     my @device_names;
 
-    foreach my $ndev ($self->get("netdevs")) {
-        push(@device_names, $ndev->get("name"));
+    if ($self->get("netdevs")) {
+        &dprint("Legacy netdev format exists...\n");
+        foreach my $ndev ($self->get("netdevs")) {
+            if (! $match or $match eq $ndev->get("name")) {
+                push(@device_names, $ndev->get("name"));
+            }
+        }
+    }
+    if ($self->get("_netdevset")) {
+        foreach my $name ($self->get("_netdevset")->get_list_entries("name")) {
+            if (! $match or $match eq $name) {
+                push(@device_names, $name);
+            }
+        }
     }
 
     return(@device_names);
 }
 
 
+=item get_netobj($name)
+
+Find or create the netdev object for this node of a given device name.
+
+=cut
+
+sub
+get_netobj()
+{
+    my ($self, $name) = @_;
+    my $netObj;
+
+    if (! $self->get("_netdevset")) {
+        &dprint("Creating new netdev ObjectSet\n");
+        $self->set("_netdevset", Warewulf::ObjectSet->new());
+    }
+
+    if ($self->get("netdevs")) {
+        &iprint("Converting legacy netdev entry(s) for node: $name\n");
+        my $name = $self->name();
+        foreach my $ndev ($self->get("netdevs")) {
+            bless($ndev, "Warewulf::Object");
+            $self->get("_netdevset")->add($ndev);
+        }
+        $self->get("_netdevset")->add($NetDevSet);
+        $self->del("netdevs");
+    }
+
+    &dprint("Searching for device $name in the netdev set\n");
+    $netObj = $self->get("_netdevset")->find("name", $name);
+
+    if (! $netObj) {
+        &dprint("Creating new netdev object for '$name'\n");
+        my $netDevSet = $self->get("_netdevset");
+        $netObj = Warewulf::Object->new();
+        $netObj->set("name", $name);
+        $netDevSet->add($netObj);
+        $self->get("_netdevset")->add($NetDevSet);
+    }
+
+    return $netObj;
+}
 
 
 =item netdel($device)
@@ -291,20 +347,20 @@ sub
 netdel()
 {
     my ($self, $device) = @_;
-    my $netdevObject;
+
+    if (! $self->get("_netdevset")) {
+        &dprint("Called netdel() on non-existant netdev ObjectSet!\n");
+        return();
+    }
 
     if ($device and $device =~ /^([a-z]+\d*)$/) {
-        $device = $1;
+        my $netdevObject = $self->get("_netdevset")->find("name", $1);
         my $name = $self->get("name") || "UNDEF";
-        foreach my $ndev ($self->get("netdevs")) {
-            if ($ndev->get("name") eq $device) {
-                $netdevObject = $ndev;
-            }
-        }
+
         if ($netdevObject) {
             &dprint("Object $name del netdev $device\n");
             my $hwaddr = $netdevObject->get("hwaddr");
-            $self->del("netdevs", $netdevObject);
+            $self->get("_netdevset")->del($netdevObject);
             if ($hwaddr) {
                 $self->del("_hwaddr", $hwaddr);
             }
@@ -312,7 +368,7 @@ netdel()
             &eprint("Object $name has no netdev '$device' configured!\n");
         }
     } else {
-        &eprint("Bad device name!\n");
+        &eprint("Bad device name: $device\n");
     }
 
     return();
@@ -330,24 +386,16 @@ hwaddr()
 {
     my ($self, $device, $string) = @_;
     my $key = "hwaddr";
-    my $netdevObject;
 
     if ($device and $device =~ /^([a-z]+\d*)$/) {
-        $device = $1;
+        my $netdevObject = $self->get_netobj($1);
         my $name = $self->get("name") || "UNDEF";
-        foreach my $ndev ($self->get("netdevs")) {
-            if ($ndev->get("name") eq $device) {
-                $netdevObject = $ndev;
-            }
-        }
         if ($string) {
-            if (! $netdevObject) {
-                &dprint("Creating new netdev object for $name.$device\n");
-                $netdevObject = Warewulf::Object->new();
-                $netdevObject->set("name", $device);
-                $self->add("netdevs", $netdevObject);
-            }
             if ($string =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
+                if ($netdevObject->get($key)) {
+                    # Delete the previous hwaddr if exists...
+                    $self->del("_hwaddr", $netdevObject->get($key));
+                }
                 &dprint("Setting object $name: $device.$key = $1\n");
                 $netdevObject->set($key, $1);
                 $self->add("_hwaddr", $1);
@@ -355,9 +403,8 @@ hwaddr()
                 &eprint("Invalid characters to set $key = '$string'\n");
             }
         }
-        if ($netdevObject) {
-            return($netdevObject->get($key));
-        }
+        &dprint("Returning netdevObject->get($key)\n");
+        return($netdevObject->get($key));
     } else {
         &eprint("Bad device name!\n");
     }
@@ -380,23 +427,17 @@ ipaddr()
     my $netdevObject;
 
     if ($device and $device =~ /^([a-z]+\d*)$/) {
-        $device = $1;
+        my $netdevObject = $self->get_netobj($1);
         my $name = $self->get("name") || "UNDEF";
-        foreach my $ndev ($self->get("netdevs")) {
-            if ($ndev->get("name") eq $device) {
-                $netdevObject = $ndev;
-            }
-        }
         if ($string) {
-            if (! $netdevObject) {
-                &dprint("Creating new netdev object for $name.$device\n");
-                $netdevObject = Warewulf::Object->new();
-                $netdevObject->set("name", $device);
-                $self->add("netdevs", $netdevObject);
-            }
             if ($string =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                if ($netdevObject->get($key)) {
+                    # Delete the previous hwaddr if exists...
+                    $self->del("_hwaddr", $netdevObject->get($key));
+                }
                 &dprint("Setting object $name: $device.$key = $1\n");
                 $netdevObject->set($key, $1);
+                $self->add("_ipaddr", $1);
             } else {
                 &eprint("Invalid characters to set $key = '$string'\n");
             }
@@ -426,20 +467,9 @@ netmask()
     my $netdevObject;
 
     if ($device and $device =~ /^([a-z]+\d*)$/) {
-        $device = $1;
+        my $netdevObject = $self->get_netobj($1);
         my $name = $self->get("name") || "UNDEF";
-        foreach my $ndev ($self->get("netdevs")) {
-            if ($ndev->get("name") eq $device) {
-                $netdevObject = $ndev;
-            }
-        }
         if ($string) {
-            if (! $netdevObject) {
-                &dprint("Creating new netdev object for $name.$device\n");
-                $netdevObject = Warewulf::Object->new();
-                $netdevObject->set("name", $device);
-                $self->add("netdevs", $netdevObject);
-            }
             if ($string =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
                 &dprint("Setting object $name: $device.$key = $1\n");
                 $netdevObject->set($key, $1);
@@ -472,20 +502,9 @@ fqdn()
     my $netdevObject;
 
     if ($device and $device =~ /^([a-z]+\d*)$/) {
-        $device = $1;
+        my $netdevObject = $self->get_netobj($1);
         my $name = $self->get("name") || "UNDEF";
-        foreach my $ndev ($self->get("netdevs")) {
-            if ($ndev->get("name") eq $device) {
-                $netdevObject = $ndev;
-            }
-        }
         if ($string) {
-            if (! $netdevObject) {
-                &dprint("Creating new netdev object for $name.$device\n");
-                $netdevObject = Warewulf::Object->new();
-                $netdevObject->set("name", $device);
-                $self->add("netdevs", $netdevObject);
-            }
             if ($string =~ /^([a-zA-Z0-9\-\.\_]+)$/) {
                 &dprint("Setting object $name: $device.$key = $1\n");
                 $netdevObject->set($key, lc($1));

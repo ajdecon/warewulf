@@ -69,7 +69,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("_ID", "_HWADDR", "NAME", "CLUSTER", "GROUPS", "MASTER", "FILEIDS");
+    return("_ID", "_HWADDR", "_IPADDR", "NAME", "CLUSTER", "GROUPS", "MASTER", "FILEIDS");
 }
 
 
