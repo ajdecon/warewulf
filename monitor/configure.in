@@ -21,7 +21,7 @@ AC_ARG_WITH(perllibdir, [  --with-perllibdir=path  Manually specify where the pe
 if test -n "$withval" -a "x$withval" != "xno" ; then
    PERL_VENDORLIB=$withval
 fi
-])
+],[CFLAGS="-g -std=gnu99 -ljson -lsqlite3"])
 AC_MSG_RESULT($PERL_VENDORLIB)
 AC_SUBST(PERL_VENDORLIB)
 
@@ -30,6 +30,8 @@ AC_SUBST(PERLBIN)
 
 AC_OUTPUT(Makefile
    warewulf-monitor.spec
+   src/Makefile
+   bin/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )
