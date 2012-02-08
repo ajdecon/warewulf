@@ -16,6 +16,7 @@ use Warewulf::Config;
 
 my $cfgpath = "./t";
 my $cfgfile = "21-config_test_file.conf";
+my $cfgfile2 = "21-config_test_file2.conf";
 my %vals = (
     "simple" => "test",
     "some key" => "some value",
@@ -31,9 +32,9 @@ my @t;
 
 plan("tests" => (
          + 1                                # Inheritance tests
-         + 3                                # Sanity checks for test config file
-         + 4                                # No-args tests
-         + 2                                # With-args tests
+         + 6                                # Sanity checks for test config files
+         + 5                                # No-args tests
+         + 3                                # With-args tests
          + 2 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
 ));
 
@@ -46,19 +47,24 @@ isa_ok("Warewulf::Config", "Warewulf::Object");
 
 # Make sure we have our test config file and can read it.
 ok(-e "$cfgpath/$cfgfile", "Test config file $cfgfile exists");
+ok(-e "$cfgpath/$cfgfile2", "Test config file $cfgfile2 exists");
 ok(-r "$cfgpath/$cfgfile", "Test config file $cfgfile is readable");
+ok(-r "$cfgpath/$cfgfile2", "Test config file $cfgfile2 is readable");
 ok(-s "$cfgpath/$cfgfile", "Test config file $cfgfile is not empty");
+ok(-s "$cfgpath/$cfgfile2", "Test config file $cfgfile2 is not empty");
 
 # Make sure we can create an instance with no arguments, then set the path,
 # then load the config file.
 $t[0] = new_ok("Warewulf::Config", [], "Test Config Object (no args)");
 can_ok($t[0], "init", "get_path", "set_path", "load", "save");
-ok($t[0]->set_path($cfgpath), "Able to set config file search path to $cfgpath");
+is($t[0]->set_path($cfgpath), $cfgpath, "Able to set config file search path to $cfgpath");
 ok($t[0]->load($cfgfile), "Able to load test config file $cfgfile");
+ok($t[0]->load($cfgfile2), "Able to load test config file $cfgfile2");
 
 # Make sure we can create an instance and load it in one step.
 $t[1] = new_ok("Warewulf::Config", [ $cfgfile, $cfgpath ], "Test Config Object (with args)");
 can_ok($t[1], "init", "get_path", "set_path", "load", "save");
+ok(defined($t[1]->load($cfgfile2)), "Able to load 2nd test config file after first");
 
 # Uncomment the below when debugging.
 #use Warewulf::Util;

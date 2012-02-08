@@ -322,3 +322,10 @@ Tue Jan 24 11:15:25 2012                        Michael Jennings (mej)
 
 Fix search-and-replace error in Term.pm.
 ----------------------------------------------------------------------
+Wed Feb  8 14:35:48 2012                        Michael Jennings (mej)
+
+Don't wipe existing object data in set().  Only do that in init().
+
+Split test config file into 2 pieces so we can test loading
+configuration from multiple files.
+----------------------------------------------------------------------

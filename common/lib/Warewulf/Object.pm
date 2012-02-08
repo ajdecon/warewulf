@@ -163,7 +163,6 @@ set($$)
             # particular hashref will have all the same values for
             # their keys...by reference!  Change one object, change
             # them all!  Probably not a good thing.  :-)
-            %{$self} = ();
             foreach my $key (keys(%{$hashref})) {
                 my $val = $hashref->{$key};
 
