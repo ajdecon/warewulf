@@ -522,7 +522,8 @@ file_export()
 {
     my ($self, $file) = @_;
 
-    if ($file) {
+    if ($file and $file =~ /^([a-zA-Z0-9\._\-\/]+)$/) {
+        $file = $1;
         my $db = Warewulf::DataStore->new();
         if (! -f $file) {
             my $dirname = dirname($file);
