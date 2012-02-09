@@ -108,6 +108,24 @@ checksum()
 }
 
 
+
+=item size($string)
+
+Set or return the size of the raw file stored within the datastore.
+
+=cut
+
+sub
+size()
+{
+    my $self = shift;
+
+    return $self->prop("size", qr/^([0-9]+)$/, @_);
+}
+
+
+
+
 =item vnfs_import($file)
 
 Import a VNFS image at the defined path into the datastore directly. This
@@ -179,7 +197,8 @@ vnfs_export()
 {
     my ($self, $file) = @_;
 
-    if ($file) {
+    if ($file and $file =~ /^([a-zA-Z0-9\._\-\/]+)$/) {
+        $file = $1;
         my $db = Warewulf::DataStore->new();
         if (! -f $file) {
             my $dirname = dirname($file);
