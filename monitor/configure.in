@@ -14,18 +14,18 @@ if test -z "$PERLBIN"; then
 fi
 AC_SUBST(PERLBIN)
 
-AC_CHECK_LIB(json, json_object_get,[CFLAGS="-ljson $CFLAGS"], [
+AC_CHECK_LIB(json, json_object_get,[LDFLAGS="-ljson $LDFLAGS"], [
 echo "ERROR:  You need libjson to build Warewrlf Moniter module.";
 echo "        Verify that you have libjson.a or libjson.so installed";
 echo "        If it is in a different directory, try using";
-echo "        the CFLAGS to set its proper path.";
+echo "        the LDFLAGS to set its proper path.";
               AC_MSG_ERROR([Fatal:  libjson not found.])])
 
-AC_CHECK_LIB(sqlite3, sqlite3Init,[CFLAGS="-lsqlite3 $CFLAGS"], [
+AC_CHECK_LIB(sqlite3, sqlite3Init,[LDFLAGS="-lsqlite3 $LDFLAGS"], [
 echo "ERROR:  You need libjson to build Warewrlf Moniter module.";
 echo "        Verify that you have libsqlite.a or libsqlite.so installed";
 echo "        If it is in a different directory, try using";
-echo "        the CFLAGS to set its proper path.";
+echo "        the LDFLAGS to set its proper path.";
               AC_MSG_ERROR([Fatal:  libsqlite3 not found.])])
 
 
