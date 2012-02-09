@@ -6,7 +6,7 @@
 #
 #
 
-package Warewulf::Vnfs;
+package Warewulf::Provision::Vnfs;
 
 use Warewulf::Object;
 use Warewulf::Logger;
