@@ -15,7 +15,6 @@ use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Object;
 use Warewulf::DataStore;
-use Warewulf::DSOFactory;
 use Warewulf::Util;
 use Warewulf::Provision::Tftp;
 use File::Path;

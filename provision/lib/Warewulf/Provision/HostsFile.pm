@@ -19,7 +19,8 @@ use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
-use Warewulf::DSOFactory;
+use Warewulf::File;
+use Warewulf::DSO::File;
 
 
 =head1 NAME
@@ -207,7 +208,7 @@ update_datastore()
     my $fileobj = $datastore->get_objects("file", "name", $name)->get_object(0);
 
     if (! $fileobj) {
-        $fileobj = Warewulf::DSOFactory->new("file");
+        $fileobj = Warewulf::File->new("file");
         $fileobj->set("name", $name);
     }
 

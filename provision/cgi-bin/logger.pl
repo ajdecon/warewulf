@@ -10,7 +10,6 @@
 
 use CGI;
 use Warewulf::DataStore;
-use Warewulf::DSOFactory;
 use Warewulf::EventHandler;
 use Sys::Syslog;
 

@@ -9,7 +9,10 @@
 
 use Warewulf::Logger;
 use Warewulf::DataStore;
-use Warewulf::DSOFactory;
+use Warewulf::Vnfs;
+use Warewulf::DSO::Vnfs;
+use Warewulf::Node;
+use Warewulf::DSO::Node;
 use Warewulf::Util;
 use Warewulf::Config;
 use Getopt::Long;
@@ -249,21 +252,18 @@ while (my $line = <TCPDUMP>) {
             } elsif ($opt_testmode) {
                 &nprint("[TEST] Add to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
             } else {
-                my $new_node = Warewulf::DSOFactory->new("node");
-                my $new_netdev = Warewulf::DSOFactory->new("netdev");
+                my $new_node = Warewulf::Node->new();
+                my $new_netdev = $new_node->get_netdev($opt_netdev);
 
-                $new_netdev->set("name", $opt_netdev);
-                $new_netdev->set("hwaddr", $hwaddr);
-                $new_netdev->set("ipaddr", $ip);
-                $new_netdev->set("netmask", $netmask);
+                $new_netdev->hwaddr($hwaddr);
+                $new_netdev->ipaddr($ip);
+                $new_netdev->netmask($netmask);
 
-                $new_node->set("name", $name);
-                $new_node->add("netdevs", $new_netdev);
-                $new_node->add("_hwaddr", $hwaddr);
+                $new_node->name($name);
                 $new_node->set("bootstrapid", $bootstrapid);
                 $new_node->set("vnfsid", $vnfsid);
                 if ($opt_groups) {
-                    $new_node->set("groups", split(",", $opt_groups));
+                    $new_node->groups(split(",", $opt_groups));
                 }
 
                 $datastore->persist($new_node);

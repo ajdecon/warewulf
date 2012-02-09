@@ -171,6 +171,19 @@ exec()
 
     if ($command) {
         if ($command eq "export") {
+            if (scalar(@ARGV)) {
+                my $vnfs = shift(@ARGV);
+                my $vnfs_path = shift(@ARGV);
+
+                if ($vnfs_path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+                    my $vnfs_object = $db->get_objects("vnfs", $opt_lookup, $vnfs)->get_object(0);
+
+                    $vnfs_object->export($vnfs_path);
+
+                } else {
+                    &eprint("Destination path contains illegal characters: $vnfs_path\n");
+                }
+            }
             if (scalar(@ARGV) >= 2) {
                 my $path = pop(@ARGV);
                 my $objSet = $db->get_objects("vnfs", $opt_lookup, &expand_bracket(@ARGV));

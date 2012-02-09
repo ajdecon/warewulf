@@ -17,7 +17,6 @@ use Warewulf::DataStore;
 use Warewulf::Network;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
-use Warewulf::DSOFactory;
 use Socket;
 
 our @ISA = ('Warewulf::Provision::Dhcp');

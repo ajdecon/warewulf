@@ -16,8 +16,9 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::DSOFactory;
 use Warewulf::Provision::Bootstrap;
+use Warewulf::Bootstrap;
+use Warewulf::DSO::Bootstrap;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -213,7 +214,7 @@ exec()
                     &nprint("Imported $name into existing object\n");
                 } elsif ($objectSet->count() == 0) {
                     &nprint("Creating new Bootstrap Object: $name\n");
-                    my $obj = Warewulf::DSOFactory->new("bootstrap");
+                    my $obj = Warewulf::Bootstrap->new("bootstrap");
                     $db->persist($obj);
                     $obj->set("name", $name);
                     $obj->set("checksum", digest_file_hex_md5($path));
