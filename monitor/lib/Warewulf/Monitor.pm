@@ -66,7 +66,6 @@ new($$)
     
     $self = $class->SUPER::new();
     bless($self, $class);
-
     return $self->init(@_);
 }
 
@@ -76,6 +75,7 @@ sub
 {
     my ($self, @args) = @_;
     $self->master('localhost',9000);
+
     return $self;
 }
 
@@ -91,6 +91,20 @@ sub
     return $self->get("persist_socket");
 }
 
+sub
+    destroy_socket()
+{
+    my ($self) = @_;
+    if ( ! $self->get("socket")) {
+	print "socket is not defined for $self\n";
+
+    }else{
+	# destroy socket connection
+	close($self->get("socket"));
+    }
+}
+	
+    
 
 sub
     master()
@@ -129,15 +143,13 @@ sub
 	}
 
 	$self->set("socket", $socket);
+	register_conntype ($socket,$APPLICATION);
+	my $register_data=recv_all($socket);
     }
     $sock=$self->get("socket");
 
-    register_conntype ($sock,$APPLICATION);
-
-    my $register_data=recv_all($sock);
     send_query($sock,$query);
     my $data=recv_all($sock);
-
 
     my %decoded_json = %{decode_json($data)};
     foreach my $node (keys %decoded_json) {
@@ -149,9 +161,9 @@ sub
 	}
 	$ObjectSet->add($tmpObject);
     }
-
     if (! $self->persist_socket()) {
 	# tear down socket
+	print "socket distroyed.\n";
 	close($sock);
     }
     return $ObjectSet;
