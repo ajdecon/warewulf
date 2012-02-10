@@ -130,13 +130,13 @@ sendall(int s, char *buf, int total)
 
 static
 int
-callback(void *NotUsed, int argc, char **argv, char **azColName)
+nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
 {
   int i;
-  for(i=1; i<argc; i++){
+  for(i=0; i<argc; i++){
     printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
   }
-  printf("\n");
+  //printf("\n");
   return 0;
 }
 

@@ -10,12 +10,15 @@
  *
  */
 
-#define MAXPKTSIZE 1024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
-#define MAXDATASIZE 1020
+#define MAXPKTSIZE 10024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
+#define MAXDATASIZE 10020
 
 #define MAX_IPADDR_LEN   50
 #define MAX_NODENAME_LEN  50
 #define MAX_SQL_SIZE 1024
+
+#define SQLITE_DB_FNAME "wwmon.db"
+#define SQLITE_DB_TBNAME "WWSTATS"
 
 #define UNKNOWN 0
 #define COLLECTOR 1

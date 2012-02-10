@@ -40,12 +40,13 @@ json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
   int i;
   json_object *json_db = (json_object *) void_json;
 
-  int NodeName_idx, key_idx, value_idx;
+  int NodeName_idx, key_idx, value_idx, rowid_idx;
   // Find the indexes 
   for( i=0; i<ncolumns; i++ ) {
     if(strcmp(col_names[i],"NodeName") == 0) NodeName_idx = i;
     if(strcmp(col_names[i],"key") == 0) key_idx = i;
     if(strcmp(col_names[i],"value") == 0) value_idx = i;
+    if(strcmp(col_names[i],"rowid") == 0) rowid_idx = i;
   }
   json_object *tmp;
 
@@ -71,6 +72,18 @@ json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
   return 0;
 }
 
+int
+tablecheck(int *tableexists, int Col_Count, char **values, char **Col_Name)
+{
+/*   if(strcmp(values[Col_Count],"1")) {
+     *tableexists = 1;
+   }
+*/
+
+   *tableexists = (int )values[Col_Count];
+   return 0;
+}
+
 void
 update_dbase(json_object *jobj, sqlite3 *db)
 {
@@ -84,6 +97,7 @@ update_dbase(json_object *jobj, sqlite3 *db)
   //printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
 
   int rc;
+  char *emsg = 0;
 
   // Adding the JSON blob to sqlite table
   char *sqlite_cmd = malloc(MAX_SQL_SIZE);
@@ -96,10 +110,10 @@ update_dbase(json_object *jobj, sqlite3 *db)
 
   //printf("CMD - %s\n",sqlite_cmd);
 
-  rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0);
+  rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
   if( rc!=SQLITE_OK ){
-    fprintf(stderr, "SQL error: %s\n", 0);
-    sqlite3_free(0);
+    fprintf(stderr, "SQL error: %s\n", emsg);
+    sqlite3_free(emsg);
   }
 
   free(sqlite_cmd);
@@ -141,10 +155,10 @@ update_dbase(json_object *jobj, sqlite3 *db)
     free(values);
     
     //printf("SQL CMD - %s\n",sqlite_cmd);
-    rc = sqlite3_exec(db, sqlite_cmd,callback, 0, 0);
+    rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", 0);
-      sqlite3_free(0);
+      fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
     }
     free(sqlite_cmd);
 
@@ -209,7 +223,7 @@ writeHandler(int fd)
           //printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
           sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db, jobj, NULL);
           // TODO : Check the sql command return values and if failure or no return send proper message to the App
-          //printf("JSON - %s\n",json_object_to_json_string(jobj));
+          printf("JSON - %s\n",json_object_to_json_string(jobj));
   	  free(sock_data[fd].sqlite_cmd);
       } else {
           strcpy(payload,"Send SQL query");
@@ -412,7 +426,9 @@ main(int argc, char *argv[])
 {
   int stcp = -1;
   int sudp = -1;
+	
   int rc = -1;
+  char *emsg = 0;
 
   if(argc != 2) {
     fprintf(stderr, "Usage: %s [port]\n", argv[0]);
@@ -423,12 +439,41 @@ main(int argc, char *argv[])
 
   // Get the database ready
   // Attempt to open database & check for failure
-  if( rc = sqlite3_open("wwmon.db", &db)  ){
+  if( rc = sqlite3_open(SQLITE_DB_FNAME, &db)  ){
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);
     exit(1);
   } else {
-    printf("wwmon.db ready for reading and writing...\n");
+  // Now check if the table exists
+    int tableexists = 0;
+
+    char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+    strcpy(sqlite_cmd, "select count(*) from sqlite_master where type='table' and name='");
+    strcat(sqlite_cmd, SQLITE_DB_TBNAME);
+    strcat(sqlite_cmd, "'");
+    //printf("CMD - %s\n",sqlite_cmd);
+ 
+    rc = sqlite3_exec(db, sqlite_cmd, tablecheck, &tableexists, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
+    }
+    free(sqlite_cmd);
+
+    if( tableexists == 0){
+      // If not create table
+      char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+      strcpy(sqlite_cmd, "create table WWSTATS(NodeName, key, value, primary key(NodeName, key))");
+      printf("CMD - %s\n",sqlite_cmd);
+
+      rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+      if( rc!=SQLITE_OK ){
+        fprintf(stderr, "SQL error: %s\n", emsg);
+        sqlite3_free(emsg);
+      }
+      free(sqlite_cmd);
+    }
+    printf("Database ready for reading and writing...\n");
   }
 
   // Prepare to accept clients
