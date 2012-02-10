@@ -348,3 +348,12 @@ but the *entire* result winds up in the cache, not just what was in
 the current file.  Shouldn't be an issue in the time it'll take to
 complete the work.
 ----------------------------------------------------------------------
+Fri Feb 10 11:12:04 2012                        Michael Jennings (mej)
+
+Added a unit test to flag the "bug" I mentioned in yesterday's commit,
+and it turns out that it doesn't adversely affect any desired/correct
+behavior.  So rather than do a big revamp, we've decided to leave the
+unit tests in place and will maintain the current (technically wrong
+but behaviorally correct) code until such time as the unit tests fail
+or other problems arise which require us to revisit.
+----------------------------------------------------------------------

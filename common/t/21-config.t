@@ -37,7 +37,8 @@ plan("tests" => (
          + 6                                # Sanity checks for test config files
          + 5                                # One file at a time tests
          + 3                                # File list tests
-         + 2 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
+         + 8                                # Multipass tests
+         + 3 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
 ));
 
 # This is useful for using the test suite to double as a debugging tool.
@@ -60,14 +61,25 @@ ok(-s "$cfgpath/$cfgfile2", "Test config file $cfgfile2 is not empty");
 $t[0] = new_ok("Warewulf::Config", [], "Test Config Object (files)");
 can_ok($t[0], "init", "get_path", "set_path", "load", "save");
 is($t[0]->set_path($cfgpath), $cfgpath, "Able to set config file search path to $cfgpath");
-ok($t[0]->load($cfgfile), "Able to load test config file $cfgfile");
-ok($t[0]->load($cfgfile2), "Able to load test config file $cfgfile2");
+is($t[0]->load($cfgfile), 1, "Able to load test config file $cfgfile");
+is($t[0]->load($cfgfile2), 1, "Able to load test config file $cfgfile2");
 
 # Make sure we can create an instance and load it in one step.
 $t[1] = new_ok("Warewulf::Config", [], "Test Config Object (list)");
 $t[1]->set_path($cfgpath);
 can_ok($t[1], "init", "get_path", "set_path", "load", "save");
-ok($t[1]->load($cfgfile, $cfgfile2), "Able to load both test config files at once");
+is($t[1]->load($cfgfile, $cfgfile2), 2, "Able to load both test config files at once");
+
+# Make sure we can load multiple times and get the same data.
+$t[2] = new_ok("Warewulf::Config", [], "Test Config Object (multipass)");
+$t[2]->set_path($cfgpath);
+can_ok($t[2], "init", "get_path", "set_path", "load", "save");
+is($t[2]->load($cfgfile, $cfgfile2), 2, "Load configs (pass 1)");
+is($t[2]->load($cfgfile, $cfgfile2), 2, "Load configs (pass 2)");
+is($t[2]->load($cfgfile, $cfgfile2), 2, "Load configs (pass 3)");
+is($t[2]->load($cfgfile2), 1, "Load 2nd config only (pass 1)");
+is($t[2]->load($cfgfile2), 1, "Load 2nd config only (pass 2)");
+is($t[2]->load($cfgfile2), 1, "Load 2nd config only (pass 3)");
 
 # Uncomment the below when debugging.
 #use Warewulf::Util;
