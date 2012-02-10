@@ -26,15 +26,17 @@ my %vals = (
     "list" => [ "one", "two", "three", "four", "five" ],
     "empty value" => "",
     "another blank" => "",
-    "yet another blank" => ""
+    "yet another blank" => "",
+    "multifile key" => [ "file1", "file2" ],
+    "second multifile key" => [ "file1", "file2" ]
 );
 my @t;
 
 plan("tests" => (
          + 1                                # Inheritance tests
          + 6                                # Sanity checks for test config files
-         + 5                                # No-args tests
-         + 3                                # With-args tests
+         + 5                                # One file at a time tests
+         + 3                                # File list tests
          + 2 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
 ));
 
@@ -55,16 +57,17 @@ ok(-s "$cfgpath/$cfgfile2", "Test config file $cfgfile2 is not empty");
 
 # Make sure we can create an instance with no arguments, then set the path,
 # then load the config file.
-$t[0] = new_ok("Warewulf::Config", [], "Test Config Object (no args)");
+$t[0] = new_ok("Warewulf::Config", [], "Test Config Object (files)");
 can_ok($t[0], "init", "get_path", "set_path", "load", "save");
 is($t[0]->set_path($cfgpath), $cfgpath, "Able to set config file search path to $cfgpath");
 ok($t[0]->load($cfgfile), "Able to load test config file $cfgfile");
 ok($t[0]->load($cfgfile2), "Able to load test config file $cfgfile2");
 
 # Make sure we can create an instance and load it in one step.
-$t[1] = new_ok("Warewulf::Config", [ $cfgfile, $cfgpath ], "Test Config Object (with args)");
+$t[1] = new_ok("Warewulf::Config", [], "Test Config Object (list)");
+$t[1]->set_path($cfgpath);
 can_ok($t[1], "init", "get_path", "set_path", "load", "save");
-ok(defined($t[1]->load($cfgfile2)), "Able to load 2nd test config file after first");
+ok($t[1]->load($cfgfile, $cfgfile2), "Able to load both test config files at once");
 
 # Uncomment the below when debugging.
 #use Warewulf::Util;

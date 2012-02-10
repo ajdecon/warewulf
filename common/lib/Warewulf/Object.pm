@@ -163,6 +163,10 @@ set($$)
             # particular hashref will have all the same values for
             # their keys...by reference!  Change one object, change
             # them all!  Probably not a good thing.  :-)
+            #
+            # NOTE:  set() will *merge* the hashref into the existing
+            # object data.  If you want to clear out the object first,
+            # call init(<hashref>) instead of set(<hashref>)!
             foreach my $key (keys(%{$hashref})) {
                 my $val = $hashref->{$key};
 

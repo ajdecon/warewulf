@@ -329,3 +329,22 @@ Don't wipe existing object data in set().  Only do that in init().
 Split test config file into 2 pieces so we can test loading
 configuration from multiple files.
 ----------------------------------------------------------------------
+Thu Feb  9 16:06:27 2012                        Michael Jennings (mej)
+
+Add a unit test to make sure keys found in multiple files are +='d
+properly.
+
+Alter Config::load() API so that multiple files can be specified in a
+single load() invocation.  If alterations to the search path are
+required, they must be done using set_path() before load() is invoked,
+which means you won't be able to pass the filenames directly to
+new().  (This was determined to be a reasonable trade-off.)  load()
+now returns the number of files successfully parsed.
+
+NOTE:  Still need to fix a bug in the caching mechanism.  Previously,
+the += operator would only append to values found in the file being
+parsed.  Now it will add to the existing value found in the object,
+but the *entire* result winds up in the cache, not just what was in
+the current file.  Shouldn't be an issue in the time it'll take to
+complete the work.
+----------------------------------------------------------------------

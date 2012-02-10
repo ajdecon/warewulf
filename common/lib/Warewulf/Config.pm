@@ -123,13 +123,13 @@ set_path()
     return $self->set("__PATH", @args);
 }
 
-=item load($filename, [$path, [...]])
+=item load($filename, [$filename2, [...]])
 
-Loads the specified configuration file ($filename) into this Config
-object.  Any existing configuration data present in the object will be
-PRESERVED.  (If this is not desired, call init() instead.)  Additional
-search paths ($path, ...) may be specified but are not required.  The
-default search path is ("~/.warewulf", "/etc/warewulf").
+Loads the specified configuration file(s) into this Config object.
+Any existing configuration data present in the object will be
+PRESERVED.  (If this is not desired, call init() instead.)  The
+default search path is ("~/.warewulf", "/etc/warewulf").  The correct
+search path must be set before calling I<load()>.
 
 =cut
 
@@ -137,28 +137,34 @@ sub
 load()
 {
     my ($self, @args) = @_;
-    my $filename;
+    my $rc = 0;
 
     if (!scalar(@args)) {
         return undef;
     }
 
-    $filename = shift(@args);
-    if (scalar(@args)) {
-        $self->set_path(@args);
-    }
-    $self->set("__FILENAME", $filename);
-    foreach my $path ($self->get_path()) {
-        &dprint("Searching for file:  $path/$filename\n");
-        if (-r "$path/$filename") {
-            &dprint("Found file:  $path/$filename\n");
-            $self->set("__FILE", "$path/$filename");
-            return $self->parse();
+    foreach my $filename (@args) {
+        $self->add("__FILENAME", $filename);
+        if (-f $filename) {
+            $self->set("__FILE", $filename);
+            if (defined($self->parse())) {
+                $rc++;
+            }
+        } else {
+            foreach my $path ($self->get_path()) {
+                &dprint("Searching for file:  $path/$filename\n");
+                if (-r "$path/$filename") {
+                    &dprint("Found file:  $path/$filename\n");
+                    $self->set("__FILE", "$path/$filename");
+                    if (defined($self->parse())) {
+                        $rc++;
+                        last;
+                    }
+                }
+            }
         }
     }
-    &dprintf("File $filename not found in path(s) \"%s\"\n",
-             join("\", \"", $self->get_path()));
-    return 0;
+    return $rc;
 }
 
 =item save([$filename])
@@ -268,9 +274,12 @@ parse()
         } else {
             @values = grep { defined($_) } &parse_line('\s*,\s*', 0, $value);
         }
-        &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\" (%d)\n", $self->get("__FILENAME"),
+        &dprintf("Parsing %s:$.:  \"%s\" %s \"%s\" (%d)\n", $conffile,
                  $key, $op, join("\" \"", @values), scalar(@values));
         if ($op eq "+=") {
+            if (!exists($cache{$conffile}{$key}) && $self->get($key)) {
+                push(@{$cache{$conffile}{$key}}, $self->get($key));
+            }
             push(@{$cache{$conffile}{$key}}, @values);
         } else {
             @{$cache{$conffile}{$key}} = @values;
