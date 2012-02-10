@@ -16,7 +16,7 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Vnfs;
+use Warewulf::Provision::Vnfs;
 use Warewulf::DSO::Vnfs;
 use Getopt::Long;
 use File::Basename;
@@ -171,100 +171,45 @@ exec()
 
     if ($command) {
         if ($command eq "export") {
-            if (scalar(@ARGV)) {
+            if (scalar(@ARGV) eq 2) {
                 my $vnfs = shift(@ARGV);
                 my $vnfs_path = shift(@ARGV);
 
-                if ($vnfs_path =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+                if ($vnfs_path =~ /^([a-zA-Z0-9_\-\.\/]+)\/?$/) {
+                    $vnfs_path = $1;
                     my $vnfs_object = $db->get_objects("vnfs", $opt_lookup, $vnfs)->get_object(0);
+                    my $vnfs_name = $vnfs_object->name();
 
-                    $vnfs_object->export($vnfs_path);
+                    if (-d $vnfs_path) {
+                        $vnfs_path = "$vnfs_path/$vnfs_name.vnfs";
+                    } else {
+                        my $dirname = dirname($vnfs_path);
+                        if (! -d $dirname) {
+                            &eprint("Parent directory $dirname does not exist!\n");
+                            return();
+                        }
+                    }
+
+                    if (-f $vnfs_path) {
+                        if ($term->interactive()) {
+                            &wprint("Do you wish to overwrite this file: $vnfs_path?");
+                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                            if ($yesno ne "y" and $yesno ne "yes") {
+                                &nprint("Not exporting '$vnfs_name'\n");
+                                return();
+                            }
+                        }
+                    }
+
+                    $vnfs_object->vnfs_export($vnfs_path);
 
                 } else {
                     &eprint("Destination path contains illegal characters: $vnfs_path\n");
                 }
-            }
-            if (scalar(@ARGV) >= 2) {
-                my $path = pop(@ARGV);
-                my $objSet = $db->get_objects("vnfs", $opt_lookup, &expand_bracket(@ARGV));
-                if ($objSet->count() eq 0) {
-                    &nprint("Vnfs(s) not found\n");
-                    return();
-                }
-
-                if ($path =~ /^([a-zA-Z0-9\.\-_\/]+?)\/?$/) {
-                    $path = $1;
-                } else {
-                    &eprint("Destination path contains illegal characters: $path\n");
-                }
-
-                if ($objSet->count() == 1) {
-                    my $obj = $objSet->get_object(0);
-                    my $name = $obj->name();
-                    if (-f $path) {
-                        if ($term->interactive()) {
-                            &wprint("Do you wish to overwrite this file: $path?");
-                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                            if ($yesno ne "y" and $yesno ne "yes") {
-                                &nprint("Not exporting '$name'\n");
-                                return();
-                            }
-                        }
-
-                        &iprint("Exporting single file object to defined file: $path\n");
-                        $obj->file_export($path);
-                    } elsif (-d $path) {
-                        if (-f "$path/$name") {
-                            if ($term->interactive()) {
-                                &wprint("Do you wish to overwrite this file: $path/$name?");
-                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                                if ($yesno ne "y" and $yesno ne "yes") {
-                                    &nprint("Not exporting '$name'\n");
-                                    return();
-                                }
-                            }
-                        }
-                        &iprint("Exporting single file object to defined directory path: $path/$name\n");
-                        $obj->file_export("$path/$name");
-                    } else {
-                        my $dirname = dirname($path);
-                        if (-d $dirname) {
-                            &iprint("Exporting single file object to extrapolated directory path: $path/$name\n");
-                            $obj->file_export($path);
-                        } else {
-                            &eprint("Can not export to non-existant directory: $path\n");
-                        }
-                    }
-                } elsif ($objSet->count() > 1) {
-                    if (-d $path) {
-                        foreach my $obj ($objSet->get_list()) {
-                            my $name = $obj->name();
-                            if (-f "$path/$name") {
-                                if ($term->interactive()) {
-                                    &wprint("Do you wish to overwrite this file: $path/$name?");
-                                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                                    if ($yesno ne "y" and $yesno ne "yes") {
-                                        &nprint("Not exporting '$name'\n");
-                                        next;
-                                    }
-                                }
-                            }
-                            &iprint("Exporting multiple file objects to defined directory path: $path/$name\n");
-                            $obj->file_export("$path/$name");
-                        }
-                    } else {
-                        &eprint("Can not export to non-existant directory: $path\n");
-                    }
-                }
             } else {
-                &eprint("USAGE: file export [file name sources...] [destination]\n");
+                &eprint("USAGE: file export [vnfs name] [destination]\n");
             }
         } elsif ($command eq "import") {
-            foreach my $o (@opt_origin) {
-                if (!scalar(grep { $_ eq $o} @ARGV)) {
-                    push(@ARGV, @opt_origin);
-                }
-            }
             foreach my $path (@ARGV) {
                 if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
                     $path = $1;
@@ -324,7 +269,7 @@ exec()
                     }
                 }
                 $db->del_object($objSet);
-            } elsif ($command eq "print") {
+            } elsif ($command eq "list" or $command eq "print") {
                 &nprint("VNFS NAME                 SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
                     printf("%-25s %-8.1f\n",
