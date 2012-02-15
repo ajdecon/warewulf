@@ -2,7 +2,7 @@ SUBDIRS = GPL BSD
 
 all: gpxelinux.0 chain.c32
 
-SYSLINUX_VERSION = 4.03
+SYSLINUX_VERSION = 4.04
 SYSLINUX_SOURCE = $(top_srcdir)/3rd_party/GPL/syslinux-$(SYSLINUX_VERSION).tar.bz2
 SYSLINUX_DIR = syslinux-$(SYSLINUX_VERSION)
 
