@@ -51,11 +51,11 @@ if [ ! -f "$VNFSDIR/etc/shadow" ]; then
 fi
 
 if [ -f "$VNFSDIR/etc/pam.d/system-auth" ]; then
-    sed -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' $VNFSDIR/etc/pam.d/system-auth
+    sed -i -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' $VNFSDIR/etc/pam.d/system-auth
 fi
 
 if [ -f "$VNFSDIR/etc/pam.d/password-auth" ]; then
-    sed -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' $VNFSDIR/etc/pam.d/password-auth
+    sed -i -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' $VNFSDIR/etc/pam.d/password-auth
 fi
 
 if [ -x "$VNFSDIR/usr/bin/passwd" ]; then
