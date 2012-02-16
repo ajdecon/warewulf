@@ -1261,14 +1261,10 @@ EOF
 	fi
 
 	# add broken_shadow to pam.d/system-auth
-	if [[ -f "${VNFSROOT}/${NAME}/etc/pam.d/system-auth" ]]
-	then 
-	    sed -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' ${VNFSROOT}/${NAME}/etc/pam.d/system-auth 
-	fi 
-	 
-	if [[ -f "${VNFSROOT}/${NAME}/etc/pam.d/password-auth" ]]
-	then 
-	    sed -e '/^account.*pam_unix\.so$/s/$/\ broken_shadow/' ${VNFSROOT}/${NAME}/etc/pam.d/password-auth 
+	if [[ -f "${VNFSROOT}/${NAME}/etc/pam.d/common-account" ]]
+	then
+
+		sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' ${VNFSROOT}/${NAME}/etc/pam.d/common-account
 	fi
 
 	# Very Important Do A Final Cleanup
