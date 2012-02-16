@@ -47,8 +47,8 @@ WWBOOT=$(which wwbootstrap)
 #___________________________________________ 
 
 MYNAME="Mint-Ubuntu-Debian mkchroot vnfs generator"
-VERSION="0.7.0"
-REVISIONDATE="02-10-2012"
+VERSION="0.7.1"
+REVISIONDATE="02-15-2012"
 URL="http://warewulf.lbl.gov/trac"
 
 HOSTMATCH=$(uname -m)
@@ -1260,7 +1260,7 @@ EOF
 		umask 0022              # set umask back to default
 	fi
 
-	# add broken_shadow to pam.d/system-auth
+	# add broken_shadow to pam.d/common-account
 	if [[ -f "${VNFSROOT}/${NAME}/etc/pam.d/common-account" ]]
 	then
 

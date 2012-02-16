@@ -49,12 +49,9 @@ if [ ! -f "$VNFSDIR/etc/shadow" ]; then
 	/usr/sbin/chroot $VNFSDIR /usr/sbin/pwconv
 fi
 
-if [ -f "$VNFSDIR/etc/pam.d/system-auth" ]; then
-    sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' $VNFSDIR/etc/pam.d/system-auth
-fi
-
-if [ -f "$VNFSDIR/etc/pam.d/password-auth" ]; then
-    sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' $VNFSDIR/etc/pam.d/password-auth
+# add broken_shadow to pam.d/common-account
+if [ -f "$VNFSDIR/etc/pam.d/common-account" ]; then
+    sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' $VNFSDIR/etc/pam.d/common-account
 fi
 
 if [ -x "$VNFSDIR/usr/bin/passwd" ]; then
