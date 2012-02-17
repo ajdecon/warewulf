@@ -31,7 +31,7 @@ Blah blah blah
     use Warewulf::Monitor;
 
     my $monitor = Warewulf::Monitor->new();
-    my $ObjectSet = $monitor->query("select * from wwstats");
+    my $ObjectSet = $monitor->get_all_data();
 
     foreach my $node_object ( $ObjectSet->get_list()) {
         printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpuutil"));
@@ -70,8 +70,7 @@ new($$)
 }
 
 
-sub
-    init()
+sub init()
 {
     my ($self, @args) = @_;
     $self->master('localhost',9000);
@@ -79,51 +78,7 @@ sub
     return $self;
 }
 
-sub
-    persist_socket()
-{
-    my ($self, $bool) = @_;
-
-    if ($bool) {
-	$self->set("persist_socket", "1");
-    }
-
-    return $self->get("persist_socket");
-}
-
-sub
-    destroy_socket()
-{
-    my ($self) = @_;
-    if ( ! $self->get("socket")) {
-	print "socket is not defined for $self\n";
-
-    }else{
-	# destroy socket connection
-	close($self->get("socket"));
-    }
-}
-	
-    
-
-sub
-    master()
-{
-    my ($self, $remotehost, $port) = @_;
-
-    if ($remotehost) {
-	$self->set("remotehost", $remotehost);
-    }
-    if ($port) {
-	$self->set("port", $port);
-    }
-
-    return ($self->get("remotehost"),$self->get("port"));
-}
-
-
-sub
-    query()
+my $query = sub
 {
     my ($self, $query) = @_;
     my $json = JSON::XS->new();
@@ -167,6 +122,58 @@ sub
 	close($sock);
     }
     return $ObjectSet;
+};
+
+
+sub persist_socket()
+{
+    my ($self, $bool) = @_;
+
+    if ($bool) {
+	$self->set("persist_socket", "1");
+    }
+
+    return $self->get("persist_socket");
+}
+
+sub
+    destroy_socket()
+{
+    my ($self) = @_;
+    if ( ! $self->get("socket")) {
+	print "socket is not defined for $self\n";
+
+    }else{
+	# destroy socket connection
+	close($self->get("socket"));
+    }
+}
+	
+    
+
+sub master()
+{
+    my ($self, $remotehost, $port) = @_;
+
+    if ($remotehost) {
+	$self->set("remotehost", $remotehost);
+    }
+    if ($port) {
+	$self->set("port", $port);
+    }
+
+    return ($self->get("remotehost"),$self->get("port"));
+}
+
+
+sub get_all_data(){
+    my ($self) = @_;
+    return $query->($self, "select * from wwstats");
+}
+
+sub get_node(){
+    my ($self,$node) = @_;
+    return $query->($self, "select * from wwstats where NODENAME='$node'");
 }
 
 sub register_conntype {
