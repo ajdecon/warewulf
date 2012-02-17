@@ -13,18 +13,14 @@ package Warewulf::Event::Bootstrap;
 use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
-use Warewulf::Provision::Bootstrap;
-
 
 my $event = Warewulf::EventHandler->new();
-my $bootstrapObj = Warewulf::Provision::Bootstrap->new();
-
 
 sub
 build_bootstrap()
 {
     foreach my $obj (@_) {
-        $bootstrapObj->build_bootstrap($obj);
+        $obj->build_local_bootstrap();
     }
 }
 

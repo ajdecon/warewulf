@@ -24,7 +24,7 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Provision::Bootstrap - Warewulf's general object instance object interface.
+Warewulf::Bootstrap - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
@@ -33,9 +33,9 @@ Warewulf DataStore.
 
 =head1 SYNOPSIS
 
-    use Warewulf::Provision::Bootstrap;
+    use Warewulf::Bootstrap;
 
-    my $obj = Warewulf::Provision::Bootstrap->new();
+    my $obj = Warewulf::Bootstrap->new();
 
 =head1 METHODS
 
