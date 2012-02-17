@@ -36,8 +36,8 @@ if($ARG_help){
 }
 
 my $monitor = Warewulf::Monitor->new();
-$monitor->persist_socket("1");
-
+my $nodeSet = $monitor->get_all_data();
+#my $nodeSet = $monitor->get_node("ksong.lbl.gov");
 
 if($ARG_summary){
     print_summary();
@@ -51,11 +51,9 @@ $monitor->destroy_socket();
 sub print_summary {
     print "print_summary\n";
 
-    my $ObjectSet = $monitor->query("select * from wwstats");
-
     my $ts=time();
 #    foreach my $node ( keys %datahash )
-    foreach my $node ( $ObjectSet->get_list()) {
+    foreach my $node ( $nodeSet->get_list()) {
 	my $lastcontact=$ts-$node->get("timestamp");
 	$node->set("lastcontact",$lastcontact);
 	#two of the "SWAPUSED" should've been SWAPTOTAL
@@ -95,22 +93,17 @@ sub print_summary {
     print "$summary";
     print "--------------------------------------------------------------------------------\n";
 
-
-#    foreach my $node_object ( $ObjectSet->get_list()) {
-#        printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpuutil"));
-#    }
-
 }
 
 sub print_all {
     print_summary();
     print "print_the rest data\n";
-    my $nodeSet = $monitor->query("select * from wwstats");
+
     print " Node      Cluster        CPU       Memory (MB)      Swap (MB)      Current\n";
     print " Name       Name       [util/num] [% used/total]   [% used/total]   Status\n";
 
     foreach my $ready ( @nodes_ready ) {
-        printf("%-20s \t %s/%s \t %s/%s \t %s \t%s\n", 
+        printf("%-20s \t %s\% (%s) \t %s/%s \t %s \t%s\n", 
 	       $ready->get("name"), 
 	       $ready->get("cpuutil"), $ready->get("cpucount"),
 	       $ready->get("memused"),$ready->get("memtotal"),
