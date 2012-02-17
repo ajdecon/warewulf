@@ -165,6 +165,19 @@ sub master()
     return ($self->get("remotehost"),$self->get("port"));
 }
 
+sub set_query(){
+    my ($self, $whereClause) = @_;
+    $self->set("query","select * from wwstats where $whereClause");
+}
+
+sub query_data(){
+    my ($self) = @_;
+    if (!$self->get("query")){
+	return $query->($self, "select * from wwstats");
+    }else{
+	return $query->($self, $self->get("query"));
+    }
+}
 
 sub get_all_data(){
     my ($self) = @_;
