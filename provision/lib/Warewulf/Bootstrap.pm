@@ -24,7 +24,7 @@ our @ISA = ('Warewulf::Object');
 
 =head1 NAME
 
-Warewulf::Bootstrap - Warewulf's general object instance object interface.
+Warewulf::Provision::Bootstrap - Warewulf's general object instance object interface.
 
 =head1 ABOUT
 
@@ -33,9 +33,9 @@ Warewulf DataStore.
 
 =head1 SYNOPSIS
 
-    use Warewulf::Bootstrap;
+    use Warewulf::Provision::Bootstrap;
 
-    my $obj = Warewulf::Bootstrap->new();
+    my $obj = Warewulf::Provision::Bootstrap->new();
 
 =head1 METHODS
 
@@ -104,9 +104,24 @@ Get the checksum of this vnfs.
 sub
 checksum()
 {
-    my ($self) = @_;
+    my $self = shift;
 
-    return($self->get("checksum"));
+    return $self->prop("checksum", qr/^([a-zA-Z0-9]+)$/, @_);
+}
+
+
+=item size($string)
+
+Set or return the size of the raw file stored within the datastore.
+
+=cut
+
+sub
+size()
+{
+    my $self = shift;
+
+    return $self->prop("size", qr/^([0-9]+)$/, @_);
 }
 
 
@@ -272,11 +287,11 @@ question.
 sub
 build_local_bootstrap()
 {
-    my ($self, $bootstrapObj) = @_;
+    my ($self) = @_;
 
-    if ($bootstrapObj) {
-        my $bootstrap_name = $bootstrapObj->get("name");
-        my $bootstrap_id = $bootstrapObj->get("_id");
+    if ($self) {
+        my $bootstrap_name = $self->name();
+        my $bootstrap_id = $self->id();
 
         if (!$bootstrap_name) {
             &dprint("Skipping build_bootstrap() as the name is undefined\n");
@@ -290,7 +305,7 @@ build_local_bootstrap()
             my $initramfsdir = &Warewulf::ACVars::get("statedir") . "/warewulf/initramfs/";
             my $randstring = &rand_string("12");
             my $tmpdir = "/var/tmp/wwinitrd.$randstring";
-            my $binstore = $ds->binstore($bootstrapObj->get("_id"));
+            my $binstore = $ds->binstore($bootstrap_id);
             my $bootstrapdir = "$tftpboot/warewulf/bootstrap/$bootstrap_id/";
             my $initramfs = "$initramfsdir/initfs";
 
@@ -300,7 +315,7 @@ build_local_bootstrap()
                 open(COOKIE, "$bootstrapdir/cookie");
                 chomp (my $cookie = <COOKIE>);
                 close COOKIE;
-                if ($cookie eq $bootstrapObj->get("checksum")) {
+                if ($cookie eq $self->checksum()) {
 # Lets not return yet, because we don't have a way to force it yet...
 #                    return;
                 }
@@ -338,7 +353,7 @@ build_local_bootstrap()
             system("cp $tmpdir/kernel $bootstrapdir/kernel");
             system("rm -rf $tmpdir");
             open(COOKIE, "> $bootstrapdir/cookie");
-            print COOKIE $bootstrapObj->get("checksum");
+            print COOKIE $self->checksum();
             close COOKIE;
             &nprint("Bootstrap image '$bootstrap_name' is ready\n");
         } else {

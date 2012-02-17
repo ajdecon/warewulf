@@ -16,7 +16,6 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Provision::Bootstrap;
 use Warewulf::Bootstrap;
 use Warewulf::DSO::Bootstrap;
 use Getopt::Long;
@@ -168,207 +167,136 @@ exec()
         return();
     }
 
-    if (! $command) {
-        &eprint("You must provide a command!\n\n");
-        print $self->help();
-    } elsif ($command eq "import") {
-        my $import = shift(@ARGV);
-        if ($import and $import =~ /^([a-zA-Z0-9_\-\.\/]+)?$/) {
-            my $path = $1;
-            if (-f $path) {
-                my $name;
-                if (defined($opt_name)) {
-                    $name = $opt_name;
+    if ($command) {
+        if ($command eq "export") {
+            if (scalar(@ARGV) eq 2) {
+                my $bootstrap = shift(@ARGV);
+                my $bootstrap_path = shift(@ARGV);
+
+                if ($bootstrap_path =~ /^([a-zA-Z0-9_\-\.\/]+)\/?$/) {
+                    $bootstrap_path = $1;
+                    my $bootstrap_object = $db->get_objects("bootstrap", $opt_lookup, $bootstrap)->get_object(0);
+                    my $bootstrap_name = $bootstrap_object->name();
+
+                    if (-d $bootstrap_path) {
+                        $bootstrap_path = "$bootstrap_path/$bootstrap_name.wwbs";
+                    } else {
+                        my $dirname = dirname($bootstrap_path);
+                        if (! -d $dirname) {
+                            &eprint("Parent directory $dirname does not exist!\n");
+                            return();
+                        }
+                    }
+
+                    if (-f $bootstrap_path) {
+                        if ($term->interactive()) {
+                            &wprint("Do you wish to overwrite this file: $bootstrap_path?");
+                            my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                            if ($yesno ne "y" and $yesno ne "yes") {
+                                &nprint("Not exporting '$bootstrap_name'\n");
+                                return();
+                            }
+                        }
+                    }
+
+                    $bootstrap_object->bootstrap_export($bootstrap_path);
+
                 } else {
-                    $name = basename($path);
-                }
-                $name =~ s/\.wwbs$//;
-                my $digest = digest_file_hex_md5($path);
-                $objectSet = $db->get_objects($entity_type, $opt_lookup, $name);
-                if ($objectSet->count() == 1) {
-                    if ($term->interactive()) {
-                        print "Are you sure you wish to overwrite the Warewulf Bootstrap Image '$name'?\n\n";
-                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                        if ($yesno ne "y" and $yesno ne "yes" ) {
-                            &nprint("No import performed\n");
-                            return();
-                        }
-                    }
-                    my $obj = $objectSet->get_object(0);
-                    $obj->set("checksum", $digest);
-                    my $binstore = $db->binstore($obj->get("_id"));
-                    my $size;
-                    my $buffer;
-                    open(SCRIPT, $path);
-                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
-                        &dprint("Chunked $length bytes of $path\n");
-                        if (! $binstore->put_chunk($buffer)) {
-                            &eprint("Bootstrap import failure!\n");
-                            return();
-                        }
-                        $size += $length;
-                    }
-                    close SCRIPT;
-                    $obj->set("size", $size);
-                    $db->persist($obj);
-                    &nprint("Imported $name into existing object\n");
-                } elsif ($objectSet->count() == 0) {
-                    &nprint("Creating new Bootstrap Object: $name\n");
-                    my $obj = Warewulf::Bootstrap->new("bootstrap");
-                    $db->persist($obj);
-                    $obj->set("name", $name);
-                    $obj->set("checksum", digest_file_hex_md5($path));
-                    my $binstore = $db->binstore($obj->get("_id"));
-                    my $size;
-                    my $buffer;
-                    &dprint("Persisting new Bootstrap Object\n");
-                    open(SCRIPT, $path);
-                    while(my $length = sysread(SCRIPT, $buffer, $db->chunk_size())) {
-                        &dprint("Chunked $length bytes of $path\n");
-                        if (! $binstore->put_chunk($buffer)) {
-                            $db->del_object($obj);
-                            &eprint("Bootstrap import failure!\n");
-                            return();
-                        }
-                        $size += $length;
-                    }
-                    close SCRIPT;
-                    $obj->set("size", $size);
-                    $db->persist($obj);
-                    &nprint("Imported $name into a new object\n");
-                } else {
-                    &wprint("Import into one object at a time please!\n");
+                    &eprint("Destination path contains illegal characters: $bootstrap_path\n");
                 }
             } else {
-                &eprint("Could not import '$path' (file not found)\n");
+                &eprint("USAGE: bootstrap export [bootstrap name] [destination]\n");
             }
-        }
+        } elsif ($command eq "import") {
+            if (scalar(@ARGV) >= 1) {
+                foreach my $path (@ARGV) {
+                    if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
+                        $path = $1;
+                        if (-f $path) {
+                            my $name;
+                            my $objSet;
+                            my $obj;
+                            if ($opt_name) {
+                                $name = $opt_name;
+                            } else {
+                                $name = basename($path);
+                            }
+                            $objSet = $db->get_objects("bootstrap", $opt_lookup, $name);
 
-    } elsif ($command eq "export") {
-        if (scalar(@ARGV) <= 1) {
-            &eprint("You must supply a bootstrap name to export, and a local path to export to\n");
-            return();
-        }
-        my $opt_export = pop(@ARGV);
-        if ($opt_export =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-            $opt_export = $1;
-        } else {
-            &eprint("Illegal characters in export path\n");
-            return();
-        }
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
+                            if ($objSet->count() > 0) {
+                                $obj = $objSet->get_object(0);
+                                if ($term->interactive()) {
+                                    my $name = $obj->name() || "UNDEF";
+                                    &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
+                                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                    if ($yesno ne "y" and $yesno ne "yes") {
+                                        &nprint("Not exporting '$name'\n");
+                                        return();
+                                    }
+                                }
+                            } else {
+                                &dprint("Creating a new Warewulf VNFS object\n");
+                                $obj = Warewulf::Bootstrap->new();
+                                $obj->name($name);
+                                &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
+                                $db->persist($obj);
+                            }
 
-        if (-d $opt_export) {
-            foreach my $obj ($objectSet->get_list()) {
-                my $name = $obj->get("name");
-                my $binstore = $db->binstore($obj->get("_id"));
+                            $obj->bootstrap_import($path);
 
-                if ($name !~ /\.wwbs$/) {
-                    $name .= ".wwbs";
-                }
-
-                if (-f "$opt_export/$name" and $term->interactive()) {
-                    print "Are you sure you wish to overwrite $opt_export/$name?\n\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("Skipped export of $opt_export/$name\n");
-                        next;
+                        } else {
+                            &eprint("VNFS not Found: $path\n");
+                        }
+                    } else {
+                        &eprint("VNFS contains illegal characters: $path\n");
                     }
                 }
-                open(SCRIPT, "> $opt_export/$name");
-                while(my $buffer = $binstore->get_chunk()) {
-                    &dprint("Writing ". length($buffer) ." bytes to buffer\n");
-                    print SCRIPT $buffer;
-                }
-                close SCRIPT;
-                &nprint("Exported: $opt_export/$name\n");
-            }
-        } elsif (-f $opt_export) {
-            if ($objectSet->count() == 1) {
-                if ($term->interactive()) {
-                    print "Are you sure you wish to overwrite $opt_export?\n\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("No export performed\n");
-                        return();
-                    }
-                }
-                my $obj = $objectSet->get_object(0);
-                my $binstore = $db->binstore($obj->get("_id"));
-                open(SCRIPT, "> $opt_export");
-                while(my $buffer = $binstore->get_chunk()) {
-                    print SCRIPT $buffer;
-                }
-                close SCRIPT;
-                &nprint("Exported: $opt_export\n");
             } else {
-                &eprint("Can only export 1 Bootstrap image into a file, perhaps export to a directory?\n");
+                &eprint("USAGE: bootstrap import [bootstrap path]\n");
             }
+
         } else {
-            my $obj = $objectSet->get_object(0);
-            my $binstore = $db->binstore($obj->get("_id"));
-            if ($opt_export =~ /\/$/) {
-                mkpath($opt_export, {error => \my $err});
-                if (@$err) {
-                    &eprint("Could not create $opt_export\n");
-                    return;
-                }
-                my $name = $obj->get("name");
-                if ($name !~ /\.wwbs$/) {
-                    $name .= ".wwbs";
-                }
-                $opt_export .= $name;
-            }
-            open(SCRIPT, "> $opt_export");
-            while(my $buffer = $binstore->get_chunk()) {
-                print SCRIPT $buffer;
-            }
-            close SCRIPT;
-            &nprint("Exported: $opt_export\n");
-        }
-
-    } elsif ($command eq "rebuild" or $command eq "build") {
-    	my $bootstrapObj = Warewulf::Provision::Bootstrap->new();
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        foreach my $obj ($objectSet->get_list()) {
-            $bootstrapObj->build_bootstrap($obj);
-        }
-    } elsif ($command eq "list" or $command eq "delete") {
-        $objectSet = $db->get_objects($entity_type, $opt_lookup, &expand_bracket(@ARGV));
-        if ($objectSet and $objectSet->count() > 0) {
-            &nprint("BOOTSTRAP NAME                      SIZE (M)\n");
-            foreach my $obj ($objectSet->get_list()) {
-                printf("%-35s %-8.1f\n",
-                    $obj->get("name") || "UNDEF",
-                    $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
-                );
-            }
-
+            $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
             if ($command eq "delete") {
+                my $object_count = $objSet->count();
                 if ($term->interactive()) {
-                    print "\nAre you sure you wish to delete the above Bootstrap image?\n\n";
+                    print "Are you sure you want to delete $object_count files(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                    }
+                    print "\n";
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
+                    if ($yesno ne "y" and $yesno ne "yes") {
                         &nprint("No update performed\n");
                         return();
                     }
                 }
-
-                my $return_count = $db->del_object($objectSet);
-
-                &nprint("Deleted $return_count objects\n");
+                foreach my $o ($objSet->get_list()) {
+                    $o->delete_local_bootstrap();
+                }
+                $db->del_object($objSet);
+            } elsif ($command eq "list" or $command eq "print") {
+                &nprint("VNFS NAME                 SIZE (K)\n");
+                foreach my $obj ($objSet->get_list()) {
+                    printf("%-25s %-8.1f\n",
+                        $obj->name() || "UNDEF",
+                        $obj->size() ? $obj->size()/1024 : "0"
+                    );
+                }
+            } elsif ($command eq "rebuild" or $command eq "build") {
+                foreach my $o ($objSet->get_list()) {
+                    $o->build_local_bootstrap();
+                }
+            } else {
+                &eprint("Invalid command: $command\n");
             }
-        } else {
-           &nprint("No objects found\n");
         }
-    } elsif ($command eq "help") {
-        print $self->help();
-
     } else {
-        &eprint("Unknown command: $command\n\n");
+        &eprint("You must provide a command!\n\n");
         print $self->help();
-    }
+        return();
 
+    }
 
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();

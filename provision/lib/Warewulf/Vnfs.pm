@@ -6,7 +6,7 @@
 #
 #
 
-package Warewulf::Provision::Vnfs;
+package Warewulf::Vnfs;
 
 use Warewulf::Object;
 use Warewulf::Logger;
@@ -102,9 +102,9 @@ Get the checksum of this vnfs.
 sub
 checksum()
 {
-    my ($self) = @_;
+    my $self = shift;
 
-    return($self->get("checksum"));
+    return $self->prop("checksum", qr/^([a-zA-Z0-9]+)$/, @_);
 }
 
 

@@ -60,7 +60,7 @@ type($)
 {
     my $self = shift;
 
-    return("vnfs");
+    return("bootstrap");
 }
 
 

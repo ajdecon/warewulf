@@ -16,7 +16,7 @@ use Warewulf::Module::Cli;
 use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
-use Warewulf::Provision::Vnfs;
+use Warewulf::Vnfs;
 use Warewulf::DSO::Vnfs;
 use Getopt::Long;
 use File::Basename;
@@ -207,50 +207,54 @@ exec()
                     &eprint("Destination path contains illegal characters: $vnfs_path\n");
                 }
             } else {
-                &eprint("USAGE: file export [vnfs name] [destination]\n");
+                &eprint("USAGE: vnfs export [vnfs name] [destination]\n");
             }
         } elsif ($command eq "import") {
-            foreach my $path (@ARGV) {
-                if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
-                    $path = $1;
-                    if (-f $path) {
-                        my $name;
-                        my $objSet;
-                        my $obj;
-                        if ($opt_name) {
-                            $name = $opt_name;
-                        } else {
-                            $name = basename($path);
-                        }
-                        $objSet = $db->get_objects("file", $opt_lookup, $name);
-
-                        if ($objSet->count() > 0) {
-                            $obj = $objSet->get_object(0);
-                            if ($term->interactive()) {
-                                my $name = $obj->name() || "UNDEF";
-                                &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
-                                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                                if ($yesno ne "y" and $yesno ne "yes") {
-                                    &nprint("Not exporting '$name'\n");
-                                    return();
-                                }
+            if (scalar(@ARGV) >= 1) {
+                foreach my $path (@ARGV) {
+                    if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
+                        $path = $1;
+                        if (-f $path) {
+                            my $name;
+                            my $objSet;
+                            my $obj;
+                            if ($opt_name) {
+                                $name = $opt_name;
+                            } else {
+                                $name = basename($path);
                             }
+                            $objSet = $db->get_objects("vnfs", $opt_lookup, $name);
+
+                            if ($objSet->count() > 0) {
+                                $obj = $objSet->get_object(0);
+                                if ($term->interactive()) {
+                                    my $name = $obj->name() || "UNDEF";
+                                    &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
+                                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                                    if ($yesno ne "y" and $yesno ne "yes") {
+                                        &nprint("Not exporting '$name'\n");
+                                        return();
+                                    }
+                                }
+                            } else {
+                                &dprint("Creating a new Warewulf VNFS object\n");
+                                $obj = Warewulf::Vnfs->new();
+                                $obj->name($name);
+                                &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
+                                $db->persist($obj);
+                            }
+
+                            $obj->vnfs_import($path);
+
                         } else {
-                            &dprint("Creating a new Warewulf VNFS object\n");
-                            $obj = Warewulf::Vnfs->new();
-                            $obj->name($name);
-                            &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
-                            $db->persist($obj);
+                            &eprint("VNFS not Found: $path\n");
                         }
-
-                        $obj->vnfs_import($path);
-
                     } else {
-                        &eprint("VNFS not Found: $path\n");
+                        &eprint("VNFS contains illegal characters: $path\n");
                     }
-                } else {
-                    &eprint("VNFS contains illegal characters: $path\n");
                 }
+            } else {
+                &eprint("USAGE: vnfs import [vnfs path]\n");
             }
         } else {
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
