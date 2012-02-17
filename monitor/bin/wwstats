@@ -36,8 +36,7 @@ if($ARG_help){
 }
 
 my $monitor = Warewulf::Monitor->new();
-#my $nodeSet = $monitor->get_all_data();
-#my $nodeSet = $monitor->get_node("ksong.lbl.gov");
+#$monitor->set_query("NODENAME='ksong.lbl.gov'");
 my $nodeSet = $monitor->query_data();
 
 if($ARG_summary){

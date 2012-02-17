@@ -149,8 +149,6 @@ sub
     }
 }
 	
-    
-
 sub master()
 {
     my ($self, $remotehost, $port) = @_;
@@ -177,16 +175,6 @@ sub query_data(){
     }else{
 	return $query->($self, $self->get("query"));
     }
-}
-
-sub get_all_data(){
-    my ($self) = @_;
-    return $query->($self, "select * from wwstats");
-}
-
-sub get_node(){
-    my ($self,$node) = @_;
-    return $query->($self, "select * from wwstats where NODENAME='$node'");
 }
 
 sub register_conntype {
