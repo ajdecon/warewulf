@@ -31,7 +31,8 @@ Blah blah blah
     use Warewulf::Monitor;
 
     my $monitor = Warewulf::Monitor->new();
-    my $ObjectSet = $monitor->get_all_data();
+    $monitor->set_query("NODENAME='ksong.lbl.gov'");
+    my $ObjectSet = $monitor->query_data();
 
     foreach my $node_object ( $ObjectSet->get_list()) {
         printf("%-20s CPU: %s\n", $node_object->get("name"), $node_object->get("cpuutil"));
@@ -69,7 +70,10 @@ new($$)
     return $self->init(@_);
 }
 
-
+##
+# initialize monitor object with defaut
+# localhost at port 9000
+##
 sub init()
 {
     my ($self, @args) = @_;
@@ -78,6 +82,11 @@ sub init()
     return $self;
 }
 
+##
+# Private method to send raw and complete 
+# sql query to monitor master
+# it returns a object set according the query
+##
 my $query = sub
 {
     my ($self, $query) = @_;
@@ -98,14 +107,17 @@ my $query = sub
 	}
 
 	$self->set("socket", $socket);
+	#regist connection type for this socket 
 	register_conntype ($socket,$APPLICATION);
 	my $register_data=recv_all($socket);
     }
     $sock=$self->get("socket");
 
+    #send raw query as json packet
     send_query($sock,$query);
     my $data=recv_all($sock);
 
+    #decode json packet and restore it in the object set data structure
     my %decoded_json = %{decode_json($data)};
     foreach my $node (keys %decoded_json) {
 	my $tmpObject = Warewulf::Object->new();
@@ -124,7 +136,10 @@ my $query = sub
     return $ObjectSet;
 };
 
-
+##
+# use persist_socket("1") to prevent socket being closed
+# after each query
+##
 sub persist_socket()
 {
     my ($self, $bool) = @_;
@@ -149,6 +164,11 @@ sub
     }
 }
 	
+##
+# set monitor master host and port
+# if calling without arguement, it will return the current
+# master host and port
+##
 sub master()
 {
     my ($self, $remotehost, $port) = @_;
@@ -163,11 +183,18 @@ sub master()
     return ($self->get("remotehost"),$self->get("port"));
 }
 
+##
+# set the where clause for a query for this object
+##
 sub set_query(){
     my ($self, $whereClause) = @_;
     $self->set("query","select * from wwstats where $whereClause");
 }
 
+##
+# retrieving data from the "query" that is set via set_query()
+# if "query" is not set, get all the data
+##
 sub query_data(){
     my ($self) = @_;
     if (!$self->get("query")){
