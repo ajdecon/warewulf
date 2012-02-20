@@ -15,7 +15,7 @@ use Warewulf::Util;
 
 Getopt::Long::Configure ("bundling");
 
-$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
+$ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin";
 
 my $opt_help;
 my $opt_netdev = "eth0";

@@ -27,7 +27,7 @@ my %keyword_hash;
 my $retval = 0;
 my $events = Warewulf::EventHandler->new();
 
-$ENV{"PATH"} = "/bin:/usr/bin";
+$ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin";
 
 sub
 run_cmd()

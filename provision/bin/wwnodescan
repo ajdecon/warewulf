@@ -80,7 +80,7 @@ my $help = "USAGE: $0 [options] nodes....
 
 ";
 
-$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
+$ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin";
 &set_log_level("NOTICE");
 
 Getopt::Long::Configure("bundling");
