@@ -420,11 +420,9 @@ del_object($$)
             $sth->execute($id);
             $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             $sth->execute($id);
+
+            $event->handle("$type.delete", $o);
         }
-        push(@{$events{"$type.delete"}}, $o);
-    }
-    foreach my $e (keys %events) {
-        $event->handle($e, @{$events{"$e"}});
     }
 
     return(scalar(@objlist));
