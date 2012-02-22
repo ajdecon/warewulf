@@ -87,96 +87,104 @@ id()
 
 
 
-=item name($string)
+=item name($nodename, $clustername, $domainname)
 
-Set or return the name of this object. The string "UNDEF" will delete this
-key from the object.
+Get or set the name of the node. Because nodes can be part of multiple clusters
+or sites the name itself is made up of several other object members (nodename,
+cluster, domain). When setting any of these, the node's name is set
+appropriately.
+
+As a shortcut, you can set these also by supplying arguments here. This is
+mostly to be compatible with the earlier which now will set the nodename
+member.
+
+If called in an array context, this will return all known names for this node,
+otherwise a scalar is return of the most descriptive form.
 
 =cut
 
 sub
 name()
 {
-    my ($self, $string) = @_;
-    my $key = "name";
+    my ($self, $nodename, $clustername, $domainname) = @_;
 
-    if ($string) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-zA-Z0-9_\.\-]+)$/) {
-            my $name = $self->get("name") || "UNDEF";
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
+    if ($nodename) {
+        $self->nodename($nodename);
+    }
+    if ($clustername) {
+        $self->cluster($clustername);
+    }
+    if ($domainname) {
+        $self->domain($domainname);
     }
 
-    return($self->get($key) || "UNDEF");
+    my @names = $self->get("name");
+
+    return(wantarray ? @names : pop(@names));
 }
+
+
+=item nodename($string)
+
+Set or return the nodename of this object.
+
+=cut
+
+sub
+nodename()
+{
+    my $self = shift;
+
+    my $nodename = $self->prop("nodename", qr/^([a-zA-Z0-9_\-]+)$/, @_);
+
+    if (@_) {
+        $self->genname();
+    }
+
+    return($nodename);
+}
+
 
 
 =item cluster($string)
 
-Set or return the cluster of this object. The string "UNDEF" will delete this
-key from the object.
+Set or return the cluster of this object.
 
 =cut
 
 sub
 cluster()
 {
-    my ($self, $string) = @_;
-    my $key = "cluster";
+    my $self = shift;
 
-    if ($string) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-zA-Z0-9_\.\-]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
+    my $cluster = $self->prop("cluster", qr/^([a-zA-Z0-9_\-]+)$/, @_);
+
+    if (@_) {
+        $self->genname();
     }
 
-    return($self->get($key) || "UNDEF");
+    return($cluster);
 }
 
 
 =item domain($string)
 
-Set or return the domain of this object. The string "UNDEF" will delete this
-key from the object.
+Set or return the domain of this object.
 
 =cut
 
 sub
 domain()
 {
-    my ($self, $string) = @_;
-    my $key = "domain";
+    my $self = shift;
 
-    if ($string) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-zA-Z0-9_\.\-]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
+    my $domain = $self->prop("domain", qr/^([a-zA-Z0-9_\-\.]+)$/, @_);
+
+    if (@_) {
+        $self->genname();
     }
 
-    return($self->get($key) || "UNDEF");
+    return($domain);
 }
 
 
@@ -375,6 +383,36 @@ netdel()
 }
 
 
+=item list_hwaddr()
+
+Shortcut to retrieve a list of all HWADDR's for this node
+
+=cut
+
+sub
+list_hwaddr()
+{
+    my $self = shift;
+
+    return($self->get("_hwaddr"));
+}
+
+
+=item list_ipaddr()
+
+Shortcut to retrieve a list of all IP addresses for this node
+
+=cut
+
+sub
+list_ipaddr()
+{
+    my $self = shift;
+
+    return($self->get("_ipaddr"));
+}
+
+
 =item hwaddr($device, $value)
 
 Set or return the hwaddr for a given device
@@ -538,6 +576,40 @@ through Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
+
+
+
+
+
+# This function is used internally to update the object's name member which
+# is dynamically created to account for more complicated nomenclature schemes.
+sub
+genname() {
+    my ($self) = @_;
+    my $nodename = $self->nodename();
+    my $clustername = $self->cluster();
+    my $domainname = $self->domain();
+    my @names;
+
+    if (defined($nodename)) {
+        push(@names, $nodename);
+        if (defined($clustername)) {
+            push(@names, $nodename .".". $clustername);
+        }
+        if (defined($clustername) and defined($domainname)) {
+            push(@names, $nodename .".". $clustername .".". $domainname);
+        } elsif (defined($domainname)) {
+            push(@names, $nodename .".". $domainname);
+        }
+    }
+
+    if (@names) {
+        $self->set("name", \@names);
+    }
+
+    return();
+}
+
 
 
 1;

@@ -152,10 +152,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set" or $ARGV[1] eq "list")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("print", "new", "set", "delete");
+        @ret = ("print", "new", "set", "delete", "list");
     }
 
     @ARGV = ();
@@ -229,7 +229,7 @@ exec()
             my $node;
             $node = Warewulf::Node->new();
 
-            $node->name($string);
+            $node->nodename($string);
 
             $objSet->add($node);
 
@@ -274,8 +274,8 @@ exec()
     } elsif ($command eq "list") {
         &nprintf("%-19s %-19s %-19s %-19s\n",
             "NAME",
-            "CLUSTER",
             "GROUPS",
+            "IPADDR",
             "HWADDR"
         );
         &nprint("================================================================================\n");
@@ -286,23 +286,21 @@ exec()
             }
             printf("%-19s %-19s %-19s %-19s\n",
                 &ellipsis(19, ($o->name() || "UNDEF"), "end"),
-                &ellipsis(19, ($o->cluster() || "UNDEF")),
                 &ellipsis(19, (join(",", $o->groups()) || "UNDEF")),
-                join(",", @hwaddrs) || "UNDEF"
+                join(",", $o->list_ipaddr()),
+                join(",", $o->list_hwaddr())
             );
         }
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-                $name .= ".$cluster";
-            }
+            my $name = $o->name() || "UNDEF";
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
             printf("%15s: %-16s = %s\n", $name, "ID", ($o->id() || "ERROR"));
-            printf("%15s: %-16s = %s\n", $name, "NAME", ($o->name() || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "NAME", join(",", $o->name()));
+            printf("%15s: %-16s = %s\n", $name, "NODENAME", ($o->nodename() || "UNDEF"));
             printf("%15s: %-16s = %s\n", $name, "CLUSTER", ($o->cluster() || "UNDEF"));
             printf("%15s: %-16s = %s\n", $name, "DOMAIN", ($o->domain() || "UNDEF"));
-            printf("%15s: %-16s = %s\n", $name, "GROUPS", join(",", $o->groups() || "UNDEF"));
+            printf("%15s: %-16s = %s\n", $name, "GROUPS", join(",", $o->groups()) || "UNDEF");
             foreach my $device (sort $o->netdevs()) {
                 printf("%15s: %-16s = %s\n", $name, "$device.HWADDR", $o->hwaddr($device) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $name, "$device.IPADDR", $o->ipaddr($device) || "UNDEF");
@@ -383,7 +381,7 @@ exec()
                 $opt_name = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
-                    $obj->name($opt_name);
+                    $obj->nodename($opt_name);
                     &dprint("Setting new name for node $name: $opt_name\n");
                     $persist_count++;
                 }
@@ -394,7 +392,16 @@ exec()
         }
 
         if ($opt_cluster) {
-            if ($opt_cluster =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+            if (uc($opt_cluster) eq "UNDEF") {
+                $opt_cluster = undef;
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->cluster($opt_cluster);
+                    &dprint("Undefining cluster name for node $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("   UNDEF: %-20s\n", "CLUSTER"));
+            } elsif ($opt_cluster =~ /^([a-zA-Z0-9\.\-_]+)$/) {
                 $opt_cluster = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
@@ -409,7 +416,16 @@ exec()
         }
 
         if ($opt_domain) {
-            if ($opt_domain =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+            if (uc($opt_domain) eq "UNDEF") {
+                $opt_domain = undef;
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->get("name") || "UNDEF";
+                    $obj->domain($opt_domain);
+                    &dprint("Undefining domain name for node $name\n");
+                    $persist_count++;
+                }
+                push(@changes, sprintf("   UNDEF: %-20s\n", "CLUSTER"));
+            } elsif ($opt_domain =~ /^([a-zA-Z0-9\.\-_]+)$/) {
                 $opt_domain = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
