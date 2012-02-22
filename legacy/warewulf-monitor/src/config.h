@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006, Greg M. Kurtzer <gmk@runlevelzero.net>. All
+ * Copyright (c) 2004-2006, Greg M. Kurtzer <gmk@lbl.gov>. All
  * rights reserved.
  *
  * Copyright (c) 2003, The Regents of the University of California, through
@@ -19,7 +19,7 @@
  * The GNU GPL Document can be found at:
  * http://www.gnu.org/copyleft/gpl.html
  *
- * Written By Greg Kurtzer <gmk@runlevelzero.net> originally for the Warewulf
+ * Written By Greg Kurtzer <gmk@lbl.gov> originally for the Warewulf
  * Cluster toolkit project (http://warewulf.lbl.gov/) and now for
  * Perceus (http://www.perceus.org/).
  *
