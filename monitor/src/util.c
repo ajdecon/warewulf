@@ -10,16 +10,161 @@
  *
  */
 
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<ctype.h>
-#include<json/json.h>
-#include<sqlite3.h>
 #include "globals.h"
 
-// Forward declarations
-int sendall(int s, char *buf, int total);
+// Any forward declarations
+
+static
+int
+nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
+{
+  int i;
+  for(i=0; i<argc; i++){
+    printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+  }
+  //printf("\n");
+  return 0;
+}
+
+static
+int
+getint_callback(void *void_int, int argc, char **argv, char **azColName)
+{
+  int *int_value = (int *)void_int;
+  *int_value = atoi(argv[argc-1]);
+
+  return 0;
+}
+
+void
+fillLookups(int blobid, json_object *jobj) 
+{
+
+  //Can we assume 64 bits for rowid ?
+  char blobID[65];
+  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+  enum json_type type;
+
+  json_object_object_foreach(jobj, key, value){
+   // What is the correct SQL to use ?
+   strcpy(sqlite_cmd, "insert or replace into lookups(blobid, key, value) values ('");
+   sprintf(blobID,"%d",blobid);
+   strcat(sqlite_cmd, blobID);
+   strcat(sqlite_cmd, "','");
+
+   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
+
+   	strcat(sqlite_cmd,key);
+	strcat(sqlite_cmd, "','");
+
+    	// Clean the int logic
+        // Can we assume 64 bits for all ints ?
+    	char vals[65];
+    	type = json_object_get_type(value);
+    	switch(type) {
+        	case json_type_int:
+                	sprintf(vals, "%d",json_object_get_int(value));
+                	strcat(sqlite_cmd,vals);
+                	break;
+        	case json_type_string:
+                	strcat(sqlite_cmd, json_object_get_string(value));
+                	break;
+    	}
+    	strcat(sqlite_cmd, "')");
+
+    //printf("SQL CMD - %s\n",sqlite_cmd);
+    char *emsg = 0;
+    int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
+    }
+
+    } // end if
+   } // end json_foreach
+
+   free(sqlite_cmd);
+}
+
+void
+insert_json(int dbts, char *nodename, time_t timestamp, json_object *jobj)
+{
+  char TimeStamp[11];
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+
+  if ( dbts < 0 ) { // First time create a new row
+    strcpy(sqlcmd,"insert into ");
+  } else { // Not the first time no need to create a new row, just update
+    strcpy(sqlcmd,"update ");
+  }
+  strcat(sqlcmd,SQLITE_DB_TB1NAME);
+
+  if ( dbts < 0 ) {
+    strcat(sqlcmd,"(jsonblob, timestamp, nodename) values('");
+  } else {
+    strcat(sqlcmd," set jsonblob='");
+  }
+  strcat(sqlcmd,json_object_to_json_string(jobj));
+  strcat(sqlcmd,"', ");
+
+  if ( dbts < 0 ) {
+    strcat(sqlcmd,"'");
+  } else {
+    strcat(sqlcmd,"timestamp='");
+  }
+  sprintf(TimeStamp,"%d",timestamp);
+  strcat(sqlcmd,TimeStamp);
+  strcat(sqlcmd,"'");
+
+  if ( dbts < 0 ) {
+    strcat(sqlcmd,",");
+  } else {
+    strcat(sqlcmd," where nodename=");
+  }
+  strcat(sqlcmd,"'");
+  strcat(sqlcmd,nodename);
+  strcat(sqlcmd,"'");
+
+  if ( dbts < 0 ) {
+    strcat(sqlcmd,")");
+  }
+ 
+  //printf("CMD - %s\n",sqlcmd);
+  int rc; char *emsg = 0;
+  if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
+    fprintf(stderr, "SQL error: %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+
+  return;
+}
+
+int
+NodeTS_fromDB(char *nodename)
+{
+  int rc;
+  char *emsg = 0;
+
+  int timestamp = -1;
+
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+  strcpy(sqlcmd,"select timestamp from ");
+  strcat(sqlcmd,SQLITE_DB_TB1NAME);
+  strcat(sqlcmd," where nodename='");
+  strcat(sqlcmd,nodename);
+  strcat(sqlcmd,"'");
+ 
+  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) 
+  {
+    fprintf(stderr, "SQL error : %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+
+  return(timestamp);
+
+}
 
 char *
 recvall(int sock)
@@ -61,9 +206,34 @@ recvall(int sock)
   return buffer;
 }
 
+// To Handle any partial sends
+int 
+sendall(int s, char *buf, int total) 
+{
+  int sendbytes = 0;
+  int bytesleft = total;
+  int n = 0;
+
+  while( sendbytes < total) {
+        if( (n = send(s, buf+sendbytes, bytesleft, 0)) == -1) {
+          perror("send");
+          break;
+        }
+        sendbytes = sendbytes + n;
+        bytesleft = bytesleft + n;
+  }
+  return n==-1? -1: 0;
+}
+
 int
 send_json(int sock, json_object *jobj)
 {
+
+  time_t timer;
+  timer = time(NULL);
+
+  struct utsname unameinfo;
+  uname(&unameinfo);
 
   char *buffer= malloc(sizeof(char)*MAXPKTSIZE);
 
@@ -87,6 +257,8 @@ send_json(int sock, json_object *jobj)
         appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
 
         app_h->len = json_len;
+	app_h->timestamp = timer;
+        strcpy(app_h->nodename,unameinfo.nodename);
 
         bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
         strncpy(app_d->payload,json_str,bytestocopy);
@@ -107,37 +279,6 @@ send_json(int sock, json_object *jobj)
     }
   free(json_str);
   return json_len;
-}
-
-// To Handle any partial sends
-int 
-sendall(int s, char *buf, int total) 
-{
-  int sendbytes = 0;
-  int bytesleft = total;
-  int n = 0;
-
-  while( sendbytes < total) {
-        if( (n = send(s, buf+sendbytes, bytesleft, 0)) == -1) {
-          perror("send");
-          break;
-        }
-        sendbytes = sendbytes + n;
-        bytesleft = bytesleft + n;
-  }
-  return n==-1? -1: 0;
-}
-
-static
-int
-nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
-{
-  int i;
-  for(i=0; i<argc; i++){
-    printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-  }
-  //printf("\n");
-  return 0;
 }
 
 void
@@ -362,4 +503,35 @@ setup_ConnectSocket(char *hostname, int port) {
   }
 
   return(sock);
+}
+
+int 
+createTable(sqlite3 *db, char *tName) {
+
+  //printf("Table Name - %s\n",tName);
+
+  int rc;
+  char *eMsg = 0;
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+  strcpy(sqlcmd, "create table if not exists ");
+  strcat(sqlcmd, tName);
+ 
+  if( strcmp(tName,SQLITE_DB_TB1NAME) == 0 ) {
+	strcat(sqlcmd, " (nodename, timestamp, jsonblob, primary key(nodename))");
+  } else if(strcmp(tName,"lookups") == 0) {
+	strcat(sqlcmd, " (blobid, key, value, primary key(blobid, key))");
+  } else {
+        printf("createTable : Error - Unsupported table name \n");
+        free(sqlcmd);
+        return(1);
+  }
+  //printf("SQL cmd : %s\n",sqlcmd);
+
+  if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &eMsg) != SQLITE_OK )) {
+        fprintf(stderr, "SQL error: %s\n", eMsg);
+        sqlite3_free(eMsg);
+  }
+  free(sqlcmd);
+
+  return(0);
 }

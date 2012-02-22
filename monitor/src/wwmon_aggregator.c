@@ -10,29 +10,7 @@
  *
  */
 
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-
 #include "util.c"
-
-char local_sysname[MAX_NODENAME_LEN];
-fd_set rfds, wfds;
-
-//Global structure array with values of each socket
-sockdata sock_data[FD_SETSIZE];
-//Global Database to hold data of each socket
-static sqlite3 *db; // database pointer
 
 int
 json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
@@ -72,99 +50,26 @@ json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
   return 0;
 }
 
-int
-tablecheck(int *tableexists, int Col_Count, char **values, char **Col_Name)
-{
-/*   if(strcmp(values[Col_Count],"1")) {
-     *tableexists = 1;
-   }
-*/
-
-   *tableexists = (int )values[Col_Count];
-   return 0;
-}
-
 void
-update_dbase(json_object *jobj, sqlite3 *db)
+update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
 {
-
-  char NodeName[MAX_NODENAME_LEN];
-  int TimeStamp;
-
-  TimeStamp = get_int_from_json(jobj,"TIMESTAMP");
-  get_string_from_json(jobj,"NODENAME",NodeName);
-
   //printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
 
-  int rc;
-  char *emsg = 0;
+  // Now check if the NodeName exists in the table 
+  // If so compare the timestamp values and decide what to do.
 
-  // Adding the JSON blob to sqlite table
-  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-  strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
-  strcat(sqlite_cmd, " VALUES('");
-  strcat(sqlite_cmd, NodeName);
-  strcat(sqlite_cmd, "','JSON','");
-  strcat(sqlite_cmd, json_object_to_json_string(jobj));
-  strcat(sqlite_cmd, "' )");
+  int DBTimeStamp = -1;
+  if ( (DBTimeStamp = NodeTS_fromDB(NodeName)) < TimeStamp )
+  {
 
-  //printf("CMD - %s\n",sqlite_cmd);
-
-  rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-  if( rc!=SQLITE_OK ){
-    fprintf(stderr, "SQL error: %s\n", emsg);
-    sqlite3_free(emsg);
+    insert_json(DBTimeStamp, NodeName, TimeStamp, jobj);
+ 
+    // TODO : Change code to obtain the correct blobid
+    int blobid = 100;
+    fillLookups(blobid, jobj);
+  } else {
+    printf("DB has more current record - %d... Skipping update\n",DBTimeStamp);
   }
-
-  free(sqlite_cmd);
-
-  // Adding each key value from the JSON blob to sqlite table
-  enum json_type type;
-  json_object_object_foreach(jobj, key, value){
-
-   if(strcmp(key,"NODENAME")!=0) {
-
-    char *values = malloc(MAX_SQL_SIZE);
-
-    strcpy(values, " VALUES('");
-    strcat(values,NodeName);
-    strcat(values,"','");
-    strcat(values,key);
-    strcat(values,"',");
-
-    // Clean the int logic
-    char *vals = malloc(MAX_SQL_SIZE);
-    type = json_object_get_type(value);
-    switch(type) {
-        case json_type_int:
-                sprintf(vals, "%d",json_object_get_int(value));
-                strcat(values,vals);
-                break;
-        case json_type_string:
-                strcat(values, "'");
-                strcat(values, json_object_get_string(value));
-                strcat(values, "'");
-                break;
-    }
-    free(vals);
-    strcat(values, " )");
-    char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-
-    strcpy(sqlite_cmd, "INSERT OR REPLACE INTO WWSTATS(NodeName, key, value) ");
-    strcat(sqlite_cmd, values);
-    free(values);
-    
-    //printf("SQL CMD - %s\n",sqlite_cmd);
-    rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
-      sqlite3_free(emsg);
-    }
-    free(sqlite_cmd);
-
-  } // end if
- } // end json_foreach
-
 }
 
 void
@@ -319,8 +224,9 @@ readHandler(int fd)
    } else if(sock_data[fd].ctype == COLLECTOR) {
 
       //printf("%s\n",sock_data[fd].accural_buf);
+      apphdr *app_h = (apphdr *) rbuf;
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
-      update_dbase(jobj, db);
+      update_dbase(app_h->timestamp,app_h->nodename,jobj);
       json_object_put(jobj);
 
    } else if(sock_data[fd].ctype == APPLICATION) {
@@ -328,7 +234,7 @@ readHandler(int fd)
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       sock_data[fd].sqlite_cmd = malloc(MAX_SQL_SIZE); 
       strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
-      // TODO : Somehow validate the SQL command that is obtained and avoid the bad commands
+      // TODO : validate the SQL command that is obtained and avoid the bad commands
    } 
 
   if(sock_data[fd].accural_buf != NULL){
@@ -387,7 +293,6 @@ setupSockets(int port,int *stcp,int *sudp)
     return -1;
   }
 
-  gethostname(local_sysname,sizeof(local_sysname));
   return(0);
 }
 
@@ -428,7 +333,6 @@ main(int argc, char *argv[])
   int sudp = -1;
 	
   int rc = -1;
-  char *emsg = 0;
 
   if(argc != 2) {
     fprintf(stderr, "Usage: %s [port]\n", argv[0]);
@@ -444,35 +348,9 @@ main(int argc, char *argv[])
     sqlite3_close(db);
     exit(1);
   } else {
-  // Now check if the table exists
-    int tableexists = 0;
-
-    char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-    strcpy(sqlite_cmd, "select count(*) from sqlite_master where type='table' and name='");
-    strcat(sqlite_cmd, SQLITE_DB_TBNAME);
-    strcat(sqlite_cmd, "'");
-    //printf("CMD - %s\n",sqlite_cmd);
- 
-    rc = sqlite3_exec(db, sqlite_cmd, tablecheck, &tableexists, &emsg);
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
-      sqlite3_free(emsg);
-    }
-    free(sqlite_cmd);
-
-    if( tableexists == 0){
-      // If not create table
-      char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-      strcpy(sqlite_cmd, "create table WWSTATS(NodeName, key, value, primary key(NodeName, key))");
-      printf("CMD - %s\n",sqlite_cmd);
-
-      rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-      if( rc!=SQLITE_OK ){
-        fprintf(stderr, "SQL error: %s\n", emsg);
-        sqlite3_free(emsg);
-      }
-      free(sqlite_cmd);
-    }
+  // Now check & create tables if required 
+    createTable(db,SQLITE_DB_TB1NAME);
+    createTable(db,SQLITE_DB_TB2NAME);
     printf("Database ready for reading and writing...\n");
   }
 

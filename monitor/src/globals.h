@@ -10,6 +10,26 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <time.h>
+#include <ctype.h>
+#include <json/json.h>
+#include <sqlite3.h>
+
+#include <sys/utsname.h>
+
 #define MAXPKTSIZE 10024   // PKTSIZE Should be DATASIZE + sizeof(apphdr);
 #define MAXDATASIZE 10020
 
@@ -18,7 +38,8 @@
 #define MAX_SQL_SIZE 1024
 
 #define SQLITE_DB_FNAME "wwmon.db"
-#define SQLITE_DB_TBNAME "WWSTATS"
+#define SQLITE_DB_TB1NAME "datastore"
+#define SQLITE_DB_TB2NAME "lookups"
 
 #define UNKNOWN 0
 #define COLLECTOR 1
@@ -43,6 +64,8 @@ typedef struct private_info_of_any_socket {
 typedef struct application_hdr {
 
 	int 	len; //To record the actual size of the payload
+        time_t 	timestamp;
+	char    nodename[MAX_NODENAME_LEN];
 
 } apphdr;
 
@@ -61,4 +84,11 @@ typedef struct application_data {
 #define STATEID5    4
 #define STATEID6    5
 #define STATEID7    6
+
+//Global structure array with values of each socket
+sockdata sock_data[FD_SETSIZE];
+//Global Database to hold data of each socket
+static sqlite3 *db; // database pointer
+
+fd_set rfds, wfds;
 
