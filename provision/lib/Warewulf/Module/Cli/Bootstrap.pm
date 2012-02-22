@@ -220,6 +220,7 @@ exec()
                                 $name = $opt_name;
                             } else {
                                 $name = basename($path);
+                                $name =~ s/\.wwbs$//;
                             }
                             $objSet = $db->get_objects("bootstrap", $opt_lookup, $name);
 
@@ -259,32 +260,34 @@ exec()
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
             if ($command eq "delete") {
                 my $object_count = $objSet->count();
-                if ($term->interactive()) {
-                    print "Are you sure you want to delete $object_count files(s):\n\n";
-                    foreach my $o ($objSet->get_list()) {
-                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                if ($object_count > 0) {
+                    if ($term->interactive()) {
+                        print "Are you sure you want to delete $object_count bootstrap(s):\n\n";
+                        foreach my $o ($objSet->get_list()) {
+                            printf("     DEL: %-20s = %s\n", "BOOTSTRAP", $o->name());
+                        }
+                        print "\n";
+                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                        if ($yesno ne "y" and $yesno ne "yes") {
+                            &nprint("No update performed\n");
+                            return();
+                        }
                     }
-                    print "\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes") {
-                        &nprint("No update performed\n");
-                        return();
-                    }
+                    $db->del_object($objSet);
+                } else {
+                    &nprint("No bootstrap images found\n");
                 }
-                foreach my $o ($objSet->get_list()) {
-                    $o->delete_local_bootstrap();
-                }
-                $db->del_object($objSet);
             } elsif ($command eq "list" or $command eq "print") {
-                &nprint("VNFS NAME                 SIZE (K)\n");
+                &nprint("VNFS NAME                 SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
                     printf("%-25s %-8.1f\n",
                         $obj->name() || "UNDEF",
-                        $obj->size() ? $obj->size()/1024 : "0"
+                        $obj->size() ? $obj->size()/(1024*1024) : "0"
                     );
                 }
             } elsif ($command eq "rebuild" or $command eq "build") {
                 foreach my $o ($objSet->get_list()) {
+                    &dprint("Calling build_local_bootstrap()\n");
                     $o->build_local_bootstrap();
                 }
             } else {

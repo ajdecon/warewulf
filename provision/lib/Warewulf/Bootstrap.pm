@@ -228,11 +228,13 @@ Remove a bootable bootstrap image from the local file system.
 sub
 delete_local_bootstrap()
 {
-    my ($self, $bootstrapObj) = @_;
+    my ($self) = @_;
 
-    if ($bootstrapObj) {
-        my $bootstrap_name = $bootstrapObj->get("name");
-        my $bootstrap_id = $bootstrapObj->get("_id");
+    if ($self) {
+        my $bootstrap_name = $self->get("name") || "UNDEF";
+        my $bootstrap_id = $self->get("_id");
+
+        &dprint("Going to delete bootstrap: $bootstrap_name\n");
 
         if ($bootstrap_id =~ /^([0-9]+)$/) {
             my $id = $1;
@@ -241,36 +243,38 @@ delete_local_bootstrap()
 
             &nprint("Deleting local bootable bootstrap files: $bootstrap_name\n");
 
-            if (-f "$bootstrapdir/initfs") {
-                if (unlink("$bootstrapdir/initfs")) {
-                    &iprint("Removed file: $bootstrapdir/initfs\n");
+            if (-f "$bootstrapdir/initfs.gz") {
+                if (unlink("$bootstrapdir/initfs.gz")) {
+                    &dprint("Removed file: $bootstrapdir/initfs.gz\n");
                 } else {
-                    &eprint("Could not remove file: $bootstrapdir/initfs\n");
+                    &eprint("Could not remove file: $bootstrapdir/initfs.gz\n");
                 }
             }
             if (-f "$bootstrapdir/kernel") {
                 if (unlink("$bootstrapdir/kernel")) {
-                    &iprint("Removed file: $bootstrapdir/kernel\n");
+                    &dprint("Removed file: $bootstrapdir/kernel\n");
                 } else {
                     &eprint("Could not remove file: $bootstrapdir/kernel\n");
                 }
             }
             if (-f "$bootstrapdir/cookie") {
                 if (unlink("$bootstrapdir/cookie")) {
-                    &iprint("Removed file: $bootstrapdir/cookie\n");
+                    &dprint("Removed file: $bootstrapdir/cookie\n");
                 } else {
                     &eprint("Could not remove file: $bootstrapdir/cookie\n");
                 }
             }
             if (-d "$bootstrapdir") {
-                if (unlink("$bootstrapdir")) {
-                    &iprint("Removed directory: $bootstrapdir\n");
+                if (rmdir("$bootstrapdir")) {
+                    &dprint("Removed directory: $bootstrapdir\n");
                 } else {
                     &eprint("Could not remove directory: $bootstrapdir\n");
                 }
             }
 
         }
+    } else {
+        &dprint("delete_local_bootstrap() called without an object!\n");
     }
 }
 
@@ -297,6 +301,14 @@ build_local_bootstrap()
             &dprint("Skipping build_bootstrap() as the name is undefined\n");
             return();
         }
+
+        if (! $self->checksum()) {
+            &dprint("build_local_bootstrap() returning with nothing to do.\n");
+            return();
+        }
+
+# TODO: Integration of capabilities should be done when a bootstrap image is
+# first imported.
 
         if ($bootstrap_id =~ /^([0-9]+)$/) {
             my $id = $1;
@@ -325,12 +337,15 @@ build_local_bootstrap()
             mkpath($bootstrapdir);
             chdir($tmpdir);
 
+            &dprint("Opening gunzip/cpio pipe\n");
             open(CPIO, "| gunzip | cpio -id --quiet");
             while(my $buffer = $binstore->get_chunk()) {
+                &dprint("Chunking into gunzip/cpio pipe\n");
                 print CPIO $buffer;
             }
             close CPIO;
 
+            &dprint("Including capabiltiies into bootstrap\n");
             foreach my $path (glob($initramfsdir . "/capabilities/*")) {
                 if ($path =~ /^([a-zA-Z0-9\.\_\-\/]+)$/) {
                     my $file = $1;

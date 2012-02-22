@@ -24,7 +24,16 @@ build_bootstrap()
     }
 }
 
+sub
+delete_bootstrap()
+{
+    foreach my $obj (@_) {
+        $obj->delete_local_bootstrap();
+    }
+}
+
 $event->register("bootstrap.add", \&build_bootstrap);
+$event->register("bootstrap.delete", \&delete_bootstrap);
 $event->register("bootstrap.modify", \&build_bootstrap);
 
 

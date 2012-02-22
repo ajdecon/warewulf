@@ -497,17 +497,14 @@ exec()
         }
 
     } elsif ($command eq "list") {
-        &nprintf("%-19s %-15s %-21s %-21s\n", "NAME(.CLUSTER)", "VNFS", "BOOTSTRAP", "FILES");
+        &nprintf("%-19s %-15s %-21s %-21s\n", "NODE", "VNFS", "BOOTSTRAP", "FILES");
         &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
             my $fileObjSet;
             my @files;
-            my $name = $o->get("name") || "UNDEF";
+            my $name = $o->name() || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-                $name .= ".$cluster";
-            }
             if (my @fileids = $o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", @fileids);
             }

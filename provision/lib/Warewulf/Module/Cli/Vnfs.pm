@@ -222,6 +222,7 @@ exec()
                                 $name = $opt_name;
                             } else {
                                 $name = basename($path);
+                                $name =~ s/\.vnfs$//;
                             }
                             $objSet = $db->get_objects("vnfs", $opt_lookup, $name);
 
@@ -260,19 +261,23 @@ exec()
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
             if ($command eq "delete") {
                 my $object_count = $objSet->count();
-                if ($term->interactive()) {
-                    print "Are you sure you want to delete $object_count files(s):\n\n";
-                    foreach my $o ($objSet->get_list()) {
-                        printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                if ($object_count > 0) {
+                    if ($term->interactive()) {
+                        print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
+                        foreach my $o ($objSet->get_list()) {
+                            printf("     DEL: %-20s = %s\n", "VNFS", $o->name());
+                        }
+                        print "\n";
+                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                        if ($yesno ne "y" and $yesno ne "yes") {
+                            &nprint("No update performed\n");
+                            return();
+                        }
                     }
-                    print "\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes") {
-                        &nprint("No update performed\n");
-                        return();
-                    }
+                    $db->del_object($objSet);
+                } else {
+                    &nprint("No VNFS images found\n");
                 }
-                $db->del_object($objSet);
             } elsif ($command eq "list" or $command eq "print") {
                 &nprint("VNFS NAME                 SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
