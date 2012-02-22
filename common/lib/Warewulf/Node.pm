@@ -106,19 +106,23 @@ otherwise a scalar is return of the most descriptive form.
 sub
 name()
 {
-    my ($self, $nodename, $clustername, $domainname) = @_;
+    my $self = shift;
+    my @names;
 
-    if ($nodename) {
-        $self->nodename($nodename);
+    if (scalar(@_)) {
+        $self->nodename($_[0]);
+        shift(@_);
     }
-    if ($clustername) {
-        $self->cluster($clustername);
+    if (scalar(@_)) {
+        $self->cluster($_[0]);
+        shift(@_);
     }
-    if ($domainname) {
-        $self->domain($domainname);
+    if (scalar(@_)) {
+        $self->domain($_[0]);
+        shift(@_);
     }
 
-    my @names = $self->get("name");
+    @names = $self->get("name");
 
     return(wantarray ? @names : pop(@names));
 }
@@ -593,13 +597,14 @@ genname() {
 
     if (defined($nodename)) {
         push(@names, $nodename);
+        if (! defined($clustername) and defined($domainname)) {
+            push(@names, $nodename .".". $domainname);
+        }
         if (defined($clustername)) {
             push(@names, $nodename .".". $clustername);
         }
         if (defined($clustername) and defined($domainname)) {
             push(@names, $nodename .".". $clustername .".". $domainname);
-        } elsif (defined($domainname)) {
-            push(@names, $nodename .".". $domainname);
         }
     }
 
