@@ -49,6 +49,7 @@ AC_OUTPUT(Makefile
    warewulf-monitor.spec
    src/Makefile
    bin/Makefile
+   etc/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )

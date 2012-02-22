@@ -36,7 +36,6 @@ if($ARG_help){
 }
 
 my $monitor = Warewulf::Monitor->new();
-#$monitor->set_query("NODENAME='ksong.lbl.gov'");
 my $nodeSet = $monitor->query_data();
 
 if($ARG_summary){
@@ -46,13 +45,9 @@ if($ARG_summary){
     print_all();
 }
 
-$monitor->destroy_socket();
-
 sub print_summary {
-    print "print_summary\n";
 
     my $ts=time();
-#    foreach my $node ( keys %datahash )
     foreach my $node ( $nodeSet->get_list()) {
 	my $lastcontact=$ts-$node->get("timestamp");
 	$node->set("lastcontact",$lastcontact);
@@ -97,7 +92,6 @@ sub print_summary {
 
 sub print_all {
     print_summary();
-    print "print_the rest data\n";
 
     print " Node      Cluster        CPU       Memory (MB)      Swap (MB)      Current\n";
     print " Name       Name       [util/num] [% used/total]   [% used/total]   Status\n";

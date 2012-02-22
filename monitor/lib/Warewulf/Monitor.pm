@@ -11,6 +11,7 @@ package Warewulf::Monitor;
 use Warewulf::Object;
 use Warewulf::ObjectSet;
 use Warewulf::Logger;
+use Warewulf::Config;
 use JSON::XS;
 use IO::Socket;
 
@@ -31,7 +32,7 @@ Blah blah blah
     use Warewulf::Monitor;
 
     my $monitor = Warewulf::Monitor->new();
-    $monitor->set_query("NODENAME='ksong.lbl.gov'");
+    $monitor->set_query("NODENAME='localhost.localdomain'");
     my $ObjectSet = $monitor->query_data();
 
     foreach my $node_object ( $ObjectSet->get_list()) {
@@ -77,7 +78,7 @@ new($$)
 sub init()
 {
     my ($self, @args) = @_;
-    $self->master('localhost',9000);
+    $self->set_masters();
 
     return $self;
 }
@@ -93,45 +94,66 @@ my $query = sub
     my $json = JSON::XS->new();
     my $ObjectSet = Warewulf::ObjectSet->new();
     my $data;
-    my $sock;
+    my %nodeHash=();
+    my @socks;
+    my @masters;
+    @masters=$self->get("masters");
 
     # Build Socket conditionally if ! exists
-    if (! $self->get("socket")) {
+    if (! $self->get("sockets")) {
+
 	# Make socket connection
-	my ($host,$port) = $self->master();
-	my $socket = IO::Socket::INET->new(PeerAddr => $host,
-					   PeerPort => $port,
-					   Proto => 'tcp');
-	unless ( $socket ) {
-	    print "Could not connect to $host:$port!\n";
+	for (my $i = 0; $i < @masters; $i++) {
+	    my ($master,$port)=split(/:/, $masters[$i]);
+	    my $socket = IO::Socket::INET->new(PeerAddr => $master,
+					       PeerPort => $port,
+					       Proto => 'tcp');
+	    unless ( $socket ) {
+		print "Could not connect to $host:$port!\n";
+	    }
+#	    $socks[$i]=$socket;
+	    push(@socks,$socket);
+	    #regist connection type for this socket 
+	    register_conntype ($socket,$APPLICATION);
+	    my $register_data=recv_all($socket);
 	}
 
-	$self->set("socket", $socket);
-	#regist connection type for this socket 
-	register_conntype ($socket,$APPLICATION);
-	my $register_data=recv_all($socket);
+	$self->set("sockets", \@socks);
+
     }
-    $sock=$self->get("socket");
+    @socks=$self->get("sockets");
 
     #send raw query as json packet
-    send_query($sock,$query);
-    my $data=recv_all($sock);
+    foreach my $sock (@socks){
+	send_query($sock,$query);
+	my $data=recv_all($sock);
 
-    #decode json packet and restore it in the object set data structure
-    my %decoded_json = %{decode_json($data)};
-    foreach my $node (keys %decoded_json) {
-	my $tmpObject = Warewulf::Object->new();
-	$tmpObject->set("name",$node);
-	foreach my $entry (keys %{$decoded_json{$node}}) {
-	    $tmpObject->set($entry, $decoded_json{"$node"}{"$entry"});
-	    &dprint("Set entry for node: $node ($entry....)\n");
+	#decode json packet and restore it in the object set data structure
+	my %decoded_json = %{decode_json($data)};
+
+	foreach my $node (keys %decoded_json) {
+	    if($nodeHash{$node}){
+		if($decoded_json{"$node"}{"TIMESTAMP"}>$nodeHash{"$node"}){
+		    ObjectSet->del("name",$node);
+		}else{
+		    next;
+		}
+	    }
+	    
+	    my $tmpObject = Warewulf::Object->new();
+	    $tmpObject->set("name",$node);
+	    foreach my $entry (keys %{$decoded_json{$node}}) {
+		$tmpObject->set($entry, $decoded_json{"$node"}{"$entry"});
+		&dprint("Set entry for node: $node ($entry....)\n");
+	    }
+	    $nodeHash{$node}=$decoded_json{"$node"}{"TIMESTAMP"};
+	    $ObjectSet->add($tmpObject);
 	}
-	$ObjectSet->add($tmpObject);
-    }
-    if (! $self->persist_socket()) {
-	# tear down socket
-	print "socket distroyed.\n";
-	close($sock);
+	
+	if (! $self->persist_socket()) {
+	    # tear down socket
+	    close($sock);
+	}
     }
     return $ObjectSet;
 };
@@ -151,36 +173,21 @@ sub persist_socket()
     return $self->get("persist_socket");
 }
 
-sub
-    destroy_socket()
+##
+# set monitor master host and port from config file
+# if no config file is found, use localhost:9000
+##
+sub set_masters()
 {
     my ($self) = @_;
-    if ( ! $self->get("socket")) {
-	print "socket is not defined for $self\n";
-
-    }else{
-	# destroy socket connection
-	close($self->get("socket"));
+    my $conf = Warewulf::Config->new("monitor.conf");
+    
+    my @masters=$conf->get("masters");
+    if (! @masters){
+	push(@masters,"localhost:9000");
     }
-}
-	
-##
-# set monitor master host and port
-# if calling without arguement, it will return the current
-# master host and port
-##
-sub master()
-{
-    my ($self, $remotehost, $port) = @_;
-
-    if ($remotehost) {
-	$self->set("remotehost", $remotehost);
-    }
-    if ($port) {
-	$self->set("port", $port);
-    }
-
-    return ($self->get("remotehost"),$self->get("port"));
+    
+    $self->set("masters", \@masters);
 }
 
 ##
@@ -247,6 +254,9 @@ sub
     # will send post to monitor
 
 }
+
+
+#my $obj = Warewulf::Config->new("/home/kaisong/repo/svn-repo/warewulf/trunk/monitor/lib/Warewulf/monitor.conf");
 
 
 
