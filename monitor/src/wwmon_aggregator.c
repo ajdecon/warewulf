@@ -59,15 +59,19 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
   // If so compare the timestamp values and decide what to do.
 
   int DBTimeStamp = -1;
-  if ( (DBTimeStamp = NodeTS_fromDB(NodeName)) < TimeStamp )
-  {
+  if ( (DBTimeStamp = NodeTS_fromDB(NodeName)) == -1 ) {
+    insert_json(NodeName, TimeStamp, jobj);
+    int blobid = -1;
+    blobid = NodeBID_fromDB(NodeName);
+    insertLookups(blobid, jobj);
 
-    insert_json(DBTimeStamp, NodeName, TimeStamp, jobj);
- 
-    // TODO : Change code to obtain the correct blobid
-    int blobid = 100;
-    fillLookups(blobid, jobj);
-  } else {
+  } else if ( DBTimeStamp < TimeStamp ) {
+    update_json(NodeName, TimeStamp, jobj);
+    int blobid = -1;
+    blobid = NodeBID_fromDB(NodeName);
+    updateLookups(blobid, jobj);
+
+  } else if (DBTimeStamp > TimeStamp ) {
     printf("DB has more current record - %d... Skipping update\n",DBTimeStamp);
   }
 }

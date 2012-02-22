@@ -37,6 +37,103 @@ getint_callback(void *void_int, int argc, char **argv, char **azColName)
 }
 
 void
+insertLookups(int blobid, json_object *jobj) 
+{
+
+  //Can we assume 64 bits for rowid ?
+  char blobID[65];
+  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+  enum json_type type;
+
+  json_object_object_foreach(jobj, key, value){
+   strcpy(sqlite_cmd, "insert into lookups(blobid, key, value) values ('");
+   sprintf(blobID,"%d",blobid);
+   strcat(sqlite_cmd, blobID);
+   strcat(sqlite_cmd, "','");
+
+   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
+
+   	strcat(sqlite_cmd,key);
+	strcat(sqlite_cmd, "','");
+
+    	// Clean the int logic
+        // Can we assume 64 bits for all ints ?
+    	char vals[65];
+    	type = json_object_get_type(value);
+    	switch(type) {
+        	case json_type_int:
+                	sprintf(vals, "%d",json_object_get_int(value));
+                	strcat(sqlite_cmd,vals);
+                	break;
+        	case json_type_string:
+                	strcat(sqlite_cmd, json_object_get_string(value));
+                	break;
+    	}
+    	strcat(sqlite_cmd, "')");
+
+    //printf("IL SQL CMD - %s\n",sqlite_cmd);
+    char *emsg = 0;
+    int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
+    }
+
+    } // end if
+   } // end json_foreach
+
+   free(sqlite_cmd);
+}
+
+void
+updateLookups(int blobid, json_object *jobj) 
+{
+
+  //Can we assume 64 bits for rowid ?
+  char blobID[65];
+  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+  enum json_type type;
+
+  json_object_object_foreach(jobj, key, value){
+    strcpy(sqlite_cmd, "update lookups set value='");
+
+    if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
+      // Clean the int logic
+      // Can we assume 64 bits for all ints ?
+      char vals[65];
+      type = json_object_get_type(value);
+    	switch(type) {
+        	case json_type_int:
+                	sprintf(vals, "%d",json_object_get_int(value));
+                	strcat(sqlite_cmd,vals);
+                	break;
+        	case json_type_string:
+                	strcat(sqlite_cmd, json_object_get_string(value));
+                	break;
+
+    	}
+      strcat(sqlite_cmd, "' where key='");
+      strcat(sqlite_cmd,key);
+      strcat(sqlite_cmd, "' and blobid='");
+      sprintf(blobID,"%d",blobid);
+      strcat(sqlite_cmd, blobID);
+      strcat(sqlite_cmd, "'");
+
+      //printf("UL SQL CMD - %s\n",sqlite_cmd);
+      char *emsg = 0;
+      int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+      if( rc!=SQLITE_OK ){
+        fprintf(stderr, "SQL error: %s\n", emsg);
+        sqlite3_free(emsg);
+      }
+
+     } // end if
+   } // end json_foreach
+
+   free(sqlite_cmd);
+}
+
+void
 fillLookups(int blobid, json_object *jobj) 
 {
 
@@ -87,7 +184,65 @@ fillLookups(int blobid, json_object *jobj)
 }
 
 void
-insert_json(int dbts, char *nodename, time_t timestamp, json_object *jobj)
+insert_json(char *nodename, time_t timestamp, json_object *jobj)
+{
+
+  char TimeStamp[11];
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+
+  strcpy(sqlcmd,"insert into ");
+  strcat(sqlcmd,SQLITE_DB_TB1NAME);
+  strcat(sqlcmd,"(jsonblob, timestamp, nodename) values('");
+  strcat(sqlcmd,json_object_to_json_string(jobj));
+  strcat(sqlcmd,"','");
+  sprintf(TimeStamp,"%d",timestamp);
+  strcat(sqlcmd,TimeStamp);
+  strcat(sqlcmd,"','");
+  strcat(sqlcmd,nodename);
+  strcat(sqlcmd,"')");
+
+  printf("IJ CMD - %s\n",sqlcmd);
+  int rc; char *emsg = 0;
+  if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
+    fprintf(stderr, "SQL error: %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+
+  return;
+}
+
+void
+update_json(char *nodename, time_t timestamp, json_object *jobj)
+{
+  char TimeStamp[11];
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+
+  strcpy(sqlcmd,"update ");
+  strcat(sqlcmd,SQLITE_DB_TB1NAME);
+  strcat(sqlcmd," set jsonblob='");
+  strcat(sqlcmd,json_object_to_json_string(jobj));
+  strcat(sqlcmd,"', ");
+  strcat(sqlcmd,"timestamp='");
+  sprintf(TimeStamp,"%d",timestamp);
+  strcat(sqlcmd,TimeStamp);
+  strcat(sqlcmd,"' where nodename='");
+  strcat(sqlcmd,nodename);
+  strcat(sqlcmd,"'");
+
+  printf("CMD - %s\n",sqlcmd);
+  int rc; char *emsg = 0;
+  if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
+    fprintf(stderr, "SQL error: %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+
+  return;
+}
+
+void
+insert_update_json(int dbts, char *nodename, time_t timestamp, json_object *jobj)
 {
   char TimeStamp[11];
   char *sqlcmd = malloc(MAX_SQL_SIZE);
@@ -140,6 +295,31 @@ insert_json(int dbts, char *nodename, time_t timestamp, json_object *jobj)
   return;
 }
 
+int 
+NodeBID_fromDB(char *nodename)
+{
+  int rc;
+  char *emsg = 0;
+
+  int blobid = -1;
+
+  char *sqlcmd = malloc(MAX_SQL_SIZE);
+  strcpy(sqlcmd,"select rowid from ");
+  strcat(sqlcmd,SQLITE_DB_TB1NAME);
+  strcat(sqlcmd," where nodename='");
+  strcat(sqlcmd,nodename);
+  strcat(sqlcmd,"'");
+ 
+  printf("BID CMD - %s\n",sqlcmd);
+  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &blobid , &emsg) != SQLITE_OK )) 
+  {
+    fprintf(stderr, "SQL error : %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+  return(blobid);
+}
+
 int
 NodeTS_fromDB(char *nodename)
 {
@@ -155,15 +335,14 @@ NodeTS_fromDB(char *nodename)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
  
+  printf("TS CMD - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) 
   {
     fprintf(stderr, "SQL error : %s\n", emsg);
     sqlite3_free(emsg);
   }
   free(sqlcmd);
-
   return(timestamp);
-
 }
 
 char *
@@ -518,7 +697,7 @@ createTable(sqlite3 *db, char *tName) {
  
   if( strcmp(tName,SQLITE_DB_TB1NAME) == 0 ) {
 	strcat(sqlcmd, " (nodename, timestamp, jsonblob, primary key(nodename))");
-  } else if(strcmp(tName,"lookups") == 0) {
+  } else if(strcmp(tName,SQLITE_DB_TB2NAME) == 0) {
 	strcat(sqlcmd, " (blobid, key, value, primary key(blobid, key))");
   } else {
         printf("createTable : Error - Unsupported table name \n");
