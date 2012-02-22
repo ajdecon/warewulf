@@ -145,7 +145,7 @@ complete()
     if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set" or $ARGV[1] eq "status")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "status");
+        @ret = ("list", "set", "status", "print");
     }
 
     @ARGV = ();
@@ -450,12 +450,9 @@ exec()
         foreach my $o ($objSet->get_list()) {
             my @files;
             my $fileObjSet;
-            my $name = $o->get("name") || "UNDEF";
+            my $name = $o->name() || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            if (my ($cluster) = $o->get("cluster")) {
-                $name .= ".$cluster";
-            }
             if ($o->get("fileids")) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
