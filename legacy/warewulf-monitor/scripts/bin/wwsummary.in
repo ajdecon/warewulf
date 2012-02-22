@@ -59,7 +59,7 @@ $usage = "USAGE: $0 [optional list hostnames]...
    -h, --help       Show this banner
 
   This tool is part of the Warewulf cluster distribution
-     http://warewulf-cluster.org/
+     http://warewulf.lbl.gov/
 ";
 
 

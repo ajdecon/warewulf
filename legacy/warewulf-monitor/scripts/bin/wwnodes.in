@@ -77,7 +77,7 @@ $usage = "USAGE: $0 [options] [hostname]
    -h, --help       Show this banner
 
   This tool is part of the Warewulf cluster distribution
-     http://warewulf-cluster.org/
+     http://warewulf.lbl.gov/
 ";
 
 GetOptions(

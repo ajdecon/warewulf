@@ -36,7 +36,7 @@ $usage = "USAGE: $0 [options] [hostname]
    MPIRUN           The mpirun command to use (default `which mpirun`)
   
   This tool is part of the Warewulf cluster distribution
-     http://warewulf-cluster.org/
+     http://warewulf.lbl.gov/
 ";
 
 GetOptions(

@@ -63,7 +63,7 @@ $usage = "USAGE: $0 [options]
    -h, --help       Show this banner
 
   This tool is part of the Warewulf cluster distribution
-     http://warewulf-cluster.org/
+     http://warewulf.lbl.gov/
 ";
 
 GetOptions(
@@ -111,7 +111,7 @@ foreach ( sort @filtered ) {
 $summary .= sprintf("%21s: %-10s\n", 'Total Nodes', $nodes_up + $nodes_down + $nodes_unavailable, "Warewulf");
 $summary .= sprintf("%21s: %-27s %s\n", 'Living', $nodes_up, "Warewulf");
 $summary .= sprintf("%21s: %-22s %s\n", 'Unavailable', $nodes_unavailable, "Cluster Statistics");
-$summary .= sprintf("%21s: %-17s %s\n", 'Disabled', $nodes_disabled, "http://warewulf-cluster.org/");
+$summary .= sprintf("%21s: %-17s %s\n", 'Disabled', $nodes_disabled, "http://warewulf.lbl.gov/");
 $summary .= sprintf("%21s: %-10s\n", 'Error', $nodes_error);
 $summary .= sprintf("%21s: %-10s\n", 'Dead', $nodes_down);
 

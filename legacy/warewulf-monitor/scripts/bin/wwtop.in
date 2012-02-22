@@ -132,7 +132,7 @@ $usage = "USAGE: $0 [options]
        multiple pages.
 
   This tool is part of the Warewulf cluster distribution
-     http://warewulf-cluster.org/
+     http://warewulf.lbl.gov/
 ";
 
 GetOptions(

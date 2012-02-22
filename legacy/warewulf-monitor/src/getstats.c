@@ -20,7 +20,7 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * Written By Greg Kurtzer <gmk@runlevelzero.net> originally for the Warewulf
- * Cluster toolkit project (http://warewulf-cluster.org/) and now for
+ * Cluster toolkit project (http://warewulf.lbl.gov/) and now for
  * Perceus (http://www.perceus.org/).
  *
  */
