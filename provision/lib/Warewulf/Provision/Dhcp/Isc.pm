@@ -227,7 +227,7 @@ persist()
 
         &dprint("Iterating through nodes\n");
         foreach my $n ($datastore->get_objects("node")->get_list()) {
-            my $nodename = $n->nodename();
+            my $nodename = $n->nodename() || "undef";
             &dprint("Evaluating node: $nodename\n");
             my @bootservers = $n->get("bootserver");
             if (! @bootservers or scalar(grep { $_ eq $ipaddr} @bootservers)) {
