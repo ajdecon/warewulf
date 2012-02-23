@@ -94,13 +94,6 @@ This may be depicated in favor of upstart in the future.
 sub chkconfig($$$) {
     my ($self, $service, $command) = @_;
 
-	if ( "$command" eq "on" ) {
-		$command = "start";
-	}
-	elsif ( "$command" eq "off" ) {
-		$command = "stop";
-	}
-
     if (-x "/usr/sbin/update-rc.d") {
         open(CHKCONFIG, "/usr/sbin/update-rc.d $service $command 2>&1|");
         while(<CHKCONFIG>) {
