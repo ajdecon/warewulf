@@ -18,34 +18,22 @@ json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
   int i;
   json_object *json_db = (json_object *) void_json;
 
-  int NodeName_idx, key_idx, value_idx, rowid_idx;
+  int nodename_idx = -1, jsonblob_idx = -1;
   // Find the indexes 
   for( i=0; i<ncolumns; i++ ) {
-    if(strcmp(col_names[i],"NodeName") == 0) NodeName_idx = i;
-    if(strcmp(col_names[i],"key") == 0) key_idx = i;
-    if(strcmp(col_names[i],"value") == 0) value_idx = i;
-    if(strcmp(col_names[i],"rowid") == 0) rowid_idx = i;
-  }
-  json_object *tmp;
-
-  // Read the json_db and see if there already is a key with NodeName
-  if(key_exists_in_json(json_db, col_values[NodeName_idx])) {
-     // If the key is already present, read the value which will be a JSON object       
-     tmp = json_object_object_get(json_db, col_values[NodeName_idx]);
-  } else {
-     // If the NodeName key is not present, make a tmp JSON obj
-     tmp = json_object_new_object();
-     // add key as NodeName and value as the above tmp JSON obj.
-     json_object_object_add(json_db, col_values[NodeName_idx], tmp);
+    if(strcmp(col_names[i],"nodename") == 0) nodename_idx = i;
+    if(strcmp(col_names[i],"jsonblob") == 0) jsonblob_idx = i;
   }
 
-  // add new key and new value to it.
-  json_object_object_add(tmp, col_values[key_idx], json_object_new_string(col_values[value_idx]));
-
-/*
-  if(key_exists_in_json(json_db, col_values[NodeName_idx]) == 0) {
+  if( nodename_idx < 0 ) {
+    // There are no nodes to be returned just return.
+    return 0;
   }
-*/
+
+  json_object_object_add(json_db, col_values[nodename_idx], json_object_new_string(col_values[jsonblob_idx]));
+  int json_ct = get_int_from_json(json_db, "JSON_CT");
+  json_ct++;
+  json_object_object_add(json_db,"JSON_CT",json_object_new_int(json_ct));
 
   return 0;
 }
@@ -129,9 +117,10 @@ writeHandler(int fd)
       json_object_object_add(jobj,"COMMAND",json_object_new_string(payload));
   } else if(sock_data[fd].ctype == APPLICATION) {
       if(sock_data[fd].sqlite_cmd != NULL){
-          //printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
+          printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
+          json_object_object_add(jobj,"JSON_CT",json_object_new_int(0));
           sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db, jobj, NULL);
-          // TODO : Check the sql command return values and if failure or no return send proper message to the App
+          //TODO : Check the sql command return values and if failure or no return send proper message to the App
           printf("JSON - %s\n",json_object_to_json_string(jobj));
   	  free(sock_data[fd].sqlite_cmd);
       } else {
@@ -237,8 +226,22 @@ readHandler(int fd)
 
       jobj = json_tokener_parse(sock_data[fd].accural_buf);
       sock_data[fd].sqlite_cmd = malloc(MAX_SQL_SIZE); 
-      strcpy(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
-      // TODO : validate the SQL command that is obtained and avoid the bad commands
+      strcpy(sock_data[fd].sqlite_cmd,"select nodename,jsonblob from ");
+      strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB1NAME);
+      strcat(sock_data[fd].sqlite_cmd," left join ");
+      strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB2NAME);
+      strcat(sock_data[fd].sqlite_cmd," on ");
+      strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB1NAME);
+      strcat(sock_data[fd].sqlite_cmd,".rowid = ");
+      strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB2NAME);
+      strcat(sock_data[fd].sqlite_cmd,".blobid where ");
+      int len = strlen(sock_data[fd].sqlite_cmd);
+      strcat(sock_data[fd].sqlite_cmd, json_object_get_string(json_object_object_get(jobj, "sqlite_cmd")));
+      if (len == strlen(sock_data[fd].sqlite_cmd)) {
+	//App sent an empty SQL command so we need to return all JSONs we have
+	strcpy(sock_data[fd].sqlite_cmd,"select nodename,jsonblob from ");
+	strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB1NAME);
+      }
    } 
 
   if(sock_data[fd].accural_buf != NULL){

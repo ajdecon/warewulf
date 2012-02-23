@@ -51,7 +51,7 @@ insertLookups(int blobid, json_object *jobj)
    strcat(sqlite_cmd, blobID);
    strcat(sqlite_cmd, "','");
 
-   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
+//   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
 
    	strcat(sqlite_cmd,key);
 	strcat(sqlite_cmd, "','");
@@ -79,7 +79,7 @@ insertLookups(int blobid, json_object *jobj)
       sqlite3_free(emsg);
     }
 
-    } // end if
+//    } // end if
    } // end json_foreach
 
    free(sqlite_cmd);
@@ -97,7 +97,7 @@ updateLookups(int blobid, json_object *jobj)
   json_object_object_foreach(jobj, key, value){
     strcpy(sqlite_cmd, "update lookups set value='");
 
-    if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
+//    if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
       // Clean the int logic
       // Can we assume 64 bits for all ints ?
       char vals[65];
@@ -110,7 +110,6 @@ updateLookups(int blobid, json_object *jobj)
         	case json_type_string:
                 	strcat(sqlite_cmd, json_object_get_string(value));
                 	break;
-
     	}
       strcat(sqlite_cmd, "' where key='");
       strcat(sqlite_cmd,key);
@@ -127,7 +126,7 @@ updateLookups(int blobid, json_object *jobj)
         sqlite3_free(emsg);
       }
 
-     } // end if
+//    } // end if
    } // end json_foreach
 
    free(sqlite_cmd);
@@ -201,7 +200,7 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"')");
 
-  printf("IJ CMD - %s\n",sqlcmd);
+  //printf("IJ CMD - %s\n",sqlcmd);
   int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
@@ -230,7 +229,7 @@ update_json(char *nodename, time_t timestamp, json_object *jobj)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
 
-  printf("CMD - %s\n",sqlcmd);
+  //printf("CMD - %s\n",sqlcmd);
   int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
@@ -310,7 +309,7 @@ NodeBID_fromDB(char *nodename)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
  
-  printf("BID CMD - %s\n",sqlcmd);
+  //printf("BID CMD - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &blobid , &emsg) != SQLITE_OK )) 
   {
     fprintf(stderr, "SQL error : %s\n", emsg);
@@ -335,7 +334,7 @@ NodeTS_fromDB(char *nodename)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
  
-  printf("TS CMD - %s\n",sqlcmd);
+  //printf("TS CMD - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) 
   {
     fprintf(stderr, "SQL error : %s\n", emsg);
