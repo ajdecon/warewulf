@@ -315,62 +315,95 @@ exec()
         if ($opt_netdev) {
             if ($opt_netdev =~ /^([a-z]+\d*)$/) {
                 $opt_netdev = $1;
-                if ($opt_devremove) {
-                    foreach my $o ($objSet->get_list()) {
-                        $o->netdel($opt_netdev);
-                        $persist_count++;
-                    }
-                    push(@changes, sprintf("     DEL: %-20s\n", $opt_netdev));
-                } else {
-                    if ($opt_hwaddr) {
-                        if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
-                            foreach my $o ($objSet->get_list()) {
-                                $o->hwaddr($opt_netdev, $1);
-                                $persist_count++;
-                            }
-                            push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
-                        } else {
-                            &eprint("Option 'hwaddr' has invalid characters\n");
-                        }
-                    }
-                    if ($opt_ipaddr) {
-                        if ($opt_ipaddr =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
-                            my $ip_serialized = Warewulf::Network->ip_serialize($1);
-                            foreach my $o ($objSet->get_list()) {
-                                $o->ipaddr($opt_netdev, Warewulf::Network->ip_unserialize($ip_serialized));
-                                $ip_serialized++;
-                                $persist_count++;
-                            }
-                            push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
-                        } else {
-                            &eprint("Option 'ipaddr' has invalid characters\n");
-                        }
-                    }
-                    if ($opt_netmask) {
-                        if ($opt_netmask =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
-                            foreach my $o ($objSet->get_list()) {
-                                $o->netmask($opt_netdev, $1);
-                                $persist_count++;
-                            }
-                            push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
-                        } else {
-                            &eprint("Option 'netmask' has invalid characters\n");
-                        }
-                    }
-                    if ($opt_fqdn) {
-                        if ($opt_fqdn =~ /^([a-zA-Z0-9\-_\.]+)$/) {
-                            foreach my $o ($objSet->get_list()) {
-                                $o->fqdn($opt_netdev, $opt_fqdn);
-                                $persist_count++;
-                            }
-                            push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
-                        } else {
-                            &eprint("Option 'fqdn' has invalid characters\n");
-                        }
-                    }
-                }
             } else {
                 &eprint("Option 'netdev' has invalid characters\n");
+                return;
+            }
+        }
+
+
+        if ($opt_devremove) {
+            foreach my $o ($objSet->get_list()) {
+                if (! $opt_netdev) {
+                    my @devs = $o->netdevs();
+                    if (scalar(@devs) == 1) {
+                        $opt_netdev = shift(@devs);
+                    }
+                }
+                $o->netdel($opt_netdev);
+                $persist_count++;
+            }
+            push(@changes, sprintf("     DEL: %-20s\n", $opt_netdev));
+        } else {
+            if ($opt_hwaddr) {
+                if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
+                    foreach my $o ($objSet->get_list()) {
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            }
+                        }
+                        $o->hwaddr($opt_netdev, $1);
+                        $persist_count++;
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
+                } else {
+                    &eprint("Option 'hwaddr' has invalid characters\n");
+                }
+            }
+            if ($opt_ipaddr) {
+                if ($opt_ipaddr =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    my $ip_serialized = Warewulf::Network->ip_serialize($1);
+                    foreach my $o ($objSet->get_list()) {
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            }
+                        }
+                        $o->ipaddr($opt_netdev, Warewulf::Network->ip_unserialize($ip_serialized));
+                        $ip_serialized++;
+                        $persist_count++;
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
+                } else {
+                    &eprint("Option 'ipaddr' has invalid characters\n");
+                }
+            }
+            if ($opt_netmask) {
+                if ($opt_netmask =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    foreach my $o ($objSet->get_list()) {
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            }
+                        }
+                        $o->netmask($opt_netdev, $1);
+                        $persist_count++;
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
+                } else {
+                    &eprint("Option 'netmask' has invalid characters\n");
+                }
+            }
+            if ($opt_fqdn) {
+                if ($opt_fqdn =~ /^([a-zA-Z0-9\-_\.]+)$/) {
+                    foreach my $o ($objSet->get_list()) {
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            }
+                        }
+                        $o->fqdn($opt_netdev, $opt_fqdn);
+                        $persist_count++;
+                    }
+                    push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
+                } else {
+                    &eprint("Option 'fqdn' has invalid characters\n");
+                }
             }
         }
 
