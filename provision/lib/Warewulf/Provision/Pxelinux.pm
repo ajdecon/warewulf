@@ -125,6 +125,7 @@ update()
     my $netobj = Warewulf::Network->new();
     my $db = Warewulf::DataStore->new();
 
+    &dprint("Updating PXE configuration files now\n");
 
     if (! $tftproot) {
         &dprint("Not updating Pxelinux because no TFTP root directory was found!\n");
@@ -137,92 +138,87 @@ update()
     }
 
     foreach my $nodeobj (@nodeobjs) {
-        my $nodename = $nodeobj->get("name") || "undefined";
+        my $nodename = $nodeobj->nodename() || "undefined";
         my $bootstrapid = $nodeobj->get("bootstrapid");
         my @kargs = $nodeobj->get("kargs");
         my @masters = $nodeobj->get("master");
         my $bootstrapname;
 
-        if (my $bootstrapid = $nodeobj->get("bootstrapid")) {
+        &dprint("Evaluating node $nodename\n");
+
+        if ($bootstrapid) {
             my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
             if ($bootstrapObj) {
                 $bootstrapname = $bootstrapObj->get("name");
             }
+        } else {
+            &dprint("No bootstrap defined for node $nodename, skipping...\n");
+            next;
         }
 
-        foreach my $netdev ($nodeobj->get("netdevs")) {
 
-            if (ref($netdev) eq "Warewulf::DSO::Netdev") {
-                my $device = $netdev->get("name");
-                my $hwaddr = $netdev->get("hwaddr") || undef;
-                my $ipv4_bin = $netdev->get("ipaddr") || undef;
-                my $netmsk = $netdev->get("netmask") || undef;
-                my $ipv4_addr;
+        foreach my $device ($nodeobj->netdevs()) {
+            my $hwaddr = $nodeobj->hwaddr($device);
+            my $ipv4_addr = $nodeobj->ipaddr($device);
+            my $netmask = $nodeobj->netmask($device);
 
-                if ($ipv4_bin) {
-                    $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
-                }
+            if (! $device) {
+                &iprint("Skipping unknown device name for: $nodename\n");
+                next;
+            }
 
-                if (! $device) {
-                    &iprint("Skipping unknown device name for: $nodename\n");
-                    next;
-                }
+            if (! $hwaddr) {
+                &iprint("Skipping $nodename-$device: No hwaddr defined\n");
+                next;
+            }
 
-                if (! $hwaddr) {
-                    &iprint("Skipping $nodename-$device: No hwaddr defined\n");
-                    next;
-                }
+            if (! $bootstrapid) {
+                &iprint("Skipping $nodename-$device-$hwaddr: No bootstrap defined\n");
+                next;
+            }
 
-                if (! $bootstrapid) {
-                    &iprint("Skipping $nodename-$device-$hwaddr: No bootstrap defined\n");
-                    next;
-                }
+            &dprint("Creating a pxelinux config for node '$nodename-$device/$hwaddr'\n");
 
-                &dprint("Creating a pxelinux config for node '$nodename-$device/$hwaddr'\n");
-
-                if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
-                    $hwaddr = $1;
-                    &iprint("Building Pxelinux configuration for: $nodename/$hwaddr\n");
-                    $hwaddr =~ s/:/-/g;
-                    my $config = "01-". $hwaddr;
-                    &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
-                    open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
-                    if ($nodeobj->get("bootlocal")) {
-                        print PXELINUX "DEFAULT bootlocal\n";
-                    } else {
-                        print PXELINUX "DEFAULT bootstrap\n";
-                    }
-                    print PXELINUX "LABEL bootlocal\n";
-                    print PXELINUX "KERNEL chain.c32\n";
-                    print PXELINUX "APPEND hd0\n";
-
-                    print PXELINUX "LABEL bootstrap\n";
-                    print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrapname\n";
-                    print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
-                    print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
-                    if (scalar(@masters) > 0) {
-                        my $master = join(",", @masters);
-                        print PXELINUX "wwmaster=$master ";
-                    }
-                    if (@kargs) {
-                        print PXELINUX join(" ", @kargs);
-                    } else {
-                        print PXELINUX "quiet ";
-                    }
-                    if ($device and $ipv4_addr and $netmsk) {
-                        print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmsk wwnetdev=$device ";
-                    } else {
-                        &dprint("Skipping static network definition because configuration not complete\n");
-                    }
-                    print PXELINUX "\n";
-                    if (! close PXELINUX) {
-                        &eprint("Could not write Pxelinux configuration file: $!\n");
-                    }
+            if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
+                $hwaddr = $1;
+                &iprint("Building Pxelinux configuration for: $nodename/$hwaddr\n");
+                $hwaddr =~ s/:/-/g;
+                my $config = "01-". $hwaddr;
+                &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
+                open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
+                if ($nodeobj->get("bootlocal")) {
+                    print PXELINUX "DEFAULT bootlocal\n";
                 } else {
-                    &eprint("Node: $nodename-$device: Bad characters in hwaddr: '$hwaddr'\n");
+                    print PXELINUX "DEFAULT bootstrap\n";
+                }
+                print PXELINUX "LABEL bootlocal\n";
+                print PXELINUX "KERNEL chain.c32\n";
+                print PXELINUX "APPEND hd0\n";
+
+                print PXELINUX "LABEL bootstrap\n";
+                print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrapname\n";
+                print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
+                print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
+                if (scalar(@masters) > 0) {
+                    my $master = join(",", @masters);
+                    print PXELINUX "wwmaster=$master ";
+                }
+                if (@kargs) {
+                    print PXELINUX join(" ", @kargs);
+                } else {
+                    print PXELINUX "quiet ";
+                }
+                if ($device and $ipv4_addr and $netmask) {
+                    print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmask wwnetdev=$device ";
+                } else {
+                    &dprint("Skipping static network definition because configuration not complete\n");
+                }
+                print PXELINUX "\n";
+                if (! close PXELINUX) {
+                    &eprint("Could not write Pxelinux configuration file: $!\n");
                 }
             } else {
-                &eprint("Node '$nodename' has an invalid netdevs entry!\n");
+                &eprint("Node: $nodename-$device: Bad characters in hwaddr: '$hwaddr'\n");
             }
         }
     }
