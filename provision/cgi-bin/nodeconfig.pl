@@ -33,9 +33,9 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         my $uc_key = uc($key);
         my $val;
         if (ref($nhash{"$key"}) eq "ARRAY") {
-            #print "$uc_key=\"'". join("'\" \"'", @{$nhash{"$key"}}) ."'\"\n";
-            print "WW$uc_key=\"". join(" ", @{$nhash{"$key"}}) ."\"\n";
-        } else {
+            #print "WW$uc_key=\"". join(" ", @{$nhash{"$key"}}) ."\"\n";
+            print "WW$uc_key=\"". $nhash{$key}[0] ."\"\n";
+        } elsif (ref(\$nhash{"$key"}) eq "SCALAR") {
             print "WW$uc_key=\"$nhash{$key}\"\n";
         }
         print "export WW$uc_key\n";
