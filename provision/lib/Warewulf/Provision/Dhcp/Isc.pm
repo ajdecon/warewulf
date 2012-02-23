@@ -227,79 +227,75 @@ persist()
 
         &dprint("Iterating through nodes\n");
         foreach my $n ($datastore->get_objects("node")->get_list()) {
-            my ($nodename) = $n->get("name");
+            my $nodename = $n->nodename();
             &dprint("Evaluating node: $nodename\n");
             my @bootservers = $n->get("bootserver");
             if (! @bootservers or scalar(grep { $_ eq $ipaddr} @bootservers)) {
-
-                my ($cluster) = $n->get("cluster");
-                my ($domain) = $n->get("domain");
                 my ($master_ipv4_bin) = $n->get("master");
                 my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
-                my $domainname;
+                my $clustername = $n->cluster();
+                my $domainname = $n->domain();
+                my $domain;
 
-                if (defined($cluster) and defined($domain)) {
-                    $domainname = "$cluster.$domain"
+                if ($clustername) {
+                    if ($domain) {
+                        $domain .= ".";
+                    }
+                    $domain .= $clustername;
                 }
-                if (defined($cluster)) {
-                    $domainname = "$cluster"
+                if ($domainname) {
+                    if ($domain) {
+                        $domain .= ".";
+                    }
+                    $domain .= $domainname;
                 }
-                if (defined($domain)) {
-                    $domainname = "$domain"
-                }
 
-                foreach my $d ($n->get("netdevs")) {
-                    if (ref($d) eq "Warewulf::DSO::Netdev") {
-                        my ($netdev) = $d->get("name");
-                        my ($hwaddr) = $d->get("hwaddr");
-                        my ($ipv4_bin) = $d->get("ipaddr");
-                        my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
+                foreach my $netdev ($n->netdevs()) {
+                    my $hwaddr = $n->hwaddr($netdev);
+                    my $ipv4_addr = $n->ipaddr($netdev);
 
-                        if (! $hwaddr) {
-                            &dprint("Skipping $netdev as it has no defined HWADDR\n");
-                            next;
+                    if (! $hwaddr) {
+                        &dprint("Skipping $netdev as it has no defined HWADDR\n");
+                        next;
+                    }
+
+                    if (exists($seen{"NODESTRING"}) and exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
+                        my $redundant_node = $seen{"NODESTRING"}{"$nodename-$netdev"};
+                        &iprint("Skipping redundant node entry for $nodename-$netdev already seen in $redundant_node)\n");
+                        next;
+                    }
+                    if (exists($seen{"HWADDR"}) and exists($seen{"HWADDR"}{"$hwaddr"})) {
+                        my $redundant_node = $seen{"HWADDR"}{"$hwaddr"};
+                        &iprint("Skipping redundant HWADDR ($hwaddr) in $nodename-$netdev (already seen in $redundant_node)\n");
+                        next;
+                    }
+                    if (exists($seen{"IPADDR"}) and exists($seen{"IPADDR"}{"$ipv4_addr"})) {
+                        my $redundant_node = $seen{"IPADDR"}{"$ipv4_addr"};
+                        &iprint("Skipping redundant IPADDR ($ipv4_addr) in $nodename-$netdev (already seen in $redundant_node)\n");
+                        next;
+                    }
+
+                    if ($nodename and $ipv4_addr and $hwaddr) {
+                        &dprint("Adding a host entry for: $nodename-$netdev\n");
+
+                        $dhcpd_contents .= "   host $nodename-$netdev {\n";
+                        $dhcpd_contents .= "      option host-name $nodename;\n";
+                        if ($domain) {
+                            $dhcpd_contents .= "      option domain-name \"$domain\";\n";
                         }
-
-                        if (exists($seen{"NODESTRING"}) and exists($seen{"NODESTRING"}{"$nodename-$netdev"})) {
-                            my $redundant_node = $seen{"NODESTRING"}{"$nodename-$netdev"};
-                            &iprint("Skipping redundant node entry for $nodename-$netdev already seen in $redundant_node)\n");
-                            next;
+                        $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
+                        $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
+                        if ($master_ipv4_bin) {
+                            $dhcpd_contents .= "      next-server $master_ipv4_addr;\n";
                         }
-                        if (exists($seen{"HWADDR"}) and exists($seen{"HWADDR"}{"$hwaddr"})) {
-                            my $redundant_node = $seen{"HWADDR"}{"$hwaddr"};
-                            &iprint("Skipping redundant HWADDR ($hwaddr) in $nodename-$netdev (already seen in $redundant_node)\n");
-                            next;
-                        }
-                        if (exists($seen{"IPADDR"}) and exists($seen{"IPADDR"}{"$ipv4_addr"})) {
-                            my $redundant_node = $seen{"IPADDR"}{"$ipv4_addr"};
-                            &iprint("Skipping redundant IPADDR ($ipv4_addr) in $nodename-$netdev (already seen in $redundant_node)\n");
-                            next;
-                        }
+                        $dhcpd_contents .= "   }\n";
 
-                        if ($nodename and $ipv4_addr and $hwaddr) {
-                            &dprint("Adding a host entry for: $nodename-$netdev\n");
+                        $seen{"NODESTRING"}{"$nodename-$netdev"} = "$nodename-$netdev";
+                        $seen{"HWADDR"}{"$hwaddr"} = "$nodename-$netdev";
+                        $seen{"IPADDR"}{"$ipv4_addr"} = "$nodename-$netdev";
 
-                            $dhcpd_contents .= "   host $nodename-$netdev {\n";
-                            $dhcpd_contents .= "      option host-name $nodename;\n";
-                            if ($domainname) {
-                                $dhcpd_contents .= "      option domain-name $domainname;\n";
-                            }
-                            $dhcpd_contents .= "      hardware ethernet $hwaddr;\n";
-                            $dhcpd_contents .= "      fixed-address $ipv4_addr;\n";
-                            if ($master_ipv4_bin) {
-                                $dhcpd_contents .= "      next-server $master_ipv4_addr;\n";
-                            }
-                            $dhcpd_contents .= "   }\n";
-
-                            $seen{"NODESTRING"}{"$nodename-$netdev"} = "$nodename-$netdev";
-                            $seen{"HWADDR"}{"$hwaddr"} = "$nodename-$netdev";
-                            $seen{"IPADDR"}{"$ipv4_addr"} = "$nodename-$netdev";
-
-                        } else {
-                            &dprint("Skipping node '$nodename-$netdev' due to insufficient information\n");
-                        }
                     } else {
-                        &eprint("Node '$nodename' has an invalid netdevs entry!\n");
+                        &dprint("Skipping node '$nodename-$netdev' due to insufficient information\n");
                     }
                 }
             }
