@@ -250,13 +250,14 @@ if (-d $opt_chroot) {
 
         if (-f $output) {
             if ($opt_output) {
-                my $dirname = basename($opt_output);
+                my $dirname = dirname($opt_output);
                 if (! -d $dirname) {
                     mkpath($dirname);
                 }
+                &dprint("Moving $output to $opt_output\n");
                 rename($output, $opt_output);
-		&nprint("Wrote VNFS image to $opt_output\n");
-		&nprint("Done.\n");
+                &nprint("Wrote VNFS image to $opt_output\n");
+                &nprint("Done.\n");
             } else {
                 if ($opt_yes) {
                     system("yes | $wwsh_bin vnfs import $output --name=$opt_name");
