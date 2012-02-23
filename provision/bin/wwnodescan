@@ -9,6 +9,7 @@
 
 use Warewulf::Logger;
 use Warewulf::DataStore;
+use Warewulf::Bootstrap;
 use Warewulf::Vnfs;
 use Warewulf::DSO::Vnfs;
 use Warewulf::Node;
@@ -141,7 +142,7 @@ if ($opt_testmode) {
         my $vnfs = $datastore->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
 
         if ($vnfs) {
-            $vnfsid = $vnfs->get("_id");
+            $vnfsid = $vnfs->id();
         } else {
             &eprint("VNFS \"$opt_vnfs\" does not exist\n");
             exit 1;
@@ -152,7 +153,7 @@ if ($opt_testmode) {
         my $bootstrap = $datastore->get_objects("bootstrap", "name", $opt_bootstrap)->get_object(0);
 
         if ($bootstrap) {
-            $bootstrapid = $bootstrap->get("_id");
+            $bootstrapid = $bootstrap->id();
         } else {
             &eprint("BOOTSTRAP \"$opt_bootstrap\" does not exist\n");
             exit 1;
@@ -253,13 +254,14 @@ while (my $line = <TCPDUMP>) {
                 &nprint("[TEST] Add to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
             } else {
                 my $new_node = Warewulf::Node->new();
-                my $new_netdev = $new_node->get_netdev($opt_netdev);
 
-                $new_netdev->hwaddr($hwaddr);
-                $new_netdev->ipaddr($ip);
-                $new_netdev->netmask($netmask);
+                $new_node->hwaddr($opt_netdev, $hwaddr);
+                $new_node->ipaddr($opt_netdev, $ip);
+                $new_node->netmask($opt_netdev, $netmask);
 
                 $new_node->name($name);
+# TODO: This needs to be called via the Warewulf::Provision class (yet to
+# be created)
                 $new_node->set("bootstrapid", $bootstrapid);
                 $new_node->set("vnfsid", $vnfsid);
                 if ($opt_groups) {
