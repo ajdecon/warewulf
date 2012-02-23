@@ -11,6 +11,7 @@
 use CGI;
 use Warewulf::DataStore;
 use Warewulf::EventHandler;
+use Warewulf::Node;
 use Sys::Syslog;
 
 my $q = CGI->new();
@@ -29,7 +30,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
     my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
     my $node = $nodeSet->get_object(0);
-    my $name = $node->get("name") || $hwaddr;
+    my $name = $node->name() || $hwaddr;
     my ($sec, $min, $hr, $day, $mon, $year) = localtime;
     my $persist_bool;
     $year += 1900;

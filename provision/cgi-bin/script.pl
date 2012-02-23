@@ -10,6 +10,8 @@
 
 use CGI;
 use Warewulf::DataStore;
+use Warewulf::Node;
+use Warewulf::File;
 
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();

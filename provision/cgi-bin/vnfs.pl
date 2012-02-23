@@ -13,6 +13,8 @@ use Warewulf::Util;
 use Warewulf::DataStore;
 use Warewulf::Logger;
 use Warewulf::Daemon;
+use Warewulf::Node;
+use Warewulf::Vnfs;
 use File::Path;
 use File::Basename;
 
@@ -31,13 +33,13 @@ if ($q->param('hwaddr')) {
         my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
         my $node = $nodeSet->get_object(0);
         if ($node) {
-            my ($node_name) = $node->get("name");
+            my ($node_name) = $node->name();
             my ($vnfsid) = $node->get("vnfsid");
             if ($vnfsid) {
                 my $obj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($obj) {
-                    my ($vnfs_name) = $obj->get("name");
-                    my ($vnfs_checksum) = $obj->get("checksum");
+                    my $vnfs_name = $obj->name();
+                    my $vnfs_checksum = $obj->checksum();
                     my ($vnfs_nocache) = $obj->get("nocache");
                     my $use_cache;
 

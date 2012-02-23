@@ -12,6 +12,8 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::Logger;
 use Warewulf::Daemon;
+use Warewulf::Node;
+use Warewulf::File;
 
 &daemonized(1);
 
@@ -31,7 +33,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
     if ($node) {
         if (! $fileid and $node) {
-            my $nodeName = $node->get("name");
+            my $nodeName = $node->name();
 
             foreach my $file ($node->get("fileids")) {
                 if (! $file) {
