@@ -50,6 +50,9 @@ new($$)
         if (-f "/etc/redhat-release") {
             $type = "rhel";
         }
+		else {
+            $type = "Deb";
+        }
     }
 
     $mod_name = "Warewulf::System::" . ucfirst(lc($type));
