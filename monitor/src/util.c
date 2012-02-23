@@ -46,30 +46,30 @@ insertLookups(int blobid, json_object *jobj)
   enum json_type type;
 
   json_object_object_foreach(jobj, key, value){
-   strcpy(sqlite_cmd, "insert into lookups(blobid, key, value) values ('");
-   sprintf(blobID,"%d",blobid);
-   strcat(sqlite_cmd, blobID);
-   strcat(sqlite_cmd, "','");
+    strcpy(sqlite_cmd, "insert into lookups(blobid, key, value) values ('");
+    sprintf(blobID,"%d",blobid);
+    strcat(sqlite_cmd, blobID);
+    strcat(sqlite_cmd, "','");
+ 
+    strcat(sqlite_cmd,key);
+    strcat(sqlite_cmd, "',");
 
-//   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
-
-   	strcat(sqlite_cmd,key);
-	strcat(sqlite_cmd, "','");
-
-    	// Clean the int logic
-        // Can we assume 64 bits for all ints ?
-    	char vals[65];
-    	type = json_object_get_type(value);
-    	switch(type) {
-        	case json_type_int:
-                	sprintf(vals, "%d",json_object_get_int(value));
-                	strcat(sqlite_cmd,vals);
-                	break;
-        	case json_type_string:
-                	strcat(sqlite_cmd, json_object_get_string(value));
-                	break;
-    	}
-    	strcat(sqlite_cmd, "')");
+    // Clean the int logic
+    // Can we assume 64 bits for all ints ?
+    char vals[65];
+    type = json_object_get_type(value);
+    switch(type) {
+      case json_type_int:
+        sprintf(vals, "%d",json_object_get_int(value));
+        strcat(sqlite_cmd,vals);
+        break;
+      case json_type_string:
+	strcat(sqlite_cmd, "'");
+        strcat(sqlite_cmd, json_object_get_string(value));
+	strcat(sqlite_cmd, "'");
+        break;
+    }
+    strcat(sqlite_cmd, ")");
 
     //printf("IL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
@@ -78,11 +78,8 @@ insertLookups(int blobid, json_object *jobj)
       fprintf(stderr, "SQL error: %s\n", emsg);
       sqlite3_free(emsg);
     }
-
-//    } // end if
-   } // end json_foreach
-
-   free(sqlite_cmd);
+  } // end json_foreach
+  free(sqlite_cmd);
 }
 
 void
@@ -95,41 +92,38 @@ updateLookups(int blobid, json_object *jobj)
   enum json_type type;
 
   json_object_object_foreach(jobj, key, value){
-    strcpy(sqlite_cmd, "update lookups set value='");
+    strcpy(sqlite_cmd, "update lookups set value=");
+    // Clean the int logic
+    // Can we assume 64 bits for all ints ?
+    char vals[65];
+    type = json_object_get_type(value);
+    switch(type) {
+      case json_type_int:
+        sprintf(vals, "%d",json_object_get_int(value));
+        strcat(sqlite_cmd,vals);
+        break;
+      case json_type_string:
+        strcat(sqlite_cmd, "'");
+        strcat(sqlite_cmd, json_object_get_string(value));
+        strcat(sqlite_cmd, "'");
+        break;
+    }
+    strcat(sqlite_cmd, " where key='");
+    strcat(sqlite_cmd,key);
+    strcat(sqlite_cmd, "' and blobid='");
+    sprintf(blobID,"%d",blobid);
+    strcat(sqlite_cmd, blobID);
+    strcat(sqlite_cmd, "'");
 
-//    if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
-      // Clean the int logic
-      // Can we assume 64 bits for all ints ?
-      char vals[65];
-      type = json_object_get_type(value);
-    	switch(type) {
-        	case json_type_int:
-                	sprintf(vals, "%d",json_object_get_int(value));
-                	strcat(sqlite_cmd,vals);
-                	break;
-        	case json_type_string:
-                	strcat(sqlite_cmd, json_object_get_string(value));
-                	break;
-    	}
-      strcat(sqlite_cmd, "' where key='");
-      strcat(sqlite_cmd,key);
-      strcat(sqlite_cmd, "' and blobid='");
-      sprintf(blobID,"%d",blobid);
-      strcat(sqlite_cmd, blobID);
-      strcat(sqlite_cmd, "'");
-
-      //printf("UL SQL CMD - %s\n",sqlite_cmd);
-      char *emsg = 0;
-      int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-      if( rc!=SQLITE_OK ){
-        fprintf(stderr, "SQL error: %s\n", emsg);
-        sqlite3_free(emsg);
-      }
-
-//    } // end if
-   } // end json_foreach
-
-   free(sqlite_cmd);
+    //printf("UL SQL CMD - %s\n",sqlite_cmd);
+    char *emsg = 0;
+    int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
+    }
+  } // end json_foreach
+  free(sqlite_cmd);
 }
 
 void
