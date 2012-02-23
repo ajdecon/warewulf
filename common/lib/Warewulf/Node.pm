@@ -595,6 +595,15 @@ genname() {
     my $domainname = $self->domain();
     my @names;
 
+    if (! defined($nodename)) {
+        my $name = $self->get("name");
+        if (ref(\$name) eq "SCALAR") {
+            &dprint("Object nodename not defined, converting...\n");
+            $nodename = $name;
+            $self->set("nodename", $nodename);
+        }
+    }
+
     if (defined($nodename)) {
         push(@names, $nodename);
         if (! defined($clustername) and defined($domainname)) {
