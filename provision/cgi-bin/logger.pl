@@ -12,6 +12,7 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::EventHandler;
 use Warewulf::Node;
+use Warewulf::DSO::Node;
 use Sys::Syslog;
 
 my $q = CGI->new();
