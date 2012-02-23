@@ -439,7 +439,7 @@ exec()
                 $lastcontact = "unknown";
             }
             printf("%-15s %12s %15s  %s\n",
-                $o->get("name") || "UNDEF",
+                $o->name() || "UNDEF",
                 $lastcontact,
                 $o->get("_provisionstatus") || "",
                 $o->get("_provisionlog") || ""
