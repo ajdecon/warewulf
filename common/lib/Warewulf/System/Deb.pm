@@ -63,6 +63,15 @@ Future versions may also support upstart.
 sub service($$$) {
     my ($self, $service, $command) = @_;
 
+ 	# determine which distro we are working with
+	# set distro specific init.d service commands
+
+	if ( ! -f "/etc/redhat-release" ) {
+		if ( "$service" eq "dhcpd" ) {
+			$service = 'isc-dhcp-server';
+		}
+	}
+
     &dprint("Running service command: $service, $command\n");
 
     if (-x "/etc/init.d/$service") {
@@ -93,6 +102,16 @@ This may be depicated in favor of upstart in the future.
 
 sub chkconfig($$$) {
     my ($self, $service, $command) = @_;
+
+ 	# determine which distro we are working with
+	# set distro specific init.d service commands
+
+	if ( ! -f "/etc/redhat-release" ) {
+		if ( "$service" eq "dhcpd" ) {
+			$service = 'isc-dhcp-server';
+			$command = 'defaults';
+		}
+	}
 
     if (-x "/usr/sbin/update-rc.d") {
         open(CHKCONFIG, "/usr/sbin/update-rc.d $service $command 2>&1|");
