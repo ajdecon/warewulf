@@ -357,3 +357,12 @@ unit tests in place and will maintain the current (technically wrong
 but behaviorally correct) code until such time as the unit tests fail
 or other problems arise which require us to revisit.
 ----------------------------------------------------------------------
+Thu Feb 23 14:17:57 2012                            Jason Stover (jms)
+
+Added -e flag to wwconfig. For use with Bourne output, and will print
+the export lines. Otherwise just print the [VAR]=[VAL] lines.
+
+Intial start of SYSCONFDIR/warewulf/wwfunctions for Bash shell scripts
+to break apart a bunch of the replicated code (mkchroot, etc..). Maybe
+usefull down the road for other things.
+----------------------------------------------------------------------

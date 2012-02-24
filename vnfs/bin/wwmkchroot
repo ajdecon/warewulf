@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# 
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+# $Id$
+
+# Have to figure out where it is initially...
+if [ -f $(wwconfig SYSCONFDIR)/warewulf/wwfunctions ]; then
+    . $(wwconfig SYSCONFDIR)/warewulf/wwfunctions
+else
+    echo "$0: Error: Can not find $(wwconfig SYSCONFDIR)/warewulf/wwfunctions";
+    exit 1;
+fi
+
+RELEASE=
+VNFSDIR=
+SUITE=
+
+usage()
+{
+  echo "Usage: $0 [release] /path/to/chroot [suite]";
+  echo "[suite] for debian and ubuntu: maveric, lucid, squeeze, etc...";
+  echo;
+  echo "Availible values for release:";
+
+  for rel in `/bin/ls -1 $sysconf/wwmkchroot/ | egrep -v \.tmpl`; do
+    printf "  %10s - %s\n" $rel "$(egrep ^DESC= $sysconf/wwmkchroot/$rel | cut -f 2 -d '=' | tr -d '"')";
+  done
+}
+
+sysconf="$WAREWULF_SYSCONFDIR/warewulf";
+
+if [ $# -lt 2 ]; then
+  usage;
+  exit 1;
+fi
+
+RELEASE=$1
+shift;
+VNFSDIR=$1
+
+# We've shifted once so we have our release and directory (we hope)... But there's
+# two arguments still in $@ ... must be a value for SUITE
+if [ "x${RELEASE}" = "xubuntu" -o "x${RELEASE}" = "xdebian" -a $# -eq 2 ]; then
+  shift;
+  SUITE=$1;
+fi
+
+if [ -z "$VNFSDIR" ]; then
+    usage;
+    exit 1
+fi
+
+mkdir -p $VNFSDIR
+mkdir -p $VNFSDIR/etc
+
+# Read in our config file
+. $sysconf/wwmkchroot/$RELEASE
+
+build_vnfs $SUITE
+
+echo "Done."
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

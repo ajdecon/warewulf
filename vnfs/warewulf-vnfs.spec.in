@@ -38,6 +38,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %config(noreplace) %{_sysconfdir}/warewulf/vnfs.conf
 %config(noreplace) %{_sysconfdir}/warewulf/bootstrap.conf
+%config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/rhel
+%config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/debian
+%config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/ubuntu
+%config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/wwmkchroot.tmpl
 %{_bindir}/*
 
 %changelog

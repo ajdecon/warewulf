@@ -29,6 +29,7 @@ AC_OUTPUT(Makefile
    warewulf-vnfs.spec
    bin/Makefile
    etc/Makefile
+   etc/wwmkchroot/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
 )

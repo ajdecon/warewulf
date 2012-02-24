@@ -15,13 +15,14 @@ use Getopt::Long;
 Getopt::Long::Configure ("bundling");
 
 my @VARS;
-my ($opt_help, $opt_sh, $opt_csh, $opt_all);
+my ($opt_help, $opt_sh, $opt_csh, $opt_all, $opt_exp);
 
 GetOptions(
     'h|help'        => \$opt_help,
     's|sh'          => \$opt_sh,
     'c|csh'         => \$opt_csh,
     'a|all'         => \$opt_all,
+    'e|exp'         => \$opt_exp,
 );
 
 if ($opt_all) {
@@ -37,7 +38,9 @@ if ($opt_help) {
     print "\n";
     print "   Options:\n";
     print "      -h, --help     Show this help summary\n";
+    print "      -a, --all      Print all evnironment variables\n";
     print "      -s, --sh       Print output in Bourne shell format\n";
+    print "      -e, --exp      Also print out export lines. For use with Bourne shell format.\n";
     print "      -c, --csh      Print output in C shell format\n";
     print "\n";
     print "   Paramaters:\n";
@@ -65,10 +68,12 @@ foreach my $key (@VARS) {
 
     if ($opt_sh) {
         print "WAREWULF_$key=\"$val\"\n";
-        print "export WAREWULF_$key\n";
+        print "export WAREWULF_$key\n" if $opt_exp;
     } elsif ($opt_csh) {
         print "setenv WAREWULF_$key \"$val\"\n";
     } else {
         print(((scalar(@ARGV) == 1) ? ("") : ("$key: ")) . "$val\n");
     }
 }
+
+# vim:filetype=perl:syntax=perl:expandtab:ts=4:sw=4:

@@ -30,7 +30,7 @@ yum --tolerant --installroot $VNFSDIR -y install \
     SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
     ethtool filesystem findutils gawk grep initscripts iproute iputils \
     mingetty mktemp net-tools nfs-utils pam portmap procps psmisc rdate \
-    sed setup shadow-utils sysklogd tcp_wrappers termcap tzdata util-linux \
+    sed setup shadow-utils rsyslog tcp_wrappers compat-termcap tzdata util-linux \
     words zlib tar less gzip which util-linux module-init-tools udev \
     openssh-clients openssh-server passwd dhclient pciutils vim-minimal \
     shadow-utils strace vixie-cron cronie crontabs
