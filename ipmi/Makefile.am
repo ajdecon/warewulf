@@ -1,6 +1,6 @@
 SUBDIRS = lib 3rd_party initramfs
 
-MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh install-sh missing
 DISTCLEANFILES = 
 CLEANFILES = 
 EXTRA_DIST = warewulf-ipmi.spec
