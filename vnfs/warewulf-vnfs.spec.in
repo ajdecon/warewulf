@@ -42,6 +42,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/debian
 %config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/ubuntu
 %config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/wwmkchroot.tmpl
+%config(noreplace) %{_sysconfdir}/warewulf/wwmkchroot/VNFS.Source
 %{_bindir}/*
 
 %changelog

@@ -19,50 +19,76 @@ fi
 
 RELEASE=
 VNFSDIR=
+VNFSIMG=
 WWSUITE=
 
 usage()
 {
-  echo "Usage: $0 [release] /path/to/chroot [suite]";
-  echo "[suite] for debian and ubuntu: maveric, lucid, squeeze, etc...";
-  echo;
-  echo "Availible values for release:";
+    echo "NOTE: !!! EXPERIMENTAL !!!";
+    echo "Usage: $0 [-u|--url] [name] /path/to/chroot";
+    echo "Example: $0 -u cent-6 /var/chroots/cent-6";
+    echo "NOTE: !!! EXPERIMENTAL !!!";
+    echo;
+    echo "Usage: $0 [release] /path/to/chroot [suite]";
+    echo "[suite] for debian and ubuntu: maveric, lucid, squeeze, etc...";
+    echo;
+    echo "Availible values for release:";
 
-  for rel in `/bin/ls -1 $sysconf/wwmkchroot/ | egrep -v \.tmpl`; do
-    printf "  %10s - %s\n" $rel "$(egrep ^DESC= $sysconf/wwmkchroot/$rel | cut -f 2 -d '=' | tr -d '"')";
-  done
+    for rel in `/bin/ls -1 $sysconf/wwmkchroot/ | egrep -v '\.tmpl|VNFS.Source'`; do
+        printf "  %10s - %s\n" $rel "$(egrep ^DESC= $sysconf/wwmkchroot/$rel | cut -f 2 -d '=' | tr -d '"')";
+    done
+}
+
+check_opts()
+{
+    if [ $# -lt 2 ]; then
+        usage;
+        exit 1;
+    fi
 }
 
 sysconf="$WAREWULF_SYSCONFDIR/warewulf";
 
-if [ $# -lt 2 ]; then
-  usage;
-  exit 1;
+if [ "$1" = "-u" -o "$1" = "--url" ]; then
+    shift;
+    check_opts $@;
+    
+    VNFSIMG=${1}.vnfs; shift;
+    VNFSDIR=$1;
+
+    # This has the Site we try downloading the image from...
+    . $sysconf/wwmkchroot/VNFS.Source
+
+    IMGDL=`vnfs_download $VNFSIMG`;
+    build_chroot $IMGDL $VNFSDIR
+
+else
+    check_opts $@;
+
+    RELEASE=$1
+    shift;
+    VNFSDIR=$1
+
+    # We've shifted once so we have our release and directory (we hope)... But there's
+    # two arguments still in $@ ... must be a value for WWSUITE
+    if [ "x${RELEASE}" = "xubuntu" -o "x${RELEASE}" = "xdebian" -a $# -eq 2 ]; then
+        shift;
+        WWSUITE=$1;
+    fi
+
+    if [ -z "$VNFSDIR" ]; then
+        usage;
+        exit 1
+    fi
+
+    mkdir -p $VNFSDIR
+    mkdir -p $VNFSDIR/etc
+
+    # Read in our config file
+    . $sysconf/wwmkchroot/$RELEASE
+
+    build_vnfs $WWSUITE
 fi
-
-RELEASE=$1
-shift;
-VNFSDIR=$1
-
-# We've shifted once so we have our release and directory (we hope)... But there's
-# two arguments still in $@ ... must be a value for SUITE
-if [ "x${RELEASE}" = "xubuntu" -o "x${RELEASE}" = "xdebian" -a $# -eq 2 ]; then
-  shift;
-  WWSUITE=$1;
-fi
-
-if [ -z "$VNFSDIR" ]; then
-    usage;
-    exit 1
-fi
-
-mkdir -p $VNFSDIR
-mkdir -p $VNFSDIR/etc
-
-# Read in our config file
-. $sysconf/wwmkchroot/$RELEASE
-
-build_vnfs $WWSUITE
 
 echo "Done."
 

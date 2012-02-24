@@ -96,4 +96,49 @@ vnfs_setup_auth()
 
 }
 
+# Download VNFS
+vnfs_download()
+{
+    if [ $# -ne 1 ]; then
+        echo "ERROR: vnfs_download: Usage: vnfs_download [image]";
+        exit 1;
+    fi
+    if [ -z "$VNFSHOST" ]; then
+        echo "ERROR: vnfs_download: VNFSHOST not set.";
+        exit 1;
+    fi
+
+    ODIR=${TMP:-/tmp}
+    if which wget 2>&1 >/dev/null; then
+        wget -O ${ODIR}/$VNFSIMG $VNFSHOST/$VNFSIMG;
+    elif which curl 2>&1 >/dev/null; then
+        curl $VNFSHOST/$VNFSIMG -o ${ODIR}/$VNFSIMG;
+    else
+        echo "ERROR: vnfs_download: wget or curl not found.";
+        exit 1;
+    fi
+    printf "%s" ${ODIR}/${VNFSIMG}
+}
+
+# Build chroot structure from VNFS Image
+build_chroot()
+{
+    if [ $# -ne 2 ]; then
+        echo "ERROR: build_chroot: Usage: build_chroot [image] [directory]";
+        exit 1;
+    fi
+
+    IMG=$1;
+    DIR=$2;
+
+    echo "build_chroot: Building chroot structure in $DIR from image $IMG";
+
+    mkdir -p $DIR;
+    cd $DIR;
+    gunzip -c $IMG | cpio -H newc -di;
+    mv $IMG $(dirname $DIR);
+
+    echo "build_chroot: chroot structure created and VNFS Image moved to: $(dirname $DIR)/$(basename $IMG)";
+}
+
 # vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
