@@ -19,7 +19,7 @@ fi
 
 RELEASE=
 VNFSDIR=
-SUITE=
+WWSUITE=
 
 usage()
 {
@@ -48,7 +48,7 @@ VNFSDIR=$1
 # two arguments still in $@ ... must be a value for SUITE
 if [ "x${RELEASE}" = "xubuntu" -o "x${RELEASE}" = "xdebian" -a $# -eq 2 ]; then
   shift;
-  SUITE=$1;
+  WWSUITE=$1;
 fi
 
 if [ -z "$VNFSDIR" ]; then
@@ -62,7 +62,7 @@ mkdir -p $VNFSDIR/etc
 # Read in our config file
 . $sysconf/wwmkchroot/$RELEASE
 
-build_vnfs $SUITE
+build_vnfs $WWSUITE
 
 echo "Done."
 
