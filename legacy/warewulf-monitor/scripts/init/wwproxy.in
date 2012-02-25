@@ -25,7 +25,7 @@ fi
 RETVAL=0
 
 if [ -z $WAREWULFD_HOSTS ]; then
-   echo "You need to define some Warewulfd hosts in $sysconfdir/wwproxy.conf!"
+   echo "You need to define some Warewulfd hosts in $sysconfdir/sysconfig/wwproxy.conf!"
    exit
 else
    HOSTS="--hosts=$WAREWULFD_HOSTS"
