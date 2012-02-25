@@ -67,7 +67,7 @@ typedef struct application_hdr {
         time_t 	timestamp;
 	char    nodename[MAX_NODENAME_LEN];
 
-} apphdr;
+}  __attribute__((packed)) apphdr;
 
 typedef struct application_data {
 
