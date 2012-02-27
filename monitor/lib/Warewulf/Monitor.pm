@@ -32,7 +32,7 @@ Blah blah blah
     use Warewulf::Monitor;
 
     my $monitor = Warewulf::Monitor->new();
-    $monitor->set_query("NODENAME='localhost.localdomain'");
+    $monitor->set_query("key='CPUCOUNT' and value=8");
     my $ObjectSet = $monitor->query_data();
 
     foreach my $node_object ( $ObjectSet->get_list()) {
@@ -56,7 +56,7 @@ stores.
 
 =cut
 
-my $HEADERSIZE=4;
+my $HEADERSIZE=62; #int(4) + time_t(8) + char nodename[50]
 my $APPLICATION=2;
 
 sub
@@ -101,25 +101,21 @@ my $query = sub
 
     # Build Socket conditionally if ! exists
     if (! $self->get("sockets")) {
-
-	# Make socket connection
-	for (my $i = 0; $i < @masters; $i++) {
-	    my ($master,$port)=split(/:/, $masters[$i]);
+	# Make socket connection for each master
+	foreach my $masterString (@masters){
+	    my ($master,$port)=split(/:/, $masterString);
 	    my $socket = IO::Socket::INET->new(PeerAddr => $master,
 					       PeerPort => $port,
 					       Proto => 'tcp');
 	    unless ( $socket ) {
 		print "Could not connect to $host:$port!\n";
 	    }
-#	    $socks[$i]=$socket;
 	    push(@socks,$socket);
 	    #regist connection type for this socket 
 	    register_conntype ($socket,$APPLICATION);
 	    my $register_data=recv_all($socket);
 	}
-
 	$self->set("sockets", \@socks);
-
     }
     @socks=$self->get("sockets");
 
@@ -132,8 +128,12 @@ my $query = sub
 	my %decoded_json = %{decode_json($data)};
 
 	foreach my $node (keys %decoded_json) {
+	    if ($node eq "JSON_CT"){
+		next;
+	    }
+	    my %decoded_node= %{decode_json($decoded_json{$node})};
 	    if($nodeHash{$node}){
-		if($decoded_json{"$node"}{"TIMESTAMP"}>$nodeHash{"$node"}){
+		if($decoded_node{"TIMESTAMP"}>$nodeHash{"$node"}){
 		    ObjectSet->del("name",$node);
 		}else{
 		    next;
@@ -142,11 +142,11 @@ my $query = sub
 	    
 	    my $tmpObject = Warewulf::Object->new();
 	    $tmpObject->set("name",$node);
-	    foreach my $entry (keys %{$decoded_json{$node}}) {
-		$tmpObject->set($entry, $decoded_json{"$node"}{"$entry"});
+	    foreach my $entry (keys %decoded_node) {
+		$tmpObject->set($entry, $decoded_node{"$entry"});
 		&dprint("Set entry for node: $node ($entry....)\n");
 	    }
-	    $nodeHash{$node}=$decoded_json{"$node"}{"TIMESTAMP"};
+	    $nodeHash{$node}=$decoded_node{"TIMESTAMP"};
 	    $ObjectSet->add($tmpObject);
 	}
 	
@@ -190,12 +190,26 @@ sub set_masters()
     $self->set("masters", \@masters);
 }
 
+sub get_masters()
+{
+    my ($self) = @_;
+    my @mastersOnly;
+    my @masters=$self->get("masters");
+    foreach $masterString (@masters){
+	my ($master,$port)=split(/:/, $masterString);
+	push(@mastersOnly,$master);
+    }
+    return @mastersOnly;
+}
+
+
 ##
 # set the where clause for a query for this object
 ##
 sub set_query(){
     my ($self, $whereClause) = @_;
-    $self->set("query","select * from wwstats where $whereClause");
+#    $self->set("query","select * from wwstats where $whereClause");
+    $self->set("query","$whereClause");
 }
 
 ##
@@ -205,7 +219,7 @@ sub set_query(){
 sub query_data(){
     my ($self) = @_;
     if (!$self->get("query")){
-	return $query->($self, "select * from wwstats");
+	return $query->($self, "");
     }else{
 	return $query->($self, $self->get("query"));
     }
@@ -232,8 +246,9 @@ sub send_query {
 sub send_all {
     my ($socket, $payload) = @_;
     my $length=length($payload);
-#as of now, $length is the only packet header
-    $socket->send(pack('ia*', $length,$payload));
+    my $ts=time();
+    my $nodename="";
+    $socket->send(pack('i Q A[50] a*', $length,$ts,$nodename,$payload));
 }
 
 sub recv_all {
@@ -241,6 +256,8 @@ sub recv_all {
     my $header;
     my $rawdata;
     $socket->recv($header, $HEADERSIZE,MSG_WAITALL);
+    # only unpack the length value in the header
+    # timestamp and nodename are ignored
     my $pktsize=unpack('i',$header);
     $socket->recv($rawdata, $pktsize,MSG_WAITALL);
     my $data=unpack('a*',$rawdata);

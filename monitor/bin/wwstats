@@ -70,6 +70,7 @@ sub print_summary {
 	    $nodes_down++;
 	}
     }
+
     
     $summary .= sprintf("%21s: %-10s\n", 'Total Nodes', $nodes_up + $nodes_down + $nodes_unavailable, "Warewulf");
     $summary .= sprintf("%21s: %-27s %s\n", 'Living', $nodes_up, "Warewulf");
@@ -84,6 +85,11 @@ sub print_summary {
     }
     
     print "--------------------------------------------------------------------------------\n";
+    printf("%21s: |", 'Monitoring Masters');
+    foreach my $master ($monitor->get_masters()){
+	print " $master |";
+    }
+    print "\n";
     printf("%21s: %-28s\n", "Total CPU utilization", "$total_cpu%");
     print "$summary";
     print "--------------------------------------------------------------------------------\n";
