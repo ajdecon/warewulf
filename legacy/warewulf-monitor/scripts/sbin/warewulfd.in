@@ -35,6 +35,7 @@ use IO::Socket;
 use IO::Socket::INET;
 use IO::Select;
 use Sys::Syslog 0.07;
+use Sys::Hostname;
 use Authen::Libwrap (':all');
 use Warewulf::MzUtil;
 use Warewulf::Event;
@@ -47,6 +48,7 @@ my $RM_PIDFILE = 0;
 my $PIDFILE = "/var/run/warewulfd.pid";
 my $LISTEN_ADDR = "0.0.0.0";
 my $LISTEN_PORT = 9873;
+my $HOSTNAME = hostname;
 my @NODES;
 my %STATS;
 my %KEYS = ("CPUCLOCK" => 1, "CPUCOUNT" => 1, "CPUMODEL" => 1,
@@ -88,6 +90,7 @@ print_usage_info
     print "    -f --foreground                  Do not fork into the background on startup\n";
     print "    -a --address <addr>[:<port>]     Bind listening sockets to the specified address\n";
     print "    -l --logfile <logfile>           Write to the specified log instead of stderr\n";
+    print "    -n --name                        Define the cluster name (defaults to hostname -s)\n";
     #print "                                     \n";
     print "\n";
     exit(0);
@@ -234,7 +237,7 @@ main
 
     # Parse options and set config variables.
     &mezz_init("warewulfd", "2.9.13", "help|h", "version|v", "debug|d!", "foreground|f",
-               "address|a=s", "logfile|l=s");
+               "address|a=s", "logfile|l=s", "name|m=s");
     if ($OPTION{"version"}) {
         # Do not edit this.  It is updated automatically by CVS when you commit.
         &print_version($PROGNAME, $VERSION, "Michael Jennings",
@@ -252,6 +255,14 @@ main
         $OPTION{"address"} = "$LISTEN_ADDR:$LISTEN_PORT";
     } elsif (index($OPTION{"address"}, ':') < 0) {
         $OPTION{"address"} .= ":$LISTEN_PORT";
+    }
+
+    if (exists($OPTION{"name"})) {
+        if ($OPTION{"name"} =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+            $HOSTNAME = $1;
+        } else {
+            &elog("Invalid characters for --name option, using hostname\n");
+        }
     }
 
     # Fork into the background.
@@ -347,6 +358,12 @@ main
 
                 # Send data to remote host.
                 &dlog("Sending data to $remote_host ($remote_ip:$remote_port)");
+
+                if (!$sock->print("CLUSTER=$HOSTNAME\n")) {
+                    &elog("Unable to write data to $remote_host ($remote_ip:$remote_port) -- $!.");
+                    last;
+                }
+
                 foreach my $ip (@NODES) {
                     my $last = time() - $STATS{$ip}{"TIME"};
                     my $data = $STATS{$ip}{"DATA"};

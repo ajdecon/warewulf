@@ -91,6 +91,8 @@ daemon or proxy daemon.  It can monitor 1 or more clusters.
 %post web
 /sbin/service httpd condrestart >/dev/null 2>&1 ||:
 /sbin/service apache2 condrestart >/dev/null 2>&1 ||:
+/usr/sbin/setsebool -P httpd_can_network_connect 1 >/dev/null 2>&1 ||:
+chcon --reference=/var/www/html/ %{_datadir}/warewulf-legacy/web/cgi/* >/dev/null 2>&1 ||:
 
 %post proxy
 /sbin/chkconfig --add wwproxy
