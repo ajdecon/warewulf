@@ -48,7 +48,7 @@ my $RM_PIDFILE = 0;
 my $PIDFILE = "/var/run/warewulfd.pid";
 my $LISTEN_ADDR = "0.0.0.0";
 my $LISTEN_PORT = 9873;
-my $HOSTNAME = hostname;
+my $HOSTNAME = hostname();
 my @NODES;
 my %STATS;
 my %KEYS = ("CPUCLOCK" => 1, "CPUCOUNT" => 1, "CPUMODEL" => 1,
@@ -237,7 +237,7 @@ main
 
     # Parse options and set config variables.
     &mezz_init("warewulfd", "2.9.13", "help|h", "version|v", "debug|d!", "foreground|f",
-               "address|a=s", "logfile|l=s", "name|m=s");
+               "address|a=s", "logfile|l=s", "name|n=s");
     if ($OPTION{"version"}) {
         # Do not edit this.  It is updated automatically by CVS when you commit.
         &print_version($PROGNAME, $VERSION, "Michael Jennings",
