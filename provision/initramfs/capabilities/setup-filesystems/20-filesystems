@@ -20,18 +20,20 @@ if [ ! -z "$WWFILESYSTEMS" ]; then
     for fs in $WWFILESYSTEMS; do
         if echo $fs | grep 'mountpoint=' 2>&1 >/dev/null; then
             for mnt in `echo $fs | tr ':' ' '`; do
-              tvar=$(echo $mnt | cut -f1 -d=)
-              tval=$(echo $mnt | cut -f2 -d=)
-              if [ "x${tvar}" = "xmountpoint" -a "x${tval}" = "x/" ]; then
-                ROOTFOUND=1
-                break 2 # break out of both for loops
-              fi
+                tvar=$(echo $mnt | cut -f1 -d=)
+                tval=$(echo $mnt | cut -f2 -d=)
+                if [ "x${tvar}" = "xmountpoint" -a "x${tval}" = "x/" ]; then
+                    wwlogger "Root partition found in WWFILESYSTEMS from node configuration.";
+                    ROOTFOUND=1
+                    break 2 # break out of both for loops
+                fi
             done
         fi
     done
 
     if [ $ROOTFOUND -ne 1 ]; then
-      WWFILESYSTEMS="${WWFILESYSTEMS},${DEFAULTFS}"
+        wwlogger "No Root partition found. Added tmpfs root mountpoint."
+        WWFILESYSTEMS="${WWFILESYSTEMS},${DEFAULTFS}"
     fi
 else
     WWFILESYSTEMS="$DEFAULTFS"
@@ -184,3 +186,5 @@ sort /tmp/mptab | while read mp dev type opts; do
 done
 
 rm -rf $TMPDIR
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
