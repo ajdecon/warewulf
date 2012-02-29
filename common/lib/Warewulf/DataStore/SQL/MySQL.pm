@@ -334,7 +334,14 @@ persist($$)
         }
         foreach my $o (@objlist) {
             my $id = $o->get("_id");
-            my $type = $o->type();
+            my $type;
+
+            if ($o->can("type")) {
+                $type = $o->type();
+            } else {
+                &eprint("Is the DSO interface loaded for object class: ". ref($o) ."\n");
+                next;
+            }
 
             if (! $id) {
                 my $sth;
