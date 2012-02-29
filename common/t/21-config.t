@@ -38,7 +38,7 @@ plan("tests" => (
          + 5                                # One file at a time tests
          + 3                                # File list tests
          + 8                                # Multipass tests
-         + 3 * (2 * scalar(keys(%vals)))    # Value tests (2 objects * 2 tests/key * N keys)
+         + 3 * (2 * scalar(keys(%vals)))    # Value tests (3 objects * 2 tests/key * N keys)
 ));
 
 # This is useful for using the test suite to double as a debugging tool.

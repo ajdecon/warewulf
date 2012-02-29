@@ -366,3 +366,13 @@ Intial start of SYSCONFDIR/warewulf/wwfunctions for Bash shell scripts
 to break apart a bunch of the replicated code (mkchroot, etc..). Maybe
 usefull down the road for other things.
 ----------------------------------------------------------------------
+Wed Feb 29 11:20:30 2012                        Michael Jennings (mej)
+
+Fair warning:  There (may) be dragons.
+
+Fundamentally revamping the external interface to NetDev object access
+via Node objects.  The goal here was to make naming, invocation, and
+internal handling more consistent.  This is still pending review and
+subject to change.  There are also some subtle bugfixes and cleanups
+of documentation as well as some consolidation of functionality.
+----------------------------------------------------------------------

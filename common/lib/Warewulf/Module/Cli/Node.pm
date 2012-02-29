@@ -287,8 +287,8 @@ exec()
             printf("%-19s %-19s %-19s %-19s\n",
                 &ellipsis(19, ($o->name() || "UNDEF"), "end"),
                 &ellipsis(19, (join(",", $o->groups()) || "UNDEF")),
-                join(",", $o->list_ipaddr()),
-                join(",", $o->list_hwaddr())
+                join(",", $o->ipaddr_list()),
+                join(",", $o->hwaddr_list())
             );
         }
     } elsif ($command eq "print") {

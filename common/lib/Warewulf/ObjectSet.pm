@@ -45,13 +45,29 @@ Create and return a new ObjectSet instance.
 sub
 new($$)
 {
-    my ($proto) = @_;
+    my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self;
 
     $self = $class->SUPER::new();
     bless($self, $class);
 
+    return $self->init(@_);
+}
+
+=item init()
+
+Initialize an C<ObjectSet>.
+
+=cut
+
+sub
+init(@)
+{
+    my ($self, @items) = @_;
+
+    ### NOTE:  Do NOT call SUPER::init() here!
+    @{$self->{"ARRAY"}} = @items;
     return $self;
 }
 
@@ -224,14 +240,12 @@ count()
     my ($self) = @_;
     my $count;
 
-    &dprint("Counting objects in set\n");
     if (exists($self->{"ARRAY"})) {
         $count = scalar(@{$self->{"ARRAY"}}) || 0;
     } else {
         $count = 0;
     }
-    &dprint("Found '$count' objects in Set\n");
-
+    &dprint("Found $count objects in ObjectSet $self\n");
     return $count;
 }
 
