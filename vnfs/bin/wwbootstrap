@@ -19,7 +19,7 @@ use File::Copy;
 
 &set_log_level("NOTICE");
 
-$ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin";
+$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
 
 my $randstring = &rand_string("12");
 my $tmpdir = "/var/tmp/wwinitrd.$randstring";
@@ -125,7 +125,7 @@ foreach my $dir (split(":", $ENV{"PATH"})) {
     if ($dir =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
         if (-x "$1/wwsh") {
             $wwsh_bin = "$1/wwsh";
-			last;
+            last;
         }
     }
 }
@@ -229,7 +229,7 @@ if ($config->get("drivers")) {
         if ( $line =~ /^\s*-m\s+/ ) {
             $depmod_map_arg = "-m";
             &iprint("Will use the \"-m\" depmod option to trigger map file generation\n");
-			last;
+            last;
         }
     }
     close DEPMOD;

@@ -148,7 +148,7 @@ if (! $opt_hybrid) {
                 if ($line =~ /^\s*([a-zA-Z0-9\-_\.]+:\/[a-zA-Z0-9\-_\.]+\s+\/hybrid\s+.+)$/) {
                     &iprint("Automatically using --hybridpath=/hybrid as found in fstab\n");
                     $opt_hybrid = "/hybrid/$opt_name";
-					last;
+                    last;
                 }
             }
             close(FSTAB);
@@ -171,14 +171,14 @@ foreach my $dir (split(":", $ENV{"PATH"})) {
     if ($dir =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
         if (-x "$1/wwsh") {
             $wwsh_bin = "$1/wwsh";
-			last;
+            last;
         }
     }
 }
 
 
 &dprint("Sanitizing the PATH environment variable\n");
-$ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin";
+$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
 
 &dprint("Starting main conditional\n");
 if (-d $opt_chroot) {
