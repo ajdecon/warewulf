@@ -11,13 +11,15 @@
 
 package Warewulf::Module::Cli::Provision;
 
-use Warewulf::Logger;
-use Warewulf::Module::Cli;
-use Warewulf::Term;
-use Warewulf::DataStore;
-use Warewulf::Util;
 use Getopt::Long;
 use Text::ParseWords;
+use Warewulf::DataStore;
+use Warewulf::Logger;
+use Warewulf::File;
+use Warewulf::Module::Cli;
+use Warewulf::Provision;
+use Warewulf::Term;
+use Warewulf::Util;
 
 our @ISA = ('Warewulf::Module::Cli');
 
@@ -84,21 +86,24 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
-    $h .= "         --bootstrap     Define the bootstrap image should this node use\n";
-    $h .= "         --master        Specifically set the Warewulf master(s) for this node\n";
-    $h .= "         --bootserver    If you have multiple DHCP/TFTP servers, which should be\n";
-    $h .= "                         used to boot this node\n";
-    $h .= "         --vnfs          Define the VNFS that this node should use\n";
+    $h .= "     -b, --bootstrap     Define the bootstrap image should this node use\n";
+    $h .= "     -v, --vnfs          Define the VNFS that this node should use\n";
+# TODO: Master and bootserver are not used yet...
+#    $h .= "         --master        Specifically set the Warewulf master(s) for this node\n";
+#    $h .= "         --bootserver    If you have multiple DHCP/TFTP servers, which should be\n";
+#    $h .= "                         used to boot this node\n";
     $h .= "         --files         Define the files that should be provisioned to this node\n";
     $h .= "         --fileadd       Add a file to be provisioned this node\n";
     $h .= "         --filedel       Remove a file to be provisioned from this node\n";
+    $h .= "         --preshell      Start a shell on the node before provisioning (boolean)\n";
+    $h .= "         --postshell     Start a shell on the node after provisoining (boolean)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
     $h .= "     Warewulf> provision set n000[0-4] --bootstrap=2.6.30-12.x86_64\n";
     $h .= "     Warewulf> provision set n00[00-99] --fileadd=ifcfg-eth0\n";
-    $h .= "     Warewulf> provision set -l cluster mycluster --vnfs=rhel-6.0\n";
-    $h .= "     Warewulf> provision set -l group mygroup hello group123\n";
+    $h .= "     Warewulf> provision set -l=cluster mycluster --vnfs=rhel-6.0\n";
+    $h .= "     Warewulf> provision set -l=group mygroup hello group123\n";
     $h .= "     Warewulf> provision list n00[00-99]\n";
     $h .= "\n";
 
@@ -162,6 +167,8 @@ exec()
     my $opt_lookup = "name";
     my $opt_bootstrap;
     my $opt_vnfs;
+    my $opt_preshell;
+    my $opt_postshell;
     my @opt_master;
     my @opt_bootserver;
     my @opt_files;
@@ -185,8 +192,10 @@ exec()
         'filedel=s'     => \@opt_filedel,
         'master=s'      => \@opt_master,
         'bootserver=s'  => \@opt_bootserver,
-        'bootstrap=s'   => \$opt_bootstrap,
-        'vnfs=s'        => \$opt_vnfs,
+        'b|bootstrap=s' => \$opt_bootstrap,
+        'v|vnfs=s'      => \$opt_vnfs,
+        'preshell=s'    => \$opt_preshell,
+        'postshell=s'   => \$opt_postshell,
         'l|lookup=s'    => \$opt_lookup,
     );
 
@@ -213,18 +222,18 @@ exec()
         if ($opt_bootstrap) {
             if (uc($opt_bootstrap) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("bootstrap");
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->bootstrapid(undef);
                     &dprint("Deleting bootstrap for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSTRAP"));
+                push(@changes, sprintf("   UNDEF: %-20s\n", "BOOTSTRAP"));
             } else {
                 my $bootstrapObj = $db->get_objects("bootstrap", "name", $opt_bootstrap)->get_object(0);
                 if ($bootstrapObj and my $bootstrapid = $bootstrapObj->get("_id")) {
                     foreach my $obj ($objSet->get_list()) {
-                        my $name = $obj->get("name") || "UNDEF";
-                        $obj->set("bootstrapid", $bootstrapid);
+                        my $name = $obj->name() || "UNDEF";
+                        $obj->bootstrapid($bootstrapid);
                         &dprint("Setting bootstrapid for node name: $name\n");
                         $persist_bool = 1;
                     }
@@ -235,77 +244,21 @@ exec()
             }
         }
 
-        if (@opt_master) {
-            if (exists($opt_master[0]) and $opt_master[0] eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("master");
-                    &dprint("Deleting master entries for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "MASTER"));
-            } else {
-                my @set_masters;
-                foreach my $master (split(",", join(",", @opt_master))) {
-                    if ($master =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
-                        push(@set_masters, $1);
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "MASTER", $1));
-                    } else {
-                        &eprint("Bad format for IP address: $master\n");
-                    }
-                }
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("master", @set_masters);
-                    &dprint("Setting master for node name: $name\n");
-                    $persist_bool = 1;
-                }
-            }
-        }
-
-        if (@opt_bootserver) {
-            if (exists($opt_bootserver[0]) and $opt_bootserver[0] eq "UNDEF") {
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("bootserver");
-                    &dprint("Deleting bootserver entries for node name: $name\n");
-                    $persist_bool = 1;
-                }
-                push(@changes, sprintf("   UNSET: %-20s\n", "BOOTSERVER"));
-            } else {
-                my @set_bootserver;
-                foreach my $bootserver (split(",", join(",", @opt_bootserver))) {
-                    if ($bootserver =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
-                        push(@set_bootserver, $1);
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "BOOTSERVER", $1));
-                    } else {
-                        &eprint("Bad format for IP address: $bootserver\n");
-                    }
-                }
-                foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("bootserver", @set_bootserver);
-                    &dprint("Setting bootserver for node name: $name\n");
-                    $persist_bool = 1;
-                }
-            }
-        }
-
         if ($opt_vnfs) {
             if (uc($opt_vnfs) eq "UNDEF") {
                 foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("vnfsid");
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->vnfsid(undef);
                     &dprint("Deleting vnfsid for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   UNSET: %-20s\n", "VNFS"));
+                push(@changes, sprintf("   UNDEF: %-20s\n", "VNFS"));
             } else {
                 my $vnfsObj = $db->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
                 if ($vnfsObj and my $vnfsid = $vnfsObj->get("_id")) {
                     foreach my $obj ($objSet->get_list()) {
-                        my $name = $obj->get("name") || "UNDEF";
-                        $obj->set("vnfsid", $vnfsid);
+                        my $name = $obj->name() || "UNDEF";
+                        $obj->vnfsid($vnfsid);
                         &dprint("Setting vnfsid for node name: $name\n");
                         $persist_bool = 1;
                     }
@@ -313,6 +266,56 @@ exec()
                 } else {
                     &eprint("No VNFS named: $opt_vnfs\n");
                 }
+            }
+        }
+
+        if (defined($opt_preshell)) {
+            if (uc($opt_preshell) eq "UNDEF" or
+                uc($opt_preshell) eq "FALSE" or
+                uc($opt_preshell) eq "NO" or
+                uc($opt_preshell) eq "N" or
+                $opt_preshell == 0
+            ) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->preshell(0);
+                    &dprint("Disabling preshell for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   UNDEF: %-20s\n", "PRESHELL"));
+            } else {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->preshell(0);
+                    &dprint("Enabling preshell for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "PRESHELL", 1));
+            }
+        }
+
+        if (defined($opt_postshell)) {
+            if (uc($opt_postshell) eq "UNDEF" or
+                uc($opt_postshell) eq "FALSE" or
+                uc($opt_postshell) eq "NO" or
+                uc($opt_postshell) eq "N" or
+                $opt_postshell == 0
+            ) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->postshell(0);
+                    &dprint("Disabling postshell for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   UNDEF: %-20s\n", "PRESHELL"));
+            } else {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->postshell(0);
+                    &dprint("Enabling postshell for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "PRESHELL", 1));
             }
         }
 
@@ -324,10 +327,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("_id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
-                            push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("_id"));
+                        if ($fileObj->id()) {
+                            &dprint("Found ID for $filename: ". $fileObj->id() ."\n");
+                            push(@file_names, $fileObj->name());
+                            push(@file_ids, $fileObj->id());
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -338,8 +341,8 @@ exec()
             }
             if (@file_ids) {
                 foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->set("fileids", @file_ids);
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->fileids(@file_ids);
                     &dprint("Setting file IDs for node name: $name\n");
                     $persist_bool = 1;
                 }
@@ -355,10 +358,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("_id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
-                            push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("_id"));
+                        if ($fileObj->id()) {
+                            &dprint("Found ID for $filename: ". $fileObj->id() ."\n");
+                            push(@file_names, $fileObj->name());
+                            push(@file_ids, $fileObj->id());
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -369,9 +372,9 @@ exec()
             }
             if (@file_ids) {
                 foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->add("fileids", @file_ids);
-                    &dprint("Setting file IDs for node name: $name\n");
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->fileidadd(@file_ids);
+                    &dprint("Adding file IDs for node name: $name\n");
                     $persist_bool = 1;
                 }
                 push(@changes, sprintf("     ADD: %-20s = %s\n", "FILES", join(",", @file_names)));
@@ -386,10 +389,10 @@ exec()
                 my @objList = $db->get_objects("file", "name", $filename)->get_list();
                 if (@objList) {
                     foreach my $fileObj ($db->get_objects("file", "name", $filename)->get_list()) {
-                        if ($fileObj->get("_id")) {
-                            &dprint("Found ID for $filename: ". $fileObj->get("_id") ."\n");
-                            push(@file_names, $fileObj->get("name"));
-                            push(@file_ids, $fileObj->get("_id"));
+                        if ($fileObj->id()) {
+                            &dprint("Found ID for $filename: ". $fileObj->id() ."\n");
+                            push(@file_names, $fileObj->name());
+                            push(@file_ids, $fileObj->id());
                         } else {
                             &eprint("No file ID found for: $filename\n");
                         }
@@ -400,8 +403,8 @@ exec()
             }
             if (@file_ids) {
                 foreach my $obj ($objSet->get_list()) {
-                    my $name = $obj->get("name") || "UNDEF";
-                    $obj->del("fileids", @file_ids);
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->fileiddel(@file_ids);
                     &dprint("Setting file IDs for node name: $name\n");
                     $persist_bool = 1;
                 }
@@ -432,7 +435,7 @@ exec()
         &nprintf("%-15s %12s %15s  %s\n", "NAME", "LAST CONTACT", "STATUS", "MESSAGE");
         my $time = time();
         foreach my $o ($objSet->get_list()) {
-            my $lastcontact = $o->get("_provisiontime");
+            my $lastcontact = $o->provisiontime();
             if ($lastcontact and $lastcontact =~ /^\d+$/) {
                 $lastcontact = $time - $lastcontact;
             } else {
@@ -441,8 +444,8 @@ exec()
             printf("%-15s %12s %15s  %s\n",
                 $o->name() || "UNDEF",
                 $lastcontact,
-                $o->get("_provisionstatus") || "",
-                $o->get("_provisionlog") || ""
+                $o->provisionstatus() || "-"x14,
+                $o->provisionlog() || "-"x34
             );
         }
 
@@ -453,35 +456,34 @@ exec()
             my $name = $o->name() || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            if ($o->get("fileids")) {
+            if ($o->fileids()) {
                 $fileObjSet = $db->get_objects("file", "_id", $o->get("fileids"));
             }
             if ($fileObjSet) {
                 foreach my $f ($fileObjSet->get_list()) {
-                    push(@files, $f->get("name"));
+                    push(@files, $f->name());
                 }
             } else {
                 push(@files, "UNDEF");
             }
-            if (my $vnfsid = $o->get("vnfsid")) {
+            if (my $vnfsid = $o->vnfsid()) {
                 my $vnfsObj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($vnfsObj) {
-                    $vnfs = $vnfsObj->get("name");
+                    $vnfs = $vnfsObj->name();
                 }
             }
-            if (my $bootstrapid = $o->get("bootstrapid")) {
+            if (my $bootstrapid = $o->bootstrapid()) {
                 my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
                 if ($bootstrapObj) {
-                    $bootstrap = $bootstrapObj->get("name");
+                    $bootstrap = $bootstrapObj->name();
                 }
             }
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
             printf("%15s: %-16s = %s\n", $name, "BOOTSTRAP", $bootstrap);
             printf("%15s: %-16s = %s\n", $name, "VNFS", $vnfs);
             printf("%15s: %-16s = %s\n", $name, "FILES", join(",", @files));
-            if ($o->get("master")) {
-                printf("%15s: %-16s = %s\n", $name, "MASTER", join(",", $o->get("master")));
-            }
+            printf("%15s: %-16s = %s\n", $name, "PRESHELL", $o->preshell() ? "TRUE" : "FALSE");
+            printf("%15s: %-16s = %s\n", $name, "POSTSHELL", $o->postshell() ? "TRUE" : "FALSE");
             if ($o->get("filesystems")) {
                 printf("%15s: %-16s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
             }
@@ -502,26 +504,26 @@ exec()
             my $name = $o->name() || "UNDEF";
             my $vnfs = "UNDEF";
             my $bootstrap = "UNDEF";
-            if (my @fileids = $o->get("fileids")) {
+            if (my @fileids = $o->fileids()) {
                 $fileObjSet = $db->get_objects("file", "_id", @fileids);
             }
             if ($fileObjSet) {
                 foreach my $f ($fileObjSet->get_list()) {
-                    push(@files, $f->get("name"));
+                    push(@files, $f->name());
                 }
             } else {
                 push(@files, "UNDEF");
             }
-            if (my $vnfsid = $o->get("vnfsid")) {
+            if (my $vnfsid = $o->vnfsid()) {
                 my $vnfsObj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($vnfsObj) {
-                    $vnfs = $vnfsObj->get("name");
+                    $vnfs = $vnfsObj->name();
                 }
             }
             if (my $bootstrapid = $o->get("bootstrapid")) {
                 my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
                 if ($bootstrapObj) {
-                    $bootstrap = $bootstrapObj->get("name");
+                    $bootstrap = $bootstrapObj->name();
                 }
             }
             printf("%-19s %-15s %-21s %-21s\n",

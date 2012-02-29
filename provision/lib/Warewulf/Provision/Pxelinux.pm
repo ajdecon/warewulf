@@ -157,27 +157,27 @@ update()
         }
 
 
-        foreach my $device ($nodeobj->netdevs()) {
-            my $hwaddr = $nodeobj->hwaddr($device);
-            my $ipv4_addr = $nodeobj->ipaddr($device);
-            my $netmask = $nodeobj->netmask($device);
+        foreach my $devname (sort($nodeobj->netdevs_list())) {
+            my $hwaddr = $nodeobj->hwaddr($devname);
+            my $ipv4_addr = $nodeobj->ipaddr($devname);
+            my $netmask = $nodeobj->netmask($devname);
 
-            if (! $device) {
+            if (! $devname) {
                 &iprint("Skipping unknown device name for: $nodename\n");
                 next;
             }
 
             if (! $hwaddr) {
-                &iprint("Skipping $nodename-$device: No hwaddr defined\n");
+                &iprint("Skipping $nodename-$devname: No hwaddr defined\n");
                 next;
             }
 
             if (! $bootstrapid) {
-                &iprint("Skipping $nodename-$device-$hwaddr: No bootstrap defined\n");
+                &iprint("Skipping $nodename-$devname-$hwaddr: No bootstrap defined\n");
                 next;
             }
 
-            &dprint("Creating a pxelinux config for node '$nodename-$device/$hwaddr'\n");
+            &dprint("Creating a pxelinux config for node '$nodename-$devname/$hwaddr'\n");
 
             if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                 $hwaddr = $1;
@@ -185,7 +185,10 @@ update()
                 $hwaddr =~ s/:/-/g;
                 my $config = "01-". $hwaddr;
                 &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
-                open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config");
+                if (!open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config")) {
+                    &eprint("Could not open PXELinux config: $!\n");
+                    next;
+                }
                 if ($nodeobj->get("bootlocal")) {
                     print PXELINUX "DEFAULT bootlocal\n";
                 } else {
@@ -208,8 +211,8 @@ update()
                 } else {
                     print PXELINUX "quiet ";
                 }
-                if ($device and $ipv4_addr and $netmask) {
-                    print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmask wwnetdev=$device ";
+                if ($devname and $ipv4_addr and $netmask) {
+                    print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmask wwnetdev=$devname ";
                 } else {
                     &dprint("Skipping static network definition because configuration not complete\n");
                 }
@@ -218,7 +221,7 @@ update()
                     &eprint("Could not write Pxelinux configuration file: $!\n");
                 }
             } else {
-                &eprint("Node: $nodename-$device: Bad characters in hwaddr: '$hwaddr'\n");
+                &eprint("Node: $nodename-$devname: Bad characters in hwaddr: '$hwaddr'\n");
             }
         }
     }

@@ -12,6 +12,7 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::EventHandler;
 use Warewulf::Node;
+use Warewulf::Provision;
 use Warewulf::DSO::Node;
 use Sys::Syslog;
 
@@ -39,17 +40,17 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         $year, $mon, $day, $hr, $min, $sec);
     my @log_line;
     if ($status =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
-        $node->set("_provisionstatus", $1);
+        $node->provisionstatus($1);
         $persist_bool = 1;
     }
     if ($log =~ /^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/) {
-        $node->set("_provisionlog", $1);
+        $node->provisionlog($1);
         openlog("wwprovision", "ndelay,pid", "local0");
         syslog("info", "$name $1");
         $persist_bool = 1;
     }
     if ($persist_bool) {
-        $node->set("_provisiontime", time());
+        $node->provisiontime(time());
         $db->persist($node);
     }
 }
