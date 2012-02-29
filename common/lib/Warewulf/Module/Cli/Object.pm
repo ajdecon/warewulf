@@ -129,6 +129,7 @@ exec()
     my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
+    my @opt_dump;
     my @opt_set;
     my @opt_add;
     my @opt_del;
@@ -145,6 +146,7 @@ exec()
 
     GetOptions(
         'n|new'         => \$opt_new,
+        'D|dump'        => \$opt_dump,
         'p|print=s'     => \@opt_print,
         's|set=s'       => \@opt_set,
         'a|add=s'       => \@opt_add,
@@ -156,7 +158,7 @@ exec()
     );
 
     if (! $db) {
-        &eprint("Database object not avaialble!\n");
+        &eprint("Database object not available!\n");
         return();
     }
 
@@ -214,33 +216,39 @@ exec()
             &eprint("What type of object would you like to create? (use the --type option)\n");
         }
     } else {
-
         my $objectSet = $db->get_objects($opt_type, $opt_lookup, &expand_bracket(@ARGV));
-
         my @objList = $objectSet->get_list();
 
-        if (@objList) {
-            if (@opt_print) {
+        if (scalar(@objList)) {
+            if ($opt_dump) {
+                for (my $i = 0; $i < $objectSet->count(); $i++) {
+                    my $o = $objectSet->get_object($i);
 
-                if (@opt_print and scalar @opt_print > 1 and $opt_print[0] ne ":all") {
+                    &nprint(&examine_object($o, "Object #$i:  "), "\n\n");
+                }
+            } elsif (scalar(@opt_print)) {
+                if ((scalar(@opt_print) > 1) && ($opt_print[0] ne ":all")) {
                     my $string = sprintf("%-26s " x (scalar @opt_print), map {uc($_);} @opt_print);
-                    &nprint($string ."\n");
-                    &nprint("=" x length($string) ."\n");
+
+                    &nprint("$string\n", "=" x length($string) ."\n");
                 }
 
                 foreach my $o ($objectSet->get_list()) {
-                    if (@opt_print and $opt_print[0] eq ":all") {
+                    if ($opt_print[0] eq ":all") {
                         my %hash = $o->get_hash();
                         my $id = $o->get("_id");
                         my $name = $o->get("name");
+
                         &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                        foreach my $h (keys %hash) {
-                            if(ref($hash{$h}) =~ /^ARRAY/) {
+                        foreach my $h (keys(%hash)) {
+                            if (ref($hash{$h}) =~ /^ARRAY/) {
                                 my @scalars;
+
                                 foreach my $e (@{$hash{$h}}) {
                                     if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
                                         my $type = lc($1);
                                         my @s;
+
                                         foreach my $l ($e->lookups()) {
                                             if (my $string = $e->get($l)) {
                                                 push(@s, $l ."=". $string);
@@ -284,9 +292,10 @@ exec()
                         }
                     } else {
                         my @values;
+
                         foreach my $h (@opt_print) {
                             if (my $val = $o->get($h)) {
-                                if(ref($val) =~ /^ARRAY/) {
+                                if (ref($val) =~ /^ARRAY/) {
                                     my @scalars;
                                     foreach my $e (@{$val}) {
                                         if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {

@@ -376,3 +376,12 @@ internal handling more consistent.  This is still pending review and
 subject to change.  There are also some subtle bugfixes and cleanups
 of documentation as well as some consolidation of functionality.
 ----------------------------------------------------------------------
+Wed Feb 29 12:40:55 2012                        Michael Jennings (mej)
+
+Update "node" CLI to match API changes.
+
+Minor optimizations, cleanups, and typo fixes.
+
+Added "--dump" option to "object" CLI for deep-dive object diagnosis.
+Not for the faint of heart.  ;-)
+----------------------------------------------------------------------
