@@ -1,3 +1,7 @@
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh depcomp install-sh missing
+DISTCLEANFILES =
+CLEANFILES = wwmon_aggregator.o wwmon_collector.o 
+
 bin_PROGRAMS = aggregator collector 
 
 AM_CXXFLAGS = $(INTI_CFLAGS)

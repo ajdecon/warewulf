@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>

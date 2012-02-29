@@ -101,60 +101,61 @@ my $query = sub
 
     # Build Socket conditionally if ! exists
     if (! $self->get("sockets")) {
-	# Make socket connection for each master
-	foreach my $masterString (@masters){
-	    my ($master,$port)=split(/:/, $masterString);
-	    my $socket = IO::Socket::INET->new(PeerAddr => $master,
-					       PeerPort => $port,
-					       Proto => 'tcp');
-	    unless ( $socket ) {
-		print "Could not connect to $host:$port!\n";
-	    }
-	    push(@socks,$socket);
-	    #regist connection type for this socket 
-	    register_conntype ($socket,$APPLICATION);
-	    my $register_data=recv_all($socket);
-	}
-	$self->set("sockets", \@socks);
+        # Make socket connection for each master
+        foreach my $masterString (@masters) {
+            my ($master,$port)=split(/:/, $masterString);
+            print "master: $master -- port: $port\n";
+            my $socket = IO::Socket::INET->new(PeerAddr => "$master",
+                                               PeerPort => $port,
+                                               Proto => 'tcp')
+                       or die "Could not connect to $master:$port!\n";
+
+            push(@socks,$socket);
+
+            #register connection type for this socket 
+            register_conntype ($socket,$APPLICATION);
+            my $register_data=recv_all($socket);
+        }
+        $self->set("sockets", \@socks);
     }
     @socks=$self->get("sockets");
 
     #send raw query as json packet
-    foreach my $sock (@socks){
-	send_query($sock,$query);
-	my $data=recv_all($sock);
+    foreach my $sock (@socks) {
+        send_query($sock,$query);
+        my $data=recv_all($sock);
 
-	#decode json packet and restore it in the object set data structure
-	my %decoded_json = %{decode_json($data)};
+        #decode json packet and restore it in the object set data structure
+        my %decoded_json = %{decode_json($data)};
 
-	foreach my $node (keys %decoded_json) {
-	    if ($node eq "JSON_CT"){
-		next;
-	    }
-	    my %decoded_node= %{decode_json($decoded_json{$node})};
-	    if($nodeHash{$node}){
-		if($decoded_node{"TIMESTAMP"}>$nodeHash{"$node"}){
-		    ObjectSet->del("name",$node);
-		}else{
-		    next;
-		}
-	    }
-	    
-	    my $tmpObject = Warewulf::Object->new();
-	    $tmpObject->set("name",$node);
-	    foreach my $entry (keys %decoded_node) {
-		$tmpObject->set($entry, $decoded_node{"$entry"});
-		&dprint("Set entry for node: $node ($entry....)\n");
-	    }
-	    $nodeHash{$node}=$decoded_node{"TIMESTAMP"};
-	    $ObjectSet->add($tmpObject);
-	}
-	
-	if (! $self->persist_socket()) {
-	    # tear down socket
-	    close($sock);
-	}
+        foreach my $node (keys %decoded_json) {
+            next if ($node eq "JSON_CT");
+
+            my %decoded_node= %{decode_json($decoded_json{$node})};
+            if($nodeHash{$node}) {
+                if($decoded_node{"TIMESTAMP"}>$nodeHash{"$node"}) {
+                    ObjectSet->del("name",$node);
+                } else {
+                    next;
+                }
+            }
+ 
+            my $tmpObject = Warewulf::Object->new();
+            $tmpObject->set("name",$node);
+            foreach my $entry (keys %decoded_node) {
+                $tmpObject->set($entry, $decoded_node{"$entry"});
+                &dprint("Set entry for node: $node ($entry....)\n");
+            }
+            $nodeHash{$node}=$decoded_node{"TIMESTAMP"};
+            $ObjectSet->add($tmpObject);
+        }
+
+        if (! $self->persist_socket()) {
+            # tear down socket
+            close($sock);
+        }
     }
+
     return $ObjectSet;
 };
 
@@ -167,7 +168,7 @@ sub persist_socket()
     my ($self, $bool) = @_;
 
     if ($bool) {
-	$self->set("persist_socket", "1");
+        $self->set("persist_socket", "1");
     }
 
     return $self->get("persist_socket");
@@ -184,7 +185,7 @@ sub set_masters()
     
     my @masters=$conf->get("masters");
     if (! @masters){
-	push(@masters,"localhost:9000");
+        push(@masters,"localhost:9000");
     }
     
     $self->set("masters", \@masters);
@@ -195,9 +196,9 @@ sub get_masters()
     my ($self) = @_;
     my @mastersOnly;
     my @masters=$self->get("masters");
-    foreach $masterString (@masters){
-	my ($master,$port)=split(/:/, $masterString);
-	push(@mastersOnly,$master);
+    foreach $masterString (@masters) {
+        my ($master,$port)=split(/:/, $masterString);
+        push(@mastersOnly,$master);
     }
     return @mastersOnly;
 }
@@ -218,10 +219,10 @@ sub set_query(){
 ##
 sub query_data(){
     my ($self) = @_;
-    if (!$self->get("query")){
-	return $query->($self, "");
-    }else{
-	return $query->($self, $self->get("query"));
+    if (!$self->get("query")) {
+        return $query->($self, "");
+    } else {
+        return $query->($self, $self->get("query"));
     }
 }
 
@@ -266,10 +267,9 @@ sub recv_all {
 
 
 sub
-    update_node_entry()
+update_node_entry()
 {
     # will send post to monitor
-
 }
 
 
@@ -294,5 +294,5 @@ required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 =cut
 
-
+# vim:filetype=perl:syntax=perl:expandtab:ts=4:sw=4:
 1;

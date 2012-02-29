@@ -12,6 +12,11 @@ BuildRoot: /var/tmp/%{name}-buildroot
 ExclusiveOS: linux
 Conflicts: warewulf <= 2.9
 BuildRequires: json-c-devel
+BuildRequires: sqlite-devel >= 3.6
+Requires: json-c
+Requires: sqlite >= 3.6
+Requires: perl-JSON
+Requires: perl-JSON-XS
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
