@@ -538,7 +538,7 @@ update_netdev_member()
             my $old_value = $netdev->get($member) || "";
 
             $new_value = $1;
-            &dprint("Updating object $nodename.$devname.member:  \"$old_value\" -> \"$new_value\"\n");
+            &dprint("Updating object $nodename.$devname.$member:  \"$old_value\" -> \"$new_value\"\n");
             $netdev->set($member, $new_value);
             if ($tracker) {
                 if ($old_value) {

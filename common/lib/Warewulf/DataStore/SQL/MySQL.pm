@@ -339,8 +339,9 @@ persist($$)
             if ($o->can("type")) {
                 $type = $o->type();
             } else {
-                &eprint("Is the DSO interface loaded for object class: ". ref($o) ."\n");
-                next;
+                &cprint("Cannot determine object type!  Is the DSO interface loaded for object class \"". ref($o) ."?\"\n");
+                &cprint("Sorry, this error is fatal.  Most likely a problem in $0.\n");
+                kill("ABRT", $$);
             }
 
             if (! $id) {
