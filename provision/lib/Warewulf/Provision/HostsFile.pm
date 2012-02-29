@@ -17,6 +17,7 @@ use Warewulf::Logger;
 use Warewulf::Provision::Dhcp;
 use Warewulf::DataStore;
 use Warewulf::Network;
+use Warewulf::Node;
 use Warewulf::SystemFactory;
 use Warewulf::Util;
 use Warewulf::File;
@@ -114,71 +115,42 @@ generate()
     close(HOSTS);
 
     foreach my $n ($datastore->get_objects("node")->get_list()) {
-        my $nodename = $n->get("fqdn") || $n->get("name");
-        my $cluster = $n->get("cluster");
-        my $domain = $n->get("domain");
+        my $nodename = $n->name();
         my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
         my $default_name;
-
-        &dprint("Evaluating node: $nodename\n");
 
         if (! defined($nodename)) {
             next;
         }
 
-        foreach my $d ($n->get("netdevs")) {
-            if (ref($d) eq "Warewulf::DSO::Netdev") {
-                my ($netdev) = $d->get("name");
-                my ($ipv4_bin) = $d->get("ipaddr");
-                if ($netdev and $ipv4_bin) {
-                    my $ipv4_addr = $netobj->ip_unserialize($ipv4_bin);
-                    my $node_network = $netobj->calc_network($ipv4_addr, $netmask);
-                    my $fqdn = $d->get("fqdn");
-                    my @name_entries;
-                    my $name_eth;
-                    my $multiple_dots;
+        &dprint("Evaluating node: $nodename\n");
 
-                    if (($node_network eq $network) and ! defined($default_name)) {
-                        $name_eth = $nodename;
-                        $default_name = 1;
-                    } else {
-                        $name_eth = "$nodename-$netdev";
-                    }
+        foreach my $devname ($n->netdevs_list()) {
+            my $node_ipaddr = $n->ipaddr($devname);
+            my $node_fqdn = $n->fqdn($devname);
+            my $node_testnetwork = $netobj->calc_network($node_ipaddr, $netmask);
+            my @name_entries;
 
-                    if (defined($fqdn)) {
-                        push(@name_entries, sprintf("%-18s", "$fqdn"));
-                        $multiple_dots = 1;
-                    }
-
-                    push(@name_entries, sprintf("%-12s", $name_eth));
-
-                    if (defined($cluster) and defined($domain)) {
-                        push(@name_entries, sprintf("%-18s", "$name_eth.$cluster.$domain"));
-                        $multiple_dots = 1;
-                    }
-                    if (defined($cluster)) {
-                        push(@name_entries, sprintf("%-18s", "$name_eth.$cluster"));
-                        $multiple_dots = 1;
-                    }
-                    if (defined($domain)) {
-                        push(@name_entries, sprintf("%-18s", "$name_eth.$domain"));
-                        $multiple_dots = 1;
-                    }
-
-                    if (! $multiple_dots) {
-                        push(@name_entries, sprintf("%-18s", "$name_eth.localdomain"));
-                    }
-
-                    if ($nodename and $ipv4_addr) {
-                        &dprint("Adding a host entry for: $nodename-$netdev\n");
-
-                        $hosts .= sprintf("%-23s %s\n", $ipv4_addr, join(" ", @name_entries));
-                    }
-
-                } else {
-                    &dprint("Node '$nodename' has an invalid netdevs entry!\n");
-                }
+            if ($node_fqdn) {
+                push(@name_entries, $node_fqdn);
             }
+
+            if (($node_testnetwork eq $network) and ! defined($default_name)) {
+                $default_name = 1;
+                push(@name_entries, reverse $n->name());
+            }
+
+            foreach my $name (reverse $n->name()) {
+                &dprint("Adding a name_entry for '$name-$devname'\n");
+                push(@name_entries, "$name-$devname");
+            }
+
+            if ($node_ipaddr and @name_entries) {
+                $hosts .= sprintf("%-23s %s\n", $node_ipaddr, join(" ", @name_entries));
+            } else {
+                &iprint("Not writing a host entry for $nodename-$devname ($node_ipaddr)\n");
+            }
+
         }
     }
 
