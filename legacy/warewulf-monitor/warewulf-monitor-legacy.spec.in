@@ -1,7 +1,9 @@
+%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+
 Name: warewulf-monitor-legacy
 Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
-Release: 1
+Release: %{_rel}
 License: GPL
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
