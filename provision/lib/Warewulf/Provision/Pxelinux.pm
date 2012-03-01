@@ -161,6 +161,7 @@ update()
             my $hwaddr = $nodeobj->hwaddr($devname);
             my $ipv4_addr = $nodeobj->ipaddr($devname);
             my $netmask = $nodeobj->netmask($devname);
+            my $hwprefix = "01";
 
             if (! $devname) {
                 &iprint("Skipping unknown device name for: $nodename\n");
@@ -177,13 +178,17 @@ update()
                 next;
             }
 
+            if ($hwaddr =~ /(([0-9a-f]{2}:){7}[0-9a-f]{2})$/) {
+                $hwprefix = "20";
+            }
+
             &dprint("Creating a pxelinux config for node '$nodename-$devname/$hwaddr'\n");
 
             if ($hwaddr =~ /^([0-9a-zA-Z:]+)$/) {
                 $hwaddr = $1;
                 &iprint("Building Pxelinux configuration for: $nodename/$hwaddr\n");
                 $hwaddr =~ s/:/-/g;
-                my $config = "01-". $hwaddr;
+                my $config = $hwprefix ."-". $hwaddr;
                 &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
                 if (!open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config")) {
                     &eprint("Could not open PXELinux config: $!\n");

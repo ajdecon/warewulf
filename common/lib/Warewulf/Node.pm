@@ -412,7 +412,7 @@ hwaddr()
     my ($self, $devname, $new_hwaddr) = @_;
 
     return $self->update_netdev_member($devname, "hwaddr", "_hwaddr", $new_hwaddr,
-                                       qr/^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/);
+                                       qr/^((?:[0-9a-f]{2}:){5,7}[0-9a-f]{2})$/);
 }
 
 
