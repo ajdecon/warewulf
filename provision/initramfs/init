@@ -234,7 +234,7 @@ fi
 
 if [ -x "$NEWROOT/sbin/init" ]; then
     wwlogger "Called /sbin/init"
-    wwstatus "RUNNING"
+    wwstatus "PROVISIONED"
     seq 1 5 | tac | while read i; do
         echo -ne "\rCalling /sbin/init in $i seconds..."
         sleep 1
