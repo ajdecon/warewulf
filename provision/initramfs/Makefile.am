@@ -9,27 +9,46 @@ BUSYBOX_SOURCE = $(top_srcdir)/3rd_party/GPL/busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_DIR = busybox-$(BUSYBOX_VERSION)
 BUSYBOX_PATCHES = $(top_srcdir)/3rd_party/GPL/busybox-1.19.3-udhcpc_ipoib.patch
 
+E2FSPROGS_VERSION = 1.42
+E2FSPROGS_SOURCE = $(top_srcdir)/3rd_party/GPL/e2fsprogs-$(E2FSPROGS_VERSION).tar.gz
+E2FSPROGS_DIR = e2fsprogs-$(E2FSPROGS_VERSION)
+E2FSPROGS_CONFIGARGS = --disable-testio-debug --disable-debugfs --disable-imager --disable-resizer  --disable-defrag --disable-fsck --disable-tls --disable-uuidd --disable-nls --disable-checker --disable-profile
+
+
+e2fsprogs:
+	@ if [ ! -d "_work/$(E2FSPROGS_DIR)" ]; then \
+		echo "Preparing to build e2fsprogs" ;\
+		mkdir -p _work/ ;\
+		tar xzf $(E2FSPROGS_SOURCE) -C _work/ ;\
+	fi
+	@ if [ ! -f "_work/$(E2FSPROGS_DIR)/misc/mke2fs" ]; then \
+		echo "Building e2fsprogs" ;\
+		(cd _work/$(E2FSPROGS_DIR)/; ./configure $(E2FSPROGS_CONFIGARGS)) ;\
+		make -C _work/$(E2FSPROGS_DIR);\
+	fi
+
+
 busybox:
 	@ if [ ! -d "_work/$(BUSYBOX_DIR)" ]; then \
 		echo "Preparing to build initramfs core" ;\
 		mkdir -p _work/ ;\
 		tar xjf $(BUSYBOX_SOURCE) -C _work/ ;\
 		for i in $(BUSYBOX_PATCHES); do \
-			(cd _work/busybox-$(BUSYBOX_VERSION); patch -p1 < ../../$${i} || exit 1) \
+			(cd _work/$(BUSYBOX_DIR); patch -p1 < ../../$${i} || exit 1) \
 		done ;\
 		cp $(srcdir)/busybox.config _work/busybox-$(BUSYBOX_VERSION)/.config ;\
 	fi
-	@ if [ ! -f "_work/busybox-$(BUSYBOX_VERSION)/" ]; then \
+	@ if [ ! -f "_work/$(BUSYBOX_DIR)/" ]; then \
 		echo "Building initramfs core" ;\
-		make -C _work/busybox-$(BUSYBOX_VERSION) busybox ;\
+		make -C _work/$(BUSYBOX_DIR) busybox ;\
 	fi
-	@ if [ ! -d "_work/busybox-$(BUSYBOX_VERSION)/_install" ]; then \
+	@ if [ ! -d "_work/$(BUSYBOX_DIR)/_install" ]; then \
 		echo "Installing initramfs core" ;\
-		make -C _work/busybox-$(BUSYBOX_VERSION) install ;\
+		make -C _work/$(BUSYBOX_DIR) install ;\
 	fi
 
 
-rootfs: busybox
+rootfs: busybox e2fsprogs
 	rm -rf rootfs
 	mkdir rootfs
 	mkdir rootfs/bin
@@ -42,7 +61,9 @@ rootfs: busybox
 	mkdir rootfs/lib
 	mkdir rootfs/lib64
 	chmod -R u+w rootfs/
-	cp -a _work/busybox-$(BUSYBOX_VERSION)/_install/* rootfs/
+	cp -a _work/$(BUSYBOX_DIR)/_install/* rootfs/
+	cp _work/$(E2FSPROGS_DIR)/misc/mke2fs rootfs/sbin/mkfs.ext4
+	ln -s mkfs.ext4 rootfs/sbin/mkfs.ext3
 	cp -L --parents /lib*/ld-linux* rootfs/
 	find rootfs -type f -perm -o+x  -print | xargs ldd | grep "=>" | awk '{print $$3}' | grep "^/" | sort | uniq | while read i; do cp -L --parents $$i rootfs/; done
 	find rootfs -type f -perm -o+x -print | xargs strip -g

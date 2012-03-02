@@ -146,15 +146,19 @@ for DEV in `echo $WWDISKFORMAT | sed 's/,/ /g'` ; do
                     /sbin/mkfs.ext2 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
                 ;;
                 ext3)
-                    wwlogger "Full ext3 support during provisioning does not currently exist";
                     if [ -x /sbin/mkfs.ext3 ]; then
                         /sbin/mkfs.ext3 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
+                    else
+                        wwlogger "Full ext3 support during provisioning does not currently exist, defaulting to ext2";
+                        /sbin/mkfs.ext2 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
                     fi
                 ;;
                 ext4)
-                    wwlogger "Full ext4 support during provisioning does not currently exist";
                     if [ -x /sbin/mkfs.ext4 ]; then
                         /sbin/mkfs.ext4 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
+                    else
+                        wwlogger "Full ext4 support during provisioning does not currently exist, defaulting to ext2";
+                        /sbin/mkfs.ext2 -I 128 /dev/$WWFS_DEV >/dev/null 2>&1
                     fi
                 ;;
             esac
