@@ -181,7 +181,7 @@ get_objects($$$@)
     }
     $sql_query .= "GROUP BY datastore.id";
 
-    dprint("$sql_query\n\n");
+    dprint("$sql_query\n");
 
     my $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();

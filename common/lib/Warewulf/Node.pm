@@ -516,14 +516,14 @@ update_netdev_member()
     my ($self, $devname, $member, $tracker, $new_value, $validator) = @_;
     my ($netdev, $nodename);
 
-    $nodename = $self->get("name") || "UNDEF";
+    $nodename = $self->nodename() || "UNDEF";
     if (! $devname) {
         my $netdevs = $self->netdevs();
 
         if ($netdevs->count() == 1) {
             $devname = $netdevs->get_object(0)->get("name");
         } else {
-            &eprintf("Device name required; node $nodename has %d network devices.",
+            &eprintf("Device name required; node $nodename has %d network devices.\n",
                      $netdevs->count());
             return undef;
         }

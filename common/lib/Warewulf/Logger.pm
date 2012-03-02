@@ -419,19 +419,23 @@ sub
 leader($)
 {
     my ($level) = @_;
+    my $caller = "";
 
     if (!scalar(@TARGETS)) {
         &init_log_targets();
     }
+    if ($LEVEL >= $WWLOG_DEBUG) {
+        $caller = &get_caller_string();
+    }
     if ($level == $WWLOG_DEBUG) {
-        return sprintf("%-40s", "[" . &get_caller_string() . "]:  ");
+        return sprintf("%-40s", "[$caller]:  ");
     } elsif ($level == $WWLOG_CRITICAL) {
         #return &get_backtrace(3) . "CRITICAL:  ";
         return &get_caller_string() . ":  CRITICAL:  ";
     } elsif ($level == $WWLOG_ERROR) {
-        return "ERROR:  ";
+        return (($caller) ? ("ERROR in $caller:  ") : ("ERROR:  "));
     } elsif ($level == $WWLOG_WARNING) {
-        return "WARNING:  ";
+        return (($caller) ? ("WARNING in $caller:  ") : ("WARNING:  "));
     }
     return "";
 }

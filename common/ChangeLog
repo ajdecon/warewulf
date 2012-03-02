@@ -385,3 +385,15 @@ Minor optimizations, cleanups, and typo fixes.
 Added "--dump" option to "object" CLI for deep-dive object diagnosis.
 Not for the faint of heart.  ;-)
 ----------------------------------------------------------------------
+Thu Mar  1 18:40:22 2012                        Michael Jennings (mej)
+
+Bump version to 3.2.
+
+Update some documentation.  Fix some typos.  Minor optimizations.
+
+Add Warewulf::Term::yesno() to encapsulate some commonly-used
+functionality.
+
+RFE from Greg:  When debugging, add caller information to warning and
+error messages too.
+----------------------------------------------------------------------

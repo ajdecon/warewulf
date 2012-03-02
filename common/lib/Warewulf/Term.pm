@@ -202,10 +202,10 @@ return true or false for subsequent calls (respectively).
 
 sub interactive { return $_[0]->prop("interactive", 0, @_[1..$#_]); }
 
-=item get_input($prompt, $array_ref_of_completions)
+=item get_input($prompt, [ <list of completions> ])
 
-Get input from the user. If the array of potential completions are
-given then the first entry will be considered the default.
+Get input from the user. If the array of potential completions is
+given, the first entry will be considered the default.
 
 =cut
 
@@ -217,26 +217,63 @@ get_input($)
 
     if ($self->interactive()) {
         if (@completions) {
-            @{$self->{"ARRAY"}} = @completions;
+            @{$self->{"COMPLIST"}} = @completions;
         }
         $ret = $self->term()->readline($prompt);
         if (@completions) {
-            delete($self->{"ARRAY"});
-        }
-
-        if (! $ret && exists($completions[0])) {
-            $ret = $completions[0];
+            delete($self->{"COMPLIST"});
         }
 
         if ($ret) {
-            $ret =~ s/^\s+//;
-            $ret =~ s/\s+$//;
+            $ret =~ s/^\s*(.*?)\s*$/$1/;
+        } elsif (scalar(@completions)) {
+            $ret = $completions[0];
         }
-    } else {
+    } elsif (scalar(@completions)) {
         $ret = $completions[0];
     }
 
     return $ret;
+}
+
+=item yesno([ $question, [ $default_yes, [ $default_notty ] ] ])
+
+Ask the user a question and prompt for a yes/no response.  This is a
+convenience/consistency wrapper around C<get_input()> above.  If
+I<$question> is not supplied, only the prompt will be printed.  If
+I<$default_yes> is true, "yes" will be the default instead of "no."
+If I<$default_notty> is true, non-interactive sessions will default to
+"yes" instead of "no."
+
+=cut
+
+sub
+yesno()
+{
+    my ($self, $question, $default_yes, $default_notty) = @_;
+
+    if ($question) {
+        print($question);
+    }
+    if ($self->interactive()) {
+        my $ret;
+
+        if ($default_yes) {
+            $ret = $self->get_input("Yes/No [yes]> ", "yes", "no");
+        } else {
+            $ret = $self->get_input("Yes/No [no]> ", "no", "yes");
+        }
+        $ret = lc($ret);
+        if (($ret eq "yes") || ($ret eq 'y')) {
+            return 1;
+        } elsif (($ret eq "no") || ($ret eq 'n')) {
+            return 0;
+        } else {
+            return (($default_yes) ? (1) : (0));
+        }
+    } else {
+        return (($default_notty) ? (1) : (0));
+    }
 }
 
 =back
@@ -263,19 +300,18 @@ auto_complete()
     my @ret;
 
 
-    if (exists($self->{"ARRAY"})) {
-        push(@ret, @{$self->{"ARRAY"}});
+    if (exists($self->{"COMPLIST"})) {
+        @ret = @{$self->{"COMPLIST"}};
     } elsif ($line =~ /^\s*([^ ]+)\s+/) {
         my $keyword = $1;
+
         if (exists($self->{"COMPLETE"}{"$keyword"})) {
             foreach my $ref (@{$self->{"COMPLETE"}{"$keyword"}}) {
                 push(@ret, $ref->complete("$line"));
             }
         }
     } elsif (exists($self->{"COMPLETE"})) {
-        foreach my $keyword (sort(keys(%{$self->{"COMPLETE"}}))) {
-            push(@ret, $keyword);
-        }
+        @ret = sort(keys(%{$self->{"COMPLETE"}}));
     }
 
     return @ret;

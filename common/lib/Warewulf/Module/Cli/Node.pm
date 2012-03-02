@@ -255,17 +255,13 @@ exec()
 
     if ($command eq "delete") {
         if (@ARGV) {
-            if ($term->interactive()) {
-                print "Are you sure you want to delete $object_count node(s):\n\n";
-                foreach my $o ($objSet->get_list()) {
-                    printf("     DEL: %-20s = %s\n", "NODE", $o->name());
-                }
-                print "\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes") {
-                    &nprint("No update performed\n");
-                    return;
-                }
+            my $question = "Are you sure you want to delete $object_count node(s):\n\n";
+
+            $question .= join("\n", map { sprintf("     DEL: %-20s = %s", "NODE", $_->name()); } $objSet->get_list());
+            $question .= "\n";
+            if (! $term->yesno($question, 0, 1)) {
+                &nprint("No update performed\n");
+                return;
             }
             $db->del_object($objSet);
         } else {
@@ -506,6 +502,7 @@ exec()
                 $opt_fqdn = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $nodename = $obj->get("name") || "UNDEF";
+
                     $obj->fqdn($opt_fqdn);
                     &dprint("Setting FQDN for node $nodename: $opt_fqdn\n");
                     $persist_count++;
@@ -519,6 +516,7 @@ exec()
         if (@opt_groups) {
             foreach my $obj ($objSet->get_list()) {
                 my $nodename = $obj->get("name") || "UNDEF";
+
                 $obj->groups(split(",", join(",", @opt_groups)));
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
@@ -529,6 +527,7 @@ exec()
         if (@opt_groupadd) {
             foreach my $obj ($objSet->get_list()) {
                 my $nodename = $obj->get("name") || "UNDEF";
+
                 $obj->groupadd(split(",", join(",", @opt_groupadd)));
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
@@ -539,6 +538,7 @@ exec()
         if (@opt_groupdel) {
             foreach my $obj ($objSet->get_list()) {
                 my $nodename = $obj->get("name") || "UNDEF";
+
                 $obj->groupdel(split(",", join(",", @opt_groupdel)));
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
@@ -549,13 +549,12 @@ exec()
         if ($persist_count > 0 or $command eq "new") {
             if ($term->interactive()) {
                 my $node_count = $objSet->count();
-                print "Are you sure you want to make the following $persist_count actions(s) to $node_count node(s):\n\n";
-                foreach my $change (@changes) {
-                    print $change;
-                }
-                print "\n";
-                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                if ($yesno ne "y" and $yesno ne "yes") {
+                my $question;
+
+                $question = sprintf("Are you sure you want to make the following %d change(s) to %d node(s):\n\n",
+                                    $persist_count, $node_count);
+                $question .= join('', @changes) . "\n";
+                if (! $term->yesno($question)) {
                     &nprint("No update performed\n");
                     return;
                 }
