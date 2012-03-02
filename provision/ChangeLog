@@ -61,3 +61,13 @@ Refactored wwnodescan to use tcpdump to listen for broadcast DHCP
 requests from unconfigured hosts and add them as new Warewulf nodes.
 Also added a test mode and fixed the output levels.
 ----------------------------------------------------------------------
+Fri Mar  2 13:04:03 2012                        Michael Jennings (mej)
+
+Bump version to 3.2.
+
+Significant changes to wwnodescan.  Added a "replace" option to update
+old nodes with new MAC addresses.  Added checks for node name, IP
+address, and MAC address conflicts.  Added calculation of the maximum
+IP address in the range provided rather than just counting up
+infinitely.
+----------------------------------------------------------------------

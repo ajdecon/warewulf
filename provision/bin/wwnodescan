@@ -7,22 +7,19 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
+use Getopt::Long;
 use Warewulf::Logger;
 use Warewulf::DataStore;
-use Warewulf::Bootstrap;
-use Warewulf::Vnfs;
-use Warewulf::DSO::Vnfs;
-use Warewulf::Node;
-use Warewulf::DSO::Node;
 use Warewulf::Util;
 use Warewulf::Config;
-use Getopt::Long;
+use Warewulf::Node;
+use Warewulf::DSO::Node;
+use Warewulf::Bootstrap;
+use Warewulf::Vnfs;
 use Warewulf::Network;
-use Warewulf::EventHandler;
 
 my $net;
 my $datastore;
-my $events;
 my $opt_debug;
 my $opt_verbose;
 my $opt_ipaddr;
@@ -33,6 +30,7 @@ my $opt_bootstrap;
 my $opt_groups;
 my $opt_help;
 my $ipaddr_bin;
+my $ipaddr_max;
 my $opt_scriptfile;
 my $opt_tcpdump;
 my @nodenames;
@@ -91,20 +89,21 @@ GetOptions(
     'd|debug'       => \$opt_debug,
     'v|verbose'     => \$opt_verbose,
     't|test'        => \$opt_testmode,
-    'ipaddr=s'      => \$opt_ipaddr,
-    'netmask=s'     => \$opt_netmask,
-    'netdev=s'      => \$opt_netdev,
-    'vnfs=s'        => \$opt_vnfs,
-    'bootstrap=s'   => \$opt_bootstrap,
-    'groups=s'      => \$opt_groups,
-    'file=s'        => \$opt_scriptfile,
+    'r|replace'     => \$opt_replace,
+    'i|ipaddr=s'    => \$opt_ipaddr,
+    'm|netmask=s'   => \$opt_netmask,
+    'n|netdev=s'    => \$opt_netdev,
+    'V|vnfs=s'      => \$opt_vnfs,
+    'b|bootstrap=s' => \$opt_bootstrap,
+    'g|groups=s'    => \$opt_groups,
+    'f|file=s'      => \$opt_scriptfile,
     'l|listen=s'    => \$opt_listen,
-    'tcpdump=s'     => \$opt_tcpdump
+    'c|tcpdump=s'   => \$opt_tcpdump
 );
 
 if ($opt_help || !scalar(@ARGV)) {
     print $help;
-    exit 0;
+    exit(0);
 }
 @nodenames = &expand_bracket(@ARGV);
 
@@ -118,7 +117,7 @@ if ($opt_debug) {
 
 if (! &uid_test(0)) {
     &eprint("Must be root to run $0\n");
-    exit 1;
+    exit(1);
 }
 
 $net = Warewulf::Network->new();
@@ -135,8 +134,6 @@ if ($opt_testmode) {
     }
 } else {
     $datastore = Warewulf::DataStore->new();
-    $events = Warewulf::EventHandler->new();
-    $events->eventloader();
 
     if ($opt_vnfs) {
         my $vnfs = $datastore->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
@@ -145,7 +142,7 @@ if ($opt_testmode) {
             $vnfsid = $vnfs->id();
         } else {
             &eprint("VNFS \"$opt_vnfs\" does not exist\n");
-            exit 1;
+            exit(1);
         }
     }
 
@@ -156,7 +153,7 @@ if ($opt_testmode) {
             $bootstrapid = $bootstrap->id();
         } else {
             &eprint("BOOTSTRAP \"$opt_bootstrap\" does not exist\n");
-            exit 1;
+            exit(1);
         }
     }
 
@@ -166,23 +163,25 @@ if ($opt_testmode) {
             print SCRIPTFILE "#!/bin/env wwsh\n\n";
         } else {
             &eprint("Script filename has illegal characters\n");
-            exit 1;
+            exit(1);
         }
     }
 
-    if (! $opt_ipaddr) {
-        &eprint("Starting IP address is required (e.g., --ipaddr 10.0.1.0).\n");
-        exit 1;
-    }
+    if (! $opt_replace) {
+        if (! $opt_ipaddr) {
+            &eprint("Starting IP address is required (e.g., --ipaddr 10.0.1.0).\n");
+            exit(1);
+        }
 
-    if (! $opt_netmask) {
-        &eprint("Netmask is required (e.g., --netmask 255.255.0.0).\n");
-        exit 1;
-    }
+        if (! $opt_netmask) {
+            &eprint("Netmask is required (e.g., --netmask 255.255.0.0).\n");
+            exit(1);
+        }
 
-    if (! $opt_netdev) {
-        &iprint("Assuming the nodes are booting over eth0");
-        $opt_netdev = "eth0"
+        if (! $opt_netdev) {
+            &iprint("Assuming the nodes are booting over eth0");
+            $opt_netdev = "eth0"
+        }
     }
 }
 
@@ -206,16 +205,29 @@ if ($opt_tcpdump =~ /^([^\`\$]+)$/) {
     $opt_tcpdump = $1;
 } else {
     &eprint("Invalid value passed to --tcpdump:  \"$opt_tcpdump\"\n");
-    exit 1;
+    exit(1);
 }
 
 # Turn the IP address into an integer so we can increment it easily.
-$ipaddr_bin = $net->ip_serialize($opt_ipaddr);
+if ($opt_ipaddr) {
+    $ipaddr_bin = $net->ip_serialize($opt_ipaddr);
+} else {
+    $ipaddr_bin = 0;
+}
+
+# Calculate the maximum possible IP address in our range (based on netmask).
+if ($opt_netmask) {
+    my $netmask_bin = $net->ip_serialize($opt_netmask);
+
+    $ipaddr_max = ($ipaddr_bin & $netmask_bin) | (~$netmask_bin);
+} else {
+    $ipaddr_max = 0xffffffff;
+}
 
 &dprint("Using tcpdump command line:  \"$opt_tcpdump\"\n");
 if (! open(TCPDUMP, "exec $opt_tcpdump 2>&1 |")) {
     &eprint("Unable to run \"$opt_tcpdump\" -- $!\n");
-    exit 1;
+    exit(1);
 }
 
 &iprint("Scanning for node(s)...\n");
@@ -227,59 +239,122 @@ while (my $line = <TCPDUMP>) {
     }
     if ($line =~ /\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})\s+/) {
         my $hwaddr = $1;
+        my ($node, $name, $ip);
 
-        if ((! $opt_testmode) && ($datastore->get_objects("node", "_hwaddr", $hwaddr)->get_object(0))) {
-            &iprint("Node is known ($hwaddr)\n");
-        } else {
-            my $name = shift(@nodenames);
-            my $ip = $net->ip_unserialize($ipaddr_bin);
-
-            if ($opt_scriptfile) {
-                my $entry;
-
-                $entry = sprintf("node new %s --netdev=%s --ipaddr=%s --hwaddr=%s%s%s%s%s",
-                                 $name, $opt_netdev, $ip, $hwaddr,
-                                 (($netmask) ? (" --netmask=$netmask") : ("")),
-                                 (($opt_groups) ? (" --groups=$opt_groups") : ("")),
-                                 (($bootstrapid) ? (" -s bootstrapid=$bootstrapid") : ("")),
-                                 (($vnfsid) ? (" -s vnfsid=$vnfsid") : ("")));
-                if ($opt_testmode) {
-                    &nprint("[TEST] Add to script $opt_scriptfile:  $entry\n");
-                } else {
-                    &dprint("Entry for $opt_scriptfile:  $entry\n");
-                    print SCRIPTFILE "$entry\n";
-                    &nprint("Added to script file:  $name:  $ip/$opt_netmask/$hwaddr\n");
-                }
-            } elsif ($opt_testmode) {
-                &nprint("[TEST] Add to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
-            } else {
-                my $new_node = Warewulf::Node->new();
-
-                $new_node->hwaddr($opt_netdev, $hwaddr);
-                $new_node->ipaddr($opt_netdev, $ip);
-                $new_node->netmask($opt_netdev, $netmask);
-
-                $new_node->name($name);
-# TODO: This needs to be called via the Warewulf::Provision class (yet to
-# be created)
-                $new_node->set("bootstrapid", $bootstrapid);
-                $new_node->set("vnfsid", $vnfsid);
-                if ($opt_groups) {
-                    $new_node->groups(split(",", $opt_groups));
-                }
-
-                $datastore->persist($new_node);
-
-                &nprint("Added to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
-            }
-
-            if (scalar(@nodenames) == 0) {
-                &iprint("Done.\n");
-                last;
-            }
-
-            $ipaddr_bin++;
+        if (exists($seen{$hwaddr})) {
+            &dprint("Already handled node with hardware address $hwaddr.  Ignoring.\n");
+            next;
         }
+        $seen{$hwaddr} = 1;
+        $name = shift(@nodenames);
+        $ip = $net->ip_unserialize($ipaddr_bin);
+
+        if (! $opt_testmode) {
+            # Check to see if hardware address is already associated with a node.
+            if ($datastore->get_objects("node", "_hwaddr", $hwaddr)->count()) {
+                &iprint("Node is known ($hwaddr)\n");
+                next;
+            }
+
+            # Avoid IP address conflicts.
+            while ($node = $datastore->get_objects("node", "_ipaddr", $ip)->get_object(0)) {
+                &wprintf("Node %s (node #%d, hardware address %s) already uses IP address $ip; skipping.\n",
+                         scalar($node->name()), $node->id(), ($node->get("_hwaddr")->[0] || "unknown"));
+                $ip = $net->ip_unserialize(++$ipaddr_bin);
+                if ($ipaddr_bin > $ipaddr_max) {
+                    &eprint("Unable to add new node $hwaddr -- Reached end of IP range (%s)\n",
+                            $net->ip_unserialize($ipaddr_max));
+                    exit(1);
+                }
+            }
+
+            if ($opt_replace) {
+                $node = $datastore->get_objects("node", "name", $name)->get_object(0);
+                if ($node) {
+                    my $devname = $opt_netdev || "";
+                    my $old_hwaddr;
+
+                    # The node already exists, so replace its old info with the new info.
+                    $name = $node->name();
+                    $old_hwaddr = $node->hwaddr($devname);
+                    if ($node->hwaddr($devname, $hwaddr)) {
+                        if ($ipaddr_bin) {
+                            my $old_ipaddr = $node->ipaddr($devname);
+
+                            # Only update the IP address if a starting IP was supplied.
+                            $node->ipaddr($devname, $ip);
+                            &nprintf("Updated $name.%s.ipaddr:  $old_ipaddr -> $ip\n",
+                                     ($devname || "<default>"));
+                        }
+                        &nprintf("Updated $name.%s.hwaddr:  $old_hwaddr -> $hwaddr\n",
+                                 ($devname || "<default>"));
+                        $datastore->persist($node);
+                    }
+                    next;
+                }
+                # ELSE:  Fall through to adding a new node.
+            } else {
+                # Avoid node name conflicts
+                while ($node = $datastore->get_objects("node", "name", $name)->get_object(0)) {
+                    &wprintf("Node $name already exists (node #%d, hardware address %s); skipping.\n",
+                             $node->id(), ($node->get("_hwaddr")->[0] || "unknown"));
+                    $name = shift(@nodenames);
+                    if (! $name) {
+                        &eprint("Unable to add new node $hwaddr -- Node name range exhausted.\n");
+                        exit(1);
+                    }
+                }
+            }
+        }
+
+        if ($opt_scriptfile) {
+            my $entry;
+
+            $entry = sprintf("node new %s --netdev=%s --ipaddr=%s --hwaddr=%s%s%s%s%s",
+                             $name, $opt_netdev, $ip, $hwaddr,
+                             (($opt_netmask) ? (" --netmask=$opt_netmask") : ("")),
+                             (($opt_groups) ? (" --groups=$opt_groups") : ("")),
+                             (($bootstrapid) ? (" -s bootstrapid=$bootstrapid") : ("")),
+                             (($vnfsid) ? (" -s vnfsid=$vnfsid") : ("")));
+            if ($opt_testmode) {
+                &nprint("[TEST] Add to script $opt_scriptfile:  $entry\n");
+            } else {
+                &dprint("Entry for $opt_scriptfile:  $entry\n");
+                print SCRIPTFILE "$entry\n";
+                &nprint("Added to script file:  $name:  $ip/$opt_netmask/$hwaddr\n");
+            }
+        } elsif ($opt_testmode) {
+            &nprint("[TEST] Add to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
+        } elsif (! $opt_netdev) {
+            &eprint("Unable to add node $hwaddr as $name; netdev-n/--netdev required when adding new nodes.\n");
+            unshift(@nodenames, $name);
+        } else {
+            my $new_node = Warewulf::Node->new();
+
+            $new_node->nodename($name);
+            $new_node->set("bootstrapid", $bootstrapid);
+            $new_node->set("vnfsid", $vnfsid);
+            if (!($new_node->hwaddr($opt_netdev, $hwaddr)
+                  && $new_node->ipaddr($opt_netdev, $ip)
+                  && $new_node->netmask($opt_netdev, $opt_netmask))) {
+                &eprint("Failed to add node due to invalid/missing network device name ($opt_netdev).\n");
+                next;
+            }
+            if ($opt_groups) {
+                $new_node->groups(split(",", $opt_groups));
+            }
+
+            $datastore->persist($new_node);
+
+            &nprint("Added to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
+        }
+
+        if (scalar(@nodenames) == 0) {
+            &iprint("Done.\n");
+            last;
+        }
+
+        $ipaddr_bin++;
     } else {
         &dprint(" -> Does not contain a hardware address?!\n");
     }
