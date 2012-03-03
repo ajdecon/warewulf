@@ -1,12 +1,17 @@
 AC_PREREQ(2.59)
-AC_INIT(warewulf-monitor, 0.0.1, warewulf-devel@lbl.gov)
+AC_INIT([warewulf-monitor],[0.0.1],[warewulf-devel@lbl.gov])
 AC_CONFIG_SRCDIR([.])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_INSTALL
 AM_INIT_AUTOMAKE
 AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_CC
+
+if test -n $prefix; then
+  prefix=/usr/local
+fi
 
 AC_PATH_PROG(PERLBIN, perl)
 if test -z "$PERLBIN"; then
@@ -55,12 +60,27 @@ AC_SUBST(PERL_VENDORLIB)
 
 AC_SUBST(PERLBIN)
 
-AC_OUTPUT(Makefile
+dnl Make it so we can do @[SOMEVAR]@ in a file and
+dnl   have it replaced with the configured path for
+dnl   any of the main variables
+dnl
+dnl We do it through an eval call, as otherwise the
+dnl   the variable is something like:
+dnl       ${prefix}/var
+dnl   and ${prefix} was never expanded.
+AS_IF([test -n $localstatedir], [
+    eval $(echo dir=$localstatedir)
+    AC_SUBST(LOCALSTATEDIR, $dir)
+])
+
+AC_CONFIG_FILES([Makefile
    warewulf-monitor.spec
    src/Makefile
+   src/globals.h
    bin/Makefile
    etc/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
-)
+])
+AC_OUTPUT
 

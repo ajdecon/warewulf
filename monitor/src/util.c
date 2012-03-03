@@ -10,12 +10,30 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <time.h>
+#include <ctype.h>
+#include <json/json.h>
+#include <sqlite3.h>
+#include <sys/utsname.h>
+
 #include "globals.h"
+#include "util.h"
 
-// Any forward declarations
-
-static
-int
+/* Any forward declarations */
+static int
 nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
 {
   int i;
@@ -26,8 +44,7 @@ nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
   return 0;
 }
 
-static
-int
+static int
 getint_callback(void *void_int, int argc, char **argv, char **azColName)
 {
   int *int_value = (int *)void_int;
@@ -37,7 +54,7 @@ getint_callback(void *void_int, int argc, char **argv, char **azColName)
 }
 
 void
-insertLookups(int blobid, json_object *jobj) 
+insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
   //Can we assume 64 bits for rowid ?
@@ -83,7 +100,7 @@ insertLookups(int blobid, json_object *jobj)
 }
 
 void
-updateLookups(int blobid, json_object *jobj) 
+updateLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
   //Can we assume 64 bits for rowid ?
@@ -127,7 +144,7 @@ updateLookups(int blobid, json_object *jobj)
 }
 
 void
-fillLookups(int blobid, json_object *jobj) 
+fillLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
   //Can we assume 64 bits for rowid ?
@@ -177,7 +194,7 @@ fillLookups(int blobid, json_object *jobj)
 }
 
 void
-insert_json(char *nodename, time_t timestamp, json_object *jobj)
+insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 {
 
   char TimeStamp[11];
@@ -206,7 +223,7 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj)
 }
 
 void
-update_json(char *nodename, time_t timestamp, json_object *jobj)
+update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 {
   char TimeStamp[11];
   char *sqlcmd = malloc(MAX_SQL_SIZE);
@@ -235,7 +252,7 @@ update_json(char *nodename, time_t timestamp, json_object *jobj)
 }
 
 void
-insert_update_json(int dbts, char *nodename, time_t timestamp, json_object *jobj)
+insert_update_json(int dbts, char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 {
   char TimeStamp[11];
   char *sqlcmd = malloc(MAX_SQL_SIZE);
@@ -289,7 +306,7 @@ insert_update_json(int dbts, char *nodename, time_t timestamp, json_object *jobj
 }
 
 int 
-NodeBID_fromDB(char *nodename)
+NodeBID_fromDB(char *nodename, sqlite3 *db)
 {
   int rc;
   char *emsg = 0;
@@ -314,7 +331,7 @@ NodeBID_fromDB(char *nodename)
 }
 
 int
-NodeTS_fromDB(char *nodename)
+NodeTS_fromDB(char *nodename, sqlite3 *db)
 {
   int rc;
   char *emsg = 0;
@@ -327,7 +344,7 @@ NodeTS_fromDB(char *nodename)
   strcat(sqlcmd," where nodename='");
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
- 
+
   //printf("TS CMD - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) 
   {
@@ -464,7 +481,7 @@ array_list_print(array_list *ls)
   printf(" ]\n");
 }
 
-void json_parse_complete(json_object *jobj);
+/* void json_parse_complete(json_object *jobj); */
 
 void
 json_parse_complete(json_object *jobj){
@@ -539,17 +556,11 @@ json_object *fast_data_parser(char *file_name, array_list *keys, int num_keys){
   }
 }
 
-// These declarations should go into globals.h --kmuriki
-struct cpu_data{
-  long tj;
-  long wj;
-};
-
 long
-get_jiffs(struct cpu_data *cd)
+get_jiffs(cpu_data *cd)
 {
   long total_jiffs, work_jiffs;
-  int iters, i;
+  int i=0;
   total_jiffs = 0;
   work_jiffs = 0;
   FILE *fp;
@@ -584,7 +595,7 @@ get_jiffs(struct cpu_data *cd)
   }
 }
 
-
+/*
 float
 get_cpu_util_old()
 {
@@ -603,6 +614,7 @@ get_cpu_util_old()
   return (float) work_diff/total_diff*100;
 
 }
+*/
 
 int
 key_exists_in_json(json_object *jobj, char *kname) {

@@ -31,10 +31,12 @@
 #include <sys/utsname.h>
 #include <ctype.h>
 
+#include "getstats.h"
+
 // The Generic Buffersize to use
 #define BUFFERSIZE 511
 
-// Where is the status file to determin the node status
+// Where is the status file to determine the node status
 #define STATUSFILE "/.nodestatus"
 
 // Sleep time inbetween loops

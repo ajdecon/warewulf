@@ -10,7 +10,32 @@
  *
  */
 
-#include "util.c"
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <time.h>
+#include <ctype.h>
+#include <sys/utsname.h>
+
+#include <json/json.h>
+#include <sqlite3.h>
+
+#include "config.h"
+#include "globals.h"
+#include "util.h"
+
+//Database to hold data of each socket -- To be passed all over the place.
+static sqlite3 *db; // database pointer
 
 int
 json_from_db(void *void_json, int ncolumns, char **col_values, char **col_names)
@@ -47,17 +72,17 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
   // If so compare the timestamp values and decide what to do.
 
   int DBTimeStamp = -1;
-  if ( (DBTimeStamp = NodeTS_fromDB(NodeName)) == -1 ) {
-    insert_json(NodeName, TimeStamp, jobj);
+  if ( (DBTimeStamp = NodeTS_fromDB(NodeName, db)) == -1 ) {
+    insert_json(NodeName, TimeStamp, jobj, db);
     int blobid = -1;
-    blobid = NodeBID_fromDB(NodeName);
-    insertLookups(blobid, jobj);
+    blobid = NodeBID_fromDB(NodeName, db);
+    insertLookups(blobid, jobj, db);
 
   } else if ( DBTimeStamp < TimeStamp ) {
-    update_json(NodeName, TimeStamp, jobj);
+    update_json(NodeName, TimeStamp, jobj, db);
     int blobid = -1;
-    blobid = NodeBID_fromDB(NodeName);
-    updateLookups(blobid, jobj);
+    blobid = NodeBID_fromDB(NodeName, db);
+    updateLookups(blobid, jobj, db);
 
   } else if (DBTimeStamp > TimeStamp ) {
     printf("DB has more current record - %d... Skipping update\n",DBTimeStamp);
@@ -350,6 +375,7 @@ main(int argc, char *argv[])
 
   // Get the database ready
   // Attempt to open database & check for failure
+  printf("Attempting to open database: %s\n", SQLITE_DB_FNAME);
   if( rc = sqlite3_open(SQLITE_DB_FNAME, &db)  ){
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);

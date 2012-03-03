@@ -1,6 +1,6 @@
 SUBDIRS = lib bin src etc
 
-MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh depcomp install-sh missing
+MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh depcomp install-sh missing stamp-*
 DISTCLEANFILES = 
 CLEANFILES = 
 EXTRA_DIST = warewulf-monitor.spec

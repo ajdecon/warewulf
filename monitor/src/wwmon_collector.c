@@ -10,8 +10,28 @@
  *
  */
 
-#include "util.c"
-#include "getstats.c"
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <time.h>
+#include <ctype.h>
+#include <json/json.h>
+#include <sqlite3.h>
+
+#include "getstats.h"
+#include "util.h"
+#include "config.h"
 
 #define PROGRAM_TYPE COLLECTOR
 
