@@ -543,7 +543,7 @@ exec()
             } elsif ($command eq "list" or $command eq "ls") {
                 #&nprint("NAME               FORMAT       SIZE(K)  FILE PATH\n");
                 #&nprint("================================================================================\n");
-                &iprintf("%-10s %10s %s %-16s %9s %s\n",
+                &iprintf("%-16s  %10s %s %-16s %9s %s\n",
                     "NAME", "PERMS", "O", "USER GROUP", "SIZE", "DEST");
                 foreach my $obj ($objSet->get_list()) {
                     my $perms = "-";
@@ -568,8 +568,8 @@ exec()
                     }
                     my $user_group = getpwuid($obj->uid() || "0") ." ". getgrgid($obj->gid() || "0");
                     my @o = $obj->origin();
-                    printf("%-10s %10s %d %-16s %9d %s\n",
-                        $obj->name() .":",
+                    printf("%-16s: %10s %d %-16s %9d %s\n",
+                        $obj->name(),
                         $perms || "UNDEF",
                         scalar @o,
                         $user_group,
@@ -581,16 +581,16 @@ exec()
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->get("name") || "UNDEF";
                     &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                    printf("%15s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
-                    printf("%15s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
-                    printf("%15s: %-16s = %s\n", $name, "MODE", (sprintf("%04o", $obj->mode()) || "UNDEF"));
-                    printf("%15s: %-16s = %s\n", $name, "UID", $obj->uid());
-                    printf("%15s: %-16s = %s\n", $name, "GID", $obj->gid());
+                    printf("%-16s: %-16s = %s\n", $name, "ID", ($obj->id() || "ERROR"));
+                    printf("%-16s: %-16s = %s\n", $name, "NAME", ($obj->name() || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "PATH", ($obj->path() || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
+                    printf("%-16s: %-16s = %s\n", $name, "MODE", (sprintf("%04o", $obj->mode()) || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "UID", $obj->uid());
+                    printf("%-16s: %-16s = %s\n", $name, "GID", $obj->gid());
                 }
             } else {
                 &eprint("Invalid command: $command\n");
