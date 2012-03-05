@@ -339,7 +339,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --hwaddr requires the --netdev option for: $nodename\n");
-                                next;
+                                return;
                             }
                         }
                         $o->hwaddr($opt_netdev, $1);
@@ -365,7 +365,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --ipaddr requires the --netdev option for: $nodename\n");
-                                next;
+                                return;
                             }
                         }
                         $o->ipaddr($opt_netdev, Warewulf::Network->ip_unserialize($ip_serialized));
@@ -391,7 +391,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --netmask requires the --netdev option for: $nodename\n");
-                                next;
+                                return;
                             }
                         }
                         $o->netmask($opt_netdev, $1);
@@ -416,7 +416,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --fqdn requires the --netdev option for: $nodename\n");
-                                next;
+                                return;
                             }
                         }
                         $o->fqdn($opt_netdev, $opt_fqdn);
