@@ -184,15 +184,15 @@ update_datastore()
         $fileobj->set("name", $name);
     }
 
-    my $binstore = $datastore->binstore($fileobj->get("_id"));
+    my $binstore = $datastore->binstore($fileobj->id());
 
-    $fileobj->set("checksum", md5_hex($hosts));
-    $fileobj->set("path", "/etc/hosts");
-    $fileobj->set("format", "data");
-    $fileobj->set("size", $len);
-    $fileobj->set("uid", "0");
-    $fileobj->set("gid", "0");
-    $fileobj->set("mode", "0644");
+    $fileobj->checksum(md5_hex($hosts));
+    $fileobj->path("/etc/hosts");
+    $fileobj->format("data");
+    $fileobj->size($len);
+    $fileobj->uid("0");
+    $fileobj->gid("0");
+    $fileobj->mode(oct("0644"));
 
     $datastore->persist($fileobj);
 
