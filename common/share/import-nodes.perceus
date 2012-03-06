@@ -43,26 +43,39 @@ my $net = Warewulf::Network->new();
 
 open(NODES, "perceus node show @nodes |");
 while(my $line = <NODES>) {
+    my $name;
+    my $nodename;
+    my $cluster;
+    my $domain;
     chomp($line);
-    if ($line =~ /^([a-zA-Z0-9\-_\.]+):\s+nodeid=([a-zA-Z0-9:]+)$/) {
-        $nodes{"$1"}{"HWADDR"} = $2;
-    }
-    if ($line =~ /^([a-zA-Z0-9\-_\.]+):\s+ipaddr=([0-9\.]+)$/) {
-        $nodes{"$1"}{"IPADDR"} = $net->ip_unserialize($2);
+    if ($line =~ /^([a-zA-Z0-9_\-\.]+):\s+/) {
+        $name = $1;
+        ($nodename, $cluster, $domain) = split(/\./, $name, 3);
+        $nodes{"$name"}{"NODENAME"} = $nodename;
+        $nodes{"$name"}{"CLUSTER"} = $cluster;
+        $nodes{"$name"}{"DOMAIN"} = $domain;
+        if ($line =~ /^([a-zA-Z0-9\-_\.]+):\s+nodeid=([a-zA-Z0-9:]+)$/) {
+            $nodes{"$name"}{"HWADDR"} = lc($2);
+        }
+        if ($line =~ /^([a-zA-Z0-9\-_\.]+):\s+ipaddr=([0-9\.]+)$/) {
+            $nodes{"$name"}{"IPADDR"} = $net->ip_unserialize($2);
+        }
     }
 }
 close NODES;
 
 
-open(TMPFILE, "> /tmp/.$rand");
 foreach my $name (sort keys %nodes) {
     my $hwaddr = $nodes{"$name"}{"HWADDR"};
     my $ipaddr = $nodes{"$name"}{"IPADDR"};
+    my $nodename = $nodes{"$name"}{"NODENAME"} || $name;
+    my $command = "node new $nodename --netdev=$opt_netdev --hwaddr=$hwaddr --ipaddr=$ipaddr ";
 
-    print TMPFILE "node new $name --hwaddr=$hwaddr --ipaddr=$ipaddr --netdev=$opt_netdev\n";
+    if ($nodes{"$name"}{"CLUSTER"}) {
+        $command .= "--cluster=". $nodes{"$name"}{"CLUSTER"} ." ";
+    }
+    if ($nodes{"$name"}{"DOMAIN"}) {
+        $command .= "--domain=". $nodes{"$name"}{"DOMAIN"} ." ";
+    }
+    print $command ."\n";
 }
-close TMPFILE;
-
-system("wwsh /tmp/.$rand");
-
-unlink("/tmp/.$rand");
