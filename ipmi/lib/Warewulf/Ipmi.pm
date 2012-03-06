@@ -147,7 +147,7 @@ ipmi_proto()
 }
 
 
-=item ipmi_provision($bool)
+=item ipmi_autoconfig($bool)
 
 Automatically configure the node's IPMI interface for network access
 during provision time. This will require the following IPMI paramaters to
@@ -163,10 +163,10 @@ note: This will take a boolean true (!=0) or false (0).
 =cut
 
 sub
-ipmi_provision()
+ipmi_autoconfig()
 {
     my ($self, $value) = @_; 
-    my $key = "ipmi_provision";
+    my $key = "ipmi_autoconfig";
 
     if ($value) {
         if ($value eq "0") {
@@ -175,7 +175,7 @@ ipmi_provision()
             if ($self->ipmi_ipaddr() and $self->ipmi_netmask() and $self->ipmi_username() and $self->ipmi_password()) {
                 $self->set($key, "1");
             } else {
-                &eprint("Could not set ipmi_provision() because requirements not met\n");
+                &eprint("Could not set ipmi_autoconfig() because requirements not met\n");
             }
         }
     }

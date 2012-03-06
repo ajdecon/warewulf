@@ -273,11 +273,33 @@ exec()
             }
         }
         if ($opt_autoconfig) {
+            my $set_username;
+            my $set_password;
             foreach my $o ($objSet->get_list()) {
-                $o->ipmi_autoconfig(1);
+                if ($o->ipmi_ipaddr() and $o->ipmi_netmask()) {
+                    if (! $o->ipmi_username()) {
+                        $o->ipmi_username("wwipmi");
+                        $set_username = 1;
+                    }
+                    if (! $o->ipmi_password()) {
+                        $o->ipmi_password(&rand_string(8));
+                        $set_password = 1;
+                    }
+                    $o->ipmi_autoconfig(1);
+                    push(@changes, sprintf("     SET: %-20s\n", "AUTOCONFIG"));
+                    if ($set_username) {
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "USERNAME", "wwipmi"));
+                    }
+                    if ($set_password) {
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "PASSWORD", "?"x8));
+                    }
+                    $persist_bool = 1;
+                } else {
+                    &eprint("The IPMI network is not properly configured for this node!\n");
+                    &nprint("You can set the network using the wwsh command:\n\n");
+                    &nprint("    ipmi set --ipaddr=x.x.x.x --netmask=x.x.x.x [node]\n\n");
+                }
             }
-            push(@changes, sprintf("     SET: %-20s\n", "IPMI_AUTOCONFIG"));
-            $persist_bool = 1;
         }
         if ($opt_noautoconfig) {
             foreach my $o ($objSet->get_list()) {
