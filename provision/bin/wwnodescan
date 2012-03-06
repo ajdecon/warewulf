@@ -193,7 +193,7 @@ if (! $opt_listen) {
 # only want to modify the command if it wasn't specified at all or if only a path
 # to an executable was specified (i.e., it does not contain a space).
 if ((! $opt_tcpdump) || !index($opt_tcpdump, ' ')) {
-    my $default_tcpdump_params = "-i $opt_listen -K -nn -e -l 'dst port bootps and src 0.0.0.0'";
+    my $default_tcpdump_params = "-i $opt_listen -nn -e -l 'dst port bootps and src 0.0.0.0'";
 
     if ($opt_tcpdump) {
         $opt_tcpdump = "$opt_tcpdump $default_tcpdump_params";
