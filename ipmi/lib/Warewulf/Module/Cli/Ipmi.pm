@@ -17,8 +17,7 @@ use Warewulf::Term;
 use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::ParallelCmd;
-use Warewulf::Ipmi::Config;
-use Warewulf::Ipmi::Command;
+use Warewulf::Ipmi;
 use Getopt::Long;
 use Text::ParseWords;
 
@@ -213,65 +212,83 @@ exec()
         &eprint("You must provide a command!\n\n");
         print $self->help();
     } elsif ($command eq "set") {
-        my $ipmi = Warewulf::Ipmi::Config->new();
-        $ipmi->nodeset($objSet);
         if ($opt_ipaddr) {
             if (uc($opt_ipaddr) eq "UNDEF") {
-                $ipmi->ipaddr(undef);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_ipaddr(undef);
+                }
                 push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_IPADDR"));
                 $persist_bool = 1;
             } else {
-                $ipmi->ipaddr($opt_ipaddr);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_ipaddr($opt_ipaddr);
+                }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_IPADDR", $opt_ipaddr));
                 $persist_bool = 1;
             }
         }
         if ($opt_netmask) {
             if (uc($opt_netmask) eq "UNDEF") {
-                $ipmi->netmask(undef);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_netmask(undef);
+                }
                 push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_NETMASK"));
                 $persist_bool = 1;
             } else {
-                $ipmi->netmask($opt_netmask);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_netmask($opt_netmask);
+                }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_NETMASK", $opt_netmask));
                 $persist_bool = 1;
             }
         }
         if ($opt_username) {
             if (uc($opt_username) eq "UNDEF") {
-                $ipmi->username(undef);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_username(undef);
+                }
                 push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_USERNAME"));
                 $persist_bool = 1;
             } else {
-                $ipmi->username($opt_username);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_username($opt_username);
+                }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_USERNAME", $opt_username));
                 $persist_bool = 1;
             }
         }
         if ($opt_password) {
             if (uc($opt_password) eq "UNDEF") {
-                $ipmi->password(undef);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_password(undef);
+                }
                 push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_PASSWORD"));
                 $persist_bool = 1;
             } else {
-                $ipmi->password($opt_password);
+                foreach my $o ($objSet->get_list()) {
+                    $o->ipmi_password($opt_password);
+                }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PASSWORD", $opt_password));
                 $persist_bool = 1;
             }
         }
         if ($opt_autoconfig) {
-            $ipmi->autoconfig(1);
+            foreach my $o ($objSet->get_list()) {
+                $o->ipmi_autoconfig(1);
+            }
             push(@changes, sprintf("     SET: %-20s\n", "IPMI_AUTOCONFIG"));
             $persist_bool = 1;
         }
         if ($opt_noautoconfig) {
-            $ipmi->autoconfig();
+            foreach my $o ($objSet->get_list()) {
+                $o->ipmi_autoconfig();
+            }
             push(@changes, sprintf("   UNDEF: %-20s\n", "IPMI_AUTOCONFIGURE"));
             $persist_bool = 1;
         }
 
         if ($persist_bool) {
-            if ($command ne "new" and $term->interactive()) {
+            if ($term->interactive()) {
                 print "Are you sure you want to make the following changes to ". $object_count ." node(s):\n\n";
                 foreach my $change (@changes) {
                     print $change;
@@ -290,9 +307,17 @@ exec()
         }
 
     } elsif ($command eq "poweron") {
-        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
-        $ipmi_cmd->nodeset($objSet);
-        $ipmi_cmd->poweron();
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("poweron");
+            if ($cmd) {
+                $parallel->queue("echo ". $cmd);
+            }
+        }
+        $parallel->run();
+
     } elsif ($command eq "powercycle") {
         my $ipmi_cmd = Warewulf::Ipmi::Command->new();
         $ipmi_cmd->nodeset($objSet);
@@ -307,7 +332,7 @@ exec()
         $ipmi_cmd->powerstatus();
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
+            my $name = $o->name() || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                $name .= ".$cluster";
             }
@@ -323,7 +348,7 @@ exec()
         &nprintf("%-19s %-4s    %-14s %-14s\n", "NAME(.CLUSTER)", "AUTO", "IPMI_IPADDR", "IPMI_NETMASK");
         &nprint("================================================================================\n");
         foreach my $o ($objSet->get_list()) {
-            my $name = $o->get("name") || "UNDEF";
+            my $name = $o->name() || "UNDEF";
             if (my ($cluster) = $o->get("cluster")) {
                $name .= ".$cluster";
             }

@@ -14,6 +14,7 @@ use Warewulf::Object;
 use Warewulf::Node;
 use Warewulf::Network;
 use Warewulf::Logger;
+use Warewulf::Util;
 
 our @ISA = ('Warewulf::Object');
 
@@ -55,42 +56,9 @@ Set or return the IPMI IPv4 address of this object.
 sub
 ipmi_ipaddr()
 {
-    my ($self, $string) = @_;
-    my $key = "ipmi_ipaddr";
-    my $ret;
+    my $self = shift;
 
-    if ($string) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-            $self->del("ipmi_provision");
-        } elsif ($string =~ /^((\d{1,3}\.){3}\d+)$/) {
-            my $name = $self->get("name");
-            my $serialized = Warewulf::Network->ip_serialize($1);
-            if ($serialized) {
-                &dprint("Object $name set $key = '$serialized'\n");
-                $self->set($key, $serialized);
-            } else {
-                &eprint("Could not properly serialize IP address: $string\n");
-            }
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    $ret = $self->get($key);
-
-    if ($ret) {
-        my $unserialized = Warewulf::Network->ip_unserialize($ret);
-        if ($unserialized) {
-            $ret = $unserialized;
-        } else {
-            &eprint("Could not unserialize IP data: $ret\n");
-        }
-    }
-
-    return($ret);
+    return $self->prop("ipmi_ipaddr", qr/^((\d{1,3}\.){3}\d+)$/, @_);
 }
 
 
@@ -163,14 +131,16 @@ ipmi_proto()
 {
     my ($self, $value) = @_; 
 
-    if ($value eq "lan" or
-            $value eq "lanplus" or
-            $value eq "open" or
-            $value eq "free" or
-            $value eq "ibm" or
-            $value eq "bmc" or
-            $value eq "lipmi") {
-        $self->set("ipmi_proto", $value);
+    if ($value) {
+        if ( $value eq "lan" or
+                $value eq "lanplus" or
+                $value eq "open" or
+                $value eq "free" or
+                $value eq "ibm" or
+                $value eq "bmc" or
+                $value eq "lipmi") {
+            $self->set("ipmi_proto", $value);
+        }
     }
 
     return($self->get("ipmi_proto") || "lan");
@@ -232,6 +202,7 @@ ipmi_command()
     my $username = $self->ipmi_username();
     my $password = $self->ipmi_password();
     my $proto = $self->ipmi_proto();
+    my $name = $self->name() || "UNDEF";
     my $ret = "ipmitool ";
 
     if ($ipaddr and $username and $password and $proto) {
@@ -250,6 +221,10 @@ ipmi_command()
         }
     } else {
         &eprint("Could not build IPMI command for $name, unconfigured requirement(s)\n");
+        &dprint("IPADDR: $ipaddr\n");
+        &dprint("USERNAME: $username\n");
+        &dprint("PASSWORD: $password\n");
+        &dprint("PROTO: $proto\n");
         return()
     }
 
