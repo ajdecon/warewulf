@@ -73,7 +73,9 @@ init()
 
     $self->set("select", $select);
     $self->set("queueset", $queueset);
-    $self->set("fanout", 64);
+    $self->set("fanout", 32);
+    $self->set("wtime", 10);
+    $self->set("ktime", 20);
 
     return($self);
 }
@@ -100,60 +102,48 @@ queue($)
 
 =item fanout()
 
-Number of processes to spawn in parallel.
+Number of processes to spawn in parallel. (default=32)
 
 =cut
 
 sub
 fanout($$)
 {
-    my ($self, $fanout) = @_;
+    my $self = shift;
 
-    if ($fanout and $fanout =~ /^([0-9]+)$/) {
-        $self->set("fanout", $1);
-    }
-
-    return $self->get("fanout");
+    return $self->prop("fanout", qr/^([0-9]+)$/, @_);
 }
 
 
 =item wtime()
 
 How many seconds to wait before throwing a warning to the user that a command is
-still running. If undefined, no warning will be given.
+still running. If undefined, no warning will be given. (default=10)
 
 =cut
 
 sub
 wtime($$)
 {
-    my ($self, $wtime) = @_;
+    my $self = shift;
 
-    if ($wtime and $wtime =~ /^([0-9]+)$/) {
-        $self->set("wtime", $1);
-    }
-
-    return $self->get("wtime");
+    return $self->prop("wtime", qr/^([0-9]+)$/, @_);
 }
 
 
 =item ktime()
 
 How many seconds to wait before killing the processes. If undefined, the
-process will wait indefinitely.
+process will wait indefinitely. (default=20)
 
 =cut
 
 sub
 ktime($$)
 {
-    my ($self, $ktime) = @_;
+    my $self = shift;
 
-    if ($ktime and $ktime =~ /^([0-9]+)$/) {
-        $self->set("ktime", $1);
-    }
-
-    return $self->get("ktime");
+    return $self->prop("ktime", qr/^([0-9]+)$/, @_);
 }
 
 
@@ -169,9 +159,9 @@ pcount($$)
     my ($self, $increment) = @_;
 
     if ($increment and $increment =~ /^\+([0-9]+)$/) {
-        $self->set("pcount", $self->get("pcount") + $1);
+        $self->set("pcount", ($self->get("pcount") || 0) + $1);
     } elsif ($increment and $increment =~ /^\-([0-9]+)$/) {
-        $self->set("pcount", $self->get("pcount") - $1);
+        $self->set("pcount", ($self->get("pcount") || 0) - $1);
     }
 
     return $self->get("pcount") || 0;
@@ -192,18 +182,19 @@ run($)
     my $queueset = $self->get("queueset");
     my $fanout = $self->fanout();
     my @queueobjects = $queueset->get_list();
+    my $time = time;
+    my $timer = 1;
 
     # Spawning the initial fanout within the queue
     while ($self->pcount() < $fanout && @queueobjects) {
         $self->forkobj(shift(@queueobjects));
     }
 
-    my $timer = 1;
-    while ($select->count() > 0) {
+    while ($self->pcount() > 0) {
         my $timeleft = $timer+$time - time;
         &dprint("can_read($timeleft) engaged\n");
         my @ready = $select->can_read($timeleft);
-        $time = time();
+        $time = time;
         if (scalar(@ready)) {
             &dprint("got FH activity\n");
             foreach my $fh (@ready) {
@@ -224,14 +215,18 @@ run($)
                 } else {
                     $self->closefh($fh);
                 }
-
-                while ($self->pcount() < $fanout && @queueobjects) {
-                    $self->forkobj(shift(@queueobjects));
-                }
             }
         }
+
         &dprint("Invoking the timer\n");
         $self->timer();
+
+        while ($self->pcount() < $fanout && @queueobjects) {
+            &dprint("Forking another command\n");
+            $self->forkobj(shift(@queueobjects));
+        }
+
+        &dprint("Finished main loop\n");
     }
 }
 
@@ -318,11 +313,12 @@ timer($)
                 &wprint("Process $pid still running ($command)\n");
                 $obj->set("warning", 1);
             } elsif ($ktime and $curtime > ($starttime + $ktime)) {
-                &wprint("Killing process $pid ($command)\n");
                 my $fh = $obj->get("fh");
+                &wprint("Killing process $pid ($command)\n");
                 kill("TERM", $pid);
                 kill("INT", $pid);
                 kill("KILL", $pid);
+                $self->closefh($fh);
             }
         }
     }
