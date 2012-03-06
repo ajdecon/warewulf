@@ -155,7 +155,7 @@ find($$$)
     }
 
     foreach my $obj (@{$self->{"ARRAY"}}) {
-        if ($obj->get($key) eq $val) {
+        if ($obj->get($key) and $obj->get($key) eq $val) {
             push(@ret, $obj);
         }
     }
