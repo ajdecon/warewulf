@@ -397,3 +397,7 @@ functionality.
 RFE from Greg:  When debugging, add caller information to warning and
 error messages too.
 ----------------------------------------------------------------------
+Fri Mar  9 15:40:26 2012                        Michael Jennings (mej)
+
+Work in progress:  Cleaning up and optimizing MySQL.pm.
+----------------------------------------------------------------------

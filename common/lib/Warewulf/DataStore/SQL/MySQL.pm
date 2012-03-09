@@ -50,7 +50,7 @@ serialize($)
 {
     my ($self, $hashref) = @_;
 
-    return(freeze($hashref));
+    return freeze($hashref);
 }
 
 sub
@@ -58,7 +58,7 @@ unserialize($)
 {
     my ($self, $serialized) = @_;
 
-    return(thaw($serialized));
+    return thaw($serialized);
 }
 
 
@@ -78,7 +78,7 @@ new()
         $singleton->init();
     }
 
-    return($singleton);
+    return $singleton;
 }
 
 
@@ -88,36 +88,33 @@ sub
 init()
 {
     my $self = shift;
-    my $config = Warewulf::Config->new("database.conf");
-    my $db_server = $config->get("database server");
-    my $db_name = $config->get("database name");
-    my $db_user = $config->get("database user");
-    my $db_pass = $config->get("database password");
  
     if ($self && exists($self->{"DBH"}) && $self->{"DBH"}) {
         &dprint("DB Singleton exists, not going to initialize\n");
     } else {
+        my $config = Warewulf::Config->new("database.conf");
+        my $db_server = $config->get("database server");
+        my $db_name = $config->get("database name");
+        my $db_user = $config->get("database user");
+        my $db_pass = $config->get("database password");
 
         if ($db_name and $db_server and $db_user) {
             &dprint("DATABASE NAME:      $db_name\n");
             &dprint("DATABASE SERVER:    $db_server\n");
             &dprint("DATABASE USER:      $db_user\n");
 
-            $self->{"DBH"} = DBI->connect("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-            if ( $self->{"DBH"}) {
+            $self->{"DBH"} = DBI->connect_cached("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
+            if ($self->{"DBH"}) {
                 &iprint("Successfully connected to database!\n");
             } else {
-                die "Could not connect to DB: $!!\n";
+                die "Could not connect to DB: $DBI::errstr!\n";
             }
-            $self->{"DBH"}->{mysql_auto_reconnect} = 1;
-
+            $self->{"DBH"}->{"mysql_auto_reconnect"} = 1;
         } else {
             &dprint("Undefined credentials for database\n");
-            return();
+            return undef;
         }
     }
-
-
     return $self;
 }
 
@@ -132,13 +129,16 @@ sub
 chunk_size()
 {
     my $self = shift;
+    my $max_allowed_packet;
 
-    my (undef, $max_allowed_packet) =  $self->{"DBH"}->selectrow_array("show variables LIKE 'max_allowed_packet'");
-
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
+    (undef, $max_allowed_packet) =  $self->{"DBH"}->selectrow_array("show variables LIKE 'max_allowed_packet'");
     &dprint("max_allowed_packet: $max_allowed_packet\n");
     &dprint("Returning max_allowed_packet - 786432\n");
 
-    return($max_allowed_packet-786432);
+    return ($max_allowed_packet - 786432);
 }
 
 
@@ -154,11 +154,14 @@ get_objects($$$@)
     my $field = shift;
     my @strings = @_;
     my $objectSet;
+    my $sth;
+    my $sql_query;
     my @query_opts;
 
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
     $objectSet = Warewulf::ObjectSet->new();
-
-    my $sql_query;
 
     if ($type) {
         push(@query_opts, "datastore.type = ". $self->{"DBH"}->quote($type));
@@ -182,8 +185,7 @@ get_objects($$$@)
     $sql_query .= "GROUP BY datastore.id";
 
     dprint("$sql_query\n");
-
-    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();
 
     while (my $h = $sth->fetchrow_hashref()) {
@@ -192,6 +194,7 @@ get_objects($$$@)
         my $o = Warewulf::DSO->unserialize($h->{"serialized"});
         my $modname = ucfirst($type);
         my $modfile = "Warewulf/$modname.pm";
+
         if (exists($INC{"$modfile"})) {
             if (ref($o) eq "HASH") {
                 &iprint("Working around old datatype format for type: $type\n");
@@ -206,7 +209,7 @@ get_objects($$$@)
         $objectSet->add($o);
     }
 
-    return($objectSet);
+    return $objectSet;
 }
 
 
@@ -219,22 +222,23 @@ get_data($)
 {
     my $self = shift;
     my $db_id = shift;
+    my $href;
 
-    my $sql_query;
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
+    if (!exists($self->{"STH_GETDATA"})) {
+        my $sql_query;
 
-    $sql_query  = "SELECT ";
-    $sql_query .= "datastore.data AS data ";
-    $sql_query .= "FROM datastore ";
-    $sql_query .= "WHERE datastore.id = ". $self->{"DBH"}->quote($db_id);
+        $sql_query = "SELECT datastore.data AS data FROM datastore WHERE %s"
+            . "datastore.id = " . $self->{"DBH"}->quote($db_id);
+        $self->{"STH_GETDATA"} = $self->{"DBH"}->prepare($sql_query);
+        dprint("$sql_query\n\n");
+    }
+    $self->{"STH_GETDATA"}->execute();
+    $href = $self->{"STH_GETDATA"}->fetchrow_hashref();
 
-    dprint("$sql_query\n\n");
-
-    my $sth = $self->{"DBH"}->prepare($sql_query);
-    $sth->execute();
-
-    my $h = $sth->fetchrow_hashref();
-
-    return(exists($h->{"data"}) ? $h->{"data"} : undef);
+    return ((exists($href->{"data"})) ? ($href->{"data"}) : (undef));
 }
 
 
@@ -245,16 +249,20 @@ get_data($)
 sub
 set_data($)
 {
-    my $self = shift;
-    my $db_id = shift;
-    my $data = shift;
+    my ($self, $db_id, $data) = @_;
 
-    if ($db_id) {
-        my $sth = $self->{"DBH"}->prepare("UPDATE datastore SET data = ? WHERE id = ?");
-        $sth->execute($data, $db_id) or die $self->{"DBH"}->errstr;
+    if (! $self->{"DBH"}) {
+        $self->init();
     }
-
-    return();
+    if ($db_id) {
+        if (!exists($self->{"STH_SETDATA"})) {
+            $self->{"STH_SETDATA"} = $self->{"DBH"}->prepare("UPDATE datastore SET data = ? WHERE id = ?");
+        }
+        if (!$self->{"STH_SETDATA"}->execute($data, $db_id)) {
+            die $self->{"STH_SETDATA"}->errstr();
+        }
+    }
+    return;
 }
 
 
@@ -271,9 +279,12 @@ get_lookups($$$@)
     my @strings = @_;
     my @query_opts;
     my @ret;
-
     my $sql_query;
+    my $sth;
 
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
     if ($type) {
         push(@query_opts, "datastore.type = ". $self->{"DBH"}->quote($type));
     }
@@ -295,8 +306,7 @@ get_lookups($$$@)
     $sql_query .= "GROUP BY lookup.value";
 
     dprint("$sql_query\n\n");
-
-    my $sth = $self->{"DBH"}->prepare($sql_query);
+    $sth = $self->{"DBH"}->prepare($sql_query);
     $sth->execute();
 
     while (my $h = $sth->fetchrow_hashref()) {
@@ -305,7 +315,7 @@ get_lookups($$$@)
         }
     }
 
-    return(@ret);
+    return @ret;
 }
 
 
@@ -320,6 +330,10 @@ persist($$)
     my $event = Warewulf::EventHandler->new();
     my %events;
     my @objlist;
+
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
 
     $event->eventloader();
 
@@ -346,6 +360,7 @@ persist($$)
 
             if (! $id) {
                 my $sth;
+
                 &dprint("Persisting object as new\n");
                 $event->handle("$type.new", $o);
                 $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
@@ -365,19 +380,25 @@ persist($$)
             $sth->execute($id);
 
             if ($o->can("lookups")) {
+                my $sth;
                 my @add_lookups;
+
                 foreach my $l ($o->lookups) {
                     my @lookups = $o->get($l);
+
                     if (scalar(@lookups)) {
                         foreach my $value (@lookups) {
-                            push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",". $self->{"DBH"}->quote($value || "UNDEF") .",". $self->{"DBH"}->quote($id) .")");
+                            push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l))
+                                 .",". $self->{"DBH"}->quote($value || "UNDEF")
+                                 .",". $self->{"DBH"}->quote($id) .")");
                         }
                     } else {
-                        push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l)) .",'UNDEF',". $self->{"DBH"}->quote($id) .")");
+                        push(@add_lookups, "(". $self->{"DBH"}->quote(uc($l))
+                             .",'UNDEF',". $self->{"DBH"}->quote($id) .")");
                     }
                 }
                 &dprint("SQL: INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups) ."\n");
-                my $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
+                $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
                 $sth->execute();
             } else {
                 dprint("Not adding lookup entries\n");
@@ -389,10 +410,8 @@ persist($$)
     foreach my $e (keys %events) {
         $event->handle($e, @{$events{"$e"}});
     }
-    return(scalar(@objlist));
+    return scalar(@objlist);
 }
-
-
 
 
 =item del_object($objectSet);
@@ -407,6 +426,9 @@ del_object($$)
     my %events;
     my @objlist;
 
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
     if (ref($object) eq "Warewulf::ObjectSet") {
         @objlist = $object->get_list();
     } elsif (ref($object) =~ /^Warewulf::/) {
@@ -421,6 +443,7 @@ del_object($$)
 
         if ($id) {
             my $sth;
+
             dprint("Deleting object from the datastore: ID=$id\n");
             $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             $sth->execute($id);
@@ -433,7 +456,7 @@ del_object($$)
         }
     }
 
-    return(scalar(@objlist));
+    return scalar(@objlist);
 }
 
 =item add_lookup($entity, $type, $field, $value)
@@ -443,18 +466,20 @@ del_object($$)
 sub
 add_lookup($$$$)
 {
-    my $self = shift;
-    my $object = shift;
-    my $field = shift;
-    my $value = shift;
+    my ($self, $object, $field, $value) = @_;
 
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
     dprint("Hello from add_lookup()\n");
     if ($object and $type and $field and $value) {
         if (ref($object) eq "Warewulf::ObjectSet") {
             foreach my $o ($object->get_list()) {
                 if (my $id = $o->get("_id")) {
+                    my $sth;
+
                     dprint("Adding a lookup entry for: $field and $value and $id\n");
-                    my $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
+                    $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
                     $sth->execute(uc($field), $value, $id);
                 } else {
                     &wprint("No ID found for object!\n");
@@ -462,8 +487,10 @@ add_lookup($$$$)
             }
         } elsif (ref($object) =~ /^Warewulf::/) {
             if (my $id = $object->get("_id")) {
+                my $sth;
+
                 dprint("Adding a lookup entry for: $field and $value and $id\n");
-                my $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
+                $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
                 $sth->execute(uc($field), $value, $id);
             } else {
                 &wprint("No ID found for object!\n");
@@ -471,7 +498,7 @@ add_lookup($$$$)
         }
     }
 
-    return();
+    return;
 }
 
 =item del_lookup($entity [$type, $field, $value])
@@ -481,57 +508,67 @@ add_lookup($$$$)
 sub
 del_lookup($$$$)
 {
-    my $self = shift;
-    my $object = shift;
-    my $type = shift;
-    my $field = shift;
-    my $value = shift;
+    my ($self, $object, $type, $field, $value) = @_;
+    my $query;
+    my @bindvals;
 
+    if (! $self->{"DBH"}) {
+        $self->init();
+    }
     if (ref($object) eq "Warewulf::ObjectSet") {
         foreach my $o ($object->get_list()) {
             my $id = $o->get("_id");
-            if ($id and $type and $field and $value) {
-                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
-                $sth->execute($type, $field, $value, $id);
-            } elsif ($id and $type and $field) {
-                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND object_id = ?");
-                $sth->execute($type, $field, $id);
-            } elsif ($id and $type) {
-                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND object_id = ?");
-                $sth->execute($type, $id);
-            } elsif ($id) {
-                my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
-                $sth->execute($id);
+
+            if ($id) {
+                $query = "DELETE FROM lookup WHERE object_id = ?";
+                @bindvals = ($id);
+                if ($type) {
+                    $query .= " AND type = ?";
+                    push @bindvals, $type;
+                }
+                if ($field) {
+                    $query .= " AND field = ?";
+                    push @bindvals, $field;
+                }
+                if ($value) {
+                    $query .= " AND value = ?";
+                    push @bindvals, $value;
+                }
+                $sth->execute(@bindvals);
             } else {
                 &wprint("No ID found for object!\n");
             }
         }
     } elsif (ref($object) =~ /^Warewulf::/) {
         my $id = $object->get("_id");
-        if ($id and $type and $field and $value) {
-            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND value = ? AND object_id = ?");
-            $sth->execute($type, $field, $value, $id);
-        } elsif ($id and $type and $field) {
-            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND field = ? AND object_id = ?");
-            $sth->execute($type, $field, $id);
-        } elsif ($id and $type) {
-            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE type = ? AND object_id = ?");
-            $sth->execute($type, $id);
-        } elsif ($id) {
-            my $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
-            $sth->execute($id);
+
+        if ($id) {
+            $query = "DELETE FROM lookup WHERE object_id = ?";
+            @bindvals = ($id);
+            if ($type) {
+                $query .= " AND type = ?";
+                push @bindvals, $type;
+            }
+            if ($field) {
+                $query .= " AND field = ?";
+                push @bindvals, $field;
+            }
+            if ($value) {
+                $query .= " AND value = ?";
+                push @bindvals, $value;
+            }
+            $sth->execute(@bindvals);
         } else {
             &wprint("No ID found for object!\n");
         }
     }
-
-    return();
+    return;
 }
 
 
-=item create_entity();
+=item new_object();
 
-Create a new entity
+Create a new object.
 
 =cut
 
@@ -548,17 +585,12 @@ new_object($)
 
     my $object = Warewulf::Object->new();
 
-    $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (serialized) VALUES ('')");
-    $sth->execute();
-
-    $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
-    $sth->execute();
-
+    $sth = $self->{"DBH"}->do("INSERT INTO datastore (serialized) VALUES ('')");
+    $sth = $self->{"DBH"}->do("SELECT LAST_INSERT_ID() AS id");
     $object->set("_id", $sth->fetchrow_array());
 
-    return($object);
+    return $object;
 }
-
 
 
 =item binstore($object_id);
@@ -581,8 +613,7 @@ binstore()
     $dsh->{"BINSTORE"} = 1;
 
     bless($dsh, $class);
-
-    return($dsh);
+    return $dsh;
 }
 
 =item put_chunk($buffer);
@@ -607,16 +638,20 @@ put_chunk()
     }
 
     if (! exists($self->{"PUT_STH"})) {
-        my $sth = $self->{"DBH"}->do("DELETE FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"});
-        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)");
-        &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES (". $self->{"OBJECT_ID"} .",?)\n");
+        my $sth = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
+
+        $sth->execute($self->{"OBJECT_ID"});
+        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES ("
+                                                     . $self->{"DBH"}->quote($self->{"OBJECT_ID"})
+                                                     . ",?)");
+        &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES ($self->{OBJECT_ID},?)\n");
     }
 
     if (! $self->{"PUT_STH"}->execute($buffer)) {
-        &eprint("put_chunk() failed with error: ". $self->{"PUT_STH"}->errstr ."\n");
-        return();
+        &eprintf("put_chunk() failed with error:  %s\n", $self->{"PUT_STH"}->errstr());
+        return;
     } else {
-        return(1);
+        return 1;
     }
 }
 
@@ -642,12 +677,13 @@ get_chunk()
     }
 
     if (! exists($self->{"GET_STH"})) {
-        &dprint("SQL: SELECT chunk FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"} ." ORDER BY id\n");
-        $self->{"GET_STH"} = $self->{"DBH"}->prepare("SELECT chunk FROM binstore WHERE object_id = ". $self->{"OBJECT_ID"} ." ORDER BY id");
+        &dprint("SQL: SELECT chunk FROM binstore WHERE object_id = $self->{OBJECT_ID} ORDER BY id\n");
+        $self->{"GET_STH"} = $self->{"DBH"}->prepare("SELECT chunk FROM binstore WHERE object_id = "
+                                                     . $self->{"DBH"}->quote($self->{"OBJECT_ID"})
+                                                     . " ORDER BY id");
         $self->{"GET_STH"}->execute();
     }
-
-    return($self->{"GET_STH"}->fetchrow_array());
+    return $self->{"GET_STH"}->fetchrow_array();
 }
 
 
