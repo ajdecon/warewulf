@@ -121,7 +121,7 @@ name()
 
     @names = $self->get("name");
 
-    return ((wantarray()) ? (@names) : ($names[0]));
+    return ((wantarray()) ? (@names) : ($names[-1]));
 }
 
 
