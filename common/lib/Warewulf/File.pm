@@ -352,7 +352,7 @@ origin()
         }
     }
 
-    return($self->get($key) || $self->get("origin"));
+    return($self->get($key));
 }
 
 
