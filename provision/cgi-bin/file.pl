@@ -48,7 +48,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                             $obj->uid() || "0",
                             $obj->gid() || "0",
                             $obj->mode() || "0000",
-                            $obj->dest() || "NULL"
+                            $obj->path() || "NULL"
                         );
                     }
                 }
