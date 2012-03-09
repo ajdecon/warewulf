@@ -52,6 +52,7 @@ PERL_VENDORLIB=$installvendorlib
 AC_ARG_WITH(perllibdir, [  --with-perllibdir=path  Manually specify where the perl modules should go], [
 if test -n "$withval" -a "x$withval" != "xno" ; then
    PERL_VENDORLIB=$withval
+   CFLAGS="-g -std=gnu99 $CFLAGS"
 fi
 ],[CFLAGS="-g -std=gnu99 $CFLAGS"] )
 AC_MSG_RESULT($PERL_VENDORLIB)
