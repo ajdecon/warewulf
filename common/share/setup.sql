@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS datastore;
 
 CREATE TABLE datastore
 (
-    id INT NOT NULL AUTO_INCREMENT UNIQUE,
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
     type VARCHAR(64),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     serialized BLOB,
@@ -24,8 +24,8 @@ CREATE TABLE datastore
 
 CREATE TABLE binstore
 (
-    id INT NOT NULL AUTO_INCREMENT UNIQUE,
-    object_id INT,
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+    object_id INT UNSIGNED,
     chunk LONGBLOB,
     FOREIGN KEY (object_id) REFERENCES datastore (id),
     INDEX (id),
@@ -35,8 +35,8 @@ CREATE TABLE binstore
 
 CREATE TABLE lookup
 (
-    id INT NOT NULL AUTO_INCREMENT UNIQUE,
-    object_id INT,
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+    object_id INT UNSIGNED,
     field VARCHAR(64) BINARY,
     value VARCHAR(64) BINARY,
     FOREIGN KEY (object_id) REFERENCES datastore (id),
