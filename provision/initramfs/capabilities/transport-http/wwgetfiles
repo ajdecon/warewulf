@@ -15,15 +15,28 @@ TMPFILE=`mktemp`
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
         if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR" 2>/dev/null; then
-            cat $TMPFILE | while read id name uid gid mode path; do
-                basedir=`dirname $path`
-                if [ ! -d "$NEWROOT/$basedir" ]; then
-                    mkdir -p $NEWROOT/$basedir
+            cat $TMPFILE | while read id name uid gid mode sum1 path; do
+                if [ -f $path ]; then
+                    sum2=`md5sum $path`
+                    if [ "$sum1" == "$sum2" ]; then
+                        continue
+                    fi
+                else
+                    basedir=`dirname $path`
+                    if [ ! -d "$NEWROOT/$basedir" ]; then
+                        mkdir -p $NEWROOT/$basedir
+                    fi
                 fi
-                if wget -q -O - "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id" > $NEWROOT/$path; then
-                    chown $uid $NEWROOT/$path
-                    chgrp $gid $NEWROOT/$path
-                    chmod $mode $NEWROOT/$path
+                if wget -q -O - "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id" > $NEWROOT/$path.$sum1; then
+                    sum2=`md5sum $NEWROOT/$path`
+                    if [ "$sum1" == "$sum2" ]; then
+                        chown $uid $NEWROOT/$path.$sum1
+                        chgrp $gid $NEWROOT/$path.$sum1
+                        chmod $mode $NEWROOT/$path.$sum1
+                        mv $NEWROOT/$path.$sum1 $NEWROOT/$path
+                    else
+                        rm -f $NEWROOT/$path.$sum1
+                    fi
                 else
                     echo "ERROR: Could not download $name"
                     exit 2

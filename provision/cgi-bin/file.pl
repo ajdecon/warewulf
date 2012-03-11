@@ -42,12 +42,13 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 my $objSet = $db->get_objects("file", "_id", $file);
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
-                        printf("%s %s %s %s %04o %s\n",
+                        printf("%s %s %s %s %04o %s %s\n",
                             $obj->id() || "NULL",
                             $obj->name() || "NULL",
                             $obj->uid() || "0",
                             $obj->gid() || "0",
                             $obj->mode() || "0000",
+                            $obj->checksum() || "nosum",
                             $obj->path() || "NULL"
                         );
                     }
