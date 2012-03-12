@@ -71,6 +71,11 @@ available the included GPL software.
 %install
 %{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
 
+%post server
+usermod -G warewulf apache >/dev/null 2>&1 || :
+service httpd restart >/dev/null 2>&1 || :
+chkconfig httpd on >/dev/null 2>&1 || :
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -78,8 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%config(noreplace) %{_sysconfdir}/warewulf/provision.conf
-%config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
+%attr(0644, root, root) %config(noreplace) %{_sysconfdir}/warewulf/provision.conf
 %{_bindir}/*
 %{_localstatedir}/warewulf/*
 %{_datadir}/warewulf/*
@@ -93,6 +97,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files server
 %defattr(-,root,root)
+%attr(0644, root, root) %config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
 %{_libexecdir}/warewulf/cgi-bin/
 %{perl_vendorlib}/Warewulf/Event/Bootstrap.pm
 %{perl_vendorlib}/Warewulf/Event/Dhcp.pm
