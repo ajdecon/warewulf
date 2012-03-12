@@ -1,32 +1,39 @@
-%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%{!?_rel:%{expand:%%global _rel 0.r%(test "@SVNVERSION@" != "0000" && echo "@SVNVERSION@" || svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%define debug_package %{nil}
 
+Summary: IPMI Module for Warewulf
 Name: warewulf-ipmi
-Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: %{_rel}
-License: BSD
+License: US Dept. of Energy (BSD-like)
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
-BuildRoot: /var/tmp/%{name}-buildroot
 ExclusiveOS: linux
-Conflicts: warewulf <= 2.9
+Requires: warewulf-common
+BuildRequires: warewulf-common
+Conflicts: warewulf < 3
+BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
-utilization and maintaince of clusters or groups of computers.
+utilization and maintenance of clusters or groups of computers.
 
-This is the main package which includes the main daemon and
-supporting libs.
+This is the IPMI module package.  It contains Warewulf modules for
+adding IPMI functionality.
+
 
 %prep
 %setup
+
 
 %build
 %configure
 %{__make} %{?mflags}
 
+
 %install
 %{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -38,7 +45,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_localstatedir}/warewulf/initramfs/capabilities/setup-ipmi
 %{perl_vendorlib}/Warewulf/Ipmi.pm
 %{perl_vendorlib}/Warewulf/Module/Cli/*
-
 
 
 %changelog
