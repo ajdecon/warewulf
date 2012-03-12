@@ -7,6 +7,7 @@ Version: @PACKAGE_VERSION@
 Release: %{_rel}
 License: US Dept. of Energy (BSD-like)
 Group: System Environment/Clustering
+URL: http://warewulf.lbl.gov/
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
 Requires: warewulf-common
