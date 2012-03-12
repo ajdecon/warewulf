@@ -1,4 +1,4 @@
-%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%{!?_rel:%{expand:%%global _rel 0.r%(test "@SVNVERSION@" != "0000" && echo "@SVNVERSION@" || svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
 
 Name: warewulf-common
 Summary: A suite of tools for clustering
@@ -33,13 +33,11 @@ supporting libs.
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root)
+%defattr(-, root, root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%dir %{_sysconfdir}/warewulf
-%config(noreplace) %{_sysconfdir}/warewulf/database.conf
-#FIXME: Need better way of handling permissions so apache can get to it
-%attr(0644,root,root) %{_sysconfdir}/warewulf/database.conf
-%config(noreplace) %{_sysconfdir}/warewulf/wwfunctions
+%attr(0710, root, apache) %dir %{_sysconfdir}/warewulf/
+%attr(0640, root, apache) %config(noreplace) %{_sysconfdir}/warewulf/database.conf
+%attr(0644, root, root)   %config(noreplace) %{_sysconfdir}/warewulf/wwfunctions
 %{_bindir}/*
 %{_datadir}/warewulf/
 %{perl_vendorlib}/*
