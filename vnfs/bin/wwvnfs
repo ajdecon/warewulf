@@ -148,7 +148,7 @@ if ($opt_name and $opt_name =~ /^([a-zA-Z0-9\-_\.]+)$/) {
             print $config_fh "# If you use this option, you should make sure that the path defined is\n";
             print $config_fh "# mounted via the VNFS's fstab\n";
             if ($opt_hybrid) {
-                $opt_hybrid =~ s/\%{name}/$opt_name/g;
+                $opt_hybrid =~ s/\%\{name\}/$opt_name/g;
                 print $config_fh "hybridpath = $opt_hybrid\n\n";
             } else {
                 print $config_fh "# hybridpath = /hybrid/$opt_name\n\n";
@@ -205,7 +205,6 @@ if (! $opt_includefile) {
 }
 push(@exclude_files, $config->get("excludes"));
 
-$opt_hybrid =~ s/\%{name}/$opt_name/g;
 
 
 if ($opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
@@ -218,20 +217,23 @@ if ($opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
     exit 1;
 }
 
-if (! $opt_hybrid) {
-    &iprint("Checking for auto hybrid entry\n");
-    if (-f "$opt_chroot/etc/fstab") {
-        if (open(FSTAB, "$opt_chroot/etc/fstab")) {
-            while (my $line = <FSTAB>) {
-                chomp($line);
-                if ($line =~ /^\s*([a-zA-Z0-9\-_\.]+:\/[a-zA-Z0-9\-_\.]+\s+\/hybrid\s+.+)$/) {
-                    &iprint("Automatically using --hybridpath=/hybrid as found in fstab\n");
-                    $opt_hybrid = "/hybrid/$opt_name";
-                    last;
+if ($opt_hybrid) {
+    $opt_hybrid =~ s/\%\{name\}/$opt_name/g;
+
+    my $hybrid_good;
+    if (open(FSTAB, "$opt_chroot/etc/fstab")) {
+        while (my $line = <FSTAB>) {
+            chomp($line);
+            if ($line =~ /^\s*\S+\s+(\/\S+)\s+.+/) {
+                if ($opt_hybrid eq $1) {
+                    $hybrid_good = 1;
                 }
             }
-            close(FSTAB);
         }
+        close FSTAB;
+    }
+    if (! $hybrid_good) {
+        &wprint("Hybridpath defined, but not configured in the VNFS /etc/fstab!\n");
     }
 }
 
@@ -254,7 +256,6 @@ foreach my $dir (split(":", $ENV{"PATH"})) {
         }
     }
 }
-
 
 &dprint("Sanitizing the PATH environment variable\n");
 $ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
