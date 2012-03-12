@@ -9,6 +9,7 @@
 
 
 use CGI;
+use File::Path;
 use Warewulf::DataStore;
 use Warewulf::Logger;
 use Warewulf::Daemon;
@@ -32,6 +33,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     $node = $db->get_objects("node", "_hwaddr", $hwaddr)->get_object(0);
 
     if ($node) {
+
         if (! $fileid and $node) {
             my $nodeName = $node->name();
 
@@ -57,16 +59,25 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
         } elsif ($fileid =~ /^([0-9]+)$/ ) {
             $fileid = $1;
             my $output;
+
             my $fileObj = $db->get_objects("file", "_id", $fileid)->get_object(0);;
 
             if ($fileObj) {
-                my $binstore = $db->binstore($fileObj->get("_id"));
-                while(my $buffer = $binstore->get_chunk()) {
-                    $output .= $buffer;
+                my $cachefile = "/tmp/warewulf/files/". $fileObj->id() ."/". $fileObj->checksum();
+
+                if (! -f $cachefile) {
+                    mkpath("/tmp/warewulf/files/". $fileObj->name());
+                    $fileObj->file_export($cachefile);
+                }
+
+                if (open(CACHE, $cachefile)) {
+                    while(my $line = <CACHE>) {
+                        $output .= $line;
+                    }
+                    close CACHE;
                 }
 
                 # Search for all matching variable entries.
-                #foreach my $wwstring ($output =~ m/\%\{[^\}]+\}(\[([0-9]+)\])?/g) {
                 foreach my $wwstring ($output =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
                     # Check for format, and seperate into a seperate wwvar string
                     if ($wwstring =~ /^\%\{(.+?)\}(\[(\d+)\])?$/) {
@@ -124,7 +135,17 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                     }
                 }
             }
-            print $output;
+
+            if ($fileObj->interpreter()) {
+                my $interpreter = $fileObj->interpreter();
+                #FIXME: Perhaps use open3 here?
+                if (open(PIPE, "| $interpreter")) {
+                    print PIPE $output;
+                    close PIPE;
+                }
+            } else {
+                print $output;
+            }
 
         } else {
             &wprint("FILEID contains illegal characters\n");
