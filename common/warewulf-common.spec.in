@@ -37,7 +37,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %dir %{_sysconfdir}/warewulf
 %config(noreplace) %{_sysconfdir}/warewulf/database.conf
-%attr(0640,root,root) %{_sysconfdir}/warewulf/database.conf
+#FIXME: Need better way of handling permissions so apache can get to it
+%attr(0644,root,root) %{_sysconfdir}/warewulf/database.conf
 %config(noreplace) %{_sysconfdir}/warewulf/wwfunctions
 %{_bindir}/*
 %{_datadir}/warewulf/
