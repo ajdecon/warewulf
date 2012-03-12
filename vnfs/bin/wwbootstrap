@@ -27,8 +27,8 @@ my $output = "/tmp/$randstring.wwbs";
 my $opt_debug;
 my $opt_verbose;
 my $opt_help;
-my $opt_root = "";
-my $opt_file;
+my $opt_chroot = "";
+my $opt_output;
 my $opt_config;
 my $kversion;
 my $config;
@@ -40,19 +40,20 @@ my $help = "USAGE: $0 [options] kernel_version
         bootstrap the provisioning process.
 
     OPTIONS:
-        -r, --root      Look into this chroot directory to find the kernel
-        -c, --config    What configuration file should be used (don't use
+        -c, --chroot    Look into this chroot directory to find the kernel
+        -r, --root      Alias for --chroot
+            --config    What configuration file should be used (don't use
                         full path, rather just the relative name as would be
                         found in \$sysconfigdir/warewulf/bootstrap/) other-
                         wise the default bootstrap.conf is used.
-        -f, --file      Write the bootstrap image to a file at the specified
+        -o, --output    Output the bootstrap image to a file at the specified
                         path location (default automatically imports the
                         file into Warewulf instead of writing to disk).
 
     EXAMPLES:
         # wwbootstrap 2.6.32-71.el6.x86_64
         # wwbootstrap --config=testbootstrap 2.6.32-71.el6.x86_64
-        # wwbootstrap --root=/path/to/chroot 2.6.32-71.el6.x86_64
+        # wwbootstrap --chroot=/path/to/chroot 2.6.32-71.el6.x86_64
         # wwbootstrap --file=test-bootstrap.wwbs 2.6.32-71.el6.x86_64
 
 ";
@@ -63,9 +64,10 @@ GetOptions(
     'h|help'        => \$opt_help,
     'd|debug'       => \$opt_debug,
     'v|verbose'     => \$opt_verbose,
-    'r|root=s'      => \$opt_root,
-    'f|file=s'      => \$opt_file,
-    'c|config=s'    => \$opt_config,
+    'c|chroot=s'    => \$opt_chroot,
+    'r|root=s'      => \$opt_chroot,
+    'f|file=s'      => \$opt_output,
+    'config=s'      => \$opt_config,
 );
 
 
@@ -100,23 +102,23 @@ if (! $opt_kversion) {
     exit 1;
 }
 
-if ($opt_root and $opt_root =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
-    $opt_root = "$1/";
-    &iprint("Using root directory: $opt_root\n");
-} elsif ($opt_root) {
+if ($opt_chroot and $opt_chroot =~ /^(?:\/|([a-zA-Z0-9_\-\.\/]+)(?<!\/)\/*)$/) {
+    $opt_chroot = "$1/";
+    &iprint("Using root directory: $opt_chroot\n");
+} elsif ($opt_chroot) {
     &eprint("Root directory name contains illegal characters!\n");
     exit 1;
 } else {
-    $opt_root = "/";
-    &iprint("Using root directory: $opt_root\n");
+    $opt_chroot = "/";
+    &iprint("Using root directory: $opt_chroot\n");
 }
 
-if ($opt_file) {
-    if ($opt_file =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
-        $opt_file = $1;
-        &iprint("Writing output file to: $opt_file\n");
+if ($opt_output) {
+    if ($opt_output =~ /^([a-zA-Z0-9_\-\.\/]+)$/) {
+        $opt_output = $1;
+        &iprint("Writing output file to: $opt_output\n");
     } else {
-        &eprint("Output file name contains illegal characters: $opt_file\n");
+        &eprint("Output file name contains illegal characters: $opt_output\n");
         exit 1;
     }
 }
@@ -134,8 +136,8 @@ foreach my $dir (split(":", $ENV{"PATH"})) {
 
 mkpath("$tmpdir/initramfs");
 
-if (! -f "$opt_root/boot/vmlinuz-$opt_kversion") {
-    &eprint("Can't locate the boot kernel: ". $opt_root ."/boot/vmlinuz-$opt_kversion\n");
+if (! -f "$opt_chroot/boot/vmlinuz-$opt_kversion") {
+    &eprint("Can't locate the boot kernel: ". $opt_chroot ."/boot/vmlinuz-$opt_kversion\n");
     exit 1;
 }
 
@@ -153,9 +155,9 @@ if ($config->get("drivers")) {
 
     mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion");
 
-    if (-f "$opt_root/lib/modules/$opt_kversion/modules.dep") {
+    if (-f "$opt_chroot/lib/modules/$opt_kversion/modules.dep") {
         my $strippath = "/lib/modules/$opt_kversion/";
-        open(DEP, "$opt_root/lib/modules/$opt_kversion/modules.dep");
+        open(DEP, "$opt_chroot/lib/modules/$opt_kversion/modules.dep");
         while (my $line = <DEP>) {
             chomp($line);
             $line =~ s/^\Q$strippath\E//;
@@ -178,7 +180,7 @@ if ($config->get("drivers")) {
         }
         close(DEP);
     } else {
-        &wprint("File not found: $opt_root/lib/modules/$opt_kversion/modules.dep\n");
+        &wprint("File not found: $opt_chroot/lib/modules/$opt_kversion/modules.dep\n");
     }
 
     foreach my $d (@drivers) {
@@ -205,7 +207,7 @@ if ($config->get("drivers")) {
         if (! -d "$tmpdir/initramfs/lib/modules/$opt_kversion/$path") {
             mkpath("$tmpdir/initramfs/lib/modules/$opt_kversion/$path");
         }
-        if (copy("$opt_root/lib/modules/$opt_kversion/$file", "$tmpdir/initramfs/lib/modules/$opt_kversion/$file")) {
+        if (copy("$opt_chroot/lib/modules/$opt_kversion/$file", "$tmpdir/initramfs/lib/modules/$opt_kversion/$file")) {
             &dprint("Integrated driver: $tmpdir/initramfs/lib/modules/$opt_kversion/$file\n");
             $module_count++;
             if (exists($mod_deps{"$file"})) {
@@ -248,7 +250,7 @@ if ($config->get("firmware")) {
     foreach my $f ($config->get("firmware")) {
         if ($f and $f =~ /^([a-zA-Z0-9\/\*_\-\.]+)/) {
             my $f_clean = $1;
-            open(FIND, "cd $opt_root; find lib/firmware/$f_clean -type f 2>/dev/null |");
+            open(FIND, "cd $opt_chroot; find lib/firmware/$f_clean -type f 2>/dev/null |");
             while(my $firmware = <FIND>) {
                 chomp($firmware);
                 if ($firmware =~ /([a-zA-Z0-9\/_\-\.]+)/) {
@@ -258,7 +260,7 @@ if ($config->get("firmware")) {
                     if (! -d "$tmpdir/initramfs/$path") {
                         mkpath("$tmpdir/initramfs/$path");
                     }
-                    if (copy("$opt_root/$firmware", "$tmpdir/initramfs/$path")) {
+                    if (copy("$opt_chroot/$firmware", "$tmpdir/initramfs/$path")) {
                         $firmware_count++;
                     }
                 }
@@ -272,15 +274,15 @@ if ($config->get("firmware")) {
     }
 }
 
-copy("$opt_root/boot/vmlinuz-$opt_kversion", "$tmpdir/kernel");
+copy("$opt_chroot/boot/vmlinuz-$opt_kversion", "$tmpdir/kernel");
 
 &nprint("Building and compressing bootstrap\n");
 system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $output");
 system("rm -rf $tmpdir");
 
-if ($opt_file) {
-    rename($output, $opt_file);
-    &nprint("Wrote bootstrap to: $opt_file\n");
+if ($opt_output) {
+    rename($output, $opt_output);
+    &nprint("Wrote bootstrap to: $opt_output\n");
 } else {
     &iprint("Importing bootstrap into Warewulf\n");
     system("$wwsh_bin bootstrap import $output --name=$opt_kversion");
