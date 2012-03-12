@@ -21,3 +21,7 @@ the chroot creation down into bite sized chunks. wwmkchroot requires
 the wwfunctions file in the warewulf-common package for the vnfs_*
 functions defined within.
 ----------------------------------------------------------------------
+Mon Mar 12 13:28:43 2012                        Michael Jennings (mej)
+
+Bump version to 3.2.  Improve SVN revision detection.  Add ignores.
+----------------------------------------------------------------------

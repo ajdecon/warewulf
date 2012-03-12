@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(warewulf-vnfs, 3.1, warewulf-devel@lbl.gov)
+AC_INIT(warewulf-vnfs, 3.2, warewulf-devel@lbl.gov)
 AC_CONFIG_SRCDIR([.])
 
 AC_PROG_INSTALL
@@ -24,6 +24,13 @@ AC_SUBST(PERL_VENDORLIB)
 
 
 AC_SUBST(PERLBIN)
+
+dnl# Try to get SVN revision
+SVNVERSION=`svnversion -c | sed 's/^.*://g' 2>/dev/null || echo 0000`
+if test "$SVNVERSION" = "0000" ; then
+    SVNVERSION=`svnversion 2>/dev/null || echo 0000`
+fi
+AC_SUBST(SVNVERSION)
 
 AC_OUTPUT(Makefile
    warewulf-vnfs.spec
