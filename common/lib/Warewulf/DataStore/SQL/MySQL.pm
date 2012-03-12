@@ -609,7 +609,7 @@ binstore()
     my $dsh = {};
 
     $dsh->{"DBH"} = $self->{"DBH"};
-    $dsh->{"OBJECT_ID"} = $self->{"DBH"}->quote($object_id);
+    $dsh->{"OBJECT_ID"} = $object_id;
     $dsh->{"BINSTORE"} = 1;
 
     bless($dsh, $class);
@@ -641,13 +641,11 @@ put_chunk()
         my $sth = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
 
         $sth->execute($self->{"OBJECT_ID"});
-        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES ("
-                                                     . $self->{"DBH"}->quote($self->{"OBJECT_ID"})
-                                                     . ",?)");
+        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (?,?)");
         &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES ($self->{OBJECT_ID},?)\n");
     }
 
-    if (! $self->{"PUT_STH"}->execute($buffer)) {
+    if (! $self->{"PUT_STH"}->execute($self->{"OBJECT_ID"}, $buffer)) {
         &eprintf("put_chunk() failed with error:  %s\n", $self->{"PUT_STH"}->errstr());
         return;
     } else {
