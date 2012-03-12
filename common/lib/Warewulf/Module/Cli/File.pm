@@ -117,10 +117,28 @@ summary()
 sub
 complete()
 {
-    my ($self, $text) = @_;
+    my $self = shift;
     my $db = Warewulf::DataStore->new();
+    my @ret;
 
-    return($db->get_lookups($entity_type, "name"));
+
+    @ARGV = ();
+
+    foreach (&quotewords('\s+', 0, @_)) {
+        if (defined($_)) {
+            push(@ARGV, $_);
+        }
+    }
+
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set" or $ARGV[1] eq "list" or $ARGV[1] eq "edit" or $ARGV[1] eq "delete")) {
+        @ret = $db->get_lookups($entity_type, "name");
+    } else {
+        @ret = ("print", "edit", "new", "set", "delete", "list");
+    }
+
+    @ARGV = ();
+
+    return @ret;
 }
 
 sub
@@ -280,6 +298,7 @@ exec()
                 if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
                     $path = $1;
                     if (-f $path) {
+                        my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
                         my $name;
                         my $objSet;
                         my $obj;
@@ -310,6 +329,11 @@ exec()
                         }
 
                         $obj->file_import($path);
+                        $obj->mode($mode & 0777);
+                        $obj->uid($uid);
+                        $obj->gid($gid);
+                        $obj->path($path);
+                        $obj->origin($path);
 
                     } else {
                         &eprint("File not Found: $path\n");
@@ -370,6 +394,8 @@ exec()
                 }
 
                 if ($objSet->count() eq 0) {
+                    my $rand = &rand_string("16");
+                    my $tmpfile = "/tmp/wwsh.$rand";
                     my $name;
                     if ($opt_name) {
                         $name = $opt_name;
@@ -384,7 +410,8 @@ exec()
                     $objSet->add($obj);
                 }
 
-                foreach my $obj ($objSet->get_list()) {
+                if ($objSet->count() eq 1) {
+                    my $obj = $objSet->get_object(0);
                     my $rand = &rand_string("16");
                     my $tmpfile = "/tmp/wwsh.$rand";
 
@@ -392,8 +419,9 @@ exec()
 
                     &dprint("Running command: $program $tmpfile\n");
                     if (system("$program $tmpfile") == 0) {
-                        if ($obj->checksum() ne digest_file_hex_md5($tmpfile)) {
+                        if ((! $obj->checksum() or !$obj->size()) or $obj->checksum() ne digest_file_hex_md5($tmpfile)) {
                             $obj->file_import($tmpfile);
+                            unlink($tmpfile);
                         } else {
                             &nprint("Not updating datastore\n");
                         }
@@ -401,7 +429,8 @@ exec()
                         &iprint("Command errored out, not updating datastore\n");
                     }
 
-                    unlink($tmpfile);
+                } else {
+                    &eprint("Edit only one file object at a time\n");
                 }
 
             } elsif ($command eq "set" or $command eq "new") {
@@ -465,10 +494,10 @@ exec()
                 if (@opt_origin) {
                     if (uc($opt_origin[0]) eq "UNDEF") {
                         foreach my $obj ($objSet->get_list()) {
-                            $obj->origin("UNDEF");
+                            $obj->origin(undef);
                             $persist_count++;
                         }
-                        push(@changes, sprintf("   UNDEF: %-20s\n", "SOURCE"));
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "ORIGIN"));
                     } else {
                         my @origins;
                         foreach my $origin (split(",", join(",", @opt_origin))) {

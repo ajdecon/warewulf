@@ -88,24 +88,9 @@ key from the object.
 sub
 name()
 {
-    my ($self, $string) = @_;
-    my $key = "name";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-zA-Z0-9_\.\-]+)$/) {
-            my $name = $self->get("name") || "UNDEF";
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key));
+    my $self = shift;
+    
+    return $self->prop("name", qr/^([a-zA-Z0-9_\.\-]+)$/, @_);
 }
 
 
@@ -118,24 +103,9 @@ Set the numeric permission "mode" of this file (e.g. 0644).
 sub
 mode()
 {
-    my ($self, $string) = @_;
-    my $key = "mode";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^(\d+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key) || 0);
+    my $self = shift;
+    
+    return $self->prop("mode", qr/^(\d+)$/, @_) || 0;
 }
 
 
@@ -148,24 +118,9 @@ Set or get the checksum of this file.
 sub
 checksum()
 {
-    my ($self, $string) = @_;
-    my $key = "checksum";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-z0-9]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key));
+    my $self = shift;
+    
+    return $self->prop("checksum", qr/^([a-z0-9]+)$/, @_);
 }
 
 
@@ -178,24 +133,9 @@ Set or return the UID of this file.
 sub
 uid()
 {
-    my ($self, $string) = @_;
-    my $key = "uid";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^(\d+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key) || "0");
+    my $self = shift;
+    
+    return $self->prop("uid", qr/^(\d+)$/, @_) || 0;
 }
 
 
@@ -208,24 +148,9 @@ Set or return the GID of this file.
 sub
 gid()
 {
-    my ($self, $string) = @_;
-    my $key = "gid";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^(\d+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key) || "0");
+    my $self = shift;
+    
+    return $self->prop("gid", qr/^(\d+)$/, @_) || 0;
 }
 
 
@@ -238,24 +163,9 @@ Set or return the size of the raw file stored within the datastore.
 sub
 size()
 {
-    my ($self, $string) = @_;
-    my $key = "size";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([0-9]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key));
+    my $self = shift;
+    
+    return $self->prop("size", qr/^(\d+)$/, @_);
 }
 
 
@@ -269,24 +179,9 @@ Set or return the file system path of this file.
 sub
 path()
 {
-    my ($self, $string) = @_;
-    my $key = "path";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-zA-Z0-9_\.\-\/]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key) || $self->get("path"));
+    my $self = shift;
+    
+    return $self->prop("path", qr/^([a-zA-Z0-9_\.\-\/]+)$/, @_);
 }
 
 
@@ -299,24 +194,9 @@ Set or return the format of this file.
 sub
 format()
 {
-    my ($self, $string) = @_;
-    my $key = "format";
-
-    if (defined($string)) {
-        if (uc($string) eq "UNDEF") {
-            my $name = $self->get("name");
-            &dprint("Object $name delete $key\n");
-            $self->del($key);
-        } elsif ($string =~ /^([a-z]+)$/) {
-            my $name = $self->get("name");
-            &dprint("Object $name set $key = '$1'\n");
-            $self->set($key, $1);
-        } else {
-            &eprint("Invalid characters to set $key = '$string'\n");
-        }
-    }
-
-    return($self->get($key) || "UNDEF");
+    my $self = shift;
+    
+    return $self->prop("format", qr/^([a-z]+)$/, @_);
 }
 
 
@@ -335,20 +215,20 @@ origin()
 
     if (@strings) {
         my $name = $self->get("name");
-        if (uc($strings[0]) eq "UNDEF") {
-            $self->del($key);
-            &dprint("Object $name del $key\n");
-        } else {
-            my @newgroups;
+        if (defined($strings[0])) {
+            my @neworigins;
             foreach my $string (@strings) {
                 if ($string =~ /^([a-zA-Z0-9_\.\-\/]+)$/) {
                     &dprint("Object $name set $key += '$1'\n");
-                    push(@newgroups, $1);
+                    push(@neworigins, $1);
                 } else {
                     &eprint("Invalid characters to set $key += '$string'\n");
                 }
-                $self->set($key, @newgroups);
+                $self->set($key, @neworigins);
             }
+        } else {
+            $self->del($key);
+            &dprint("Object $name del $key\n");
         }
     }
 
@@ -475,21 +355,6 @@ file_import()
                     close FILE;
 
                     if ($import_size) {
-                        if (! $self->uid()) {
-                            $self->uid($uid);
-                        }
-                        if (! $self->gid()) {
-                            $self->gid($gid);
-                        }
-                        if (! $self->path()) {
-                            $self->path($path);
-                        }
-                        if (! $self->origin()) {
-                            $self->origin($path);
-                        }
-                        if ($self->mode() == 0) {
-                            $self->mode($mode & 07777);
-                        }
                         $self->size($import_size);
                         $self->checksum(digest_file_hex_md5($path));
                         $self->format($format);
