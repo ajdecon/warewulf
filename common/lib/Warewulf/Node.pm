@@ -283,6 +283,7 @@ netdevs()
     my @device_names;
 
     $netdevs = $self->get("netdevs");
+
     if (! $netdevs) {
         if ($self->get("_netdevset")) {
             # FIXME:  Remove this?
@@ -295,12 +296,13 @@ netdevs()
     } elsif (ref($netdevs) eq "ARRAY") {
         my @netdev_objs;
 
-        # FIXME:  This shouldn't be necessary.
-        @netdev_objs = map {
-                         UNIVERSAL::isa($_, "Warewulf::Object")
-                             || bless($_, "Warewulf::Object")
-                       } @{$netdevs};
-        $self->set("netdevs", Warewulf::ObjectSet->new(@netdev_objs));
+        $netdevs = $self->set("netdevs", Warewulf::ObjectSet->new());
+
+        foreach my $o (@netdev_objs) {
+            bless($o, "Warewulf::Object");
+            $netdevs->add($o);
+        }
+
     }
     if ($match) {
         return $netdevs->find("name", $match);
