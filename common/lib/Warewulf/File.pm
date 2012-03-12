@@ -200,6 +200,21 @@ format()
 }
 
 
+=item interpreter($string)
+
+Set or return the interpreter needed to parse this file
+
+=cut
+
+sub
+interpreter()
+{
+    my $self = shift;
+    
+    return $self->prop("interpreter", qr/^([a-zA-Z0-9\.\/\-_]+)$/, @_);
+}
+
+
 
 =item origin(@strings)
 

@@ -88,6 +88,7 @@ help()
     $h .= "         --uid       Set the UID of this file\n";
     $h .= "         --gid       Set the GID of this file\n";
     $h .= "         --name      Set the reference name of this file (not path!)\n";
+    $h .= "         --interpreter Set the interpreter name to parse this file\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -181,6 +182,7 @@ exec()
     my $opt_mode;
     my $opt_uid;
     my $opt_gid;
+    my $opt_interpreter;
     my @opt_origin;
 
     @ARGV = ();
@@ -199,6 +201,7 @@ exec()
         'mode=s'        => \$opt_mode,
         'uid=s'         => \$opt_uid,
         'gid=s'         => \$opt_gid,
+        'interpreter=s' => \$opt_interpreter,
     );
 
     $command = shift(@ARGV);
@@ -443,8 +446,32 @@ exec()
                     return();
                 }
 
+                if (defined($opt_interpreter)) {
+                    if (uc($opt_interpreter) eq "UNDEF") {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->interpreter(undef);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "INTREPRETER"));
+                    } elsif ($opt_interpreter =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+                        my $interpreter = $1;
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->interpreter($interpreter);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "INTREPRETER", $interpreter));
+                    } else {
+                        &eprint("Interpreter contains illegal characters\n");
+                    }
+                }
                 if (defined($opt_path)) {
-                    if ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
+                    if (uc($opt_path) eq "UNDEF") {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->path(undef);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "PATH"));
+                    } elsif ($opt_path =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
                         my $path = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->path($path);
@@ -456,7 +483,13 @@ exec()
                     }
                 }
                 if (defined($opt_mode)) {
-                    if ($opt_mode =~ /^([0-7]{3,4})$/) {
+                    if (uc($opt_mode) eq "UNDEF") {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->mode(undef);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "MODE"));
+                    } elsif ($opt_mode =~ /^([0-7]{3,4})$/) {
                         my $mode = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->mode(oct($mode));
@@ -468,7 +501,13 @@ exec()
                     }
                 }
                 if (defined($opt_uid)) {
-                    if ($opt_uid =~ /^(\d+)$/) {
+                    if (uc($opt_uid) eq "UNDEF") {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->uid(undef);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "UID"));
+                    } elsif ($opt_uid =~ /^(\d+)$/) {
                         my $uid = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->uid($uid);
@@ -480,7 +519,13 @@ exec()
                     }
                 }
                 if (defined($opt_gid)) {
-                    if ($opt_gid =~ /^(\d+)$/) {
+                    if (uc($opt_gid) eq "UNDEF") {
+                        foreach my $obj ($objSet->get_list()) {
+                            $obj->gid(undef);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "GID"));
+                    } elsif ($opt_gid =~ /^(\d+)$/) {
                         my $gid = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->gid($gid);
@@ -616,6 +661,7 @@ exec()
                     printf("%-16s: %-16s = %s\n", $name, "ORIGIN", (join(",", ($obj->origin())) || "UNDEF"));
                     printf("%-16s: %-16s = %s\n", $name, "FORMAT", ($obj->format() || "UNDEF"));
                     printf("%-16s: %-16s = %s\n", $name, "CHECKSUM", ($obj->checksum() || "UNDEF"));
+                    printf("%-16s: %-16s = %s\n", $name, "INTERPRETER", ($obj->interpreter() || "UNDEF"));
                     printf("%-16s: %-16s = %s\n", $name, "SIZE", ($obj->size() || "0"));
                     printf("%-16s: %-16s = %s\n", $name, "MODE", (sprintf("%04o", $obj->mode()) || "UNDEF"));
                     printf("%-16s: %-16s = %s\n", $name, "UID", $obj->uid());
