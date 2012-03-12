@@ -12,7 +12,15 @@ if test -z "$PERLBIN"; then
 fi
 AC_SUBST(PERLBIN)
 
-AC_OUTPUT([Makefile
+dnl# Try to get SVN revision
+SVNVERSION=`svnversion -c | sed 's/^.*://g' 2>/dev/null || echo 0000`
+if test "$SVNVERSION" = "0000" ; then
+    SVNVERSION=`svnversion 2>/dev/null || echo 0000`
+fi
+AC_SUBST(SVNVERSION)
+
+AC_OUTPUT([
+   Makefile
    warewulf-monitor-legacy.spec
    scripts/lib/Warewulf/Makefile
    scripts/lib/Makefile
@@ -32,5 +40,5 @@ AC_OUTPUT([Makefile
    scripts/init/wulfd
    etc/Makefile
    scripts/Makefile
-   src/Makefile])
-
+   src/Makefile
+])

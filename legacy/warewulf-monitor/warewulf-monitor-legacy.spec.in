@@ -1,21 +1,24 @@
-%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%{!?_rel:%{expand:%%global _rel 0.r%(test "@SVNVERSION@" != "0000" && echo "@SVNVERSION@" || svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%define debug_package %{nil}
 
+Summary: Legacy Monitoring Package from Warewulf
 Name: warewulf-monitor-legacy
-Summary: A suite of tools for clustering
 Version: @PACKAGE_VERSION@
 Release: %{_rel}
 License: GPL
 Group: System Environment/Clustering
+URL: http://warewulf.lbl.gov/
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
 Requires: %{name}-common = %{version}-%{release}
 Prefix: %{_prefix}
-Buildroot: %{_tmppath}/%{name}-%{version}-root
+BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
 
 %description
 Warewulf is a cluster management/monitoring toolset.
 
 This package contains the warewulfd server daemon.
+
 
 %package common
 Summary: Files common to all warewulf packages
@@ -25,6 +28,7 @@ Group: System Environment/Clustering
 Warewulf is a cluster management/monitoring toolset.
 
 This package contains files needed by other warewulf subpackages.
+
 
 %package tools
 Summary: The Warewulf user tools
@@ -37,6 +41,7 @@ Warewulf is a cluster management/monitoring toolset.
 This subpackage includes the tools to communicate with the main
 daemon or a proxy.
 
+
 %package wulfd
 Summary: The Warewulf node daemon
 Group: System Enviornment/Daemons
@@ -47,6 +52,7 @@ Warewulf is a cluster management/monitoring toolset.
 
 This subpackage includes the node daemon that will communicate its
 stats to the master node.
+
 
 %package proxy
 Summary: The Warewulf node daemon proxy service
@@ -60,6 +66,7 @@ Warewulf is a cluster management/monitoring toolset.
 This subpackage provides support for aggregating multiple Warewulf
 daemons together, or "relaying" the data to multiple login nodes.
 
+
 %package web
 Summary: The Warewulf web frontend
 Group: System Enviornment/monitoring
@@ -72,15 +79,19 @@ Warewulf is a cluster management/monitoring toolset.
 This subpackage provides a web-based CGI/frontend to the Warewulf
 daemon or proxy daemon.  It can monitor 1 or more clusters.
 
+
 %prep
 %setup -q
+
 
 %build
 %configure
 %{__make} %{?mflags}
 
+
 %install
 %{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
+
 
 %post
 /sbin/chkconfig --add warewulf
@@ -122,8 +133,10 @@ fi
 /sbin/service httpd condrestart >/dev/null 2>&1 ||:
 /sbin/service apache2 condrestart >/dev/null 2>&1 ||:
 
+
 %clean
 rm -rf $RPM_BUILD_ROOT
+
 
 %files
 %defattr(-,root,root)
