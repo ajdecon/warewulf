@@ -1,4 +1,4 @@
-%{!?_rel:%{expand:%%global _rel 0.r%(svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
+%{!?_rel:%{expand:%%global _rel 0.r%(test "@SVNVERSION@" != "0000" && echo "@SVNVERSION@" || svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
 %define debug_package %{nil}
 
 Name: warewulf-provision
@@ -83,7 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%attr(0644, root, root) %config(noreplace) %{_sysconfdir}/warewulf/provision.conf
+%config(noreplace) %{_sysconfdir}/warewulf/provision.conf
 %{_bindir}/*
 %{_localstatedir}/warewulf/*
 %{_datadir}/warewulf/*
@@ -97,7 +97,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files server
 %defattr(-,root,root)
-%attr(0644, root, root) %config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
 %{_libexecdir}/warewulf/cgi-bin/
 %{perl_vendorlib}/Warewulf/Event/Bootstrap.pm
 %{perl_vendorlib}/Warewulf/Event/Dhcp.pm

@@ -72,6 +72,13 @@ AC_SUBST(initramfsdir)
 
 AC_SUBST(PERLBIN)
 
+dnl# Try to get SVN revision
+SVNVERSION=`svnversion -c | sed 's/^.*://g' 2>/dev/null || echo 0000`
+if test "$SVNVERSION" = "0000" ; then
+    SVNVERSION=`svnversion 2>/dev/null || echo 0000`
+fi
+AC_SUBST(SVNVERSION)
+
 AC_OUTPUT(Makefile
    warewulf-provision.spec
    3rd_party/Makefile

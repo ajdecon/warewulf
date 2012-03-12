@@ -71,3 +71,7 @@ address, and MAC address conflicts.  Added calculation of the maximum
 IP address in the range provided rather than just counting up
 infinitely.
 ----------------------------------------------------------------------
+Mon Mar 12 13:16:56 2012                        Michael Jennings (mej)
+
+Improved SVN revision detection.
+----------------------------------------------------------------------
