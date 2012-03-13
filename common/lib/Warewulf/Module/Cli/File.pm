@@ -332,7 +332,7 @@ exec()
                         }
 
                         $obj->file_import($path);
-                        $obj->mode($mode & 0777);
+                        $obj->mode($mode & 07777);
                         $obj->uid($uid);
                         $obj->gid($gid);
                         $obj->path($path);

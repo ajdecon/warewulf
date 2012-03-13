@@ -406,3 +406,7 @@ Mon Mar 12 10:47:48 2012                        Michael Jennings (mej)
 Fix database.conf permissions.  Try a better technique for getting the
 SVN revision.
 ----------------------------------------------------------------------
+Tue Mar 13 14:35:50 2012                        Michael Jennings (mej)
+
+Perform bitmask in property method rather than relying on callers.
+----------------------------------------------------------------------

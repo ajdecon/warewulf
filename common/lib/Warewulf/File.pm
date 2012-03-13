@@ -104,8 +104,17 @@ sub
 mode()
 {
     my $self = shift;
-    
-    return $self->prop("mode", qr/^(\d+)$/, @_) || 0;
+    #my $validator = sub {
+    #    if ($_[0] =~ /^(\d+)$/) {
+    #        return ($1 & 07777);
+    #    } else {
+    #        return 0;
+    #    };
+
+    #return $self->prop("mode", $validator, @_);
+
+    # The below basically does the same thing as the above, just faster.
+    return $self->prop("mode", sub { return (keys %{ +{$_[0] & 07777,1} })[0] || 0; }, @_);
 }
 
 
