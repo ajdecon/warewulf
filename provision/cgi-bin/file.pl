@@ -89,45 +89,25 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                         my @keys = split(/::/, $wwvar);
                         while(my $key = shift(@keys)) {
                             my $val = $curObj->get($key);
-                            if (ref($val) eq "ARRAY") {
-                                if (defined($wwarrayindex)) {
-                                    # If the person defined an array index as part of the
-                                    # variable, then give that.
-                                    my $value = $val->[$wwarrayindex];
-                                    $output =~ s/\Q$wwstring\E/$value/g;
+                            if (ref($val) eq "Warewulf::ObjectSet") {
+                                my $find = shift(@keys);
+                                my $o = $val->find("name", $find);
+                                if ($o) {
+                                    $curObj = $o;
                                 } else {
-                                    # If the value is an array, We need to iterate
-                                    # through the array.
-                                    foreach my $a (@{$val}) {
-                                        if (ref($a) =~ /^Warewulf::DSO::/) {
-                                            # Check to see if the array entry is a Data
-                                            # Store Object (DSO), and if it is, then reset
-                                            # the $curObj, and start over.
-                                            my $name = $keys[0];
-                                            if (uc($a->get("name")) eq uc($name)) {
-                                                $curObj = $a;
-                                                # Since we found this and used the current key
-                                                # we need to shift the array.
-                                                shift(@keys);
-                                                last;
-                                            }
-                                        } elsif ($a) {
-                                            $output =~ s/\Q$wwstring\E/$a/g;
-                                        } else {
-                                            $output =~ s/\Q$wwstring\E//g;
-                                        }
-                                    }
+                                    &dprint("Could not find object: $find\n");
                                 }
+
+                            } elsif (ref($val) eq "ARRAY") {
+                                my $v;
+                                if ($wwarrayindex) {
+                                    $v = $val->[$wwarrayindex];
+                                } else {
+                                    $v = $val->[0];
+                                }
+                                $output =~ s/\Q$wwstring\E/$v/g;
                             } elsif ($val) {
-                                # Same logic as above just without the array contexts.
-                                if (ref($a) =~ /^Warewulf::DSO::/) {
-                                    my $name = shift(@keys);
-                                    if (uc($a->get("name")) eq uc($name)) {
-                                        $curObj = $a;
-                                    }
-                                } else {
-                                    $output =~ s/\Q$wwstring\E/$val/g;
-                                }
+                                $output =~ s/\Q$wwstring\E/$val/g;
                             } else {
                                 $output =~ s/\Q$wwstring\E//g;
                             }
