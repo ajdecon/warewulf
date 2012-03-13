@@ -320,7 +320,7 @@ sync()
         }
 
     } else {
-        &dprint("Skipping file objct '$name' as it has no origin paths set\n");
+        &dprint("Skipping file object '$name' as it has no origin paths set\n");
     }
 }
 
@@ -359,7 +359,7 @@ file_import()
 
                 if (open(FILE, $path)) {
                     while(my $length = sysread(FILE, $buffer, $db->chunk_size())) {
-                        if ($import_size eq 0) {
+                        if ($import_size == 0) {
                             if ($buffer =~ /^#!\/bin\/sh/) {
                                 $format = "shell";
                             } elsif ($buffer =~ /^#!\/bin\/bash/) {

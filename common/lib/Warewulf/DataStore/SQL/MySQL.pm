@@ -359,31 +359,35 @@ persist($$)
             }
 
             if (! $id) {
-                my $sth;
-
                 &dprint("Persisting object as new\n");
                 $event->handle("$type.new", $o);
-                $sth = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
-                $sth->execute($type);
-                $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
-                $sth->execute();
-                $id = $sth->fetchrow_array();
+                if (!exists($self->{"STH_INSTYPE"})) {
+                    $self->{"STH_INSTYPE"} = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
+                }
+                $self->{"STH_INSTYPE"}->execute($type);
+                if (!exists($self->{"STH_LASTID"})) {
+                    $self->{"STH_LASTID"} = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
+                }
+                $self->{"STH_LASTID"}->execute();
+                $id = $self->{"STH_LASTID"}->fetchrow_array();
                 &dprint("Inserted a new object into the datastore (ID: $id)\n");
                 $o->set("_id", $id);
             }
 
             dprint("Updating datastore ID = $id\n");
-            $sth = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
-            $sth->execute(Warewulf::DSO->serialize($o), $id);
+            if (!exists($self->{"STH_SETOBJ"})) {
+                $self->{"STH_SETOBJ"} = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
+            }
+            $self->{"STH_SETOBJ"}->execute(Warewulf::DSO->serialize($o), $id);
 
-            $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
-            $sth->execute($id);
+            # Delete old lookups
+            $self->{"DBH"}->do("DELETE FROM lookup WHERE object_id = ?", undef, $id);
 
             if ($o->can("lookups")) {
                 my $sth;
                 my @add_lookups;
 
-                foreach my $l ($o->lookups) {
+                foreach my $l ($o->lookups()) {
                     my @lookups = $o->get($l);
 
                     if (scalar(@lookups)) {
@@ -442,15 +446,19 @@ del_object($$)
         my $type = $o->type;
 
         if ($id) {
-            my $sth;
-
             dprint("Deleting object from the datastore: ID=$id\n");
-            $sth = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
-            $sth->execute($id);
-            $sth = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
-            $sth->execute($id);
-            $sth = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
-            $sth->execute($id);
+            if (!exists($self->{"STH_RMLOOK"})) {
+                $self->{"STH_RMLOOK"} = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
+            }
+            if (!exists($self->{"STH_RMBS"})) {
+                $self->{"STH_RMBS"} = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
+            }
+            if (!exists($self->{"STH_RMDS"})) {
+                $self->{"STH_RMDS"} = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
+            }
+            $self->{"STH_RMLOOK"}->execute($id);
+            $self->{"STH_RMBS"}->execute($id);
+            $self->{"STH_RMDS"}->execute($id);
 
             $event->handle("$type.delete", $o);
         }
@@ -473,32 +481,27 @@ add_lookup($$$$)
     }
     dprint("Hello from add_lookup()\n");
     if ($object and $type and $field and $value) {
+        if (!exists($self->{"STH_INSLOOK"})) {
+            $self->{"STH_INSLOOK"} = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
+        }
         if (ref($object) eq "Warewulf::ObjectSet") {
             foreach my $o ($object->get_list()) {
                 if (my $id = $o->get("_id")) {
-                    my $sth;
-
                     dprint("Adding a lookup entry for: $field and $value and $id\n");
-                    $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
-                    $sth->execute(uc($field), $value, $id);
+                    $self->{"STH_INSLOOK"}->execute(uc($field), $value, $id);
                 } else {
                     &wprint("No ID found for object!\n");
                 }
             }
         } elsif (ref($object) =~ /^Warewulf::/) {
             if (my $id = $object->get("_id")) {
-                my $sth;
-
                 dprint("Adding a lookup entry for: $field and $value and $id\n");
-                $sth = $self->{"DBH"}->prepare("INSERT IGNORE lookup (field, value, object_id) VALUES (?,?,?)");
-                $sth->execute(uc($field), $value, $id);
+                $self->{"STH_INSLOOK"}->execute(uc($field), $value, $id);
             } else {
                 &wprint("No ID found for object!\n");
             }
         }
     }
-
-    return;
 }
 
 =item del_lookup($entity [$type, $field, $value])
@@ -562,7 +565,6 @@ del_lookup($$$$)
             &wprint("No ID found for object!\n");
         }
     }
-    return;
 }
 
 
@@ -586,7 +588,8 @@ new_object($)
     my $object = Warewulf::Object->new();
 
     $sth = $self->{"DBH"}->do("INSERT INTO datastore (serialized) VALUES ('')");
-    $sth = $self->{"DBH"}->do("SELECT LAST_INSERT_ID() AS id");
+    $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
+    $sth->execute();
     $object->set("_id", $sth->fetchrow_array());
 
     return $object;
@@ -628,29 +631,27 @@ put_chunk()
 {
     my ($self, $buffer) = @_;
 
-    if (! exists($self->{"BINSTORE"})) {
+    if (!exists($self->{"BINSTORE"})) {
         &eprint("Wrong object type\n");
+        return;
     }
 
-    if (! exists($self->{"OBJECT_ID"})) {
+    if (!exists($self->{"OBJECT_ID"})) {
         &eprint("Can not store into binstore without an object ID\n");
         return;
     }
 
-    if (! exists($self->{"PUT_STH"})) {
-        my $sth = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
-
-        $sth->execute($self->{"OBJECT_ID"});
-        $self->{"PUT_STH"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (?,?)");
+    if (!exists($self->{"STH_PUT"})) {
+        $self->{"STH_PUT"} = $self->{"DBH"}->prepare("INSERT INTO binstore (object_id, chunk) VALUES (?,?)");
+        $self->{"DBH"}->do("DELETE FROM binstore WHERE object_id = ?", undef, $self->{"OBJECT_ID"});
         &dprint("SQL: INSERT INTO binstore (object_id, chunk) VALUES ($self->{OBJECT_ID},?)\n");
     }
 
-    if (! $self->{"PUT_STH"}->execute($self->{"OBJECT_ID"}, $buffer)) {
-        &eprintf("put_chunk() failed with error:  %s\n", $self->{"PUT_STH"}->errstr());
-        return;
-    } else {
-        return 1;
+    if (! $self->{"STH_PUT"}->execute($self->{"OBJECT_ID"}, $buffer)) {
+        &eprintf("put_chunk() failed with error:  %s\n", $self->{"STH_PUT"}->errstr());
+        return 0;
     }
+    return 1;
 }
 
 
@@ -665,23 +666,23 @@ get_chunk()
 {
     my ($self) = @_;
 
-    if (! exists($self->{"BINSTORE"})) {
+    if (!exists($self->{"BINSTORE"})) {
         &eprint("Wrong object type\n");
+        return;
     }
 
-    if (! exists($self->{"OBJECT_ID"})) {
+    if (!exists($self->{"OBJECT_ID"})) {
         &eprint("Can not store into binstore without an object ID\n");
         return;
     }
 
-    if (! exists($self->{"GET_STH"})) {
-        &dprint("SQL: SELECT chunk FROM binstore WHERE object_id = $self->{OBJECT_ID} ORDER BY id\n");
-        $self->{"GET_STH"} = $self->{"DBH"}->prepare("SELECT chunk FROM binstore WHERE object_id = "
-                                                     . $self->{"DBH"}->quote($self->{"OBJECT_ID"})
-                                                     . " ORDER BY id");
-        $self->{"GET_STH"}->execute();
+    if (!exists($self->{"STH_GET"})) {
+        my $query = "SELECT chunk FROM binstore WHERE object_id = $self->{OBJECT_ID} ORDER BY id";
+        &dprint("SQL:  $query\n");
+        $self->{"STH_GET"} = $self->{"DBH"}->prepare($query);
+        $self->{"STH_GET"}->execute();
     }
-    return $self->{"GET_STH"}->fetchrow_array();
+    return $self->{"STH_GET"}->fetchrow_array();
 }
 
 
