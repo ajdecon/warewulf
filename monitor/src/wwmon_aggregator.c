@@ -68,7 +68,7 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
 {
   //printf("NodeName - %s, TimeStamp - %ld\n", NodeName, TimeStamp);
 
-  // Now check if the NodeName exists in the table 
+  // Now check if the NodeName exists in the datastore table 
   // If so compare the timestamp values and decide what to do.
 
   int DBTimeStamp = -1;
@@ -142,11 +142,10 @@ writeHandler(int fd)
       json_object_object_add(jobj,"COMMAND",json_object_new_string(payload));
   } else if(sock_data[fd].ctype == APPLICATION) {
       if(sock_data[fd].sqlite_cmd != NULL){
-          printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
+          //printf("SQL cmd - %s\n", sock_data[fd].sqlite_cmd);
           json_object_object_add(jobj,"JSON_CT",json_object_new_int(0));
           sqlite3_exec(db, sock_data[fd].sqlite_cmd, json_from_db, jobj, NULL);
-          //TODO : Check the sql command return values and if failure or no return send proper message to the App
-          printf("JSON - %s\n",json_object_to_json_string(jobj));
+          //printf("JSON - %s\n",json_object_to_json_string(jobj));
   	  free(sock_data[fd].sqlite_cmd);
       } else {
           strcpy(payload,"Send SQL query");

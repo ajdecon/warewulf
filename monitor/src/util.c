@@ -132,7 +132,7 @@ updateLookups(int blobid, json_object *jobj, sqlite3 *db)
     strcat(sqlite_cmd, blobID);
     strcat(sqlite_cmd, "'");
 
-    //printf("UL SQL CMD - %s\n",sqlite_cmd);
+    printf("UL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){

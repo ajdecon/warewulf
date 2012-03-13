@@ -6,7 +6,6 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_INSTALL
 AM_INIT_AUTOMAKE
 AC_PROG_LIBTOOL
-LT_INIT
 AC_PROG_CC
 
 if test -n $prefix; then
