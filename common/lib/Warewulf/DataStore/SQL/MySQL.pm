@@ -368,8 +368,7 @@ persist($$)
                 if (!exists($self->{"STH_LASTID"})) {
                     $self->{"STH_LASTID"} = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
                 }
-                $self->{"STH_LASTID"}->execute();
-                $id = $self->{"STH_LASTID"}->fetchrow_array();
+                $id = $self->{"DBH"}->selectrow_array($self->{"STH_LASTID"});
                 &dprint("Inserted a new object into the datastore (ID: $id)\n");
                 $o->set("_id", $id);
             }
