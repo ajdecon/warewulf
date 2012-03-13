@@ -1,0 +1,5 @@
+Mon Mar 12 18:19:49 2012                        Michael Jennings (mej)
+
+Fix "make distcheck" (configure.in typo).  Add ignores and
+consistency.  Remove accidental commit of INSTALL.
+----------------------------------------------------------------------
