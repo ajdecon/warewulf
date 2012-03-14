@@ -465,6 +465,38 @@ netmask()
 }
 
 
+=item network($devname, [ $value ])
+
+Get or set the network for the network device named I<$devname>.
+
+=cut
+
+sub
+network()
+{
+    my ($self, $devname, $new_network) = @_;
+
+    return $self->update_netdev_member($devname, "network", "", $new_network,
+                                       qr/^(\d+\.\d+\.\d+\.\d+)$/);
+}
+
+
+=item gateway($devname, [ $value ])
+
+Get or set the gateway for the network device named I<$devname>.
+
+=cut
+
+sub
+gateway()
+{
+    my ($self, $devname, $new_gateway) = @_;
+
+    return $self->update_netdev_member($devname, "gateway", "", $new_gateway,
+                                       qr/^(\d+\.\d+\.\d+\.\d+)$/);
+}
+
+
 =item fqdn($devname, [ $value ])
 
 Get or set the FQDN for the network device named I<$devname>.

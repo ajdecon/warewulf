@@ -90,13 +90,15 @@ help()
     $h .= "         --groupadd      Associate a group to this node\n";
     $h .= "         --groupdel      Remove a group association from this node\n";
     $h .= "         --netdev        Define a network device to set for this node\n";
-    $h .= "         --ipaddr        Set an IP address for the given network device\n";
-    $h .= "         --netmask       Set a subnet mask for the given network device\n";
+    $h .= "         --ipaddr        Set an IP address for the given network device (--netdev=?)\n";
+    $h .= "         --netmask       Set a subnet mask for the given network device (--netdev=?)\n";
+    $h .= "         --network       Set a network for the given network device (--netdev=?)\n";
+    $h .= "         --gateway       Set a gateway for the given network device (--netdev=?)\n";
+    $h .= "         --fqdn          Define the FQDN of this node (if this is passed with the\n";
     $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
     $h .= "         --netdel        Remove a network device from the system\n";
     $h .= "         --cluster       Define the cluster of nodes that this node is a part of\n";
     $h .= "         --domain        Define the domain name of nodes that this node is a part of\n";
-    $h .= "         --fqdn          Define the FQDN of this node (if this is passed with the\n";
     $h .= "                         --netdev argument it will assign it to the device specified)\n";
     $h .= "         --name          Rename this node\n";
     $h .= "\n";
@@ -173,6 +175,8 @@ exec()
     my $opt_hwaddr;
     my $opt_ipaddr;
     my $opt_netmask;
+    my $opt_network;
+    my $opt_gateway;
     my $opt_netdev;
     my $opt_devremove;
     my $opt_cluster;
@@ -203,6 +207,8 @@ exec()
         'netdel'        => \$opt_devremove,
         'hwaddr=s'      => \$opt_hwaddr,
         'ipaddr=s'      => \$opt_ipaddr,
+        'network=s'     => \$opt_network,
+        'gateway=s'     => \$opt_gateway,
         'netmask=s'     => \$opt_netmask,
         'cluster=s'     => \$opt_cluster,
         'name=s'        => \$opt_name,
@@ -298,6 +304,8 @@ exec()
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.HWADDR", $o->hwaddr($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.IPADDR", $o->ipaddr($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.NETMASK", $o->netmask($devname) || "UNDEF");
+                printf("%15s: %-16s = %s\n", $nodename, "$devname.NETWORK", $o->network($devname) || "UNDEF");
+                printf("%15s: %-16s = %s\n", $nodename, "$devname.GATEWAY", $o->gateway($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.FQDN", $o->fqdn($devname) || "UNDEF");
             }
         }
@@ -403,6 +411,59 @@ exec()
                     }
                 } else {
                     &eprint("Option 'netmask' has invalid characters\n");
+                }
+            }
+
+
+
+            if ($opt_network) {
+                if ($opt_network =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    my $show_changes;
+                    foreach my $o ($objSet->get_list()) {
+                        my $nodename = $o->name();
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs_list();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            } else {
+                                &eprint("Option --network requires the --netdev option for: $nodename\n");
+                                return;
+                            }
+                        }
+                        $o->network($opt_netdev, $1);
+                        $persist_count++;
+                        $show_changes = 1;
+                    }
+                    if ($show_changes) {
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETWORK", $opt_netmask));
+                    }
+                } else {
+                    &eprint("Option 'network' has invalid characters\n");
+                }
+            }
+            if ($opt_gateway) {
+                if ($opt_gateway =~ /^(\d+\.\d+\.\d+\.\d+)$/) {
+                    my $show_changes;
+                    foreach my $o ($objSet->get_list()) {
+                        my $nodename = $o->name();
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs_list();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            } else {
+                                &eprint("Option --gateway requires the --netdev option for: $nodename\n");
+                                return;
+                            }
+                        }
+                        $o->gateway($opt_netdev, $1);
+                        $persist_count++;
+                        $show_changes = 1;
+                    }
+                    if ($show_changes) {
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.GATEWAY", $opt_netmask));
+                    }
+                } else {
+                    &eprint("Option 'gateway' has invalid characters\n");
                 }
             }
             if ($opt_fqdn) {
