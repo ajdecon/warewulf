@@ -414,3 +414,9 @@ Tue Mar 13 15:49:01 2012                        Michael Jennings (mej)
 
 Completed optimization work for MySQL.pm.
 ----------------------------------------------------------------------
+Wed Mar 14 15:45:31 2012                        Michael Jennings (mej)
+
+Cleanups and fixes to file handling, especially with respect to the
+file permissions.  Feedback also requested on the confirmation
+change.
+----------------------------------------------------------------------

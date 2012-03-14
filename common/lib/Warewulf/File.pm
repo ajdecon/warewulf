@@ -117,6 +117,43 @@ mode()
     return $self->prop("mode", sub { return (keys %{ +{$_[0] & 07777,1} })[0] || 0; }, @_);
 }
 
+=item modestring()
+
+Returns the file permissions in string form.
+
+=cut
+
+sub
+modestring()
+{
+    my $self = shift;
+    my $mode = $self->mode();
+    my $str = '-';
+
+    $str .= (($mode & 0400) ? ('r') : ('-'));
+    $str .= (($mode & 0200) ? ('w') : ('-'));
+    if ($mode & 04000) {
+        $str .= (($mode & 0100) ? ('s') : ('S'));
+    } else {
+        $str .= (($mode & 0100) ? ('x') : ('-'));
+    }
+    $str .= (($mode & 0040) ? ('r') : ('-'));
+    $str .= (($mode & 0020) ? ('w') : ('-'));
+    if ($mode & 02000) {
+        $str .= (($mode & 0010) ? ('s') : ('S'));
+    } else {
+        $str .= (($mode & 0010) ? ('x') : ('-'));
+    }
+    $str .= (($mode & 0004) ? ('r') : ('-'));
+    $str .= (($mode & 0002) ? ('w') : ('-'));
+    if ($mode & 01000) {
+        $str .= (($mode & 0001) ? ('t') : ('T'));
+    } else {
+        $str .= (($mode & 0001) ? ('x') : ('-'));
+    }
+    return $str;
+}
+
 
 =item checksum($string)
 

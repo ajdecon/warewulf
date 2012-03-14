@@ -6,9 +6,6 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-
-
-
 package Warewulf::Module::Cli::File;
 
 use Warewulf::Logger;
@@ -38,9 +35,7 @@ new()
 
     bless($self, $class);
 
-    $self->init();
-
-    return $self;
+    return $self->init();
 }
 
 sub
@@ -60,16 +55,16 @@ help()
     $h .= "     file [command] [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
-    $h .= "     This is the base file interface for dealing with Warewulf. It allows you to\n";
-    $h .= "     import, export, create and modify files within the Warewulf datastore. Some\n";
-    $h .= "     examples of this would be if you wanted to use a specific file as a node\n";
-    $h .= "     gets provisioned.\n";
+    $h .= "     The file command is used for manipulating file objects.  It allows you to\n";
+    $h .= "     import, export, create, and modify files within the Warewulf data store.\n";
+    $h .= "     File objects may be used to supply files to nodes at provision time,";
+    $h .= "     dynamically create files or scripts based on Warewulf data, and more.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
     $h .= "     import          Import a file into Warewulf\n";
     $h .= "     export          Export the file out of Warewulf\n";
-    $h .= "     edit            Edit the file with 'vi' in the datastore directly\n";
+    $h .= "     edit            Edit the file in the datastore directly\n";
     $h .= "     set             Set file attributes/metadata\n";
     $h .= "     show            Show the content of a file\n";
     $h .= "     list            List a summary of imported files\n";
@@ -80,15 +75,15 @@ help()
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
-    $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
-    $h .= "     -p, --program   What external program should be used (vi/show)\n";
-    $h .= "         --path      Set destination path attribute for this file\n";
-    $h .= "         --origin    Set origin path attribute (use 'UNDEF' to delete)\n";
-    $h .= "         --mode      Set permission attribute for this file\n";
-    $h .= "         --uid       Set the UID of this file\n";
-    $h .= "         --gid       Set the GID of this file\n";
-    $h .= "         --name      Set the reference name of this file (not path!)\n";
-    $h .= "         --interpreter Set the interpreter name to parse this file\n";
+    $h .= "     -l, --lookup       How should we reference this node? (default is name)\n";
+    $h .= "     -p, --program      What external program should be used (vi/show)\n";
+    $h .= "         --path         Set destination path attribute for this file\n";
+    $h .= "         --origin       Set origin path attribute (use 'UNDEF' to delete)\n";
+    $h .= "         --mode         Set permission attribute for this file\n";
+    $h .= "         --uid          Set the UID of this file\n";
+    $h .= "         --gid          Set the GID of this file\n";
+    $h .= "         --name         Set the reference name of this file (not path!)\n";
+    $h .= "         --interpreter  Set the interpreter name to parse this file\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -100,7 +95,7 @@ help()
     $h .= "     Warewulf> file delete name123 given-name\n";
     $h .= "\n";
 
-    return($h);
+    return $h;
 }
 
 
@@ -111,7 +106,7 @@ summary()
 
     $output .= "Manage files within the Warewulf datastore";
 
-    return($output);
+    return $output;
 }
 
 
@@ -165,7 +160,7 @@ format()
         }
     }
 
-    return();
+    return;
 }
 
 sub
@@ -203,12 +198,20 @@ exec()
         'gid=s'         => \$opt_gid,
         'interpreter=s' => \$opt_interpreter,
     );
+    if ($opt_program) {
+        if ($opt_program =~ /^"?([-\w\s\.\/\'\"]+?)"?$/) {
+            $opt_program = $1;
+        } else {
+            &eprint("Program name contains illegal characters: $program\n");
+            return;
+        }
+    }
 
     $command = shift(@ARGV);
 
     if (! $db) {
-        &eprint("Database object not avaialble!\n");
-        return();
+        &eprint("Database object not available!\n");
+        return;
     }
 
     if ($command) {
@@ -220,7 +223,7 @@ exec()
                 my $objSet = $db->get_objects("file", $opt_lookup, &expand_bracket(@ARGV));
                 if ($objSet->count() eq 0) {
                     &nprint("File(s) not found\n");
-                    return();
+                    return;
                 }
 
                 if ($path =~ /^([a-zA-Z0-9\.\-_\/]+?)\/?$/) {
@@ -238,7 +241,7 @@ exec()
                             my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                             if ($yesno ne "y" and $yesno ne "yes") {
                                 &nprint("Not exporting '$name'\n");
-                                return();
+                                return;
                             }
                         }
 
@@ -251,7 +254,7 @@ exec()
                                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                 if ($yesno ne "y" and $yesno ne "yes") {
                                     &nprint("Not exporting '$name'\n");
-                                    return();
+                                    return;
                                 }
                             }
                         }
@@ -320,7 +323,7 @@ exec()
                                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                 if ($yesno ne "y" and $yesno ne "yes") {
                                     &nprint("Not exporting '$name'\n");
-                                    return();
+                                    return;
                                 }
                             }
                         } else {
@@ -378,7 +381,7 @@ exec()
                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                     if ($yesno ne "y" and $yesno ne "yes") {
                         &nprint("No update performed\n");
-                        return();
+                        return;
                     }
                 }
                 $db->del_object($objSet);
@@ -386,17 +389,14 @@ exec()
             } elsif ($command eq "edit") {
                 my $program;
                 if ($opt_program) {
-                    if ($opt_program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
-                        $program = $1;
-                    } else {
-                        &eprint("Program name contains illegal characters: $program\n");
-                        return();
-                    }
+                    $program = $opt_program;
+                } elsif (exists($ENV{"EDITOR"}) && $ENV{"EDITOR"} =~ /^([-\w\s\.\/\'\"]+?)$/) {
+                    $program = $1;
                 } else {
                     $program = "/bin/vi";
                 }
 
-                if ($objSet->count() eq 0) {
+                if ($objSet->count() == 0) {
                     my $rand = &rand_string("16");
                     my $tmpfile = "/tmp/wwsh.$rand";
                     my $name;
@@ -413,7 +413,7 @@ exec()
                     $objSet->add($obj);
                 }
 
-                if ($objSet->count() eq 1) {
+                if ($objSet->count() == 1) {
                     my $obj = $objSet->get_object(0);
                     my $rand = &rand_string("16");
                     my $tmpfile = "/tmp/wwsh.$rand";
@@ -421,19 +421,18 @@ exec()
                     $obj->file_export($tmpfile);
 
                     &dprint("Running command: $program $tmpfile\n");
-                    if (system("$program $tmpfile") == 0) {
+                    if (system($program, $tmpfile) == 0) {
                         if ((! $obj->checksum() or !$obj->size()) or $obj->checksum() ne digest_file_hex_md5($tmpfile)) {
                             $obj->file_import($tmpfile);
                             unlink($tmpfile);
                         } else {
-                            &nprint("Not updating datastore\n");
+                            &nprint("File unchanged or empty.  Not updating datastore.\n");
                         }
                     } else {
-                        &iprint("Command errored out, not updating datastore\n");
+                        &iprint("Command \"$program\" failed.  Not updating datastore.\n");
                     }
-
                 } else {
-                    &eprint("Edit only one file object at a time\n");
+                    &eprint("Edit only one file object at a time.\n");
                 }
 
             } elsif ($command eq "set" or $command eq "new") {
@@ -443,7 +442,7 @@ exec()
                     $object_count = $objSet->count();
                 } else {
                     &nprint("File(s) not found\n");
-                    return();
+                    return;
                 }
 
                 if (defined($opt_interpreter)) {
@@ -452,14 +451,14 @@ exec()
                             $obj->interpreter(undef);
                             $persist_count++;
                         }
-                        push(@changes, sprintf("   UNDEF: %-20s\n", "INTREPRETER"));
+                        push(@changes, sprintf("   UNDEF: %-20s\n", "INTERPRETER"));
                     } elsif ($opt_interpreter =~ /^([a-zA-Z0-9\-_\/\.]+)$/) {
                         my $interpreter = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->interpreter($interpreter);
                             $persist_count++;
                         }
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "INTREPRETER", $interpreter));
+                        push(@changes, sprintf("     SET: %-20s = %s\n", "INTERPRETER", $interpreter));
                     } else {
                         &eprint("Interpreter contains illegal characters\n");
                     }
@@ -489,7 +488,7 @@ exec()
                             $persist_count++;
                         }
                         push(@changes, sprintf("   UNDEF: %-20s\n", "MODE"));
-                    } elsif ($opt_mode =~ /^([0-7]{3,4})$/) {
+                    } elsif ($opt_mode =~ /^([0-7]{3,5})$/) {
                         my $mode = $1;
                         foreach my $obj ($objSet->get_list()) {
                             $obj->mode(oct($mode));
@@ -564,37 +563,18 @@ exec()
 
 
                 if ($persist_count > 0) {
-                    if ($term->interactive()) {
-                        my $file_count = $objSet->count();
-                        print "Are you sure you want to make the following $persist_count actions(s) to $file_count file(s):\n\n";
-                        foreach my $change (@changes) {
-                            print $change;
-                        }
-                        print "\n";
-                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                        if ($yesno ne "y" and $yesno ne "yes") {
-                            &nprint("No update performed\n");
-                            return();
-                        }
+                    printf("About to apply $persist_count action(s) to %d file(s):\n\n", $objSet->count());
+                    print(@changes);
+                    if (! $term->yesno("Proceed?", 0, 1)) {
+                        &nprint("No update performed\n");
+                        return;
                     }
-
                     $return_count = $db->persist($objSet);
-
-                    &iprint("Updated $return_count objects\n");
+                    &iprint("Updated $return_count object(s).\n");
                 }
 
             } elsif ($command eq "show") {
-                my $program;
-                if ($opt_program) {
-                    if ($opt_program =~ /^"?([a-zA-Z0-9_\-\s\.\/\'\/\"]+?)"?$/) {
-                        $program = $1;
-                    } else {
-                        &eprint("Program name contains illegal characters: $program\n");
-                        return();
-                    }
-                } else {
-                    $program = "/bin/cat";
-                }
+                my $program = $opt_program || "/bin/cat";
 
                 foreach my $obj ($objSet->get_list()) {
                     my $rand = &rand_string("16");
@@ -602,7 +582,7 @@ exec()
 
                     $obj->file_export($tmpfile);
 
-                    if (system("$program $tmpfile") == 0) {
+                    if (system($program, $tmpfile) == 0) {
                         unlink($tmpfile);
                     } else {
                         &eprint("Program failed: $program $tmpfile\n");
@@ -621,31 +601,13 @@ exec()
                     "NAME", "PERMS", "O", "USER GROUP", "SIZE", "DEST");
                 foreach my $obj ($objSet->get_list()) {
                     my $perms = "-";
-                    foreach my $m (split(//, substr(sprintf("%04o", $obj->mode()), -3))) {
-                        if ($m eq 7) {
-                            $perms .= "rwx";
-                        } elsif ($m eq 6) {
-                            $perms .= "rw-";
-                        } elsif ($m eq 5) {
-                            $perms .= "r-x";
-                        } elsif ($m eq 4) {
-                            $perms .= "r--";
-                        } elsif ($m eq 3) {
-                            $perms .= "-wx";
-                        } elsif ($m eq 2) {
-                            $perms .= "-w-";
-                        } elsif ($m eq 1) {
-                            $perms .= "--x";
-                        } else {
-                            $perms .= "---";
-                        }
-                    }
                     my $user_group = getpwuid($obj->uid() || "0") ." ". getgrgid($obj->gid() || "0");
                     my @o = $obj->origin();
+
                     printf("%-16s: %10s %d %-16s %9d %s\n",
                         $obj->name(),
-                        $perms || "UNDEF",
-                        scalar @o,
+                        $obj->modestring(),
+                        scalar(@o),
                         $user_group,
                         $obj->size() || "0",
                         $obj->path() || "",
@@ -674,7 +636,7 @@ exec()
     } else {
         &eprint("You must provide a command!\n\n");
         print $self->help();
-        return();
+        return;
 
     }
 }
