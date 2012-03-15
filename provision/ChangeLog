@@ -75,3 +75,8 @@ Mon Mar 12 13:16:56 2012                        Michael Jennings (mej)
 
 Improved SVN revision detection.
 ----------------------------------------------------------------------
+Thu Mar 15 15:50:52 2012                        Michael Jennings (mej)
+
+Sanitize shell variable names when provisioning configuration data.
+Issue pointed out by Brian Pape <bpape@ats.ucla.edu>.
+----------------------------------------------------------------------

@@ -12,33 +12,41 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::Node;
 
-my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
+my $q = CGI->new();
+my $hwaddr = $q->param('hwaddr');
 
 print $q->header();
-
-my $hwaddr = $q->param('hwaddr');
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
     my $nodeSet = $db->get_objects("node", "_hwaddr", $hwaddr);
     my $node = $nodeSet->get_object(0);
+    my %nhash;
 
     if (! $node) {
+        &eprint("Node with hardware address \"$hwaddr\" does not exist!");
         exit;
     }
 
-    my %nhash = $node->get_hash();
+    %nhash = $node->get_hash();
     foreach my $key (keys %nhash) {
         my $uc_key = uc($key);
         my $val;
+
+        # Sanitize $uc_key to only contain characters which are valid
+        # in the name of a shell variable for bash and POSIX sh.
+        $uc_key =~ s/\W//g;
+
+        # For arrays, print the first element.  Otherwise, print the value.
         if (ref($nhash{"$key"}) eq "ARRAY") {
-            #print "WW$uc_key=\"". join(" ", @{$nhash{"$key"}}) ."\"\n";
-            print "WW$uc_key=\"". $nhash{$key}[0] ."\"\n";
+            $val = $nhash{$key}[0];
         } elsif (ref(\$nhash{"$key"}) eq "SCALAR") {
-            print "WW$uc_key=\"$nhash{$key}\"\n";
+            $val = $nhash{$key};
+        } else {
+            $val = "";
         }
-        print "export WW$uc_key\n";
+        print "WW$uc_key=\"$val\"\nexport WW$uc_key\n";
     }
 }
 
