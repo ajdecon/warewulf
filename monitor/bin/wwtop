@@ -759,114 +759,13 @@ p      $scr->bold();
       }
    }
 
+    $scr->at(10,0);
+    $scr->puts("talked to master $count");
+    $scr->normal();
+    $scr->flush_input();
 
-#    sleep(1);
-    $count+=1;
+#    $count+=1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if($ARG_summary){
-    #print_summary();
-    exit;
-}else{
-    #print_all();
-}
-
-sub print_summary {
-
-    my $ts=time();
-    foreach my $node ( $nodeSet->get_list()) {
-	my $lastcontact=$ts-$node->get("timestamp");
-	$node->set("lastcontact",$lastcontact);
-	#two of the "SWAPUSED" should've been SWAPTOTAL
-	#need to fix after adjusting the query output
-	if ( $node->get("SWAPTOTAL") > 0 ) {
-	    my $swapPercent=$node->get("swappercent");
-	    my $swapUsed=$node->get("swapused");
-	    my $swapTotal=$node->get("swaptotal");
-	    $swapstat{$node} = "$swapPercent% $swapUsed/$swapTotal";
-	} else {
-	    $swapstat{$node} = 'none';
-	}
-	if ( $lastcontact <= 300 ) {
-	    push(@nodes_ready, $node);
-	    $total_cpu += $node->get("CPUUTIL");
-	    $nodes_up++;
-	} else {
-	    push(@nodes_down, $node);
-	    $nodes_down++;
-	}
-    }
-
-    
-    $summary .= sprintf("%21s: %-10s\n", 'Total Nodes', $nodes_up + $nodes_down + $nodes_unavailable, "Warewulf");
-    $summary .= sprintf("%21s: %-27s %s\n", 'Living', $nodes_up, "Warewulf");
-    $summary .= sprintf("%21s: %-17s %s\n", 'Disabled', $nodes_disabled, "http://warewulf.lbl.gov/");
-    $summary .= sprintf("%21s: %-10s\n", 'Error', $nodes_error);
-    $summary .= sprintf("%21s: %-10s\n", 'Dead', $nodes_down);
-    
-    if ( $nodes_up ) {
-	$total_cpu = sprintf("%d", ( $total_cpu / ( $nodes_up + $nodes_unavailable )));
-    } else {
-	$total_cpu = '0';
-    }
-    
-    print "--------------------------------------------------------------------------------\n";
-    printf("%21s: |", 'Monitoring Masters');
-    foreach my $master ($monitor->get_masters()){
-	print " $master |";
-    }
-    print "\n";
-    printf("%21s: %-28s\n", "Total CPU utilization", "$total_cpu%");
-    print "$summary";
-    print "--------------------------------------------------------------------------------\n";
-
-}
-
-sub print_all {
-    print_summary();
-
-    print " Node      Cluster        CPU       Memory (MB)      Swap (MB)      Current\n";
-    print " Name       Name       [util/num] [% used/total]   [% used/total]   Status\n";
-
-    foreach my $ready ( @nodes_ready ) {
-        printf("%-20s \t %s\% (%s) \t %s/%s \t %s \t%s\n", 
-	       $ready->get("name"), 
-	       $ready->get("cpuutil"), $ready->get("cpucount"),
-	       $ready->get("memused"),$ready->get("memtotal"),
-	       $swapstat{$ready},
-	       $ready->get("nodestatus"));
-
-    }
-    foreach my $down ( @nodes_down ) {
-	printf( "%s Last Contact was %s seconds ago %s\n",
-		$down->get("name"),
-		$down->get("lastcontact"),
-		$down->get("nodestatus"),);
-
-    }
-    
-}
-
 
 sub print_help {
     print "                                                                                                       
