@@ -128,6 +128,7 @@ if($ARG_help){
 }
 
 my $monitor = Warewulf::Monitor->new();
+$monitor->persist_socket("1");
 my $nodeSet = $monitor->query_data();
 
 # set the default sort mechanism                                                                                         
@@ -758,12 +759,7 @@ p      $scr->bold();
          sleep 1;
       }
    }
-
-    $scr->at(10,0);
-    $scr->puts("talked to master $count");
-    $scr->normal();
-    $scr->flush_input();
-
+    $nodeSet = $monitor->query_data();
 #    $count+=1;
 }
 
