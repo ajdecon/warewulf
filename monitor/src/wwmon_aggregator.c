@@ -78,15 +78,28 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
     blobid = NodeBID_fromDB(NodeName, db);
     insertLookups(blobid, jobj, db);
 
-  } else if ( DBTimeStamp < TimeStamp ) {
+  } else if ( DBTimeStamp < TimeStamp ) { // PKT with newer time stamp
     update_json(NodeName, TimeStamp, jobj, db);
     int blobid = -1;
     blobid = NodeBID_fromDB(NodeName, db);
-    updateLookups(blobid, jobj, db);
+    update_insertLookups(blobid, jobj, db);
 
-  } else if (DBTimeStamp > TimeStamp ) {
+   /* So you update everything and if we maintain some more keys previously merge ? */
+   /* Still update the newer timestamp ? */
+
+  } else if (DBTimeStamp > TimeStamp ) { // PKT with older time stamp
     printf("DB has more current record - %d... Skipping update\n",DBTimeStamp);
+
+    /* But check if there are any new key names included */  
+   /*  Is yes then merge stuff, Still retain the newer timestamp */
+
+  } else if (DBTimeStamp == TimeStamp) { // PKT with same time stamp
+
+    /* But check if there are any new key names included */  
+   /*  Is yes then merge stuff */
+
   }
+ 
 }
 
 void

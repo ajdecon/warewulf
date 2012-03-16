@@ -99,6 +99,58 @@ insertLookups(int blobid, json_object *jobj, sqlite3 *db)
   free(sqlite_cmd);
 }
 
+
+void
+update_insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
+{
+
+  //Can we assume 64 bits for rowid ?
+  char blobID[65];
+  char *sqlite_cmd = malloc(MAX_SQL_SIZE+1);
+  enum json_type type;
+  int slen, rc;
+
+  sprintf(blobID,"%d",blobid);
+  json_object_object_foreach(jobj, key, value){
+
+    char vals[65];
+    type = json_object_get_type(value);
+    switch(type) {
+      case json_type_int:
+        sprintf(vals, "%d",json_object_get_int(value));
+        break;
+      case json_type_string:
+        sprintf(vals, "'%s'",json_object_get_string(value));
+        break;
+    }
+
+    //First check if the key exisits in the table
+    int rowid = -1;
+    slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "select rowid from %s where key='%s'", SQLITE_DB_TB2NAME, key);
+    printf("UL SQL CMD - %s\n",sqlite_cmd);
+    char *emsg = 0;
+    rc = sqlite3_exec(db, sqlite_cmd, getint_callback, &rowid, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+    }
+
+    if( rowid > 0 ) { // Already existing entry in the table
+	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "update %s set value=%s where key='%s' and blobid='%s'", SQLITE_DB_TB2NAME, vals, key, blobID);
+    } else { // This is a new key, value to be inserted
+	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
+    }
+
+    printf("UL SQL CMD - %s\n",sqlite_cmd);
+    rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+    if( rc!=SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", emsg);
+    }
+    sqlite3_free(emsg);
+
+  } // end json_foreach
+  free(sqlite_cmd);
+}
+
 void
 updateLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
@@ -109,7 +161,7 @@ updateLookups(int blobid, json_object *jobj, sqlite3 *db)
   enum json_type type;
 
   json_object_object_foreach(jobj, key, value){
-    strcpy(sqlite_cmd, "update lookups set value=");
+    strcpy(sqlite_cmd, "update or abort lookups set value=");
     // Clean the int logic
     // Can we assume 64 bits for all ints ?
     char vals[65];
@@ -135,6 +187,7 @@ updateLookups(int blobid, json_object *jobj, sqlite3 *db)
     printf("UL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
+    printf("UL SQL rc - %d\n",rc);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", emsg);
       sqlite3_free(emsg);
