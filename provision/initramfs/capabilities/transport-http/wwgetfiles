@@ -17,18 +17,17 @@ while true; do
         if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR" 2>/dev/null; then
             cat $TMPFILE | while read id name uid gid mode sum1 path; do
                 if [ -f $path ]; then
-                    sum2=`md5sum $path`
+                    sum2=`md5sum $path | cut -d ' ' -f 1`
                     if [ "$sum1" == "$sum2" ]; then
                         continue
                     fi
-                else
-                    basedir=`dirname $path`
-                    if [ ! -d "$NEWROOT/$basedir" ]; then
-                        mkdir -p $NEWROOT/$basedir
-                    fi
+                fi
+                basedir=`dirname $path`
+                if [ ! -d "$NEWROOT/$basedir" ]; then
+                    mkdir -p $NEWROOT/$basedir
                 fi
                 if wget -q -O - "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id" > $NEWROOT/$path.$sum1; then
-                    sum2=`md5sum $NEWROOT/$path`
+                    sum2=`md5sum $NEWROOT/$path.$sum1 | cut -d ' ' -f 1`
                     if [ "$sum1" == "$sum2" ]; then
                         chown $uid $NEWROOT/$path.$sum1
                         chgrp $gid $NEWROOT/$path.$sum1
