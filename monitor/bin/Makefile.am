@@ -1,4 +1,4 @@
-dist_bin_SCRIPTS = wwstats
+dist_bin_SCRIPTS = wwstats wwtop
 
 
 MAINTAINERCLEANFILES = Makefile.in

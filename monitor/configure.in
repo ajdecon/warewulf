@@ -34,7 +34,7 @@ if test "x$sqlitefound" = "x0"; then
     AC_CHECK_LIB(sqlite3, sqlite3Init, [LDFLAGS="-lsqlite3 $LDFLAGS" sqlitefound="1"], [])
 fi
 
-# Check For sqlite 3.6
+# Check For sqlite 3.3.6
 if test "x$sqlitefound" = "x0"; then
     AC_CHECK_LIB(sqlite3, sqlite3_initialize,[LDFLAGS="-lsqlite3 $LDFLAGS"], [
     echo "ERROR:  You need libsqlite3 to build Warewulf Moniter module.";
