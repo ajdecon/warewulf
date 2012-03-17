@@ -54,53 +54,6 @@ getint_callback(void *void_int, int argc, char **argv, char **azColName)
 }
 
 void
-insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
-{
-
-  //Can we assume 64 bits for rowid ?
-  char blobID[65];
-  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-  enum json_type type;
-
-  json_object_object_foreach(jobj, key, value){
-    strcpy(sqlite_cmd, "insert into lookups(blobid, key, value) values ('");
-    sprintf(blobID,"%d",blobid);
-    strcat(sqlite_cmd, blobID);
-    strcat(sqlite_cmd, "','");
- 
-    strcat(sqlite_cmd,key);
-    strcat(sqlite_cmd, "',");
-
-    // Clean the int logic
-    // Can we assume 64 bits for all ints ?
-    char vals[65];
-    type = json_object_get_type(value);
-    switch(type) {
-      case json_type_int:
-        sprintf(vals, "%d",json_object_get_int(value));
-        strcat(sqlite_cmd,vals);
-        break;
-      case json_type_string:
-	strcat(sqlite_cmd, "'");
-        strcat(sqlite_cmd, json_object_get_string(value));
-	strcat(sqlite_cmd, "'");
-        break;
-    }
-    strcat(sqlite_cmd, ")");
-
-    //printf("IL SQL CMD - %s\n",sqlite_cmd);
-    char *emsg = 0;
-    int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
-      sqlite3_free(emsg);
-    }
-  } // end json_foreach
-  free(sqlite_cmd);
-}
-
-
-void
 update_insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
@@ -132,6 +85,7 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
     rc = sqlite3_exec(db, sqlite_cmd, getint_callback, &rowid, &emsg);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
     }
 
     if( rowid > 0 ) { // Already existing entry in the table
@@ -144,106 +98,47 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
     rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", emsg);
+      sqlite3_free(emsg);
     }
-    sqlite3_free(emsg);
 
   } // end json_foreach
   free(sqlite_cmd);
 }
 
 void
-updateLookups(int blobid, json_object *jobj, sqlite3 *db) 
+insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
   //Can we assume 64 bits for rowid ?
   char blobID[65];
-  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
+  char *sqlite_cmd = malloc(MAX_SQL_SIZE+1);
   enum json_type type;
+  int slen, rc;
 
+  sprintf(blobID,"%d",blobid);
   json_object_object_foreach(jobj, key, value){
-    strcpy(sqlite_cmd, "update or abort lookups set value=");
-    // Clean the int logic
-    // Can we assume 64 bits for all ints ?
+
     char vals[65];
     type = json_object_get_type(value);
     switch(type) {
       case json_type_int:
         sprintf(vals, "%d",json_object_get_int(value));
-        strcat(sqlite_cmd,vals);
-        break;
+	break;
       case json_type_string:
-        strcat(sqlite_cmd, "'");
-        strcat(sqlite_cmd, json_object_get_string(value));
-        strcat(sqlite_cmd, "'");
-        break;
+	sprintf(vals, "'%s'",json_object_get_string(value));
+	break;
     }
-    strcat(sqlite_cmd, " where key='");
-    strcat(sqlite_cmd,key);
-    strcat(sqlite_cmd, "' and blobid='");
-    sprintf(blobID,"%d",blobid);
-    strcat(sqlite_cmd, blobID);
-    strcat(sqlite_cmd, "'");
-
-    printf("UL SQL CMD - %s\n",sqlite_cmd);
+    slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
+    printf("IL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-    printf("UL SQL rc - %d\n",rc);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", emsg);
       sqlite3_free(emsg);
     }
+
   } // end json_foreach
   free(sqlite_cmd);
-}
-
-void
-fillLookups(int blobid, json_object *jobj, sqlite3 *db) 
-{
-
-  //Can we assume 64 bits for rowid ?
-  char blobID[65];
-  char *sqlite_cmd = malloc(MAX_SQL_SIZE);
-  enum json_type type;
-
-  json_object_object_foreach(jobj, key, value){
-   // What is the correct SQL to use ?
-   strcpy(sqlite_cmd, "insert or replace into lookups(blobid, key, value) values ('");
-   sprintf(blobID,"%d",blobid);
-   strcat(sqlite_cmd, blobID);
-   strcat(sqlite_cmd, "','");
-
-   if(strcmp(key,"NODENAME")!=0 && strcmp(key,"TIMESTAMP")!=0) {
-
-   	strcat(sqlite_cmd,key);
-	strcat(sqlite_cmd, "','");
-
-    	// Clean the int logic
-        // Can we assume 64 bits for all ints ?
-    	char vals[65];
-    	type = json_object_get_type(value);
-    	switch(type) {
-        	case json_type_int:
-                	sprintf(vals, "%d",json_object_get_int(value));
-                	strcat(sqlite_cmd,vals);
-                	break;
-        	case json_type_string:
-                	strcat(sqlite_cmd, json_object_get_string(value));
-                	break;
-    	}
-    	strcat(sqlite_cmd, "')");
-
-    //printf("SQL CMD - %s\n",sqlite_cmd);
-    char *emsg = 0;
-    int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
-    if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
-      sqlite3_free(emsg);
-    }
-
-    } // end if
-   } // end json_foreach
-
-   free(sqlite_cmd);
 }
 
 void
@@ -264,7 +159,7 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"')");
 
-  //printf("IJ CMD - %s\n",sqlcmd);
+  printf("IJ CMD - %s\n",sqlcmd);
   int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
@@ -293,7 +188,7 @@ update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
   strcat(sqlcmd,nodename);
   strcat(sqlcmd,"'");
 
-  //printf("CMD - %s\n",sqlcmd);
+  printf("UJ - %s\n",sqlcmd);
   int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);

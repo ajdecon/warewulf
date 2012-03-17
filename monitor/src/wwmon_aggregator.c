@@ -72,34 +72,27 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
   // If so compare the timestamp values and decide what to do.
 
   int DBTimeStamp = -1;
-  if ( (DBTimeStamp = NodeTS_fromDB(NodeName, db)) == -1 ) {
+  int blobid = -1;
+  if ( (DBTimeStamp = NodeTS_fromDB(NodeName, db)) == -1 ) { // Node data is new
     insert_json(NodeName, TimeStamp, jobj, db);
-    int blobid = -1;
     blobid = NodeBID_fromDB(NodeName, db);
     insertLookups(blobid, jobj, db);
 
   } else if ( DBTimeStamp < TimeStamp ) { // PKT with newer time stamp
+    // TODO : Instead of updating we shd compare keys if older exist merge json, set new timestamp and update all lookups
     update_json(NodeName, TimeStamp, jobj, db);
-    int blobid = -1;
     blobid = NodeBID_fromDB(NodeName, db);
     update_insertLookups(blobid, jobj, db);
 
-   /* So you update everything and if we maintain some more keys previously merge ? */
-   /* Still update the newer timestamp ? */
-
-  } else if (DBTimeStamp > TimeStamp ) { // PKT with older time stamp
+  } else if (DBTimeStamp = TimeStamp ) { // PKT with same time stamp
     printf("DB has more current record - %d... Skipping update\n",DBTimeStamp);
 
-    /* But check if there are any new key names included */  
-   /*  Is yes then merge stuff, Still retain the newer timestamp */
+    // TODO : Compare keys if new merge json and insert new lookups only, 
+  } else if (DBTimeStamp > TimeStamp) { // PKT with older time stamp
 
-  } else if (DBTimeStamp == TimeStamp) { // PKT with same time stamp
-
-    /* But check if there are any new key names included */  
-   /*  Is yes then merge stuff */
-
+    // TODO : Compare keys if new merge json, retain newer timestamp and insert new lookups only
   }
- 
+
 }
 
 void
