@@ -95,11 +95,11 @@ help()
     $h .= "         --network       Set a network for the given network device (--netdev=?)\n";
     $h .= "         --gateway       Set a gateway for the given network device (--netdev=?)\n";
     $h .= "         --fqdn          Define the FQDN of this node (if this is passed with the\n";
+    $h .= "                         --netdev argument it will assign it to the device specified)\n";
     $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
     $h .= "         --netdel        Remove a network device from the system\n";
     $h .= "         --cluster       Define the cluster of nodes that this node is a part of\n";
     $h .= "         --domain        Define the domain name of nodes that this node is a part of\n";
-    $h .= "                         --netdev argument it will assign it to the device specified)\n";
     $h .= "         --name          Rename this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
@@ -265,7 +265,7 @@ exec()
 
             $question .= join("\n", map { sprintf("     DEL: %-20s = %s", "NODE", $_->name()); } $objSet->get_list());
             $question .= "\n";
-            if (! $term->yesno($question, 0, 1)) {
+            if (! $term->yesno($question)) {
                 &nprint("No update performed\n");
                 return;
             }

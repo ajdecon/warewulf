@@ -240,10 +240,11 @@ get_input($)
 
 Ask the user a question and prompt for a yes/no response.  This is a
 convenience/consistency wrapper around C<get_input()> above.  If
-I<$question> is not supplied, only the prompt will be printed.  If
-I<$default_yes> is true, "yes" will be the default instead of "no."
-If I<$default_notty> is true, non-interactive sessions will default to
-"yes" instead of "no."
+I<$question> is not supplied, only the prompt will be printed.
+I<$default_yes> specifies whether the default response should be "yes"
+or "no."  I<$default_notty> specifies the same for non-interactive
+sessions (i.e., where STDIN is not a TTY, thus causing no prompt to be
+displayed).
 
 =cut
 
@@ -252,6 +253,12 @@ yesno()
 {
     my ($self, $question, $default_yes, $default_notty) = @_;
 
+    if (!defined($default_yes)) {
+        $default_yes = 0;
+    }
+    if (!defined($default_notty)) {
+        $default_notty = 1;
+    }
     if ($question) {
         print($question);
     }

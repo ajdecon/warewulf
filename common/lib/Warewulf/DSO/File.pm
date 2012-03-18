@@ -53,7 +53,7 @@ type($)
 {
     my $self = shift;
 
-    return("file");
+    return "file";
 }
 
 
@@ -62,7 +62,7 @@ lookups($)
 {
     my $self = shift;
 
-    return("_ID", "NAME", "LANG", "PATH", "FORMAT");
+    return ("_ID", "NAME", "LANG", "PATH", "FORMAT");
 }
 
 

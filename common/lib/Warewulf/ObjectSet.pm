@@ -216,15 +216,21 @@ Return an array of all objects in this ObjectSet.
 =cut
 
 sub
-get_list($$)
+get_list()
 {
     my ($self) = @_;
 
     if (exists($self->{"ARRAY"})) {
-#        return (sort {$a->get("name") cmp $b->get("name")} @{$self->{"ARRAY"}});
-        return(@{$self->{"ARRAY"}});
+        if (wantarray()) {
+            return @{$self->{"ARRAY"}};
+        } else {
+            my $aref;
+
+            @{$aref} = @{$self->{"ARRAY"}};
+            return $aref;
+        }
     } else {
-        return;
+        return undef;
     }
 }
 

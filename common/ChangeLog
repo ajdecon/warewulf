@@ -420,3 +420,15 @@ Cleanups and fixes to file handling, especially with respect to the
 file permissions.  Feedback also requested on the confirmation
 change.
 ----------------------------------------------------------------------
+Sat Mar 17 21:13:56 2012                        Michael Jennings (mej)
+
+Major refactoring of the File CLI.  Consolidated and cleaned up the
+code, fixed a bug that prevented "new" from working, and redid the
+interactive stuff to use a new Cli object method.
+
+Also fixed a typo in the "node" help output.
+
+This has been tested locally and seems to work, but changes this big
+may have hidden issues, so please report any problems you encounter.
+:-)
+----------------------------------------------------------------------

@@ -127,7 +127,7 @@ sub
 modestring()
 {
     my $self = shift;
-    my $mode = $self->mode();
+    my $mode = $self->mode() || 0;
     my $str = '-';
 
     $str .= (($mode & 0400) ? ('r') : ('-'));

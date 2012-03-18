@@ -86,6 +86,39 @@ What to do when this module gets called for autocompletion
 sub complete() {};
 
 
+=item confirm_changes(I<term>, I<obj_count>, I<type>, I<change>, [...])
+
+Confirm a set of changes to objects in the data store.  I<obj_count>
+is the number of objects affected by the changes.  I<type> is the type
+of objects being changed.  The remaining parameters should consist of
+text strings which describe the changes about to be made.  The return
+value will be true if the user confirmed the changes or false if the
+user requested to discard the changes.
+
+The default response is "no" if standard input is a tty and "yes"
+otherwise.
+
+=cut
+
+sub
+confirm_changes(@)
+{
+    my ($self, $term, $obj_count, $type, @changes) = @_;
+
+    if (! $type) {
+        $type = "object(s)";
+    }
+    printf("About to apply %d action(s) to $obj_count $type:\n\n", scalar(@changes));
+    print(@changes);
+    if ($term->yesno("Proceed?\n")) {
+        return 1;
+    } else {
+        &nprint("Action(s) discarded.\n");
+        return 0;
+    }
+}
+
+
 =head1 SEE ALSO
 
 Warewulf, Warewulf::Module
