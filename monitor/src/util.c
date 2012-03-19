@@ -57,7 +57,7 @@ void
 update_insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
-  //Can we assume 64 bits for rowid ?
+  //TODO : Can we assume 64 bits for rowid ?
   char blobID[65];
   char *sqlite_cmd = malloc(MAX_SQL_SIZE+1);
   enum json_type type;
@@ -66,7 +66,7 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
   sprintf(blobID,"%d",blobid);
   json_object_object_foreach(jobj, key, value){
 
-    char vals[65];
+    char vals[65]; //TODO : check the length
     type = json_object_get_type(value);
     switch(type) {
       case json_type_int:
@@ -80,7 +80,7 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
     //First check if the key exisits in the table
     int rowid = -1;
     slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "select rowid from %s where key='%s'", SQLITE_DB_TB2NAME, key);
-    printf("UL SQL CMD - %s\n",sqlite_cmd);
+    //printf("UL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     rc = sqlite3_exec(db, sqlite_cmd, getint_callback, &rowid, &emsg);
     if( rc!=SQLITE_OK ){
@@ -94,7 +94,7 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
 	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
     }
 
-    printf("UL SQL CMD - %s\n",sqlite_cmd);
+    //printf("UL SQL CMD - %s\n",sqlite_cmd);
     rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", emsg);
@@ -109,7 +109,7 @@ void
 insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
 {
 
-  //Can we assume 64 bits for rowid ?
+  //TODO : Can we assume 64 bits for rowid ?
   char blobID[65];
   char *sqlite_cmd = malloc(MAX_SQL_SIZE+1);
   enum json_type type;
@@ -118,7 +118,7 @@ insertLookups(int blobid, json_object *jobj, sqlite3 *db)
   sprintf(blobID,"%d",blobid);
   json_object_object_foreach(jobj, key, value){
 
-    char vals[65];
+    char vals[65]; //TODO : Check the length
     type = json_object_get_type(value);
     switch(type) {
       case json_type_int:
@@ -129,7 +129,7 @@ insertLookups(int blobid, json_object *jobj, sqlite3 *db)
 	break;
     }
     slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
-    printf("IL SQL CMD - %s\n",sqlite_cmd);
+    //printf("IL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     int rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){
@@ -145,22 +145,12 @@ void
 insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 {
 
-  char TimeStamp[11];
-  char *sqlcmd = malloc(MAX_SQL_SIZE);
+  char *sqlcmd = malloc(MAX_SQL_SIZE+1);
+  int slen, rc;
+  char *emsg = 0;
 
-  strcpy(sqlcmd,"insert into ");
-  strcat(sqlcmd,SQLITE_DB_TB1NAME);
-  strcat(sqlcmd,"(jsonblob, timestamp, nodename) values('");
-  strcat(sqlcmd,json_object_to_json_string(jobj));
-  strcat(sqlcmd,"','");
-  sprintf(TimeStamp,"%d",timestamp);
-  strcat(sqlcmd,TimeStamp);
-  strcat(sqlcmd,"','");
-  strcat(sqlcmd,nodename);
-  strcat(sqlcmd,"')");
-
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "insert into %s(jsonblob, timestamp, nodename) values('%s',%d,'%s')", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
   printf("IJ CMD - %s\n",sqlcmd);
-  int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
     sqlite3_free(emsg);
@@ -173,23 +163,11 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 void
 update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 {
-  char TimeStamp[11];
-  char *sqlcmd = malloc(MAX_SQL_SIZE);
-
-  strcpy(sqlcmd,"update ");
-  strcat(sqlcmd,SQLITE_DB_TB1NAME);
-  strcat(sqlcmd," set jsonblob='");
-  strcat(sqlcmd,json_object_to_json_string(jobj));
-  strcat(sqlcmd,"', ");
-  strcat(sqlcmd,"timestamp='");
-  sprintf(TimeStamp,"%d",timestamp);
-  strcat(sqlcmd,TimeStamp);
-  strcat(sqlcmd,"' where nodename='");
-  strcat(sqlcmd,nodename);
-  strcat(sqlcmd,"'");
-
+  char *sqlcmd = malloc(MAX_SQL_SIZE+1);
+  int slen, rc; char *emsg = 0;
+ 
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s', timestamp='%s' where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
   printf("UJ - %s\n",sqlcmd);
-  int rc; char *emsg = 0;
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
     sqlite3_free(emsg);
@@ -256,21 +234,14 @@ insert_update_json(int dbts, char *nodename, time_t timestamp, json_object *jobj
 int 
 NodeBID_fromDB(char *nodename, sqlite3 *db)
 {
-  int rc;
+  int slen, rc;
   char *emsg = 0;
-
   int blobid = -1;
+  char *sqlcmd = malloc(MAX_SQL_SIZE+1);
 
-  char *sqlcmd = malloc(MAX_SQL_SIZE);
-  strcpy(sqlcmd,"select rowid from ");
-  strcat(sqlcmd,SQLITE_DB_TB1NAME);
-  strcat(sqlcmd," where nodename='");
-  strcat(sqlcmd,nodename);
-  strcat(sqlcmd,"'");
- 
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "select rowid from %s where nodename='%s'", SQLITE_DB_TB1NAME, nodename);
   //printf("BID CMD - %s\n",sqlcmd);
-  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &blobid , &emsg) != SQLITE_OK )) 
-  {
+  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &blobid , &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error : %s\n", emsg);
     sqlite3_free(emsg);
   }
@@ -281,21 +252,14 @@ NodeBID_fromDB(char *nodename, sqlite3 *db)
 int
 NodeTS_fromDB(char *nodename, sqlite3 *db)
 {
-  int rc;
+  int slen, rc;
   char *emsg = 0;
-
   int timestamp = -1;
+  char *sqlcmd = malloc(MAX_SQL_SIZE+1);
 
-  char *sqlcmd = malloc(MAX_SQL_SIZE);
-  strcpy(sqlcmd,"select timestamp from ");
-  strcat(sqlcmd,SQLITE_DB_TB1NAME);
-  strcat(sqlcmd," where nodename='");
-  strcat(sqlcmd,nodename);
-  strcat(sqlcmd,"'");
-
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "select timestamp from %s where nodename='%s'", SQLITE_DB_TB1NAME, nodename);
   //printf("TS CMD - %s\n",sqlcmd);
-  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) 
-  {
+  if( (rc = sqlite3_exec(db, sqlcmd, getint_callback, &timestamp , &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error : %s\n", emsg);
     sqlite3_free(emsg);
   }
