@@ -1,4 +1,4 @@
-METHODSCRIPTS = 90-files
+METHODSCRIPTS = 80-files
 
 rootfs:
 	rm -rf rootfs

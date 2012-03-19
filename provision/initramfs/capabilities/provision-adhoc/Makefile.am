@@ -1,4 +1,4 @@
-METHODSCRIPTS = 05-adhoc-pre 98-adhoc-post
+METHODSCRIPTS = 05-adhoc-pre 90-adhoc-post
 
 
 rootfs:
