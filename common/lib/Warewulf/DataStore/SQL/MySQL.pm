@@ -176,7 +176,7 @@ get_objects($$$@)
     $sql_query  = "SELECT ";
     $sql_query .= "datastore.id AS id, ";
     $sql_query .= "datastore.type AS type, ";
-    $sql_query .= "datastore.timestamp AS timestamp, ";
+    $sql_query .= "UNIX_TIMESTAMP(datastore.timestamp) AS timestamp, ";
     $sql_query .= "datastore.serialized AS serialized ";
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
