@@ -176,6 +176,7 @@ get_objects($$$@)
     $sql_query  = "SELECT ";
     $sql_query .= "datastore.id AS id, ";
     $sql_query .= "datastore.type AS type, ";
+    $sql_query .= "datastore.timestamp AS timestamp, ";
     $sql_query .= "datastore.serialized AS serialized ";
     $sql_query .= "FROM datastore ";
     $sql_query .= "LEFT JOIN lookup ON lookup.object_id = datastore.id ";
@@ -191,6 +192,7 @@ get_objects($$$@)
     while (my $h = $sth->fetchrow_hashref()) {
         my $id = $h->{"id"};
         my $type = $h->{"type"};
+        my $timestamp = $h->{"timestamp"};
         my $o = Warewulf::DSO->unserialize($h->{"serialized"});
         my $modname = ucfirst($type);
         my $modfile = "Warewulf/$modname.pm";
@@ -206,6 +208,7 @@ get_objects($$$@)
         }
         $o->set("_id", $id);
         $o->set("_type", $type);
+        $o->set("_timestamp", $timestamp);
         $objectSet->add($o);
     }
 
