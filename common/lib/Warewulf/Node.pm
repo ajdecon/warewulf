@@ -69,22 +69,6 @@ new($$)
 }
 
 
-=item id()
-
-Return the Database ID for this object.
-
-=cut
-
-sub
-id()
-{
-    my ($self) = @_;
-
-    return ($self->get("_id") || "UNDEF");
-}
-
-
-
 =item name($nodename, $clustername, $domainname)
 
 Get or set the name of the node.  Because nodes can be part of multiple

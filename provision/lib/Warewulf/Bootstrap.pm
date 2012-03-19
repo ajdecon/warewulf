@@ -64,22 +64,6 @@ new($$)
 }
 
 
-=item id()
-
-Return the Database ID for this object.
-
-=cut
-
-sub
-id()
-{
-    my ($self) = @_;
-
-    return($self->get("_id"));
-}
-
-
-
 =item name($string)
 
 Set or return the name of this object.

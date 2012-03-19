@@ -152,6 +152,37 @@ persist($)
     $datastore->persist($self);
 }
 
+
+=item id()
+
+Return the Database id for this object.
+
+=cut
+
+sub
+id()
+{
+    my ($self) = @_;
+
+    return ($self->get("_id") || "UNDEF");
+}
+
+
+=item timestamp()
+
+Return the Database timestamp for this object.
+
+=cut
+
+sub
+timestamp()
+{
+    my ($self) = @_;
+
+    return ($self->get("_timestamp") || 0);
+}
+
+
 =back
 
 =head1 SEE ALSO
