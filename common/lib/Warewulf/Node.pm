@@ -280,13 +280,8 @@ netdevs()
     } elsif (ref($netdevs) eq "ARRAY") {
         my @netdev_objs;
 
-        $netdevs = $self->set("netdevs", Warewulf::ObjectSet->new());
-
-        foreach my $o (@netdev_objs) {
-            bless($o, "Warewulf::Object");
-            $netdevs->add($o);
-        }
-
+        @netdev_objs = map { bless($_, "Warewulf::Object") } @{$netdevs};
+        $self->set("netdevs", Warewulf::ObjectSet->new(@netdev_objs));
     }
     if ($match) {
         return $netdevs->find("name", $match);
