@@ -9,12 +9,15 @@
 
 
 use CGI;
+use Digest::MD5 ('md5_hex');
 use File::Path;
+use IPC::Open2;
 use Warewulf::DataStore;
 use Warewulf::Logger;
 use Warewulf::Daemon;
 use Warewulf::Node;
 use Warewulf::File;
+use Warewulf::DSO::File;
 
 &daemonized(1);
 
@@ -25,6 +28,7 @@ print $q->header("text/plain");
 
 my $hwaddr = $q->param('hwaddr');
 my $fileid = $q->param('fileid');
+my $timestamp = $q->param('timestamp');
 my $node;
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
@@ -36,6 +40,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
         if (! $fileid and $node) {
             my $nodeName = $node->name();
+            my %metadata;
 
             foreach my $file ($node->get("fileids")) {
                 if (! $file) {
@@ -44,21 +49,29 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                 my $objSet = $db->get_objects("file", "_id", $file);
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
-                        printf("%s %s %s %s %04o %s %s\n",
+                        my $obj_timestamp = $obj->timestamp() || 0;
+                        if ($timestamp and $timestamp >= $obj_timestamp) {
+                            next;
+                        }
+                        $metadata{$obj_timestamp} = sprintf("%s %s %s %s %04o %s %s\n",
                             $obj->id() || "NULL",
                             $obj->name() || "NULL",
                             $obj->uid() || "0",
                             $obj->gid() || "0",
                             $obj->mode() || "0000",
-                            $obj->checksum() || "nosum",
+                            $obj_timestamp,
                             $obj->path() || "NULL"
                         );
                     }
                 }
             }
+            foreach my $t (sort {$a <=> $b} keys %metadata) {
+                print $metadata{$t};
+            }
         } elsif ($fileid =~ /^([0-9]+)$/ ) {
             $fileid = $1;
-            my $output;
+            my $read_buffer;
+            my $send_buffer;
 
             my $fileObj = $db->get_objects("file", "_id", $fileid)->get_object(0);;
 
@@ -72,13 +85,13 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
                 if (open(CACHE, $cachefile)) {
                     while(my $line = <CACHE>) {
-                        $output .= $line;
+                        $read_buffer .= $line;
                     }
                     close CACHE;
                 }
 
                 # Search for all matching variable entries.
-                foreach my $wwstring ($output =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
+                foreach my $wwstring ($read_buffer =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
                     # Check for format, and seperate into a seperate wwvar string
                     if ($wwstring =~ /^\%\{(.+?)\}(\[(\d+)\])?$/) {
                         my $wwvar = $1;
@@ -105,11 +118,11 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                                 } else {
                                     $v = $val->[0];
                                 }
-                                $output =~ s/\Q$wwstring\E/$v/g;
+                                $read_buffer =~ s/\Q$wwstring\E/$v/g;
                             } elsif ($val) {
-                                $output =~ s/\Q$wwstring\E/$val/g;
+                                $read_buffer =~ s/\Q$wwstring\E/$val/g;
                             } else {
-                                $output =~ s/\Q$wwstring\E//g;
+                                $read_buffer =~ s/\Q$wwstring\E//g;
                             }
                         }
                     }
@@ -118,13 +131,32 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
             if ($fileObj->interpreter()) {
                 my $interpreter = $fileObj->interpreter();
-                #FIXME: Perhaps use open3 here?
-                if (open(PIPE, "| $interpreter")) {
-                    print PIPE $output;
-                    close PIPE;
+                my $pipe_in;
+                my $pipe_out;
+                eval {
+                    local $SIG{ALRM} = sub { die "DIED ON ALARM CALLING: $interpreter\n" };
+                    alarm 1;
+                    my $pid = open2($pipe_out, $pipe_in, "$interpreter");
+                    if ($pid) {
+                        print $pipe_in $read_buffer;
+                        close $pipe_in;
+                        while(my $line = <$pipe_out>) {
+                            $send_buffer .= $line;
+                        }
+                        close $pipe_out;
+                    }
+                    alarm 0;
+                };
+                if ($@) {
+                    &eprint("Failed calling interpreter: $intrepreter\n");
+                    $send_buffer = undef;
                 }
-            } else {
-                print $output;
+            } elsif ($read_buffer) {
+                $send_buffer = $read_buffer;
+            }
+
+            if ($send_buffer) {
+                print $send_buffer;
             }
 
         } else {
