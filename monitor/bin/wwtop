@@ -80,7 +80,6 @@ my (
    $cpu_mhz,
    $mem_avail,
    $mem_used,
-   $uptime,
    $l1,
    $l2,
    $l3,
@@ -131,15 +130,18 @@ my $monitor = Warewulf::Monitor->new();
 $monitor->persist_socket("1");
 my $nodeSet = $monitor->query_data();
 
+
 # set the default sort mechanism                                                                                         
 $metric_sort_util = "nodename";
 	   
 sub cpu_sort {
+    my $node1=$a->get("NODENAME");;
+    my $node2=$b->get("NODENAME");;
     if ( $metric_sort_util eq "nodename" and $reverse_sort_order ) {
-	$a =~ /^([^\.]+)(.*)$/;
+	$node1 =~ /^([^\.]+)(.*)$/;
 	my $a1 = $1;
 	my $a2 = $2;
-	$b =~ /^([^\.]+)(.*)$/;
+	$node2 =~ /^([^\.]+)(.*)$/;
 	my $b1 = $1;
 	my $b2 = $2;
 	if ( $a2 eq $b2 ) {
@@ -148,10 +150,10 @@ sub cpu_sort {
 	    $b2 cmp $a2;
 	}
     } elsif ( $metric_sort_util eq "nodename" ) {
-	$a =~ /^([^\.]+)(.*)$/;
+	$node1 =~ /^([^\.]+)(.*)$/;
 	my $a1 = $1;
 	my $a2 = $2;
-	$b =~ /^([^\.]+)(.*)$/;
+	$node2 =~ /^([^\.]+)(.*)$/;
 	my $b1 = $1;
 	my $b2 = $2;
 	if ( $a2 eq $b2 ) {
@@ -160,38 +162,37 @@ sub cpu_sort {
 	    $a2 cmp $b2;
 	}
     } elsif ( $metric_sort_util eq "cpuutil" and $reverse_sort_order ) {
-	$nodestatus{$a}{CPUUTIL} <=> $nodestatus{$b}{CPUUTIL};
+	$node1->get("CPUUTIL") <=> $node2->("CPUUTIL");
     } elsif ( $metric_sort_util eq "cpuutil") {
-	$nodestatus{$b}{CPUUTIL} <=> $nodestatus{$a}{CPUUTIL};
+	$node2->("CPUUTIL") <=> $node1->get("CPUUTIL");
     } elsif ( $metric_sort_util eq "memutil" and $reverse_sort_order ) {
-	$nodestatus{$a}{MEMUSED} <=> $nodestatus{$b}{MEMUSED};
+	$node1->("MEMUSED") <=> $node2->("MEMUSED");
     } elsif ( $metric_sort_util eq "memutil") {
-	$nodestatus{$b}{MEMUSED} <=> $nodestatus{$a}{MEMUSED};
+	$node2->("MEMUSED") <=> $node1->("MEMUSED");
     } elsif ( $metric_sort_util eq "swaputil" and $reverse_sort_order ) {
-	$nodestatus{$a}{SWAPUSED} <=> $nodestatus{$b}{SWAPUSED};
+	$node1->("SWAPUSED") <=> $node2->("SWAPUSED");
     } elsif ( $metric_sort_util eq "swaputil") {
-	$nodestatus{$b}{SWAPUSED} <=> $nodestatus{$a}{SWAPUSED};
+	$node2->("SWAPUSED") <=> $node1->("SWAPUSED");
     } elsif ( $metric_sort_util eq "uptime" and $reverse_sort_order ) {
-	$nodestatus{$a}{UPTIME} <=> $nodestatus{$b}{UPTIME};
+	$node1->("UPTIME") <=> $node2->("UPTIME");
     } elsif ( $metric_sort_util eq "uptime") {
-	$nodestatus{$b}{UPTIME} <=> $nodestatus{$a}{UPTIME};
+	$node2->("UPTIME") <=> $node1->("UPTIME");
     } elsif ( $metric_sort_util eq "cpuclk" and $reverse_sort_order ) {
-	$nodestatus{$a}{CPUCLOCK} <=> $nodestatus{$b}{CPUCLOCK};
+	$node1->("CPUCLOCK") <=> $node2->("CPUCLOCK");
     } elsif ( $metric_sort_util eq "cpuclk") {
-	$nodestatus{$b}{CPUCLOCK} <=> $nodestatus{$a}{CPUCLOCK};
+	$node2->("CPUCLOCK") <=> $node1->("CPUCLOCK");
     } elsif ( $metric_sort_util eq "netutil" and $reverse_sort_order ) {
-	($nodestatus{$a}{NETTRANSMIT} + $nodestatus{$a}{NETRECIEVE}) <=>
-	    ($nodestatus{$b}{NETTRANSMIT} + $nodestatus{$b}{NETRECIEVE});
+	($node1->("NETTRANSMIT") + $node1->("NETRECIEVE")) <=>
+	    ($node2->("NETTRANSMIT") + $node2->("NETRECIEVE"));
     } elsif ( $metric_sort_util eq "netutil") {
-	($nodestatus{$b}{NETTRANSMIT} + $nodestatus{$b}{NETRECIEVE}) <=>
-	    ($nodestatus{$a}{NETTRANSMIT} + $nodestatus{$a}{NETRECIEVE});
+	($node2->("NETTRANSMIT") + $node2->("NETRECIEVE")) <=>
+	    ($node1->("NETTRANSMIT") + $node1->("NETRECIEVE"));
     } elsif ( $metric_sort_util eq "load" and $reverse_sort_order ) {
-	$nodestatus{$a}{LOADAVG} <=> $nodestatus{$b}{LOADAVG};
+	$node1->("LOADAVG") <=> $node2->("LOADAVG");
     } elsif ( $metric_sort_util eq "load" ) {
-	$nodestatus{$b}{LOADAVG} <=> $nodestatus{$a}{LOADAVG};
+	$node2->("LOADAVG") <=> $node1->("LOADAVG");
     }
 }
-
 
 
 my $scr = new Term::Screen;
@@ -232,8 +233,9 @@ while (1) {
     $cpu_high = $cpu_low = $cpu_total = $cpu_avg = $cpu_mhz = ();
     $mem_high = $mem_low = $mem_total = $mem_avg = $mem_used = ();
     my $ts=time();
-#    foreach my $node ( sort $nodeSet->get_list()) {
     foreach my $node ( sort $nodeSet->get_list()) {
+	my $uptime_in_sec=$node->get("UPTIME");
+	$node->set("UPTIME",$uptime_in_sec/86400);
 	$nodes_total++;
 	$nodename = $node->get("NODENAME");
 	my $lastcontact=$ts-$node->get("TIMESTAMP");
@@ -302,7 +304,6 @@ while (1) {
     }
     
     ($Second, $Minute, $Hour, $Day, $Month, $Year, $WeekDay, $DayOfYear, $IsDST) = localtime(time);
-#    print    "(second=$Second, minute=$Minute, hour=$Hour, day=$Day, month=$Month, year=$Year, weekday=$WeekDay, dayofyear=$DayOfYear, isdst=$IsDST)";
     $l1 = sprintf("Cluster totals: %0d nodes, %0d cpus, %0d MHz, %0.2f GB mem",
 		  $nodes_up,
 		  $cpu_total,
@@ -455,8 +456,7 @@ p      $scr->bold();
       @nodes_ready = ();
    }
 
-#   foreach ( sort cpu_sort sort @nodes_ready ) {
-   foreach my $node ( sort @nodes_ready ) {
+   foreach my $node ( sort cpu_sort sort @nodes_ready ) {
       if ( $show_only_idle and ( $node->get("CPUUTIL") > '4' or $node->get("USERPROC") != 0 ) ) {
          next;
       }
@@ -474,7 +474,6 @@ p      $scr->bold();
       if ( $nodes_shown + 6 >= $rows ) {
           next;
       }
-      #$uptime = sprintf("%.2f", $nodestatus{$_}{UPTIME} / 86400);
       if ( $node->get("MEMTOTAL") > 0 ) {
          $mempercent = sprintf("%3d", $node->get("MEMUSED") / $node->get("MEMTOTAL")*100);
       } else {
@@ -759,7 +758,7 @@ p      $scr->bold();
          sleep 1;
       }
    }
-    $nodeSet = $monitor->query_data();
+   $nodeSet = $monitor->query_data();
 #    $count+=1;
 }
 
