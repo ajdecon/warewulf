@@ -434,7 +434,7 @@ exec()
             $self->set_file_member("path", qr/^([a-zA-Z0-9\-_\/\.]+)$/, $opt_path,
                                    \$persist_count, \@changes, \@objlist);
             # Mode
-            $self->set_file_member("mode", qr/^(\d+)$/, oct($opt_mode),
+            $self->set_file_member("mode", qr/^(\d+)$/, $opt_mode,
                                    \$persist_count, \@changes, \@objlist,
                                    "must be in octal format (e.g., 0644)");
             # UID
@@ -534,6 +534,8 @@ set_file_member()
             $val = undef;
         } elsif ($field eq "origin") {
             @{$val} = split(',', $val);
+        } elsif ($field eq "mode") {
+            $val = oct($val);
         }
         foreach my $obj (@{$objlist}) {
             my $cref;
