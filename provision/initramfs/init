@@ -1,4 +1,5 @@
 #!/bin/sh
+# -*-Shell-script-*-
 #
 # Copyright (c) 2001-2003 Gregory M. Kurtzer
 #
@@ -14,8 +15,13 @@ mkdir /tmp  2>/dev/null
 mkdir /var  2>/dev/null
 mkdir /usr  2>/dev/null
 
-mount -t proc none /proc
-mount -t sysfs none /sys
+mount -t proc none /proc >/dev/null 2>&1
+mount -t sysfs none /sys >/dev/null 2>&1
+
+mkdir /dev/shm 2>/dev/null
+mkdir /dev/pts 2>/dev/null
+mount -t devpts -o gid=5,mode=620 devpts /dev/pts >/dev/null 2>&1
+mount -t tmpfs tmpfs /dev/shm >/dev/null 2>&1
 
 . /etc/functions
 
@@ -247,3 +253,5 @@ wwlogger "Provision process did not complete! Will try again..."
 wwstatus "ERROR"
 
 wwreboot
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
