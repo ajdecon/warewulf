@@ -27,6 +27,8 @@ modcheck() {
 
 WWKMODS=`sed -e '/ wwkmods=/!d;s/.*wwkmods=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWKMODS
+WWIGNOREMOD=`sed -e '/ wwignoremod=/!d;s/.*wwignoremod=\([^ ]*\).*/\1/' /proc/cmdline | sed -e s/,/@\|@/g`
+export WWIGNOREMOD
 
 if [ -n "$WWKMODS" ]; then
     for mod in `echo $WWKMODS | sed -e 's/,/ /g'`; do
@@ -41,7 +43,11 @@ for pci in /sys/bus/pci/devices/*; do
     DEVICE_1=`cat $pci/device`
     VENDOR=`printf "0x%08x\n" $VENDOR_1`
     DEVICE=`printf "0x%08x\n" $DEVICE_1`
-    grep "$VENDOR $DEVICE" /lib/modules/$KVERSION/modules.pcimap | awk '{print $1}'
+    for MODULE in `grep "$VENDOR $DEVICE" /lib/modules/$KVERSION/modules.pcimap | awk '{print $1}'`; do
+        if ! echo "@$MODULE@" | egrep -q "@$WWIGNOREMOD@"; then
+            echo $MODULE
+        fi
+    done
 done
 
 if [ -n "$AUTOLOAD" ]; then
