@@ -7,35 +7,44 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-. /warewulf/transports/http/functions
+if [ -f /warewulf/transports/http/functions ]; then
+    . /warewulf/transports/http/functions
+elif [ -f ./functions ]; then
+    # For debugging
+    . ./functions
+else
+    exit
+fi
 
+if [ -n "$RANDOM" -a ! -f "/init" ]; then
+    SLEEPTIME=`expr $RANDOM % 30`
+#    sleep $SLEEPTIME
+fi
 
-TMPFILE=`mktemp`
+TIMESTAMP_FILE="$NEWROOT/tmp/.wwgetfiles_timestamp"
+if [ ! -d $NEWROOT/tmp/ ]; then
+    mkdir $NEWROOT/tmp/
+fi
+
+if [ -f "$TIMESTAMP_FILE" ]; then
+    TIMESTAMP=`cat $TIMESTAMP_FILE`
+fi
 
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR" 2>/dev/null; then
-            cat $TMPFILE | while read id name uid gid mode sum1 path; do
-                if [ -f $path ]; then
-                    sum2=`md5sum $path | cut -d ' ' -f 1`
-                    if [ "$sum1" == "$sum2" ]; then
-                        continue
-                    fi
-                fi
+        TMPFILE=`mktemp`
+        if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR&timestamp=$TIMESTAMP" 2>/dev/null; then
+            cat $TMPFILE | while read id name uid gid mode timestamp path; do
                 basedir=`dirname $path`
                 if [ ! -d "$NEWROOT/$basedir" ]; then
                     mkdir -p $NEWROOT/$basedir
                 fi
-                if wget -q -O - "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id" > $NEWROOT/$path.$sum1; then
-                    sum2=`md5sum $NEWROOT/$path.$sum1 | cut -d ' ' -f 1`
-                    if [ "$sum1" == "$sum2" ]; then
-                        chown $uid $NEWROOT/$path.$sum1
-                        chgrp $gid $NEWROOT/$path.$sum1
-                        chmod $mode $NEWROOT/$path.$sum1
-                        mv $NEWROOT/$path.$sum1 $NEWROOT/$path
-                    else
-                        rm -f $NEWROOT/$path.$sum1
-                    fi
+                if wget -q -O $NEWROOT/$path.ww "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id"; then
+                    chown $uid $NEWROOT/$path.ww
+                    chgrp $gid $NEWROOT/$path.ww
+                    chmod $mode $NEWROOT/$path.ww
+                    mv $NEWROOT/$path.ww $NEWROOT/$path
+                    echo $timestamp > $TIMESTAMP_FILE
                 else
                     echo "ERROR: Could not download $name"
                     exit 2
