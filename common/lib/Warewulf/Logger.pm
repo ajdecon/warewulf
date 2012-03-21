@@ -224,14 +224,12 @@ Log a message at a given log (i.e., severity/verbosity) level.
 sub
 lprint
 {
-    my ($level, $string) = @_;
+    my ($level, @strings) = @_;
 
     if ($level > $LEVEL) {
         return;
     }
-    chomp($string);
-    $string = &leader($level) . $string;
-    return &write_to_targets($level, "$string\n");
+    return &write_to_targets($level, join('', &leader($level), @strings));
 }
 
 =item lprintf(LEVEL, $format, @arguments)
@@ -244,9 +242,7 @@ format).
 sub
 lprintf
 {
-    my $level = shift;
-    my $format = shift;
-    my @args = @_;
+    my ($level, $format, @args) = @_;
 
     if ($level > $LEVEL) {
         return;

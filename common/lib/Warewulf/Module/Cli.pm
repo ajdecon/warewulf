@@ -108,8 +108,8 @@ confirm_changes(@)
     if (! $type) {
         $type = "object(s)";
     }
-    printf("About to apply %d action(s) to $obj_count $type:\n\n", scalar(@changes));
-    print(@changes);
+    printf("About to apply %d action(s) to $obj_count $type:\n", scalar(@changes));
+    print(@changes, "\n");
     if ($term->yesno("Proceed?\n")) {
         return 1;
     } else {

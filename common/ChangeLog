@@ -432,3 +432,20 @@ This has been tested locally and seems to work, but changes this big
 may have hidden issues, so please report any problems you encounter.
 :-)
 ----------------------------------------------------------------------
+Tue Mar 20 17:56:36 2012                        Michael Jennings (mej)
+
+Cleaned up CLI help and added some short options to the file and node
+commands.
+
+Fixed bug with FQDN handling in CLI.
+
+Refactored and cleaned up the object command.  Now subcommands are
+used just like with file and node.  This means that "object -p :all"
+is now "object print -p :all" etc.  Additionally, "object dump" is now
+documented and "object print" can show subobjects (e.g., netdevs).
+Object members are sorted intelligently.  "object new" is no longer
+allowed.
+
+Fixed a bug in Logger that prevented multiple arguments to the
+*print() functions.
+----------------------------------------------------------------------

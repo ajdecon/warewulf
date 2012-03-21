@@ -53,23 +53,32 @@ help()
     $h .= "     The object command provides an interface for generically manipulating all\n";
     $h .= "     object types within the Warewulf datastore.\n";
     $h .= "\n";
-    $h .= "OPTIONS:\n";
+    $h .= "COMMANDS:\n";
+    $h .= "     modify          Add, delete, and/or set object member variables\n";
+    $h .= "     print           Display object(s) and their members\n";
+    $h .= "     delete          Completely remove object(s) from the datastore\n";
+    $h .= "     dump            Recursively dump objects in internal format\n";
+    $h .= "     help            Show usage information\n";
     $h .= "\n";
-    $h .= "     -l, --lookup    How should we reference this node? (default is name)\n";
-    $h .= "     -t, --type      By what type of object should we be limited\n";
-    $h .= "     -p, --print     Define what fields are printed (':all' is a special tag)\n";
-    $h .= "     -s, --set       Set a given attribute\n";
-    $h .= "     -a, --add       Add an attribute to an existing key (otherwise create the key)\n";
-    $h .= "     -d, --del       Delete an attribute from a key\n";
-    $h .= "         --DELETE    Delete an entire object\n";
+    $h .= "OPTIONS:\n";
+    $h .= "     -l, --lookup    Identify objects by specified property (default: \"name\")\n";
+    $h .= "     -t, --type      Only operate on objects of the specified type\n";
+    $h .= "     -p, --print     Specify which fields are printed (\":all\" for all)\n";
+    $h .= "     -s, --set       Set a member variable (or \"field\")\n";
+    $h .= "     -a, --add       Add value(s) to specified member array variable\n";
+    $h .= "     -d, --del       Delete value(s) from specified member variable\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
-    $h .= "\n";
     $h .= "     Warewulf> object -p :all\n";
     $h .= "     Warewulf> object -p _id,name,_type\n";
     $h .= "\n";
+    $h .= "WARNING:  This command is VERY POWERFUL.  It is primarily intended for\n";
+    $h .= "developers and power users.  Please use CAREFULLY, if at all.  Data\n";
+    $h .= "stores which are corrupted by misuse of this command may not be\n";
+    $h .= "recoverable.  USE AT YOUR OWN RISK!\n";
+    $h .= "\n";
 
-    return($h);
+    return ($h);
 }
 
 
@@ -80,7 +89,7 @@ summary()
 
     $output .= "Generically manipulate all Warewulf datastore entries";
 
-    return($output);
+    return ($output);
 }
 
 
@@ -91,19 +100,13 @@ complete()
     my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my $opt_type;
-    my @ret;
+    my @ret = ("print", "modify", "dump", "help", "delete");
 
     if (! $db) {
-        return();
+        return ();
     }
 
-    @ARGV = ();
-
-    foreach (&quotewords('\s+', 0, @_)) {
-        if (defined($_)) {
-            push(@ARGV, $_);
-        }
-    }
+    @ARGV = grep { defined($_) } &quotewords('\s+', 0, @_);
 
     Getopt::Long::Configure ("bundling", "passthrough");
 
@@ -112,9 +115,14 @@ complete()
         't|type=s'      => \$opt_type,
     );
 
-    @ARGV = ();
-
-    return($db->get_lookups($opt_type, $opt_lookup));
+    if (exists($ARGV[1])) {
+        if (($ARGV[1] eq "print") || ($ARGV[1] eq "modify") || ($ARGV[1] eq "delete")) {
+            @ret = $db->get_lookups(undef, "name");
+        } elsif (($ARGV[1] eq "dump") || ($ARGV[1] eq "help")) {
+            @ret = ();
+        }
+    }
+    return @ret;
 }
 
 
@@ -126,6 +134,7 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $command;
     my $opt_lookup = "name";
     my $opt_new;
     my $opt_type;
@@ -137,34 +146,43 @@ exec()
     my $opt_help;
     my @opt_print;
     my $return_count;
+    my $objectSet;
+    my @objList;
+    my @changes;
 
+    @ARGV = &quotewords('\s+', 1, @_);
 
-    @ARGV = ();
-    push(@ARGV, &quotewords('\s+', 1, @_));
-
-    Getopt::Long::Configure ("bundling", "nopassthrough");
-
+    Getopt::Long::Configure("bundling", "nopassthrough");
     GetOptions(
-        'n|new'         => \$opt_new,
-        'D|dump'        => \$opt_dump,
+        't|type=s'      => \$opt_type,
         'p|print=s'     => \@opt_print,
         's|set=s'       => \@opt_set,
         'a|add=s'       => \@opt_add,
         'd|del=s'       => \@opt_del,
         'l|lookup=s'    => \$opt_lookup,
-        'DELETE'        => \$opt_obj_delete,
-        'h|help'        => \$opt_help,
-        't|type=s'      => \$opt_type,
+        'h|help'        => \$opt_help
     );
+
+    $command = shift(@ARGV);
 
     if (! $db) {
         &eprint("Database object not available!\n");
-        return();
+        return;
     }
 
-    if ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
+    if (! $command) {
+        &eprint("You must provide a command!\n\n");
+        print $self->help();
+        return 0;
+    } elsif ($opt_help || $command eq "help") {
+        print $self->help();
+        return 0;
+    }
+
+    if (scalar(@opt_set) || scalar(@opt_add) || scalar(@opt_del)) {
         my %modifiers;
         my @mod_print;
+
         @opt_print = ("name");
         foreach my $setstring (@opt_set, @opt_add, @opt_del) {
             if ($setstring =~ /^([^=]+)/) {
@@ -175,308 +193,244 @@ exec()
             }
         }
         push(@opt_print, @mod_print);
-    } elsif (scalar(@opt_print) > 0) {
+    } elsif (scalar(@opt_print)) {
         @opt_print = split(",", join(",", @opt_print));
     } else {
         @opt_print = ("name", "_type");
     }
 
-    if ($opt_new) {
-        if ($opt_type) {
-            &dprint("Creating a new object of type: $opt_type\n");
-            if (@ARGV) {
-                foreach my $string (&expand_bracket(@ARGV)) {
-                    &dprint("New object known by: $opt_lookup=$string\n");
-                    #my $obj = Warewulf::DSOFactory->new($opt_type);
-                    my $obj;
+    $objectSet = $db->get_objects($opt_type, $opt_lookup, &expand_bracket(@ARGV));
+    if ($objectSet->count() == 0) {
+        &wprint("No matching objects found.\n");
+        return 0;
+    }
+    @objList = $objectSet->get_list();
 
-                    if ($obj) {
-                        $obj->set($opt_lookup, $string);
-                        foreach my $setstring (@opt_set) {
-                            my ($key, $val) = split(/=/, $setstring);
-                            $obj->set($key, $val);
-                        }
+    if ($command eq "dump") {
+        for (my $i = 0; $i < $objectSet->count(); $i++) {
+            my $o = $objectSet->get_object($i);
 
-                        $db->persist($obj);
-                        &nprint("Created new '$opt_type' object ($opt_lookup=$string)\n");
-                    } else {
-                        &eprint("Could not create an object of type: $opt_type\n");
-                    }
-                }
-            } else {
-                &dprint("Creating a blank object\n");
-                #my $obj = Warewulf::DSOFactory->new($opt_type);
-                my $obj;
-                if ($obj) {
-                    $db->persist($obj);
-                    &nprint("Created new blank '$opt_type' object\n");
-                }
-            }
-        } else {
-            &eprint("What type of object would you like to create? (use the --type option)\n");
+            &nprint(&examine_object($o, "Object #$i:  "), "\n\n");
         }
-    } else {
-        my $objectSet = $db->get_objects($opt_type, $opt_lookup, &expand_bracket(@ARGV));
-        my @objList = $objectSet->get_list();
+        return 0;
+    }
+    if ($command eq "modify") {
+        foreach my $chg (@opt_set) {
+            my ($var, $val) = split('=', $chg, 2);
+            my @vals;
 
-        if (scalar(@objList)) {
-            if ($opt_dump) {
-                for (my $i = 0; $i < $objectSet->count(); $i++) {
-                    my $o = $objectSet->get_object($i);
-
-                    &nprint(&examine_object($o, "Object #$i:  "), "\n\n");
-                }
-            } elsif (scalar(@opt_print)) {
-                if ((scalar(@opt_print) > 1) && ($opt_print[0] ne ":all")) {
-                    my $string = sprintf("%-26s " x (scalar @opt_print), map {uc($_);} @opt_print);
-
-                    &nprint("$string\n", "=" x length($string) ."\n");
-                }
-
-                foreach my $o ($objectSet->get_list()) {
-                    if ($opt_print[0] eq ":all") {
-                        my %hash = $o->get_hash();
-                        my $id = $o->get("_id");
-                        my $name = $o->get("name");
-
-                        &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
-                        foreach my $h (keys(%hash)) {
-                            if (ref($hash{$h}) =~ /^ARRAY/) {
-                                my @scalars;
-
-                                foreach my $e (@{$hash{$h}}) {
-                                    if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                        my $type = lc($1);
-                                        my @s;
-
-                                        foreach my $l ($e->lookups()) {
-                                            if (my $string = $e->get($l)) {
-                                                push(@s, $l ."=". $string);
-                                            }
-                                        }
-                                        push(@scalars, $type ."(". join(",", @s) .")");
-                                    } else {
-                                        push(@scalars, $e);
-                                    }
-                                }
-                                if (scalar(@scalars) > 0) {
-                                    if ($h =~ /^_/) {
-                                        &iprintf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
-                                    } else {
-                                        printf("%8s: %-10s = %s\n", $id, $h, join(",", sort @scalars));
-                                    }
-                                }
-                            } else {
-                                if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                    my @scalars;
-                                    my $type = lc($1);
-                                    my @s;
-                                    foreach my $l ($e->lookups()) {
-                                        if (my $string = $e->get($l)) {
-                                            push(@s, $l ."=". $string);
-                                        }
-                                    }
-                                    if ($h =~ /^_/) {
-                                        &iprintf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
-                                    } else {
-                                        printf("%8s: %-10s = %s\n", $id, $h, $type ."(". join(",", @s) .")");
-                                    }
-                                } else {
-                                    if ($h =~ /^_/) {
-                                        &iprintf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
-                                    } else {
-                                        printf("%8s: %-10s = %s\n", $id, $h, $hash{$h});
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        my @values;
-
-                        foreach my $h (@opt_print) {
-                            if (my $val = $o->get($h)) {
-                                if (ref($val) =~ /^ARRAY/) {
-                                    my @scalars;
-                                    foreach my $e (@{$val}) {
-                                        if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                            my $type = lc($1);
-                                            my @s;
-                                            foreach my $l ($e->lookups()) {
-                                                if (my $string = $e->get($l)) {
-                                                    push(@s, $l ."=". $string);
-                                                }
-                                            }
-                                            push(@scalars, $type ."(". join(",", @s) .")");
-                                        } else {
-                                            push(@scalars, $e);
-                                        }
-                                    }
-                                    if (scalar(@scalars) > 0) {
-                                        push(@values, join(",", sort @scalars));
-                                    } else {
-                                        push(@values, "UNDEF");
-                                    }
-                                } else {
-                                    if (ref($e) =~ /^Warewulf::DSO::([a-zA-Z0-9\-_]+)/) {
-                                        my @scalars;
-                                        my $type = lc($1);
-                                        my @s;
-                                        foreach my $l ($e->lookups()) {
-                                            if (my $string = $e->get($l)) {
-                                                push(@s, $l ."=". $string);
-                                            }
-                                        }
-                                        push(@values, $type ."(". join(",", @s) .")");
-                                    } else {
-                                        push(@values, $val);
-                                    }
-                                }
-                            } else {
-                                push(@values, "UNDEF");
-                            }
-                        }
-                        printf("%-26s " x (scalar @values) ."\n", @values);
-                    }
-                }
+            if (! $var || !index('=', $chg)) {
+                &eprint("Set directive \"$chg\" must be in the form \"name=[value]\".\n");
+                next;
+            } elsif (substr($var, 0, 1) eq '_') {
+                &eprint("Will not modify private object member \"$var\".\n");
+                next;
             }
-
-            if ($opt_obj_delete) {
-    
-                if ($term->interactive()) {
-                    print "\nAre you sure you wish to delete the above objects?\n\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes") {
-                        &nprint("No update performed\n");
-                        return();
-                    }
-                } else {
-                    &nprint("Deleting the above objects\n");
-                }
-
-                $return_count = $db->del_object($objectSet);
-
-                &nprint("Deleted $return_count objects\n");
-
-            } elsif ((scalar @opt_set) > 0 or (scalar @opt_del) > 0 or (scalar @opt_add) > 0) {
-
-                my $persist_bool;
-
-                if (scalar(@objList) eq 1) {
-                    print "\nAre you sure you wish to make the following changes to 1 object?\n\n";
-                } else {
-                    print "\nAre you sure you wish to make the following changes to ". scalar(@objList) ." objects?\n\n";
-                }
-                foreach my $setstring (@opt_set) {
-                    my ($key, @vals) = &quotewords('=', 1, $setstring);
-                    printf(" set: %15s = %s\n", $key, join("=", @vals));
-                }
-                foreach my $setstring (@opt_add) {
-                    my ($key, @vals) = &quotewords('=', 1, $setstring);
-                    foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                        printf(" add: %15s = %s\n", $key, $val);
-                    }
-                }
-                foreach my $setstring (@opt_del) {
-                    my ($key, @vals) = &quotewords('=', 1, $setstring);
-                    if (@vals) {
-                        foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                            printf(" delete: %12s = %s\n", $key, $val);
-                        }
-                    } else {
-                        printf(" undefine: %10s = [ALL]\n", $key);
-                    }
-                }
-
-                if ($term->interactive()) {
-                    my $yesno;
-                    do {
-                        $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    } while (! $yesno);
-
-                    if ($yesno ne "y" and $yesno ne "yes" ) {
-                        &nprint("No update performed\n");
-                        return();
-                    }
-                } else {
-                    print "Yes/No> (running non-interactively, defaulting to yes)\n";
-                }
-
-                if (@opt_set) {
-                    foreach my $setstring (@opt_set) {
-                        my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        if ($key =~ /^_/) {
-                            &eprint("Can not manipulate private object key\n");
-                        } else {
-                            &dprint("Set: setting $key to ". join("=", @vals) ."\n");
-                            foreach my $obj (@objList) {
-                                $obj->set($key, &quotewords(',', 0, join("=", @vals)));
-                            }
-                            $persist_bool = 1;
-                        }
-                    }
-                }
-
-                if (@opt_add) {
-                    foreach my $setstring (@opt_add) {
-                        my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        if ($key =~ /^_/) {
-                            &eprint("Can not manipulate private object key\n");
-                        } else {
-                            foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                                &dprint("Set: adding $key to $val\n");
-                                foreach my $obj (@objList) {
-                                    $obj->add($key, split(",", $val));
-                                }
-                                $persist_bool = 1;
-                            }
-                        }
-                    }
-
-                }
-
-                if (@opt_del) {
-                    foreach my $setstring (@opt_del) {
-                        my ($key, @vals) = &quotewords('=', 1, $setstring);
-                        if ($key =~ /^_/) {
-                            &eprint("Can not manipulate private object key\n");
-                        } else {
-                            if ($key and @vals) {
-                                foreach my $val (&quotewords(',', 0, join("=", @vals))) {
-                                    &dprint("Set: deleting $val from $key\n");
-                                    foreach my $obj (@objList) {
-                                        $obj->del($key, split(",", $val));
-                                    }
-                                    $persist_bool = 1;
-                                }
-                            } elsif ($key) {
-                                &dprint("Set: deleting $key\n");
-                                foreach my $obj (@objList) {
-                                    $obj->del($key);
-                                }
-                                $persist_bool = 1;
-                            }
-                        }
-                    }
-
-                }
-
-                if ($persist_bool) {
-                    $return_count = $db->persist($objectSet);
-
-                    &iprint("Updated $return_count objects\n");
-                }
+            @vals = &quotewords(',', 0, $val);
+            $val = sprintf("\"%s\"", join("\", \"", @vals));
+            foreach my $obj (@objList) {
+                $obj->set($var, ((scalar(@vals)) ? (@vals) : (undef)));
             }
+            push(@changes, sprintf("%8s: %-20s = %s\n", "SET", $var, $val));
+        }
+        foreach my $chg (@opt_add) {
+            my ($var, $val) = split('=', $chg, 2);
+            my @vals;
 
-        } else {
-            &wprint("No objects found.\n");
+            if (! $var || ! $val) {
+                &eprint("Add directive \"$chg\" must be in the form \"name=value\".\n");
+                next;
+            } elsif (substr($var, 0, 1) eq '_') {
+                &eprint("Will not modify private object member \"$var\".\n");
+                next;
+            }
+            @vals = &quotewords(',', 0, $val);
+            $val = sprintf("\"%s\"", join("\", \"", @vals));
+            foreach my $obj (@objList) {
+                $obj->add($var, @vals);
+            }
+            push(@changes, sprintf("%8s: %-20s = %s\n", "ADD", $var, $val));
+        }
+        foreach my $chg (@opt_del) {
+            my ($var, $val) = split('=', $chg, 2);
+            my @vals;
+
+            if (! $var) {
+                &eprint("Delete directive \"$chg\" must contain a member name.\n");
+                next;
+            } elsif (substr($var, 0, 1) eq '_') {
+                &eprint("Will not modify private object member \"$var\".\n");
+                next;
+            }
+            @vals = &quotewords(',', 0, $val);
+            if (scalar(@vals)) {
+                $val = sprintf("\"%s\"", join("\", \"", @vals));
+            } else {
+                $val = "[ALL]";
+            }
+            foreach my $obj (@objList) {
+                $obj->del($var, @vals);
+            }
+            push(@changes, sprintf("%8s: %-20s = %s\n", "DEL", $var, $val));
         }
     }
 
-    # We are done with ARGV, and it was internally modified, so lets reset
+    if (scalar(@opt_print)) {
+        if ((scalar(@opt_print) > 1) && ($opt_print[0] ne ":all")) {
+            my $string = sprintf("%-26s " x scalar(@opt_print), map {uc($_);} @opt_print);
+
+            &nprint("$string\n", "=" x length($string), "\n");
+        }
+
+        foreach my $o ($objectSet->get_list()) {
+            if ($opt_print[0] eq ":all") {
+                my %objhash = $o->get_hash();
+                my $id = (($o->can("id")) ? ($o->id()) : ($o->get("_id")));
+                my $type = (($o->can("type")) ? ($o->type()) : ($o->get("_type"))) || "";
+                my $name = (($o->can("name")) ? ($o->name()) : ($o->get("name")));
+
+                if (!defined($name)) {
+                    $name = "UNDEF";
+                } elsif (ref($name) eq "ARRAY") {
+                    $name = $name->[0];
+                }
+                if ($type) {
+                    $name = "$type $name";
+                }
+                &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
+                foreach my $h (&sort_members(keys(%objhash))) {
+                    my $val;
+
+                    if (ref($objhash{$h}) eq "ARRAY") {
+                        $val = join(',', sort(@{$objhash{$h}}));
+                    } elsif (ref($objhash{$h}) =~ /^Warewulf::(.*)$/) {
+                        my $subtype = $1;
+                        my $subobj = $objhash{$h};
+
+                        if ($subtype eq "ObjectSet") {
+                            printf("%8s: %-10s = %s\n", $id, $h, $subtype);
+                            foreach my $so ($subobj->get_list()) {
+                                my %sohash = $so->get_hash();
+                                my $soid = (($so->can("id")) ? ($so->id()) : ($so->get("_id")));
+                                my $soname = (($so->can("name")) ? ($so->name()) : ($so->get("name")));
+
+                                if (!defined($soid)) {
+                                    $soid = -1;
+                                }
+                                if (!defined($soname)) {
+                                    $soname = (($soid > 0) ? ($soid) : ("???"));
+                                }
+                                foreach my $soh (&sort_members(keys(%sohash))) {
+                                    $soh = uc($soh);
+                                    printf("%12s%-25s = %s\n", "", "$h.$soname.$soh", $sohash{$soh});
+                                }
+                            }
+                            next;
+                        }
+                        $val = "Subobject ";
+                        if ($subobj->can("name")) {
+                            $val .= ($subobj->name() || "[unnamed]") . " ($subtype)";
+                        } elsif ($subobj->can("get")) {
+                            $val .= ($subobj->get("name") || "[unnamed]") . " ($subtype)";
+                        } else {
+                            $val .= "$subtype";
+                        }
+                    } else {
+                        $val = $objhash{$h};
+                    }
+                    if ($h =~ /^_/) {
+                        &iprintf("%8s: %-10s = %s\n", $id, $h, $val);
+                    } else {
+                        printf("%8s: %-10s = %s\n", $id, $h, $val);
+                    }
+                }
+            } else {
+                my @values;
+
+                foreach my $field (@opt_print) {
+                    my $cref;
+                    my $val;
+
+                    $cref = $o->can($field);
+                    if (ref($cref) eq "CODE") {
+                        $val = $cref->($o);
+                    } else {
+                        $val = $o->get($field);
+                        if (!defined($val)) {
+                            $val = "UNDEF";
+                        }
+                    }
+
+                    if (ref($val) eq "ARRAY") {
+                        $val = ((scalar(@{$val})) ? (join(',', sort(@{$val}))) : ("UNDEF"));
+                    } elsif (ref($val) =~ /^Warewulf::(.*)$/) {
+                        my $subtype = $1;
+                        my $subobj = $objhash{$h};
+
+                        if ($subobj->can("name")) {
+                            $val = $subobj->name() || $subtype;
+                        } elsif ($subobj->can("get")) {
+                            $val = $subobj->get("name") || $subtype;
+                        } else {
+                            $val = $subtype;
+                        }
+                    }
+                    push @values, $val;
+                }
+                printf("%-26s " x (scalar(@values)) ."\n", @values);
+            }
+        }
+    }
+
+    if ($command eq "delete") {
+        print "\n";
+        if ($term->yesno(sprintf("About to delete the above %d objects.\n", $objectSet->count()))) {
+            $return_count = $db->del_object($objectSet);
+            &nprint("Deleted $return_count object(s).\n");
+        } else {
+            &nprint("No objects deleted.\n");
+            return 0;
+        }
+    } elsif ($command eq "modify") {
+        print "\n";
+        if ($self->confirm_changes($term, scalar(@objList), "object(s)", @changes)) {
+            $return_count = $db->persist($objectSet);
+            &iprint("Updated $return_count object(s).\n");
+        }
+    }
+
+    # We are done with ARGV, and it was internally modified, so let's reset
     @ARGV = ();
 
-    return($return_count);
+    return $return_count;
 }
 
+sub
+sort_members()
+{
+    return sort {
+        my ($va, $vb) = (0, 0);
+
+        if ($a eq "_ID") {
+            $va = -2;
+        } elsif ($a eq "NAME") {
+            $va = -1;
+        } else {
+            $va = 0;
+        }
+        if ($b eq "_ID") {
+            $vb = -2;
+        } elsif ($b eq "NAME") {
+            $vb = -1;
+        } else {
+            $vb = 0;
+        }
+        if ($va || $vb) {
+            return ($va <=> $vb);
+        } else {
+            return ($a cmp $b);
+        }
+    } @_;
+}
 
 1;

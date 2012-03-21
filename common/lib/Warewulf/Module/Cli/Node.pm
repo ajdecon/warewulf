@@ -55,17 +55,13 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     node [command] [options] [targets]\n";
+    $h .= "     node <command> [option(s)] [target(s)]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
-    $h .= "    The node command is used for editing the node configurations.\n";
+    $h .= "     The node command is used for viewing and manipulating node objects.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
-    $h .= "\n";
-    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
-    $h .= "     the action, the order of the options and the targets is not specific.\n";
-    $h .= "\n";
-    $h .= "         new             Create a new node configuration defined by the 'target'\n";
+    $h .= "         new             Create a new node configuration\n";
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         list            List a summary of nodes\n";
     $h .= "         print           Print the node configuration\n";
@@ -73,39 +69,36 @@ help()
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
-    $h .= "\n";
-    $h .= "     The target is the specification for the node you wish to act on. By default\n";
-    $h .= "     the specification is the node's name and this can be changed by setting the\n";
-    $h .= "     --lookup option to something else (e.g. 'hwaddr' or 'groups').\n";
+    $h .= "     The target(s) specify which nodes will be affected by the chosen\n";
+    $h .= "     action(s).  By default, node(s) will be identified by their name(s).\n";
+    $h .= "     Use the --lookup option to specify another property (e.g., \"hwaddr\"\n";
+    $h .= "     or \"groups\").\n";
     $h .= "\n";
     $h .= "     All targets can be bracket expanded as follows:\n";
     $h .= "\n";
-    $h .= "         n00[0-99]       inclusively all nodes from n0000 to n0099\n";
-    $h .= "         n00[00,10-99]   n0000 and inclusively all nodes from n0010 to n0099\n";
+    $h .= "         n00[0-99]       All nodes from n0000 through n0099 (inclusive)\n";
+    $h .= "         n00[00,10-99]   n0000 and all nodes from n0010 through n0099\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
-    $h .= "\n";
-    $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
-    $h .= "         --groups        Define the list of groups this node should be part of\n";
-    $h .= "         --groupadd      Associate a group to this node\n";
-    $h .= "         --groupdel      Remove a group association from this node\n";
-    $h .= "         --netdev        Define a network device to set for this node\n";
-    $h .= "         --ipaddr        Set an IP address for the given network device (--netdev=?)\n";
-    $h .= "         --netmask       Set a subnet mask for the given network device (--netdev=?)\n";
-    $h .= "         --network       Set a network for the given network device (--netdev=?)\n";
-    $h .= "         --gateway       Set a gateway for the given network device (--netdev=?)\n";
-    $h .= "         --fqdn          Define the FQDN of this node (if this is passed with the\n";
-    $h .= "                         --netdev argument it will assign it to the device specified)\n";
-    $h .= "         --hwaddr        Set the device's hardware/MAC address\n";
-    $h .= "         --netdel        Remove a network device from the system\n";
-    $h .= "         --cluster       Define the cluster of nodes that this node is a part of\n";
-    $h .= "         --domain        Define the domain name of nodes that this node is a part of\n";
-    $h .= "         --name          Rename this node\n";
+    $h .= "     -l, --lookup        Identify nodes by specified property (default: \"name\")\n";
+    $h .= "     -g, --groups        Specify all groups to which this node belongs\n";
+    $h .= "         --groupadd      Add node to specified group(s)\n";
+    $h .= "         --groupdel      Remove node from specified group(s)\n";
+    $h .= "     -D, --netdev        Specify network device (\"netdev\") to add or modify\n";
+    $h .= "         --netdel        Remove specified netdev from node\n";
+    $h .= "     -I, --ipaddr        Set IP address of given netdev (requires --netdev)\n";
+    $h .= "     -M, --netmask       Set subnet mask of given netdev (requires --netdev)\n";
+    $h .= "     -N, --network       Set network address of netdev (requires --netdev)\n";
+    $h .= "     -G, --gateway       Set gateway of given netdev (requires --netdev)\n";
+    $h .= "     -H, --hwaddr        Set hardware/MAC address (requires --netdev)\n";
+    $h .= "     -f, --fqdn          Set FQDN of given netdev (requires --netdev)\n";
+    $h .= "     -c, --cluster       Specify cluster name for this node\n";
+    $h .= "     -d, --domain        Specify domain name for this node\n";
+    $h .= "     -n, --name          Specify new name for this node\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
-    $h .= "\n";
     $h .= "     Warewulf> node new n0000 --netdev=eth0 --hwaddr=xx:xx:xx:xx:xx:xx\n";
-    $h .= "     Warewulf> node set n0000 --netdev=eth0 --ipaddr=10.0.0.10\n";
+    $h .= "     Warewulf> node set n0000 -D eth0 -I 10.0.0.10 -G 10.0.0.1\n";
     $h .= "     Warewulf> node set n0000 --netdev=eth0 --netmask=255.255.255.0\n";
     $h .= "     Warewulf> node set --groupadd=mygroup,hello,bye --cluster=mycluster n0000\n";
     $h .= "     Warewulf> node set --groupdel=bye --set=vnfs=sl6.vnfs\n";
@@ -200,20 +193,20 @@ exec()
     Getopt::Long::Configure ("bundling", "nopassthrough");
 
     GetOptions(
-        'groups=s'      => \@opt_groups,
+        'g|groups=s'    => \@opt_groups,
         'groupadd=s'    => \@opt_groupadd,
         'groupdel=s'    => \@opt_groupdel,
-        'netdev=s'      => \$opt_netdev,
+        'D|netdev=s'    => \$opt_netdev,
         'netdel'        => \$opt_devremove,
-        'hwaddr=s'      => \$opt_hwaddr,
-        'ipaddr=s'      => \$opt_ipaddr,
-        'network=s'     => \$opt_network,
-        'gateway=s'     => \$opt_gateway,
-        'netmask=s'     => \$opt_netmask,
-        'cluster=s'     => \$opt_cluster,
-        'name=s'        => \$opt_name,
-        'fqdn=s'        => \$opt_fqdn,
-        'domain=s'      => \$opt_domain,
+        'H|hwaddr=s'    => \$opt_hwaddr,
+        'I|ipaddr=s'    => \$opt_ipaddr,
+        'N|network=s'   => \$opt_network,
+        'G|gateway=s'   => \$opt_gateway,
+        'M|netmask=s'   => \$opt_netmask,
+        'c|cluster=s'   => \$opt_cluster,
+        'n|name=s'      => \$opt_name,
+        'f|fqdn=s'      => \$opt_fqdn,
+        'd|domain=s'    => \$opt_domain,
         'l|lookup=s'    => \$opt_lookup,
 
     );
@@ -233,15 +226,12 @@ exec()
         $objSet = Warewulf::ObjectSet->new();
         foreach my $string (&expand_bracket(@ARGV)) {
             my $node;
+
             $node = Warewulf::Node->new();
-
             $node->nodename($string);
-
             $objSet->add($node);
-
             $persist_count++;
-
-            push(@changes, sprintf("     NEW: %-20s = %s\n", "NODE", $string));
+            push(@changes, sprintf("%8s: %-20s = %s\n", "NEW", "NODE", $string));
         }
     } else {
         if ($opt_lookup eq "hwaddr") {
@@ -254,24 +244,19 @@ exec()
 
     if ($objSet) {
         $object_count = $objSet->count();
-    } else {
+    }
+    if (! $objSet || ($object_count == 0)) {
         &nprint("No nodes found\n");
         return;
     }
 
     if ($command eq "delete") {
-        if (@ARGV) {
-            my $question = "Are you sure you want to delete $object_count node(s):\n\n";
+        my @changes;
 
-            $question .= join("\n", map { sprintf("     DEL: %-20s = %s", "NODE", $_->name()); } $objSet->get_list());
-            $question .= "\n";
-            if (! $term->yesno($question)) {
-                &nprint("No update performed\n");
-                return;
-            }
-            $db->del_object($objSet);
-        } else {
-            &eprint("Specify the nodes you wish to delete!\n");
+        @changes = map { sprintf("%8s: %s %s", "DEL", "NODE", $_->name()); } $objSet->get_list();
+        if ($self->confirm_changes($term, $object_count, "node(s)", @changes)) {
+            $return_count = $db->del_object($objSet);
+            &nprint("Deleted $return_count nodes.\n");
         }
     } elsif ($command eq "list") {
         &nprintf("%-19s %-19s %-19s %-19s\n",
@@ -334,7 +319,7 @@ exec()
                 $o->netdel($opt_netdev);
                 $persist_count++;
             }
-            push(@changes, sprintf("     DEL: %-20s\n", $opt_netdev));
+            push(@changes, sprintf("%8s: %-20s\n", "DEL", $opt_netdev));
         } else {
             if ($opt_hwaddr) {
                 if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
@@ -355,7 +340,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.HWADDR", $opt_hwaddr));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.HWADDR", $opt_hwaddr));
                     }
                 } else {
                     &eprint("Option 'hwaddr' has invalid characters\n");
@@ -382,7 +367,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.IPADDR", $opt_ipaddr));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.IPADDR", $opt_ipaddr));
                     }
                 } else {
                     &eprint("Option 'ipaddr' has invalid characters\n");
@@ -407,7 +392,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETMASK", $opt_netmask));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.NETMASK", $opt_netmask));
                     }
                 } else {
                     &eprint("Option 'netmask' has invalid characters\n");
@@ -435,7 +420,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.NETWORK", $opt_netmask));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.NETWORK", $opt_netmask));
                     }
                 } else {
                     &eprint("Option 'network' has invalid characters\n");
@@ -460,7 +445,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.GATEWAY", $opt_netmask));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.GATEWAY", $opt_netmask));
                     }
                 } else {
                     &eprint("Option 'gateway' has invalid characters\n");
@@ -485,7 +470,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("     SET: %-20s = %s\n", "$opt_netdev.FQDN", $opt_fqdn));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.FQDN", $opt_fqdn));
                     }
                 } else {
                     &eprint("Option 'fqdn' has invalid characters\n");
@@ -504,7 +489,7 @@ exec()
                     &dprint("Setting new name for node $nodename: $opt_name\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "NAME", $opt_name));
+                push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "NAME", $opt_name));
             } else {
                 &eprint("Option 'name' has invalid characters\n");
             }
@@ -519,7 +504,7 @@ exec()
                     &dprint("Undefining cluster name for node $nodename\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("   UNDEF: %-20s\n", "CLUSTER"));
+                push(@changes, sprintf("%8s: %-20s\n", "UNDEF", "CLUSTER"));
             } elsif ($opt_cluster =~ /^([a-zA-Z0-9\.\-_]+)$/) {
                 $opt_cluster = $1;
                 foreach my $obj ($objSet->get_list()) {
@@ -528,7 +513,7 @@ exec()
                     &dprint("Setting cluster name for node $nodename: $opt_cluster\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "CLUSTER", $opt_cluster));
+                push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "CLUSTER", $opt_cluster));
             } else {
                 &eprint("Option 'cluster' has invalid characters\n");
             }
@@ -543,7 +528,7 @@ exec()
                     &dprint("Undefining domain name for node $nodename\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("   UNDEF: %-20s\n", "CLUSTER"));
+                push(@changes, sprintf("%8s: %-20s\n", "UNDEF", "DOMAIN"));
             } elsif ($opt_domain =~ /^([a-zA-Z0-9\.\-_]+)$/) {
                 $opt_domain = $1;
                 foreach my $obj ($objSet->get_list()) {
@@ -552,25 +537,9 @@ exec()
                     &dprint("Setting domain name for node $nodename: $opt_domain\n");
                     $persist_count++;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "DOMAIN", $opt_domain));
+                push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "DOMAIN", $opt_domain));
             } else {
                 &eprint("Option 'domain' has invalid characters\n");
-            }
-        }
-
-        if ($opt_fqdn) {
-            if ($opt_fqdn =~ /^([a-zA-Z0-9\.\-_]+)$/) {
-                $opt_fqdn = $1;
-                foreach my $obj ($objSet->get_list()) {
-                    my $nodename = $obj->get("name") || "UNDEF";
-
-                    $obj->fqdn($opt_fqdn);
-                    &dprint("Setting FQDN for node $nodename: $opt_fqdn\n");
-                    $persist_count++;
-                }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "FQDN", $opt_fqdn));
-            } else {
-                &eprint("Option 'fqdn' has invalid characters\n");
             }
         }
 
@@ -582,7 +551,7 @@ exec()
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
             }
-            push(@changes, sprintf("     SET: %-20s = %s\n", "GROUPS", join(",", @opt_groups)));
+            push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "GROUPS", join(",", @opt_groups)));
         }
 
         if (@opt_groupadd) {
@@ -593,7 +562,7 @@ exec()
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
             }
-            push(@changes, sprintf("     ADD: %-20s = %s\n", "GROUPS", join(",", @opt_groupadd)));
+            push(@changes, sprintf("%8s: %-20s = %s\n", "ADD", "GROUPS", join(",", @opt_groupadd)));
         }
 
         if (@opt_groupdel) {
@@ -604,7 +573,7 @@ exec()
                 &dprint("Setting groups for node name: $nodename\n");
                 $persist_count++;
             }
-            push(@changes, sprintf("     DEL: %-20s = %s\n", "GROUPS", join(",", @opt_groupdel)));
+            push(@changes, sprintf("%8s: %-20s = %s\n", "DEL", "GROUPS", join(",", @opt_groupdel)));
         }
 
         if ($persist_count > 0 or $command eq "new") {

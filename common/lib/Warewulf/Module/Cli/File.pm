@@ -52,7 +52,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     file [command] [options] [targets]\n";
+    $h .= "     file <command> [option(s)] [target(s)]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     The file command is used for manipulating file objects.  It allows you to\n";
@@ -61,7 +61,6 @@ help()
     $h .= "     dynamically create files or scripts based on Warewulf data, and more.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
-    $h .= "\n";
     $h .= "     import             Import a file into a file object\n";
     $h .= "     export             Export file objects(s)\n";
     $h .= "     edit               Edit the file in the datastore directly\n";
@@ -74,21 +73,19 @@ help()
     $h .= "     help               Show usage information\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
-    $h .= "\n";
-    $h .= "     -l, --lookup       How should we reference this node? (default is \"name\")\n";
+    $h .= "     -l, --lookup       Identify files by specified property (default: \"name\")\n";
     $h .= "     -p, --program      What external program should be used (edit/show)\n";
-    $h .= "         --path         Set destination (i.e., output) path for this file\n";
-    $h .= "         --origin       Set origin (i.e., input) path for this file\n";
-    $h .= "         --mode         Set permission attribute for this file\n";
-    $h .= "         --uid          Set the UID of this file\n";
-    $h .= "         --gid          Set the GID of this file\n";
-    $h .= "         --name         Set the reference name of this file (not path!)\n";
+    $h .= "     -d, --path         Set destination (i.e., output) path for this file\n";
+    $h .= "     -o, --origin       Set origin (i.e., input) path for this file\n";
+    $h .= "     -m, --mode         Set permission attribute for this file\n";
+    $h .= "     -u, --uid          Set the UID of this file\n";
+    $h .= "     -g, --gid          Set the GID of this file\n";
+    $h .= "     -n, --name         Set the reference name of this file (not path!)\n";
     $h .= "         --interpreter  Set the interpreter name to parse this file\n";
     $h .= "\n";
     $h .= "NOTE:  Use \"UNDEF\" to erase the current contents of a given field.\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
-    $h .= "\n";
     $h .= "     Warewulf> file import /path/to/file/to/import --name=hosts-file\n";
     $h .= "     Warewulf> file import /path/to/file/to/import/with/given-name\n";
     $h .= "     Warewulf> file edit given-name\n";
@@ -192,13 +189,13 @@ exec()
         'n|name=s'      => \$opt_name,
         'p|program=s'   => \$opt_program,
         'l|lookup=s'    => \$opt_lookup,
-        'origin=s'      => \@opt_origin,
+        'o|origin=s'    => \@opt_origin,
         'source=s'      => \@opt_origin,
         'path=s'        => \$opt_path,
-        'dest=s'        => \$opt_path,
-        'mode=s'        => \$opt_mode,
-        'uid=s'         => \$opt_uid,
-        'gid=s'         => \$opt_gid,
+        'd|dest=s'      => \$opt_path,
+        'm|mode=s'      => \$opt_mode,
+        'u|uid=s'       => \$opt_uid,
+        'g|gid=s'       => \$opt_gid,
         'interpreter=s' => \$opt_interpreter,
     );
     if ($opt_program) {
@@ -219,6 +216,9 @@ exec()
 
     if (! $command) {
         &eprint("You must provide a command!\n\n");
+        print $self->help();
+        return;
+    } elsif ($command eq "help") {
         print $self->help();
         return;
     }
@@ -338,7 +338,7 @@ exec()
                 $obj->name($string);
                 $objSet->add($obj);
                 $persist_count++;
-                push(@changes, sprintf("     NEW: %-20s = %s\n", "FILE", $string));
+                push(@changes, sprintf("%8s: %-20s = %s\n", "NEW", "FILE", $string));
             }
             $db->persist($objSet);
         } else {
@@ -350,7 +350,7 @@ exec()
             if ($term->interactive()) {
                 print "Are you sure you want to delete $object_count files(s):\n\n";
                 foreach my $o ($objSet->get_list()) {
-                    printf("     DEL: %-20s = %s\n", "FILE", $o->name());
+                    printf("%8s: %-20s = %s\n", "DEL", "FILE", $o->name());
                 }
                 print "\n";
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
