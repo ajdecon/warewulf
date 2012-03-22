@@ -104,7 +104,6 @@ my $query = sub
         # Make socket connection for each master
         foreach my $masterString (@masters) {
             my ($master,$port)=split(/:/, $masterString);
-            print "master: $master -- port: $port\n";
             my $socket = IO::Socket::INET->new(PeerAddr => "$master",
                                                PeerPort => $port,
                                                Proto => 'tcp')
@@ -158,6 +157,52 @@ my $query = sub
 
     return $ObjectSet;
 };
+
+##
+# Use enable_filter("1") to enable the node display filter
+# It sets the query for a specific set of nodes from the users 
+# enviornment variable for '$NODES' as a node list (with ',' delim) 
+# or defined as a file path.
+# If format of $NODES is invalid, all available nodes will be returned.
+##
+
+sub enable_filter()
+{
+    my ($self, $bool) = @_;
+    if ($bool) {
+	#enable filter
+	my $whereClause="";	
+	if ( $ENV{NODES} ) {
+	    if ( -f "$ENV{NODES}" ) {
+		open(NODES, "< $ENV{NODES}");
+		$whereClause="key='NODENAME' and ";
+		while ($match=<NODES>) {
+		    chomp $match;
+		    $match =~ s/#.*$//;
+		    $match =~ s/\s+$//;
+		    next unless $match;
+		    $match =~ s/\*/.*/g;
+		    $match =~ s/\+/\\+/g;
+		    $whereClause = $whereClause . "value LIKE '%$match%' or ";
+		}
+		$whereClause=substr($whereClause,0,-3);
+	    } elsif ( $ENV{NODES} =~ /^\/.+$/ ) {
+		# ignore node files that don't exist
+	    } else {
+		$whereClause="key='NODENAME' and ";
+		foreach $match ( split(/,/, $ENV{NODES}) ) {
+		    $match =~ s/\*/.*/g;
+		    $match =~ s/\+/\\+/g;
+		    $whereClause = $whereClause . "value LIKE '%$match%' or ";
+		}
+		$whereClause=substr($whereClause,0,-3);
+	    }
+	}
+	$self->set_query($whereClause);
+    }
+    return;
+}
+
 
 ##
 # use persist_socket("1") to prevent socket being closed
@@ -219,10 +264,10 @@ sub set_query(){
 ##
 sub query_data(){
     my ($self) = @_;
-    if (!$self->get("query")) {
-        return $query->($self, "");
-    } else {
+    if ($self->get("query")) {
         return $query->($self, $self->get("query"));
+    } else {
+        return $query->($self, "");
     }
 }
 

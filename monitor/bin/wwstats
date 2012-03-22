@@ -1,4 +1,11 @@
 #!/usr/bin/perl 
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+#
 
 use Warewulf::Monitor;
 use strict;
@@ -36,6 +43,7 @@ if($ARG_help){
 }
 
 my $monitor = Warewulf::Monitor->new();
+$monitor->enable_filter("1");
 my $nodeSet = $monitor->query_data();
 
 if($ARG_summary){
@@ -73,7 +81,7 @@ sub print_summary {
 
     
     $summary .= sprintf("%21s: %-10s\n", 'Total Nodes', $nodes_up + $nodes_down + $nodes_unavailable, "Warewulf");
-    $summary .= sprintf("%21s: %-27s %s\n", 'Living', $nodes_up, "Warewulf");
+    $summary .= sprintf("%21s: %-26s %s\n", 'Living', $nodes_up, "Warewulf");
     $summary .= sprintf("%21s: %-17s %s\n", 'Disabled', $nodes_disabled, "http://warewulf.lbl.gov/");
     $summary .= sprintf("%21s: %-10s\n", 'Error', $nodes_error);
     $summary .= sprintf("%21s: %-10s\n", 'Dead', $nodes_down);

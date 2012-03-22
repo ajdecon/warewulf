@@ -1,4 +1,12 @@
 #!/usr/bin/perl 
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+#
+
 
 use Warewulf::Monitor;
 use strict;
@@ -128,10 +136,11 @@ if($ARG_help){
 
 my $monitor = Warewulf::Monitor->new();
 $monitor->persist_socket("1");
+$monitor->enable_filter("1");
 my $nodeSet = $monitor->query_data();
 
 
-# set the default sort mechanism                                                                                         
+# set the default sort mechanism
 $metric_sort_util = "nodename";
 	   
 sub cpu_sort {
@@ -162,35 +171,35 @@ sub cpu_sort {
 	    $a2 cmp $b2;
 	}
     } elsif ( $metric_sort_util eq "cpuutil" and $reverse_sort_order ) {
-	$node1->get("CPUUTIL") <=> $node2->("CPUUTIL");
+	$a->get("CPUUTIL") <=> $b->get("CPUUTIL");
     } elsif ( $metric_sort_util eq "cpuutil") {
-	$node2->("CPUUTIL") <=> $node1->get("CPUUTIL");
+	$b->get("CPUUTIL") <=> $a->get("CPUUTIL");
     } elsif ( $metric_sort_util eq "memutil" and $reverse_sort_order ) {
-	$node1->("MEMUSED") <=> $node2->("MEMUSED");
+	$a->get("MEMUSED") <=> $b->get("MEMUSED");
     } elsif ( $metric_sort_util eq "memutil") {
-	$node2->("MEMUSED") <=> $node1->("MEMUSED");
+	$b->get("MEMUSED") <=> $a->get("MEMUSED");
     } elsif ( $metric_sort_util eq "swaputil" and $reverse_sort_order ) {
-	$node1->("SWAPUSED") <=> $node2->("SWAPUSED");
+	$a->get("SWAPUSED") <=> $b->get("SWAPUSED");
     } elsif ( $metric_sort_util eq "swaputil") {
-	$node2->("SWAPUSED") <=> $node1->("SWAPUSED");
+	$b->get("SWAPUSED") <=> $a->get("SWAPUSED");
     } elsif ( $metric_sort_util eq "uptime" and $reverse_sort_order ) {
-	$node1->("UPTIME") <=> $node2->("UPTIME");
+	$a->get("UPTIME") <=> $b->get("UPTIME");
     } elsif ( $metric_sort_util eq "uptime") {
-	$node2->("UPTIME") <=> $node1->("UPTIME");
+	$b->get("UPTIME") <=> $a->get("UPTIME");
     } elsif ( $metric_sort_util eq "cpuclk" and $reverse_sort_order ) {
-	$node1->("CPUCLOCK") <=> $node2->("CPUCLOCK");
+	$a->get("CPUCLOCK") <=> $b->get("CPUCLOCK");
     } elsif ( $metric_sort_util eq "cpuclk") {
-	$node2->("CPUCLOCK") <=> $node1->("CPUCLOCK");
+	$b->get("CPUCLOCK") <=> $a->get("CPUCLOCK");
     } elsif ( $metric_sort_util eq "netutil" and $reverse_sort_order ) {
-	($node1->("NETTRANSMIT") + $node1->("NETRECIEVE")) <=>
-	    ($node2->("NETTRANSMIT") + $node2->("NETRECIEVE"));
+	($a->get("NETTRANSMIT") + $a->get("NETRECIEVE")) <=>
+	    ($b->get("NETTRANSMIT") + $b->get("NETRECIEVE"));
     } elsif ( $metric_sort_util eq "netutil") {
-	($node2->("NETTRANSMIT") + $node2->("NETRECIEVE")) <=>
-	    ($node1->("NETTRANSMIT") + $node1->("NETRECIEVE"));
+	($b->get("NETTRANSMIT") + $b->get("NETRECIEVE")) <=>
+	    ($a->get("NETTRANSMIT") + $a->get("NETRECIEVE"));
     } elsif ( $metric_sort_util eq "load" and $reverse_sort_order ) {
-	$node1->("LOADAVG") <=> $node2->("LOADAVG");
+	$a->get("LOADAVG") <=> $b->get("LOADAVG");
     } elsif ( $metric_sort_util eq "load" ) {
-	$node2->("LOADAVG") <=> $node1->("LOADAVG");
+	$b->get("LOADAVG") <=> $a->get("LOADAVG");
     }
 }
 
@@ -440,7 +449,7 @@ while (1) {
       $scr->puts(" Net:KB/s");
    }
    if ( $show_only_idle or $show_only_utilized or $show_only_dead ) {
-p      $scr->bold();
+      $scr->bold();
       $scr->puts(" Stat/Util");
       $scr->normal();
       $scr->reverse();
@@ -541,7 +550,7 @@ p      $scr->bold();
    
    }
 
-   foreach my $node ( sort @nodes_down) {
+   foreach my $node ( sort cpu_sort sort @nodes_down) {
 
       $total_nodes++;
 
@@ -759,7 +768,6 @@ p      $scr->bold();
       }
    }
    $nodeSet = $monitor->query_data();
-#    $count+=1;
 }
 
 sub print_help {
