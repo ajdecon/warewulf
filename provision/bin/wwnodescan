@@ -139,7 +139,7 @@ if ($opt_testmode) {
         my $vnfs = $datastore->get_objects("vnfs", "name", $opt_vnfs)->get_object(0);
 
         if ($vnfs) {
-            $vnfsid = $vnfs->id();
+            $vnfsid = $vnfs->get("_id");
         } else {
             &eprint("VNFS \"$opt_vnfs\" does not exist\n");
             exit(1);
@@ -150,7 +150,7 @@ if ($opt_testmode) {
         my $bootstrap = $datastore->get_objects("bootstrap", "name", $opt_bootstrap)->get_object(0);
 
         if ($bootstrap) {
-            $bootstrapid = $bootstrap->id();
+            $bootstrapid = $bootstrap->get("_id");
         } else {
             &eprint("BOOTSTRAP \"$opt_bootstrap\" does not exist\n");
             exit(1);
