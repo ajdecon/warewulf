@@ -54,7 +54,7 @@ getint_callback(void *void_int, int argc, char **argv, char **azColName)
 }
 
 void
-update_insertLookups(int blobid, json_object *jobj, sqlite3 *db) 
+update_insertLookups(int blobid, json_object *jobj, sqlite3 *db, int overwrite) 
 {
 
   //TODO : Can we assume 64 bits for rowid ?
@@ -88,10 +88,11 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db)
       sqlite3_free(emsg);
     }
 
-    if( rowid > 0 ) { // Already existing entry in the table
+    if( rowid > 0 && overwrite == 1 ) { // Already existing entry in the table
 	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "update %s set value=%s where key='%s' and blobid='%s'", SQLITE_DB_TB2NAME, vals, key, blobID);
     } else { // This is a new key, value to be inserted
 	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
+          // TODO : Make a note of this key value pairs so that we can merge into JSON
     }
 
     //printf("UL SQL CMD - %s\n",sqlite_cmd);
@@ -150,7 +151,7 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
   char *emsg = 0;
 
   slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "insert into %s(jsonblob, timestamp, nodename) values('%s',%d,'%s')", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
-  printf("IJ CMD - %s\n",sqlcmd);
+  //printf("IJ CMD - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
     sqlite3_free(emsg);
@@ -166,8 +167,8 @@ update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
   char *sqlcmd = malloc(MAX_SQL_SIZE+1);
   int slen, rc; char *emsg = 0;
  
-  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s', timestamp='%s' where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
-  printf("UJ - %s\n",sqlcmd);
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s', timestamp=%d where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
+  //printf("UJ - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
     fprintf(stderr, "SQL error: %s\n", emsg);
     sqlite3_free(emsg);
