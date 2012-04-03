@@ -33,7 +33,7 @@ supporting libs.
 groupadd -r warewulf >/dev/null 2>&1 || :
 
 %post
-service mysqld restart >/dev/null 2>&1 || :
+service mysqld start >/dev/null 2>&1 || :
 chkconfig mysqld on >/dev/null 2>&1 || :
 
 
