@@ -220,13 +220,13 @@ a sane starting point as to what events should be used.
 
 Event string        Argument list
 
-node.boot           node_object
-node.down           node_object
-node.add            node_object
-node.modify         node_object
-node.ready          node_object
-node.error          node_object
-node.warning        node_object
+node.boot           ObjectSet
+node.down           ObjectSet
+node.add            ObjectSet
+node.modify         ObjectSet
+node.ready          ObjectSet
+node.error          ObjectSet
+node.warning        ObjectSet
 program.start
 program.exit
 program.error

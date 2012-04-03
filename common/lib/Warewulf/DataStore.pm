@@ -23,20 +23,18 @@ Warewulf::DataStore - Interface to backend data store
 =head1 SYNOPSIS
 
     use Warewulf::DataStore;
+    use Warewulf::Node;
+    use Warewulf::DSO::node;
 
     print "Creating DataStore interface object\n";
     my $ds = Warewulf::DataStore->new();
-    my $entity = $ds->new_object();
+    my $node = Warewulf::Node->new();
 
     print "Setting some stuff\n";
-    $entity->set("name", "gmk00");
+    $node->set("name", "gmk00");
 
     print "Persisting object\n";
-    $ds->persist($entity);
-
-    print "Adding lookups\n";
-    $ds->add_lookup($entity, "node", "name", "gmk00");
-    $ds->add_lookup($entity, "node", "status", "READY");
+    $ds->persist($node);
 
     print "Getting stuff\n";
     my $objectSet = $ds->get_objects("node", "name", "gmk00");
@@ -90,20 +88,6 @@ instances for the given criteria.
 
 sub
 get_objects()
-{
-    return undef;
-}
-
-=item new_object()
-
-Return a single Warewulf::Object. This is a necessary step if you wish for the
-objects that you are dealing with to be persisted because this will reserve a
-place in the DataStore for the empty Object.
-
-=cut
-
-sub
-new_object()
 {
     return undef;
 }

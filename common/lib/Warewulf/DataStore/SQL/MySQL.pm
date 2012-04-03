@@ -331,7 +331,6 @@ persist($$)
 {
     my ($self, @objects) = @_;
     my $event = Warewulf::EventHandler->new();
-    my %events;
     my @objlist;
 
     if (! $self->{"DBH"}) {
@@ -410,12 +409,11 @@ persist($$)
                 dprint("Not adding lookup entries\n");
             }
 
-            push(@{$events{"$type.modify"}}, $o);
         }
     }
-    foreach my $e (keys %events) {
-        $event->handle($e, @{$events{"$e"}});
-    }
+
+    $event->handle("$type.modify", @objList);
+
     return scalar(@objlist);
 }
 
@@ -429,7 +427,6 @@ del_object($$)
 {
     my ($self, $object) = @_;
     my $event = Warewulf::EventHandler->new();
-    my %events;
     my @objlist;
 
     if (! $self->{"DBH"}) {
@@ -462,9 +459,10 @@ del_object($$)
             $self->{"STH_RMBS"}->execute($id);
             $self->{"STH_RMDS"}->execute($id);
 
-            $event->handle("$type.delete", $o);
         }
     }
+
+    $event->handle("$type.delete", @objList);
 
     return scalar(@objlist);
 }
@@ -567,34 +565,6 @@ del_lookup($$$$)
             &wprint("No ID found for object!\n");
         }
     }
-}
-
-
-=item new_object();
-
-Create a new object.
-
-=cut
-
-sub
-new_object($)
-{
-    my $self = shift;
-    my $event = Warewulf::EventHandler->new();
-    my $sth;
-
-    wprint("DB->new_object() is deprecated...\n");
-    return;
-
-
-    my $object = Warewulf::Object->new();
-
-    $sth = $self->{"DBH"}->do("INSERT INTO datastore (serialized) VALUES ('')");
-    $sth = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
-    $sth->execute();
-    $object->set("_id", $sth->fetchrow_array());
-
-    return $object;
 }
 
 
