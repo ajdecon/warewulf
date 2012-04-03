@@ -73,7 +73,7 @@ ipmi_netmask()
 {
     my $self = shift;
 
-    return $self->prop("ipmi_netmask", qr/^((\d{3}\.){3}\d+)$/, @_);
+    return $self->prop("ipmi_netmask", qr/^((\d{1,3}\.){3}\d+)$/, @_);
 }
 
 
@@ -88,7 +88,7 @@ ipmi_username()
 {
     my $self = shift;
 
-    return $self->prop("ipmi_username", qr/^([a-z0-9]+)$/, @_);
+    return $self->prop("ipmi_username", qr/^([a-zA-Z0-9]+)$/, @_);
 }
 
 
@@ -103,7 +103,7 @@ ipmi_password()
 {
     my $self = shift;
 
-    return $self->prop("ipmi_password", qr/^([a-z0-9]+)$/, @_);
+    return $self->prop("ipmi_password", qr/^([a-zA-Z0-9]+)$/, @_);
 }
 
 
