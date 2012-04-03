@@ -109,7 +109,10 @@ confirm_changes(@)
         $type = "object(s)";
     }
     printf("About to apply %d action(s) to $obj_count $type:\n", scalar(@changes));
-    print(@changes, "\n");
+    foreach my $change (@changes) {
+        chomp $change;
+        print $change ."\n";
+    }
     if ($term->yesno("Proceed?\n")) {
         return 1;
     } else {
