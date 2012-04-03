@@ -173,11 +173,6 @@ update()
                 next;
             }
 
-            if (! $bootstrapid) {
-                &iprint("Skipping $nodename-$devname-$hwaddr: No bootstrap defined\n");
-                next;
-            }
-
             if ($hwaddr =~ /(([0-9a-f]{2}:){7}[0-9a-f]{2})$/) {
                 $hwprefix = "20";
             }
@@ -189,6 +184,17 @@ update()
                 &iprint("Building Pxelinux configuration for: $nodename/$hwaddr\n");
                 $hwaddr =~ s/:/-/g;
                 my $config = $hwprefix ."-". $hwaddr;
+
+                if (! $bootstrapid) {
+                    &iprint("Skipping $nodename-$devname-$hwaddr: No bootstrap defined\n");
+                    if (-f "$tftproot/warewulf/pxelinux.cfg/$config") {
+                        # If we know gotten this far, but not going to write a config, we
+                        # can remove it.
+                        unlink("$tftproot/warewulf/pxelinux.cfg/$config");
+                    }
+                    next;
+                }
+
                 &dprint("Creating pxelinux config at: $tftproot/warewulf/pxelinux.cfg/$config\n");
                 if (!open(PXELINUX, "> $tftproot/warewulf/pxelinux.cfg/$config")) {
                     &eprint("Could not open PXELinux config: $!\n");
