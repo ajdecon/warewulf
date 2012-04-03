@@ -233,7 +233,7 @@ exec()
                                     &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
                                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                     if ($yesno ne "y" and $yesno ne "yes") {
-                                        &nprint("Not exporting '$name'\n");
+                                        &nprint("Not importing '$name'\n");
                                         return();
                                     }
                                 }
