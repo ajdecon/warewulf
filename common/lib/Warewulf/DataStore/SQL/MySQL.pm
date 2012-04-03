@@ -331,6 +331,7 @@ persist($$)
 {
     my ($self, @objects) = @_;
     my $event = Warewulf::EventHandler->new();
+    my %events;
     my @objlist;
 
     if (! $self->{"DBH"}) {
@@ -405,6 +406,8 @@ persist($$)
                 &dprint("SQL: INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups) ."\n");
                 $sth = $self->{"DBH"}->prepare("INSERT lookup (field, value, object_id) VALUES ". join(",", @add_lookups));
                 $sth->execute();
+                # Consolidate all objects by type to run events on at once
+                push(@{$events{"$type"}}, $o);
             } else {
                 dprint("Not adding lookup entries\n");
             }
@@ -412,7 +415,10 @@ persist($$)
         }
     }
 
-    $event->handle("$type.modify", @objList);
+    # Run all events grouped together.
+    foreach my $type (keys %events) {
+        $event->handle("$type.modify", @{$events{"$type"}});
+    }
 
     return scalar(@objlist);
 }
@@ -427,6 +433,7 @@ del_object($$)
 {
     my ($self, $object) = @_;
     my $event = Warewulf::EventHandler->new();
+    my %events;
     my @objlist;
 
     if (! $self->{"DBH"}) {
@@ -459,10 +466,15 @@ del_object($$)
             $self->{"STH_RMBS"}->execute($id);
             $self->{"STH_RMDS"}->execute($id);
 
+            # Consolidate all objects by type to run events on at once
+            push(@{$events{"$type"}}, $o);
         }
     }
 
-    $event->handle("$type.delete", @objList);
+    # Run all events grouped together.
+    foreach my $type (keys %events) {
+        $event->handle("$type.modify", @{$events{"$type"}});
+    }
 
     return scalar(@objlist);
 }
