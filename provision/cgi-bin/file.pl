@@ -53,7 +53,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                         if ($timestamp and $timestamp >= $obj_timestamp) {
                             next;
                         }
-                        $metadata{$obj_timestamp} = sprintf("%s %s %s %s %04o %s %s\n",
+                        $metadata{$obj_timestamp} .= sprintf("%s %s %s %s %04o %s %s\n",
                             $obj->id() || "NULL",
                             $obj->name() || "NULL",
                             $obj->uid() || "0",
