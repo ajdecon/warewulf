@@ -85,3 +85,7 @@ Fri Mar 23 12:19:11 2012                        Michael Jennings (mej)
 Patch from Jason Stover <jason.stover@gmail.com> for my overzealous
 migration of objects to the new API.  ;-)
 ----------------------------------------------------------------------
+Tue Apr  3 19:05:31 2012                        Michael Jennings (mej)
+
+Add some missing newlines.
+----------------------------------------------------------------------

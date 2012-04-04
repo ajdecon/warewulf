@@ -192,7 +192,7 @@ exec()
 
                     if (-f $vnfs_path) {
                         if ($term->interactive()) {
-                            &wprint("Do you wish to overwrite this file: $vnfs_path?");
+                            &wprint("Do you wish to overwrite this file: $vnfs_path?\n");
                             my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                             if ($yesno ne "y" and $yesno ne "yes") {
                                 &nprint("Not exporting '$vnfs_name'\n");
@@ -230,7 +230,7 @@ exec()
                                 $obj = $objSet->get_object(0);
                                 if ($term->interactive()) {
                                     my $name = $obj->name() || "UNDEF";
-                                    &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?");
+                                    &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?\n");
                                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                     if ($yesno ne "y" and $yesno ne "yes") {
                                         &nprint("Not importing '$name'\n");
