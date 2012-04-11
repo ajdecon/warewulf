@@ -73,9 +73,21 @@ new()
     my $class = ref($proto) || $proto;
 
     if (! $singleton) {
-        $singleton = {};
-        bless($singleton, $class);
-        $singleton->init();
+        # FIXME: ? Maybe ?
+        # Always return undef if init() fails. Without this logic, only the
+        # first call to new() would return undef, but after that all
+        # subsequent calls would appear to work even if DB was not connected.
+        # Maybe there is a better way of doing this?
+        my $ret;
+        my $tmp = {};
+        bless($tmp, $class);
+        $ret = $tmp->init();
+        if ($ret) {
+            $singleton = $tmp;
+            return $ret;
+        } else {
+            return undef;
+        }
     }
 
     return $singleton;
@@ -103,15 +115,15 @@ init()
             &dprint("DATABASE SERVER:    $db_server\n");
             &dprint("DATABASE USER:      $db_user\n");
 
-            $self->{"DBH"} = DBI->connect_cached("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass);
-            if ($self->{"DBH"}) {
+            if ($self->{"DBH"} = DBI->connect_cached("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass)) {
                 &iprint("Successfully connected to database!\n");
             } else {
-                die "Could not connect to DB: $DBI::errstr!\n";
+                &wprint("Could not connect to DB: $DBI::errstr!\n");
+                return undef;
             }
             $self->{"DBH"}->{"mysql_auto_reconnect"} = 1;
         } else {
-            &dprint("Undefined credentials for database\n");
+            &wprint("Could not connect to the database (undefined credentials)!\n");
             return undef;
         }
     }

@@ -21,11 +21,10 @@ use Warewulf::DataStore;
 use Warewulf::ModuleLoader;
 use Warewulf::EventHandler;
 
-my ($modules, $db, $term);
+my ($modules, $db, $term, $events);
 my @keywords;
 my %keyword_hash;
 my $retval = 0;
-my $events = Warewulf::EventHandler->new();
 
 $ENV{"PATH"} = "/bin:/usr/bin:/usr/local/bin";
 
@@ -80,10 +79,6 @@ GetOptions(
 
 &set_log_level("NOTICE");
 
-$modules = Warewulf::ModuleLoader->new("Cli");
-$db = Warewulf::DataStore->new();
-$term = Warewulf::Term->new();
-
 if ($opt_debug) {
     &set_log_level("DEBUG");
 } elsif ($opt_verbose) {
@@ -92,6 +87,20 @@ if ($opt_debug) {
     $term->interactive(0);
     &set_log_level("WARNING");
 }
+
+# We first need to initialize the Datastore and then test to make sure we have
+# a successful connection before building more objects and going further.
+$db = Warewulf::DataStore->new();
+
+if (! defined($db)) {
+    &eprint("Failed initialization of the datastore!\n");
+    exit 1;
+}
+
+$events = Warewulf::EventHandler->new();
+$modules = Warewulf::ModuleLoader->new("Cli");
+$term = Warewulf::Term->new();
+
 
 foreach my $module ($modules->list()) {
     push(@keywords, $module->keyword());
