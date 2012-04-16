@@ -481,7 +481,7 @@ exec()
         if ($opt_name) {
             if (uc($opt_name) eq "UNDEF") {
                 &eprint("You must define the name you wish to reference the node as!\n");
-            } elsif ($opt_name =~ /^([a-zA-Z0-9\.\-_]+)$/) {
+            } elsif ($opt_name =~ /^([a-zA-Z0-9\-_]+)$/) {
                 $opt_name = $1;
                 foreach my $obj ($objSet->get_list()) {
                     my $nodename = $obj->get("name") || "UNDEF";
