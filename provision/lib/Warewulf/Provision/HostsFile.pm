@@ -168,6 +168,7 @@ sub
 update_datastore()
 {
     my $self = shift;
+    my $binstore;
     my $name = "dynamic_hosts";
     my $datastore = Warewulf::DataStore->new();
 
@@ -184,8 +185,6 @@ update_datastore()
         $fileobj->set("name", $name);
     }
 
-    my $binstore = $datastore->binstore($fileobj->id());
-
     $fileobj->checksum(md5_hex($hosts));
     $fileobj->path("/etc/hosts");
     $fileobj->format("data");
@@ -195,6 +194,8 @@ update_datastore()
     $fileobj->mode(oct("0644"));
 
     $datastore->persist($fileobj);
+
+    $binstore = $datastore->binstore($fileobj->id());
 
     my $read_length = 0;
     while($read_length != $len) {
