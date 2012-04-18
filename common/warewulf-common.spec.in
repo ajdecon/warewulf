@@ -8,8 +8,9 @@ License: BSD
 Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
-BuildArch: noarch
 Conflicts: warewulf <= 2.9
+# This is put in to force an update of the noarch 3.2 tree
+Obsoletes: %{name} < 3.3
 BuildRoot: %{?_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
