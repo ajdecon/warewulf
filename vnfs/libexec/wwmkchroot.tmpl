@@ -1,0 +1,110 @@
+#!/bin/bash
+
+
+export FUNCTIONS="sanity_check
+                  init
+                  preconfig
+                  buildchroot
+                  postconfig
+                  configure_fstab
+                  configure_network
+                  configure_pam
+                  configure_password
+                  configure_sshkeys
+                  configure_runlevel
+                  configure_services
+                  finalize"
+
+
+if [ -z "$VNFSDIR" ]; then
+    echo "ERROR: PATH not defined!"
+    echo
+    usage
+    exit 1
+fi
+
+sanity_check() {
+    return 0
+}
+
+init() {
+    if [ ! -d "$VNFSDIR" ]; then
+        mkdir -p "$VNFSDIR"
+        return $?
+    fi
+    return 0
+}
+
+preconfig() {
+    return 0
+}
+
+buildchroot() {
+    echo "The template you are using, doesn't have buildchroot() defined!"
+    return 1
+}
+
+postconfig() {
+    return 0
+}
+
+configure_pam() {
+    if [ -f "$VNFSDIR/etc/pam.d/system-auth" ]; then
+        sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' $VNFSDIR/etc/pam.d/system-auth
+    fi
+
+    if [ -f "$VNFSDIR/etc/pam.d/password-auth" ]; then
+        sed -i -e '/^account.*pam_unix\.so\s*$/s/\s*$/\ broken_shadow/' $VNFSDIR/etc/pam.d/password-auth
+    fi
+    return 0
+}
+
+configure_password() {
+    if [ -x "$VNFSDIR/usr/bin/passwd" ]; then
+        echo "Setting root password..."
+        /usr/sbin/chroot $VNFSDIR /usr/bin/passwd root
+    else
+        echo "Setting root password to NULL (be sure to fix this yourself)"
+        sed -i -e 's/^root:\*:/root::/' $VNFSDIR/etc/shadow
+    fi
+    return 0
+}
+
+configure_fstab() {
+    echo "#GENERATED_ENTRIES#" > $VNFSDIR/etc/fstab
+    echo "tmpfs /dev/shm tmpfs defaults 0 0" >> $VNFSDIR/etc/fstab
+    echo "devpts /dev/pts devpts gid=5,mode=620 0 0" >> $VNFSDIR/etc/fstab
+    echo "sysfs /sys sysfs defaults 0 0" >> $VNFSDIR/etc/fstab
+    echo "proc /proc proc defaults 0 0" >> $VNFSDIR/etc/fstab
+    return 0
+}
+
+configure_sshkeys() {
+    echo "Creating SSH host keys"
+    /usr/bin/ssh-keygen -q -t rsa1 -f $VNFSDIR/etc/ssh/ssh_host_key -C '' -N ''
+    /usr/bin/ssh-keygen -q -t rsa -f $VNFSDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
+    /usr/bin/ssh-keygen -q -t dsa -f $VNFSDIR/etc/ssh/ssh_host_dsa_key -C '' -N ''
+    mkdir -p $VNFSDIR/root/.ssh
+    > $VNFSDIR/root/.ssh/authorized_keys
+    for i in `ls /root/ssh/*.pub 2>/dev/null`; do
+        cat $i >> $VNFSDIR/root/.ssh/authorized_keys
+    done
+    return 0
+}
+
+configure_network() {
+    echo "NETWORKING=yes" > $VNFSDIR/etc/sysconfig/network
+    return 0
+}
+
+configure_runlevel() {
+    return 0
+}
+
+configure_services() {
+    return 0
+}
+
+finalize() {
+    return 0
+}

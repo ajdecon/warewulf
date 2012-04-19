@@ -1,6 +1,6 @@
 confdir = $(sysconfdir)/warewulf/wwmkchroot
 
-dist_conf_DATA = rhel-6.tmpl
+dist_conf_DATA =
 
 MAINTAINERCLEANFILES = Makefile.in
 

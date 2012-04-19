@@ -1,11 +1,3 @@
-# -*-Shell-script-*-
-# 
-# wwmkchroot file for Red Hat based distributions
-#
-# Based off original mkchroot-rh.sh
-
-DESC="Red Hat based distributions"
-VERSION=`rpm -qf /etc/redhat-release  --qf '%{VERSION}\n'`
 
 PKGLIST="SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
     ethtool filesystem findutils gawk grep initscripts iproute iputils \
@@ -15,30 +7,37 @@ PKGLIST="SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
     openssh-clients openssh-server passwd dhclient pciutils vim-minimal \
     shadow-utils strace vixie-cron cronie crontabs"
 
-build_vnfs()
-{
 
-    echo "Creating yum configuration based on master"
+
+sanity_check() {
+    if ! rpm -q yum >/dev/null 2>&1; then
+        echo "ERROR: Could not query RPM for YUM"
+        return 1
+    fi
+    return 0
+}
+
+buildchroot() {
+
+    VERSION=`rpm -qf /etc/redhat-release  --qf '%{VERSION}\n'`
+
+    mkdir -p $VNFSDIR/etc
+
     cp -rap /etc/yum.conf /etc/yum.repos.d $VNFSDIR/etc
     sed -i -e "s/\$releasever/$VERSION/g" `find $VNFSDIR/etc/yum* -type f`
 
-    echo "Starting package installation"
     yum --tolerant --installroot $VNFSDIR -y install $PKGLIST
 
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to create chroot"
-        exit 1
+        return 1
     fi
 
-    vnfs_generate_fstab 
+    return 0
+}
 
-    echo "NETWORKING=yes" > $VNFSDIR/etc/sysconfig/network
-
-    vnfs_generate_ssh 
-
-    vnfs_setup_auth 
-
+postconfig() {
     touch $VNFSDIR/fastboot
-
+    return 0
 }
 
