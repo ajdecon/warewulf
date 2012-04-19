@@ -9,87 +9,82 @@
 #
 # $Id$
 
-# Have to figure out where it is initially...
-if [ -f $(wwconfig SYSCONFDIR)/warewulf/wwfunctions ]; then
-    . $(wwconfig SYSCONFDIR)/warewulf/wwfunctions
+SYSCONFDIR=$(wwconfig SYSCONFDIR)
+
+usage() {
+    echo "$0 [options] TEMPLATE_NAME PATH"
+    echo
+    echo "OPTIONS:"
+    echo "    -d        Debug output"
+    echo "    -h        Usage summary"
+    echo
+    echo "TEMPLATE_NAME (select one of the following):"
+    for i in $SYSCONFDIR/warewulf/wwmkchroot/*.tmpl; do
+        NAME=`basename $i | sed -e 's/\.tmpl$//'`
+        echo "   $NAME"
+    done
+    echo
+    echo "PATH:"
+    echo "   This is the location where the VNFS will be created"
+    echo
+}
+
+
+### Argument processing
+while getopts "a:dhv" opt; do
+    case $opt in
+        d)
+            VERBOSE=1
+            set -x
+        ;;
+        v)
+            VERBOSE=1
+        ;;
+        h)
+            usage
+            exit
+        ;;
+        a)
+            var=$OPTARG
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+export VNFSTEMPLATE=$1
+shift
+export VNFSDIR=$1
+shift
+
+
+#### Loading templates
+test -n "$VERBOSE" && echo "Loading general template"
+if [ -f "$SYSCONFDIR/warewulf/wwmkchroot.tmpl" ]; then
+    . "$SYSCONFDIR/warewulf/wwmkchroot.tmpl"
+    TMPL1_FUNCTIONS=$FUNCTIONS
 else
-    echo "$0: Error: Can not find $(wwconfig SYSCONFDIR)/warewulf/wwfunctions";
+    echo "$0: Error: Can not find $SYSCONFDIR/warewulf/wwmkchroot.tmpl"
     exit 1;
 fi
 
-RELEASE=
-VNFSDIR=
-VNFSIMG=
-WWSUITE=
-
-usage()
-{
-    echo "NOTE: !!! EXPERIMENTAL !!!";
-    echo "Usage: $0 [-u|--url] [name] /path/to/chroot";
-    echo "Example: $0 -u cent-6 /var/chroots/cent-6";
-    echo "NOTE: !!! EXPERIMENTAL !!!";
-    echo;
-    echo "Usage: $0 [release] /path/to/chroot [suite]";
-    echo "[suite] for debian and ubuntu: maveric, lucid, squeeze, etc...";
-    echo;
-    echo "Availible values for release:";
-
-    for rel in `/bin/ls -1 $sysconf/wwmkchroot/ | egrep -v '\.tmpl|VNFS.Source'`; do
-        printf "  %10s - %s\n" $rel "$(egrep ^DESC= $sysconf/wwmkchroot/$rel | cut -f 2 -d '=' | tr -d '"')";
-    done
-}
-
-check_opts()
-{
-    if [ $# -lt 2 ]; then
-        usage;
-        exit 1;
-    fi
-}
-
-sysconf="$WAREWULF_SYSCONFDIR/warewulf";
-
-if [ "$1" = "-u" -o "$1" = "--url" ]; then
-    shift;
-    check_opts $@;
-    
-    VNFSIMG=${1}.vnfs; shift;
-    VNFSDIR=$1;
-
-    # This has the Site we try downloading the image from...
-    . $sysconf/wwmkchroot/VNFS.Source
-
-    IMGDL=`vnfs_download $VNFSIMG`;
-    build_chroot $IMGDL $VNFSDIR
-
+test -n "$VERBOSE" && echo "Loading $VNFSTEMPLATE template"
+if [ -f "$SYSCONFDIR/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl" ]; then
+    . "$SYSCONFDIR/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl"
+    TMPL2_FUNCTIONS=$FUNCTIONS
 else
-    check_opts $@;
-
-    RELEASE=$1
-    shift;
-    VNFSDIR=$1
-
-    # We've shifted once so we have our release and directory (we hope)... But there's
-    # two arguments still in $@ ... must be a value for WWSUITE
-    if [ "x${RELEASE}" = "xubuntu" -o "x${RELEASE}" = "xdebian" -a $# -eq 2 ]; then
-        shift;
-        WWSUITE=$1;
-    fi
-
-    if [ -z "$VNFSDIR" ]; then
-        usage;
-        exit 1
-    fi
-
-    mkdir -p $VNFSDIR
-    mkdir -p $VNFSDIR/etc
-
-    # Read in our config file
-    . $sysconf/wwmkchroot/$RELEASE
-
-    build_vnfs $WWSUITE
+    echo "$0: Error: Can not find $SYSCONFDIR/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl"
+    exit 1
 fi
 
-echo "Done."
 
-# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
+#### Running template functions
+test -n "$VERBOSE" && echo "Starting template functions"
+for function in $TMPL1_FUNCTIONS $TMPL2_FUNCTIONS; do
+    test -n "$VERBOSE" && echo "Running: $function"
+    $function || exit 1
+done
+
+
+
+

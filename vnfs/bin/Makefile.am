@@ -1,5 +1,5 @@
 
-dist_bin_SCRIPTS = mkchroot-rh.sh mkchroot-ubuntu.sh mkchroot-debian.sh wwvnfs wwbootstrap mkchroot-mud.sh packmgr-mud.sh wwmkchroot
+dist_bin_SCRIPTS = wwvnfs wwbootstrap wwmkchroot
 
 MAINTAINERCLEANFILES = Makefile.in
 

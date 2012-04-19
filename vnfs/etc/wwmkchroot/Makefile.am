@@ -1,6 +1,6 @@
 confdir = $(sysconfdir)/warewulf/wwmkchroot
 
-dist_conf_DATA = wwmkchroot.tmpl rhel debian ubuntu VNFS.Source
+dist_conf_DATA = rhel-6.tmpl
 
 MAINTAINERCLEANFILES = Makefile.in
 
