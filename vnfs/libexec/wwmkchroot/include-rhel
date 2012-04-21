@@ -1,0 +1,62 @@
+
+
+sanity_check() {
+    if ! rpm -q yum >/dev/null 2>&1; then
+        echo "ERROR: Could not query RPM for YUM"
+        return 1
+    fi
+    return 0
+}
+
+prechroot() {
+
+    if [ -z "$YUM_MIRROR" ]; then
+        echo "ERROR: You must define the \$YUM_MIRROR variable in the template!"
+        exit 1
+    fi
+
+    mkdir -p $VNFSDIR/etc/yum.repos.d
+
+    > $VNFSDIR/etc/yum.conf
+    > $VNFSDIR/etc/yum.repos.d/os-base.repo
+
+    echo '[main]' >> $VNFSDIR/etc/yum.conf
+    echo 'cachedir=/var/cache/yum/$basearch/$releasever' >> $VNFSDIR/etc/yum.conf
+    echo 'keepcache=0' >> $VNFSDIR/etc/yum.conf
+    echo 'debuglevel=2' >> $VNFSDIR/etc/yum.conf
+    echo 'logfile=/var/log/yum.log' >> $VNFSDIR/etc/yum.conf
+    echo 'exactarch=1' >> $VNFSDIR/etc/yum.conf
+    echo 'obsoletes=1' >> $VNFSDIR/etc/yum.conf
+    echo 'gpgcheck=1' >> $VNFSDIR/etc/yum.conf
+    echo 'plugins=1' >> $VNFSDIR/etc/yum.conf
+
+    echo '[sl]' >> $VNFSDIR/etc/yum.repos.d/os-base.repo
+    echo 'name=Linux $releasever - $basearch' >> $VNFSDIR/etc/yum.repos.d/os-base.repo
+    echo "baseurl=$YUM_MIRROR" >> $VNFSDIR/etc/yum.repos.d/os-base.repo
+    echo 'enabled=1' >> $VNFSDIR/etc/yum.repos.d/os-base.repo
+    echo 'gpgcheck=0' >> $VNFSDIR/etc/yum.repos.d/os-base.repo
+
+}
+
+buildchroot() {
+
+    if [ -z "$PKGLIST" ]; then
+        echo "ERROR: You must define the \$PKGLIST variable in the template!"
+        exit 1
+    fi
+
+    yum --tolerant --installroot $VNFSDIR -y install $PKGLIST
+
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create chroot"
+        return 1
+    fi
+
+    return 0
+}
+
+postconfig() {
+    touch $VNFSDIR/fastboot
+    return 0
+}
+

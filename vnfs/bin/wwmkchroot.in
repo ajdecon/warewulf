@@ -70,19 +70,26 @@ fi
 
 
 #### Loading templates
-test -n "$VERBOSE" && echo "Loading general template"
-if [ -f "$libexecdir/warewulf/wwmkchroot.tmpl" ]; then
-    . "$libexecdir/warewulf/wwmkchroot.tmpl"
-else
-    echo "$0: Error: Can not find $libexecdir/warewulf/wwmkchroot.tmpl"
-    exit 1;
-fi
+if [ -d "$libexecdir/warewulf/wwmkchroot" ]; then
+    pushd $libexecdir/warewulf/wwmkchroot >/dev/null
+    test -n "$VERBOSE" && echo "Loading general template functions"
+    if [ -f "functions" ]; then
+        . "functions"
+    else
+        echo "$0: Error: Can not find $libexecdir/warewulf/wwmkchroot/functions"
+        exit 1;
+    fi
 
-test -n "$VERBOSE" && echo "Loading $VNFSTEMPLATE template"
-if [ -f "$libexecdir/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl" ]; then
-    . "$libexecdir/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl"
+    test -n "$VERBOSE" && echo "Loading $VNFSTEMPLATE template"
+    if [ -f "$VNFSTEMPLATE.tmpl" ]; then
+        . "$VNFSTEMPLATE.tmpl"
+    else
+        echo "$0: Error: Can not find $libexecdir/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl"
+        exit 1
+    fi
+    popd >/dev/null
 else
-    echo "$0: Error: Can not find $libexecdir/warewulf/wwmkchroot/$VNFSTEMPLATE.tmpl"
+    echo "ERROR: Template directory ($libexecdir/warewulf/wwmkchroot) does not exist!"
     exit 1
 fi
 

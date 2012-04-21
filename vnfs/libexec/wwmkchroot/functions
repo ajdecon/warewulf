@@ -3,9 +3,9 @@
 
 export FUNCTIONS="sanity_check
                   init
-                  preconfig
+                  prechroot
                   buildchroot
-                  postconfig
+                  postchroot
                   configure_fstab
                   configure_network
                   configure_pam
@@ -13,6 +13,7 @@ export FUNCTIONS="sanity_check
                   configure_sshkeys
                   configure_runlevel
                   configure_services
+                  configure_timezone
                   finalize"
 
 
@@ -35,7 +36,7 @@ init() {
     return 0
 }
 
-preconfig() {
+prechroot() {
     return 0
 }
 
@@ -44,7 +45,7 @@ buildchroot() {
     return 1
 }
 
-postconfig() {
+postchroot() {
     return 0
 }
 
@@ -98,7 +99,15 @@ configure_network() {
 }
 
 configure_runlevel() {
-    return 0
+    if [ -f "$VNFSDIR/etc/inittab" ]; then
+        sed -i -e 's@id:.:initdefault:@id:3:initdefault:@' $VNFSDIR/etc/inittab
+    fi
+}
+
+configure_timezone() {
+    if [ -f "/etc/localtime" ]; then
+        cp /etc/localtime $VNFSDIR/etc/localtime
+    fi
 }
 
 configure_services() {
