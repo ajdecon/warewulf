@@ -25,3 +25,7 @@ Mon Mar 12 13:28:43 2012                        Michael Jennings (mej)
 
 Bump version to 3.2.  Improve SVN revision detection.  Add ignores.
 ----------------------------------------------------------------------
+Mon Apr 23 12:20:04 2012                        Michael Jennings (mej)
+
+Fix build.
+----------------------------------------------------------------------
