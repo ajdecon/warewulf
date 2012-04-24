@@ -128,8 +128,15 @@ generate()
         foreach my $devname ($n->netdevs_list()) {
             my $node_ipaddr = $n->ipaddr($devname);
             my $node_fqdn = $n->fqdn($devname);
-            my $node_testnetwork = $netobj->calc_network($node_ipaddr, $netmask);
+            my $node_testnetwork;
             my @name_entries;
+
+            if (! $node_ipaddr) {
+                &dprint("Skipping $devname as it has no defined IPADDR\n");
+                next;
+            }
+
+            $node_testnetwork = $netobj->calc_network($node_ipaddr, $netmask);
 
             if ($node_fqdn) {
                 push(@name_entries, $node_fqdn);

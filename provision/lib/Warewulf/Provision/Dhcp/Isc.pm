@@ -259,6 +259,11 @@ persist()
                         next;
                     }
 
+                    if (! $ipv4_addr) {
+                        &dprint("Skipping $devname as it has no defined IPADDR\n");
+                        next;
+                    }
+
                     if (exists($seen{"NODESTRING"}) and exists($seen{"NODESTRING"}{"$nodename-$devname"})) {
                         my $redundant_node = $seen{"NODESTRING"}{"$nodename-$devname"};
                         &iprint("Skipping redundant node entry for $nodename-$devname already seen in $redundant_node)\n");
