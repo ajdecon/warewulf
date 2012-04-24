@@ -72,7 +72,6 @@ help()
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         list            List a summary of the node(s) provision configuration\n";
     $h .= "         print           Print the full node(s) provision configuration\n";
-    $h .= "         status          Print the node(s) provisioning status\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -147,10 +146,10 @@ complete()
         'l|lookup=s'    => \$opt_lookup,
     );
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set" or $ARGV[1] eq "status")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "set")) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "status", "print");
+        @ret = ("list", "set", "print");
     }
 
     @ARGV = ();
@@ -432,22 +431,9 @@ exec()
 
         }
     } elsif ($command eq "status") {
-        &nprintf("%-15s %12s %15s  %s\n", "NAME", "LAST CONTACT", "STATUS", "MESSAGE");
-        my $time = time();
-        foreach my $o ($objSet->get_list()) {
-            my $lastcontact = $o->provisiontime();
-            if ($lastcontact and $lastcontact =~ /^\d+$/) {
-                $lastcontact = $time - $lastcontact;
-            } else {
-                $lastcontact = "unknown";
-            }
-            printf("%-15s %12s %15s  %s\n",
-                $o->name() || "UNDEF",
-                $lastcontact,
-                $o->provisionstatus() || "-"x14,
-                $o->provisionlog() || "-"x34
-            );
-        }
+        &wprint("Persisted status updates (and thus this command) have been deprecated for\n");
+        &wprint("scalibility and minimizing DB hits. Each node now logs directly to it's\n");
+        &wprint("master's syslog server if it is in listen mode.\n");
 
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {

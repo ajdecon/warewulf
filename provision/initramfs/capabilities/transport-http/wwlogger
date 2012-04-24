@@ -12,6 +12,5 @@
 MESSAGE=`echo $1 | sed -e 's@ @+@g'`
 
 for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-    wget -q -O /dev/null "http://$master/WW/logger?hwaddr=$HWADDR&log=$MESSAGE"
+    echo "<6>$WWNAME wwbootstrap: $MESSAGE" | nc -w 0 -u $master 514 2>/dev/null
 done
-

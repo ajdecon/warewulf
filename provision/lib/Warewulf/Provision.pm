@@ -151,51 +151,6 @@ fileiddel()
 }
 
 
-=item provisionlog($string)
-
-Set or return the last provision log
-
-=cut
-
-sub
-provisionlog()
-{
-    my $self = shift;
-
-    return $self->prop("provisionlog", qr/^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/, @_);
-}
-
-
-=item provisionstatus($string)
-
-Set or return the last provision status
-
-=cut
-
-sub
-provisionstatus()
-{
-    my $self = shift;
-
-    return $self->prop("provisionstatus", qr/^([a-zA-Z0-9\s\-_\.\/:\!\?\,]+)$/, @_);
-}
-
-
-=item provisiontime($epoch)
-
-Set or return the last provision epoch
-
-=cut
-
-sub
-provisiontime()
-{
-    my $self = shift;
-
-    return $self->prop("provisiontime", qr/^([0-9]+)$/, @_);
-}
-
-
 =item preshell($bool)
 
 Set or return the preshell boolean
