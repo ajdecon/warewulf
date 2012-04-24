@@ -55,7 +55,7 @@ buildchroot() {
     return 0
 }
 
-postconfig() {
+postchroot() {
     touch $VNFSDIR/fastboot
     return 0
 }
