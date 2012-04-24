@@ -85,7 +85,7 @@ configure_sshkeys() {
     /usr/bin/ssh-keygen -q -t rsa1 -f $VNFSDIR/etc/ssh/ssh_host_key -C '' -N ''
     /usr/bin/ssh-keygen -q -t rsa -f $VNFSDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
     /usr/bin/ssh-keygen -q -t dsa -f $VNFSDIR/etc/ssh/ssh_host_dsa_key -C '' -N ''
-    mkdir -p $VNFSDIR/root/.ssh
+    mkdir -m 0700 -p $VNFSDIR/root/.ssh
     > $VNFSDIR/root/.ssh/authorized_keys
     for i in `ls /root/ssh/*.pub 2>/dev/null`; do
         cat $i >> $VNFSDIR/root/.ssh/authorized_keys
@@ -117,3 +117,6 @@ configure_services() {
 finalize() {
     return 0
 }
+
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

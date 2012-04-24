@@ -18,11 +18,6 @@ mkdir /usr  2>/dev/null
 mount -t proc none /proc >/dev/null 2>&1
 mount -t sysfs none /sys >/dev/null 2>&1
 
-mkdir /dev/shm 2>/dev/null
-mkdir /dev/pts 2>/dev/null
-mount -t devpts -o gid=5,mode=620 devpts /dev/pts >/dev/null 2>&1
-mount -t tmpfs tmpfs /dev/shm >/dev/null 2>&1
-
 . /etc/functions
 
 NEWROOT=/newroot

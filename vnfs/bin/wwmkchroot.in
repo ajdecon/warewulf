@@ -101,6 +101,4 @@ for function in $FUNCTIONS; do
     $function || exit 1
 done
 
-
-
-
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

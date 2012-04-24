@@ -15,7 +15,8 @@ prechroot() {
         exit 1
     fi
 
-    mkdir -p $VNFSDIR/etc/yum.repos.d
+    mkdir -m 0755 -p $VNFSDIR/etc
+    mkdir -m 0755 -p $VNFSDIR/etc/yum.repos.d
 
     > $VNFSDIR/etc/yum.conf
     > $VNFSDIR/etc/yum.repos.d/os-base.repo
@@ -60,3 +61,6 @@ postchroot() {
     return 0
 }
 
+
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
