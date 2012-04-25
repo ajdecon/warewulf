@@ -19,7 +19,7 @@ fi
 
 chroot $NEWROOT /bin/mount -t tmpfs none /dev/shm;
 
-sort -r /tmp/mptab | while read mp dev type opts; do
+sort -r /tmp/mptab | while read mp dev type perms opts; do
     if [ "x$mp" == "x/" ]; then
         echo "$dev $mp $type $opts 0 0" > $NEWROOT/etc/mtab
         mount -o remount,ro $NEWROOT/

@@ -41,7 +41,7 @@ fi
 
 #WWDISKPARTITION="sda"
 #WWDISKFORMAT="sda1 sda2"
-#WWFILESYSTEMS="mountpoint=/:type=tmpfs,dev=sda1:type=swap:size=1024,dev=sda2:mountpoint=/tmp:type=ext2:size=4096"
+#WWFILESYSTEMS="mountpoint=/:type=tmpfs,dev=sda1:type=swap:size=1024,dev=sda2:mountpoint=/tmp:perms=1777:type=ext2:size=4096"
 
 TMPDIR=`mktemp -d`
 mkdir $TMPDIR/parts
@@ -68,6 +68,11 @@ for FSYS in `echo $WWFILESYSTEMS | sed 's/,/ /g'` ; do
             echo "export WWFS_$VAR" >> $TMPFILE
         done
         if [ -n "$WWFS_TYPE" ]; then
+            if [ -n "$WWFS_PERMS" ]; then
+                WWFS_PERMS=`echo ${WWFS_PERMS} | sed -n '/[0-7]\{4\}/p'`
+            else
+                WWFS_PERMS="default"
+            fi
             if [ -n "$WWFS_DEV" -a "$WWFS_DEV" != "none" ]; then
                 DISK=`echo $WWFS_DEV | sed -e 's@\([a-z]*\)[0-9]@\1@'`
                 if [ -n "$DISK" ]; then
@@ -79,12 +84,12 @@ for FSYS in `echo $WWFILESYSTEMS | sed 's/,/ /g'` ; do
                 DEV="none"
             fi
             if [ "x$WWFS_MOUNTPOINT" == "x/" ]; then
-                echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
+                echo "$WWFS_MOUNTPOINT $DEV $WWFS_TYPE $WWFS_PERMS ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
                 echo "$DEV $WWFS_MOUNTPOINT $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 0 0" >> /tmp/fstab
             elif [ "x$WWFS_MOUNTPOINT" == "xnone" ]; then
                 echo "$DEV ${WWFS_MOUNTPOINT:-none} $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/fstab
             else
-                echo "${WWFS_MOUNTPOINT:-none} $DEV $WWFS_TYPE ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
+                echo "${WWFS_MOUNTPOINT:-none} $DEV $WWFS_TYPE $WWFS_PERMS ${WWFS_OPTIONS:-defaults}" >> /tmp/mptab
                 echo "$DEV ${WWFS_MOUNTPOINT:-none} $WWFS_TYPE ${WWFS_OPTIONS:-defaults} 1 2" >> /tmp/fstab
             fi
         else
@@ -167,7 +172,7 @@ for DEV in `echo $WWDISKFORMAT | sed 's/,/ /g'` ; do
 done
 
 
-sort /tmp/mptab | while read mp dev type opts; do
+sort /tmp/mptab | while read mp dev type perms opts; do
     # This is meaningless for swap space
     if [ "x${type}" != "xswap" ]; then
         if [ ! -d "$NEWROOT/$mp" ]; then
@@ -181,6 +186,9 @@ sort /tmp/mptab | while read mp dev type opts; do
         #  a 'mount' program that'll handle mounting the 
         #  filesystems here. -jms
         if mount -o $opts -t $type $dev $NEWROOT/$mp; then
+            if [ "$perms" != "default" ]; then
+                chmod $perms $NEWROOT/$mp
+            fi
             if [ $mp == "/" -a $dev != "none" ]; then
                 echo $dev > /tmp/rootdev
             fi
