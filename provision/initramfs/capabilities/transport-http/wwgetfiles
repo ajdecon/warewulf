@@ -47,12 +47,14 @@ while true; do
                     echo $timestamp > $TIMESTAMP_FILE
                 else
                     echo "ERROR: Could not download $name"
+                    rm -f $NEWROOT/$path.ww
                     exit 2
                 fi
             done
             rm -f $TMPFILE
             exit 0
         fi
+        rm -f $TMPFILE
     done
     echo -n "." 1>&2
     throttled_sleep

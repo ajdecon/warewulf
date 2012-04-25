@@ -15,6 +15,7 @@ use Warewulf::Logger;
 use Warewulf::Daemon;
 use Warewulf::Node;
 use Warewulf::Vnfs;
+use Warewulf::Provision;
 use File::Path;
 use File::Basename;
 
@@ -34,7 +35,7 @@ if ($q->param('hwaddr')) {
         my $node = $nodeSet->get_object(0);
         if ($node) {
             my ($node_name) = $node->name();
-            my ($vnfsid) = $node->get("vnfsid");
+            my ($vnfsid) = $node->vnfsid();
             if ($vnfsid) {
                 my $obj = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
                 if ($obj) {
@@ -45,7 +46,7 @@ if ($q->param('hwaddr')) {
 
                     #&nprint("Sending VNFS '$vnfs_name' to node '$node_name'\n");
                     $q->print("Content-Type: application/octet-stream; name=\"vnfs.img\"\r\n");
-                    if (my $size = $obj->get("size")) {
+                    if (my $size = $obj->size()) {
                         $q->print("Content-length: $size\r\n");
                     }
                     $q->print("Content-Disposition: attachment; filename=\"vnfs.img\"\r\n");
@@ -99,6 +100,9 @@ if ($q->param('hwaddr')) {
                             close($cache_fh);
                         } else {
                             &eprint("Can't open VNFS cache!\n");
+                            $q->print("Content-Type: application/octet-stream\r\n");
+                            $q->print("Status: 500\r\n");
+                            $q->print("\r\n");
                         }
 
                     } else {

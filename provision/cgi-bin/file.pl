@@ -24,8 +24,6 @@ use Warewulf::DSO::File;
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
 
-print $q->header("text/plain");
-
 my $hwaddr = $q->param('hwaddr');
 my $fileid = $q->param('fileid');
 my $timestamp = $q->param('timestamp');
@@ -65,6 +63,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                     }
                 }
             }
+            print $q->header("text/plain");
             foreach my $t (sort {$a <=> $b} keys %metadata) {
                 print $metadata{$t};
             }
@@ -78,93 +77,122 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
             if ($fileObj) {
                 my $cachefile = "/tmp/warewulf/files/". $fileObj->id() ."/". $fileObj->checksum();
 
+                # Initially cache the file if it doesn't already exist locally
                 if (! -f $cachefile) {
                     mkpath("/tmp/warewulf/files/". $fileObj->name());
                     $fileObj->file_export($cachefile);
                 }
 
-                if (open(CACHE, $cachefile)) {
-                    while(my $line = <CACHE>) {
-                        $read_buffer .= $line;
+                # Make sure checksum exists before going forward. Otherwise we will remove cached
+                # file below, and send an internal error to the client.
+                if (&digest_file_hex_md5($cachefile) eq $fileObj->checksum()) {
+
+                    if (open(CACHE, $cachefile)) {
+                        while(my $line = <CACHE>) {
+                            $read_buffer .= $line;
+                        }
+                        close CACHE;
                     }
-                    close CACHE;
-                }
 
-                # Search for all matching variable entries.
-                foreach my $wwstring ($read_buffer =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
-                    # Check for format, and seperate into a seperate wwvar string
-                    if ($wwstring =~ /^\%\{(.+?)\}(\[(\d+)\])?$/) {
-                        my $wwvar = $1;
-                        my $wwarrayindex = $3;
-                        # Set the current object that we are looking at. This is
-                        # important as we iterate through multiple levels.
-                        my $curObj = $node;
-                        my @keys = split(/::/, $wwvar);
-                        while(my $key = shift(@keys)) {
-                            my $val = $curObj->get($key);
-                            if (ref($val) eq "Warewulf::ObjectSet") {
-                                my $find = shift(@keys);
-                                my $o = $val->find("name", $find);
-                                if ($o) {
-                                    $curObj = $o;
-                                } else {
-                                    &dprint("Could not find object: $find\n");
-                                }
+                    # Search for all matching variable entries.
+                    foreach my $wwstring ($read_buffer =~ m/\%\{[^\}]+\}(?:\[\d+\])?/g) {
+                        # Check for format, and seperate into a seperate wwvar string
+                        if ($wwstring =~ /^\%\{(.+?)\}(\[(\d+)\])?$/) {
+                            my $wwvar = $1;
+                            my $wwarrayindex = $3;
+                            # Set the current object that we are looking at. This is
+                            # important as we iterate through multiple levels.
+                            my $curObj = $node;
+                            my @keys = split(/::/, $wwvar);
+                            while(my $key = shift(@keys)) {
+                                my $val = $curObj->get($key);
+                                if (ref($val) eq "Warewulf::ObjectSet") {
+                                    my $find = shift(@keys);
+                                    my $o = $val->find("name", $find);
+                                    if ($o) {
+                                        $curObj = $o;
+                                    } else {
+                                        &dprint("Could not find object: $find\n");
+                                    }
 
-                            } elsif (ref($val) eq "ARRAY") {
-                                my $v;
-                                if ($wwarrayindex) {
-                                    $v = $val->[$wwarrayindex];
+                                } elsif (ref($val) eq "ARRAY") {
+                                    my $v;
+                                    if ($wwarrayindex) {
+                                        $v = $val->[$wwarrayindex];
+                                    } else {
+                                        $v = $val->[0];
+                                    }
+                                    $read_buffer =~ s/\Q$wwstring\E/$v/g;
+                                } elsif ($val) {
+                                    $read_buffer =~ s/\Q$wwstring\E/$val/g;
                                 } else {
-                                    $v = $val->[0];
+                                    $read_buffer =~ s/\Q$wwstring\E//g;
                                 }
-                                $read_buffer =~ s/\Q$wwstring\E/$v/g;
-                            } elsif ($val) {
-                                $read_buffer =~ s/\Q$wwstring\E/$val/g;
-                            } else {
-                                $read_buffer =~ s/\Q$wwstring\E//g;
                             }
                         }
                     }
-                }
-            }
 
-            if ($fileObj->interpreter()) {
-                my $interpreter = $fileObj->interpreter();
-                my $pipe_in;
-                my $pipe_out;
-                eval {
-                    local $SIG{ALRM} = sub { die "DIED ON ALARM CALLING: $interpreter\n" };
-                    alarm 1;
-                    my $pid = open2($pipe_out, $pipe_in, "$interpreter");
-                    if ($pid) {
-                        print $pipe_in $read_buffer;
-                        close $pipe_in;
-                        while(my $line = <$pipe_out>) {
-                            $send_buffer .= $line;
+                    if ($fileObj->interpreter()) {
+                        my $interpreter = $fileObj->interpreter();
+                        my $pipe_in;
+                        my $pipe_out;
+                        eval {
+                            local $SIG{ALRM} = sub { die "DIED ON ALARM CALLING: $interpreter\n" };
+                            alarm 1;
+                            my $pid = open2($pipe_out, $pipe_in, "$interpreter");
+                            if ($pid) {
+                                print $pipe_in $read_buffer;
+                                close $pipe_in;
+                                while(my $line = <$pipe_out>) {
+                                    $send_buffer .= $line;
+                                }
+                                close $pipe_out;
+                            }
+                            alarm 0;
+                        };
+                        if ($@) {
+                            &eprint("Failed calling interpreter: $intrepreter\n");
+                            $send_buffer = undef;
                         }
-                        close $pipe_out;
+                    } elsif ($read_buffer) {
+                        $send_buffer = $read_buffer;
                     }
-                    alarm 0;
-                };
-                if ($@) {
-                    &eprint("Failed calling interpreter: $intrepreter\n");
-                    $send_buffer = undef;
+
+                    if ($send_buffer) {
+                        $q->print("Content-Type: application/octet-stream; name=\"vnfs.img\"\r\n");
+                        if (my $size = $fileObj->size()) {
+                            $q->print("Content-length: $size\r\n");
+                        }
+                        $q->print("Content-Disposition: attachment; filename=\"vnfs.img\"\r\n");
+                        $q->print("\r\n");
+
+                        print $send_buffer;
+                    }
+                } else {
+                    &eprint("Checksum does not match datastore: $cachefile\n");
+                    $q->print("Content-Type: application/octet-stream\r\n");
+                    $q->print("Status: 500\r\n");
+                    $q->print("\r\n");
+                    unlink($cachefile);
                 }
-            } elsif ($read_buffer) {
-                $send_buffer = $read_buffer;
             }
-
-            if ($send_buffer) {
-                print $send_buffer;
-            }
-
         } else {
+            # A file ID was given, but its an invalid ID. This needs to error out client so that
+            # the client doesn't overwrite the target file.
             &wprint("FILEID contains illegal characters\n");
+            $q->print("Content-Type: application/octet-stream\r\n");
+            $q->print("Status: 404\r\n");
+            $q->print("\r\n");
         }
     } else {
         &wprint("Unknown HWADDR ID\n");
+        $q->print("Content-Type: application/octet-stream\r\n");
+        $q->print("Status: 404\r\n");
+        $q->print("\r\n");
     }
 } else {
     &wprint("HWADDR needs to be defined\n");
+    $q->print("Content-Type: application/octet-stream\r\n");
+    $q->print("Status: 404\r\n");
+    $q->print("\r\n");
 }
