@@ -1,4 +1,4 @@
-METHODSCRIPTS = wwgetscript wwgetnodeconfig wwgetvnfs register functions wwgetfiles wwlogger wwstatus
+METHODSCRIPTS = wwgetscript wwgetnodeconfig wwgetvnfs register functions wwgetfiles wwlogger
 
 TRANSPORT_NAME = http
 

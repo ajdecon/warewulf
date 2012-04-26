@@ -79,7 +79,6 @@ rootfs: busybox e2fsprogs
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 	ln -s transporthandler rootfs/sbin/wwgetfiles
 	ln -s transporthandler rootfs/sbin/wwlogger
-	ln -s transporthandler rootfs/sbin/wwstatus
 
 initramfs.cpio: rootfs
 	install -m 644 $(srcdir)/devs.cpio initramfs.cpio

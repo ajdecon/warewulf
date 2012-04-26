@@ -15,7 +15,12 @@ cd ${NEWROOT:-/}
 
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-        if wget -q -O - "http://$master/WW/vnfs?hwaddr=$HWADDR" 2>/dev/null | gunzip 2>/dev/null | cpio -uid --quiet 2>/dev/null; then
+        # This pipeline always returns true. Would be super nice to check for return value of
+        # wget without disrupting the pipeline! Please... somoene... fixme!
+        wget -q -O - "http://$master/WW/vnfs?hwaddr=$HWADDR" 2>/dev/null | gunzip 2>/dev/null | cpio -uid --quiet 2>/dev/null
+
+        # This is a cheesy way to see if the above wget worked... Ewww, I know. Please FIXME!
+        if [ -f "$NEWROOT/sbin/init" ]; then
             exit 0
         fi
     done
@@ -23,3 +28,4 @@ while true; do
     throttled_sleep
 done
 
+exit 1
