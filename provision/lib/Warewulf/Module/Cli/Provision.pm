@@ -285,7 +285,7 @@ exec()
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->name() || "UNDEF";
-                    $obj->preshell(0);
+                    $obj->preshell(1);
                     &dprint("Enabling preshell for node name: $name\n");
                     $persist_bool = 1;
                 }
@@ -306,15 +306,15 @@ exec()
                     &dprint("Disabling postshell for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("   UNDEF: %-20s\n", "PRESHELL"));
+                push(@changes, sprintf("   UNDEF: %-20s\n", "POSTSHELL"));
             } else {
                 foreach my $obj ($objSet->get_list()) {
                     my $name = $obj->name() || "UNDEF";
-                    $obj->postshell(0);
+                    $obj->postshell(1);
                     &dprint("Enabling postshell for node name: $name\n");
                     $persist_bool = 1;
                 }
-                push(@changes, sprintf("     SET: %-20s = %s\n", "PRESHELL", 1));
+                push(@changes, sprintf("     SET: %-20s = %s\n", "POSTSHELL", 1));
             }
         }
 
