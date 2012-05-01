@@ -19,8 +19,8 @@ export WWNETRETRY
 WWNODE=`sed -e '/ wwnode=/!d;s/.*wwnode=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNODE
 
-WWIP=`sed -e '/ wwip=/!d;s/.*wwip=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWIP
+WWIPADDR=`sed -e '/ wwipaddr=/!d;s/.*wwipaddr=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWIPADDR
 
 WWNETMASK=`sed -e '/ wwnetmask=/!d;s/.*wwnetmask=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNETMASK
@@ -28,14 +28,14 @@ export WWNETMASK
 WWMASTER=`sed -e '/ wwmaster=/!d;s/.*wwmaster=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMASTER
 
-WWGW=`sed -e '/ wwgw=/!d;s/.*wwgw=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWGW
+WWGATEWAY=`sed -e '/ wwgateway=/!d;s/.*wwgateway=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWGATEWAY
 
 WWDNS=`sed -e '/ wwdns=/!d;s/.*wwdns=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWDNS
 
-WWDEV=`sed -e '/ wwdev=/!d;s/.*wwdev=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWDEV
+WWNETDEV=`sed -e '/ wwnetdev=/!d;s/.*wwnetdev=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWNETDEV
 
 WWMTU=`sed -e '/ wwmtu=/!d;s/.*wwmtu=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWMTU

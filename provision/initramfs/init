@@ -45,73 +45,66 @@ if [ -x "/sbin/mdev" ]; then
    /sbin/mdev -s
 fi
 
-msg_white  "Loading drivers:"
+msg_white  "Loading drivers: "
 for module in `/sbin/detect | sort | uniq`; do
-#    msg_gray " * $module:"
-#    if modprobe $module 2>/dev/null; then
+    msg_gray "$module "
     modprobe $module 2>/dev/null
-#        wwsuccess
-#    else
-#        wwfailure
-#    fi
 done
 wwsuccess
 
 ifup() {
     DEVICE=$1
     RETVAL=1
-    if [ -n "$WWIP" -a -n "$WWNETMASK" -a -n "$WWMASTER" ]; then
-        if ifconfig $DEVICE up >/dev/null 2>&1; then
-            msg_white  "Configuring $DEVICE: "
-            ifconfig $DEVICE $WWIP netmask $WWNETMASK up
-            RETVAL=$?
-            msg_gray "$WWIP/$WWNETMASK"
-            wwsuccess
-            echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
-            echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
-            echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
-            echo "IPADDR=$WWIP" >> /tmp/ifcfg-$DEVICE
-            echo "NETMASK=$WWNETMASK" >> /tmp/ifcfg-$DEVICE
-            echo "GATEWAY=$WWGW" >> /tmp/ifcfg-$DEVICE
-            COUNT=0
-            msg_white  "Trying to reach the master node at $WWMASTER... "
-            while [ $COUNT -le $WWNETRETRY ]; do
-                if ping -c 1 $WWMASTER >/dev/null 2>&1; then
-                    wwsuccess
-                    return
-                fi
-                msg_white "."
-                COUNT=`expr $COUNT + 1`
-                sleep 1
-            done
-            wwfailure
-            wwreboot
+    if ifconfig $DEVICE up >/dev/null 2>&1; then
+        if [ -n "$WWIPADDR" -a -n "$WWNETMASK" -a -n "$WWMASTER" ]; then
+            msg_white "Configuring $DEVICE statically: "
+            msg_gray "($WWIPADDR/$WWNETMASK)"
+            if ifconfig $DEVICE $WWIPADDR netmask $WWNETMASK up; then
+                wwsuccess
+                echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
+                echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
+                echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
+                echo "IPADDR=$WWIPADDR" >> /tmp/ifcfg-$DEVICE
+                echo "NETMASK=$WWNETMASK" >> /tmp/ifcfg-$DEVICE
+                echo "GATEWAY=$WWGATEWAY" >> /tmp/ifcfg-$DEVICE
+                COUNT=0
+                msg_white  "Trying to reach the master node at $WWMASTER "
+                while [ $COUNT -le $WWNETRETRY ]; do
+                    if ping -c 1 $WWMASTER >/dev/null 2>&1; then
+                        wwsuccess
+                        return 0
+                    fi
+                    msg_white "."
+                    COUNT=`expr $COUNT + 1`
+                    sleep 1
+                done
+                wwfailure
+            else
+                wwfailure
+            fi
         fi
-    else
-        if ifconfig $DEVICE up >/dev/null 2>&1; then
-            COUNT=0
-            msg_white "Configuring $DEVICE..."
-            while [ $COUNT -le $WWNETRETRY ]; do
-                udhcpc --now --quit -i $DEVICE -t 1 -T 1 -A 1 -s /sbin/dhcp-script >/dev/null
-                if [ "$?" -eq 0 ]; then
-                    . /etc/network.conf
-                    msg_gray " DHCP/$IPADDR"
-                    wwsuccess
-                    echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
-                    echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
-                    echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
-                    echo "IPADDR=$IPADDR" >> /tmp/ifcfg-$DEVICE
-                    echo "NETMASK=$NETMASK" >> /tmp/ifcfg-$DEVICE
-                    echo "GATEWAY=$GATEWAY" >> /tmp/ifcfg-$DEVICE
-                    return 0
-                fi
-                msg_white "."
-                COUNT=`expr $COUNT + 1`
-                sleep 1
-            done
-            msg_gray "(Could not obtain a DHCP lease)\n"
-            wwfailure
-        fi
+
+        COUNT=0
+        msg_white "Configuring $DEVICE via DHCP: "
+        while [ $COUNT -le $WWNETRETRY ]; do
+            udhcpc --now --quit -i $DEVICE -t 1 -T 1 -A 1 -s /sbin/dhcp-script >/dev/null
+            if [ "$?" -eq 0 ]; then
+                . /etc/network.conf
+                msg_gray "($IPADDR/$NETMASK)"
+                wwsuccess
+                echo "DEVICE=$DEVICE" > /tmp/ifcfg-$DEVICE
+                echo "BOOTPROTO=static" >> /tmp/ifcfg-$DEVICE
+                echo "ONBOOT=yes" >> /tmp/ifcfg-$DEVICE
+                echo "IPADDR=$IPADDR" >> /tmp/ifcfg-$DEVICE
+                echo "NETMASK=$NETMASK" >> /tmp/ifcfg-$DEVICE
+                echo "GATEWAY=$GATEWAY" >> /tmp/ifcfg-$DEVICE
+                return 0
+            fi
+            msg_white "."
+            COUNT=`expr $COUNT + 1`
+            sleep 1
+        done
+        wwfailure
     fi
     return 255
 }
@@ -125,14 +118,15 @@ else
     wwfailure
 fi
 
-if [ -n "$WWDEV" ]; then
-    for i in $WWDEV; do
-        if ifup $i; then
-            echo "$i" > /tmp/wwdev
-            break
-        fi
-    done
-else
+# First try the defined wwnetdev if it exists
+if [ -n "$WWNETDEV" ]; then
+    if ifup $i; then
+        echo "$i" > /tmp/wwdev
+    fi
+fi
+
+# If the above doesn't exist or fails, then try brute force
+if [ ! -f /tmp/wwdev ]; then
     for i in eth0 eth1 eth2 eth3 eth4; do
         if ifup $i; then
             echo "$i" > /tmp/wwdev
@@ -140,7 +134,6 @@ else
         fi
     done
 fi
-
 
 if [ $WWDEBUG -ge 3 ]; then
     echo

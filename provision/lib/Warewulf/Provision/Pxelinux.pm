@@ -124,6 +124,10 @@ update()
     my $tftproot = Warewulf::Provision::Tftp->new()->tftpdir();
     my $netobj = Warewulf::Network->new();
     my $db = Warewulf::DataStore->new();
+    my $config = Warewulf::Config->new("provision.conf");
+    my $devname = $config->get("network device");
+    my $master_ipaddr = $netobj->ipaddr($devname);
+
 
     &dprint("Updating PXE configuration files now\n");
 
@@ -161,6 +165,7 @@ update()
             my $hwaddr = $nodeobj->hwaddr($devname);
             my $ipv4_addr = $nodeobj->ipaddr($devname);
             my $netmask = $nodeobj->netmask($devname);
+            my $gateway = $nodeobj->gateway($devname);
             my $hwprefix = "01";
 
             if (! $devname) {
@@ -213,19 +218,26 @@ update()
                 print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrapname\n";
                 print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
                 print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
-                if (scalar(@masters) > 0) {
-                    my $master = join(",", @masters);
-                    print PXELINUX "wwmaster=$master ";
-                }
                 if (@kargs) {
                     print PXELINUX join(" ", @kargs);
                 } else {
                     print PXELINUX "quiet ";
                 }
+                if (scalar(@masters) > 0) {
+                    my $master = join(",", @masters);
+                    print PXELINUX "wwmaster=$master ";
+                } else {
+                    print PXELINUX "wwmaster=$master_ipaddr ";
+                }
                 if ($devname and $ipv4_addr and $netmask) {
                     print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmask wwnetdev=$devname ";
                 } else {
                     &dprint("Skipping static network definition because configuration not complete\n");
+                }
+                if ($gateway) {
+                    print PXELINUX "wwgateway=$gateway ";
+                } else {
+                    &dprint("Skipping static gateway configuration as it is unconfigured\n");
                 }
                 print PXELINUX "\n";
                 if (! close PXELINUX) {
