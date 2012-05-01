@@ -18,6 +18,7 @@ use Warewulf::Daemon;
 use Warewulf::Node;
 use Warewulf::File;
 use Warewulf::DSO::File;
+use Warewulf::Util;
 
 &daemonized(1);
 
