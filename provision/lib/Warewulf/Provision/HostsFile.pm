@@ -144,6 +144,9 @@ generate()
 
             if (($node_testnetwork eq $network) and ! defined($default_name)) {
                 $default_name = 1;
+                if (! $n->domain() and ! $n->cluster()) {
+                    push(@name_entries, $n->nodename() .".localcluster");
+                }
                 push(@name_entries, reverse $n->name());
             }
 
