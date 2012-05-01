@@ -10,5 +10,5 @@
 . /warewulf/transports/http/functions
 
 for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-    echo "<6>$WWNAME wwbootstrap: $MESSAGE" | nc -w 0 $master 514 2>/dev/null
+    echo "<6>$WWNAME wwbootstrap: $1" | nc -w 0 $master 514 2>/dev/null
 done
