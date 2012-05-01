@@ -9,8 +9,6 @@
 
 . /warewulf/transports/http/functions
 
-MESSAGE=`echo $1 | sed -e 's@ @+@g'`
-
 for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
     echo "<6>$WWNAME wwbootstrap: $MESSAGE" | nc -w 0 $master 514 2>/dev/null
 done
