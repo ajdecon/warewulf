@@ -17,12 +17,9 @@ if [ ! -d $NEWROOT/dev/shm -o ! -k $NEWROOT/dev/shm ]; then
     chmod 1777 $NEWROOT/dev/shm
 fi
 
-chroot $NEWROOT /bin/mount -t tmpfs none /dev/shm;
-
 sort -r /tmp/mptab | while read mp dev type perms opts; do
     if [ "x$mp" == "x/" ]; then
         echo "$dev $mp $type $opts 0 0" > $NEWROOT/etc/mtab
-        mount -o remount,ro $NEWROOT/
     else
         if ! umount $NEWROOT/$mp; then
             mount -o remount,ro $NEWROOT/$mp
@@ -30,4 +27,7 @@ sort -r /tmp/mptab | while read mp dev type perms opts; do
     fi
 done
 
-# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
+
+chroot $NEWROOT /bin/mount -t tmpfs none /dev/shm
+chroot $NEWROOT /bin/mount -t proc none /proc
+
