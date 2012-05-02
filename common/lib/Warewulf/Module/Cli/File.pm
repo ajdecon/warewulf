@@ -126,10 +126,10 @@ complete()
         }
     }
 
-    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set" or $ARGV[1] eq "list" or $ARGV[1] eq "edit" or $ARGV[1] eq "delete")) {
+    if (exists($ARGV[1]) and ($ARGV[1] eq "print" or $ARGV[1] eq "new" or $ARGV[1] eq "set" or $ARGV[1] eq "list" or $ARGV[1] eq "edit" or $ARGV[1] eq "delete" or $ARGV[1] eq "show")) {
         @ret = $db->get_lookups($entity_type, "name");
     } else {
-        @ret = ("print", "edit", "new", "set", "delete", "list");
+        @ret = ("print", "edit", "new", "set", "delete", "list", "show");
     }
 
     @ARGV = ();
