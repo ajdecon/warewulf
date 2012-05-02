@@ -9,8 +9,7 @@ Group: System Environment/Clustering
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
 Conflicts: warewulf <= 2.9
-# This is put in to force an update of the noarch 3.2 tree
-Obsoletes: %{name} < 3.3
+BuildArch: noarch
 BuildRoot: %{?_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
