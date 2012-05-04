@@ -9,6 +9,7 @@
 
 KVERSION=`uname -r`
 AUTOLOAD="uhci-hcd ohci-hcd ehci-hcd whci-hcd isp116x-hcd isp1362-hcd xhci-hcd sl811-hcd sd_mod"
+IGNOREMOD="ib_mthca@|@ib_ipath@|@iw_cxgb3@|@iw_cxgb4@|@iw_nes@|@mlx4_ib2"
 
 if [ ! -f /lib/modules/$KVERSION/modules.pcimap ]; then
     echo "PCI map for this kernel is not available!" 1>&2
@@ -28,6 +29,9 @@ modcheck() {
 WWKMODS=`sed -e '/ wwkmods=/!d;s/.*wwkmods=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWKMODS
 WWIGNOREMOD=`sed -e '/ wwignoremod=/!d;s/.*wwignoremod=\([^ ]*\).*/\1/' /proc/cmdline | sed -e s/,/@\|@/g`
+if [ -z "$WWIGNOREMOD" ]; then
+    WWIGNOREMOD="$IGNOREMOD"
+fi
 export WWIGNOREMOD
 
 if [ -n "$WWKMODS" ]; then
