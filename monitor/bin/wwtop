@@ -11,7 +11,8 @@
 use Warewulf::Monitor;
 use strict;
 use Getopt::Long;
-use Term::Screen;
+use Term::Cap;
+
 
 my $ARG_summary;
 my $ARG_help;
@@ -190,6 +191,10 @@ sub cpu_sort {
 	$a->get("CPUCLOCK") <=> $b->get("CPUCLOCK");
     } elsif ( $metric_sort_util eq "cpuclk") {
 	$b->get("CPUCLOCK") <=> $a->get("CPUCLOCK");
+    } elsif ( $metric_sort_util eq "proc" and $reverse_sort_order ) {
+	$a->get("PROCS") <=> $b->get("PROCS");
+    } elsif ( $metric_sort_util eq "proc") {
+	$b->get("PROCS") <=> $a->get("PROCS");
     } elsif ( $metric_sort_util eq "netutil" and $reverse_sort_order ) {
 	($a->get("NETTRANSMIT") + $a->get("NETRECIEVE")) <=>
 	    ($b->get("NETTRANSMIT") + $b->get("NETRECIEVE"));
@@ -204,13 +209,13 @@ sub cpu_sort {
 }
 
 
-my $scr = new Term::Screen;
-unless ($scr) { die "Ack! Couldn't get control of the screen!\n"; }
-$scr->clrscr();
-$scr->def_key("home","\eOH");
-$scr->def_key("home","\e^[[H");
-$scr->def_key("end","\e^[[F");
-$scr->def_key("end","\eOF");
+our %term={};
+init_term();
+term_clear();
+#$scr->def_key("home","\eOH");
+#$scr->def_key("home","\e^[[H");
+#$scr->def_key("end","\e^[[F");
+#$scr->def_key("end","\eOF");
 
 
 $nodes_up = $nodes_error = $nodes_disabled = $nodes_down = $nodes_unavailable = '0';
@@ -221,8 +226,8 @@ my $display_line = 1;
 
 my $count=0;
 while (1) {
-    $scr->resize();
-    my $rows = $scr->rows();
+    term_resize();
+    my $rows = $term{ROWS};
     my $line=7;
     my $total_nodes = 0;
     my $nodes_shown = 0;
@@ -250,9 +255,6 @@ while (1) {
 	my $lastcontact=$ts-$node->get("TIMESTAMP");
         $node->set("LASTCONTACT",$lastcontact);
 
-#	if ( defined %filter and ! exists($filter{$nodename}) ) {
-#	    next;
-#	}
 	if ( $node->get("NODESTATUS") eq "SHUTDOWN" ) {
 	    push(@nodes_down, $node);
 	    $nodes_down++;
@@ -349,114 +351,116 @@ while (1) {
 		  $nodes_unavailable,
 		  $nodes_down,
 		  $nodes_unknown);
-    $scr->at(0,0);
-    $scr->clreol();
-    $scr->puts("$l1");
-    $scr->at(1,0);
-    $scr->clreol();
-    $scr->puts("$l2");
-    $scr->at(2,0);
-    $scr->clreol();
-    $scr->puts("$l3");
-    $scr->at(3,0);
-    $scr->clreol();
-    $scr->puts("$l4");
-    $scr->at(4,0);
-    $scr->clreol();
-    $scr->puts("$l5");
+
+    term_goto_row(0);
+    term_clr_eol();
+    print $l1;
+    term_goto_row(1);
+    term_clr_eol();
+    print $l2;
+    term_goto_row(2);
+    term_clr_eol();
+    print $l3;
+    term_goto_row(3);
+    term_clr_eol();
+    print $l4;
+    term_goto_row(4);
+    term_clr_eol();
+    print $l5;
     
-    $scr->at(6,0);
-    $scr->clreol();
-    $scr->reverse();
+    term_goto_row(6);
+    term_clr_eol();
+    term_reverse();
    if ( $metric_sort_util eq "nodename" ) {
-      $scr->bold();
-      $scr->puts("Node name");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print "Node name";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts("Node name");
+       print "Node name";
    }
    if ( $metric_sort_util eq "cpuutil" ) {
-      $scr->bold();
-      $scr->puts("    CPU");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print "    CPU";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts("    CPU");
+       print "    CPU";
    }
    if ( $metric_sort_util eq "memutil" ) {
-      $scr->bold();
-      $scr->puts("  MEM");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print "  MEM";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts("  MEM");
+       print "  MEM";
    }
    if ( $metric_sort_util eq "swaputil" ) {
-      $scr->bold();
-      $scr->puts(" SWAP");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " SWAP";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" SWAP");
+       print " SWAP";
    }
    if ( $metric_sort_util eq "uptime" ) {
-      $scr->bold();
-      $scr->puts(" Uptime");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " Uptime";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" Uptime");
+       print " Uptime";
    }
    if ( $metric_sort_util eq "cpuclk" ) {
-      $scr->bold();
-      $scr->puts("   MHz  ");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print "   MHz  ";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts("   MHz  ");
+       print "   MHz  ";
    }
    if ( $metric_sort_util eq "arch" ) {
-      $scr->bold();
-      $scr->puts("  Arch");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print "  Arch";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts("  Arch");
+       print "  Arch";
    }
    if ( $metric_sort_util eq "proc" ) {
-      $scr->bold();
-      $scr->puts(" Procs ");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " Procs ";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" Procs ");
+       print " Procs ";
    }
    if ( $metric_sort_util eq "load" ) {
-      $scr->bold();
-      $scr->puts(" Load ");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " Load ";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" Load ");
+       print " Load ";
    }
    if ( $metric_sort_util eq "netutil" ) {
-      $scr->bold();
-      $scr->puts(" Net:KB/s");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " Net:KB/s";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" Net:KB/s");
+       print " Net:KB/s";
    }
    if ( $show_only_idle or $show_only_utilized or $show_only_dead ) {
-      $scr->bold();
-      $scr->puts(" Stat/Util");
-      $scr->normal();
-      $scr->reverse();
+       term_bold();
+       print " Stat/Util";
+       term_normal();
+       term_reverse();
    } else {
-      $scr->puts(" Stats/Util");
+       print " Stat/Util";
    }
-   $scr->normal();
+    term_normal();
+
 
    #$total_pages = int((@nodes_ready+@nodes_down)/($rows-6))+1;
    $display_line = 1;
@@ -479,7 +483,6 @@ while (1) {
          $display_line++;
          next;
       }
-
       if ( $nodes_shown + 6 >= $rows ) {
           next;
       }
@@ -490,7 +493,7 @@ while (1) {
          # think that the node is hosed or something else funky is going
          # on. Well, just in case...
          $mempercent = 0;
-      }
+      }      
       if ( $node->get("SWAPTOTAL") > 0 ) {
          $swappercent = sprintf("%3d", $node->get("SWAPUSED") / $node->get("SWAPTOTAL")*100);
       } else {
@@ -499,7 +502,7 @@ while (1) {
       if ( $node->get("CPUUTIL") > '95' or 
            $mempercent > '95' or 
            $node->get("LOADAVG") > $node->get("CPUCOUNT") * 2 ) {
-         $scr->bold();
+	  term_bold();
       }
       if ( $node->get("CPUUTIL") <= '4' and $node->get("USERPROC") == 0 ) {
          $status = "|  IDLE  |";
@@ -527,6 +530,7 @@ while (1) {
       if ( $node->get("NODESTATUS") eq 'SHUTDOWN' ) {
          $status = "|SHUTDOWN|";
       }
+
       $nodes_shown++;
       $net_h = $node->get("NETTRANSMIT") + $node->get("NETRECIEVE");
       $net_h =~ s/(\d)(\d\d\d)$/$1,$2/g;
@@ -542,10 +546,10 @@ while (1) {
            $node->get("LOADAVG"), 
            $net_h,
            $status);
-      $scr->at($line,0);
-      $scr->clreol();
-      $scr->puts("$out");
-      $scr->normal();
+      term_goto_row($line);
+      term_clr_eol();
+      print "$out";
+      term_normal();
       $line++;
    
    }
@@ -564,42 +568,42 @@ while (1) {
       }
       $nodes_shown++;
       $out = sprintf("%-11.11s %4s %4s %4s %6.6s %5.5s %7.7s %4.4s %6.6s %9.9s |%8.8s|",
-		     $node->get("NODENAME"), "----", "----", "----", "------", "-----", "-------", "----", "------", "-------", $node->get("NODESTATUS"));
-      $scr->at($line,0);
-      $scr->clreol();
-      $scr->puts("$out");
+                               		     $node->get("NODENAME"), "----", "----", "----", "------", "-----", "-------", "----", "------", "-------", $node->get("NODESTATUS"));
+      term_goto_row($line);
+      term_clr_eol();
+      print "$out";
       $line++;
    }
 
    $total_pages = int($total_nodes/($rows-6))+1;
 
    $time = sprintf("%02d:%02d:%02d", $Hour,$Minute,$Second);
+    
+    $hostname = `hostname`;
+    $hostname = substr($hostname,0,-1);
+    term_goto_row(5);
+    term_clr_eol();
+    print "$time ";
+    print "$hostname> ";
 
-   $scr->at(5,0);
-   $scr->clreol();
-   $scr->puts("$time ");
-   $scr->puts("$hostname> ");
 
-
-
-   if ( $scr->key_pressed(1) ) {
-      $key = $scr->getch();
+   if ( term_key_pressed() ) {
+      $key = term_getch();
       if ( $key eq 'q' ) {
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
-         $scr->puts("Quitting!");
-         $scr->normal();
-         $scr->at($rows,0);
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
+         print "Quitting!";
+         term_normal();
+         term_goto_row($rows);
          print "\n";
+	 kill_term();
          exit;
       } elsif ( $key eq 's' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
          if ( $metric_sort_util eq "nodename" ) {
             $metric_sort_util = "cpuutil";
          } elsif ( $metric_sort_util eq "cpuutil") {
@@ -621,123 +625,110 @@ while (1) {
          } elsif ( $metric_sort_util eq "netutil") {
             $metric_sort_util = "nodename";
          }
-         $scr->normal();
-         $scr->at($rows,0);
+         term_normal();
+         term_goto_row($rows);
       } elsif ( $key eq 'i' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
          if ( $show_only_idle == 0 ) {
-            $scr->puts("Displaying idle nodes only...");
+            print "Displaying idle nodes only...";
             $show_only_idle = '1';
          } else {
-            $scr->puts("Redisplaying nodes that are not idle...");
+            print "Redisplaying nodes that are not idle...";
             $show_only_idle = '0';
          }
          sleep 1;
-         $scr->normal();
-         $scr->at($rows,0);
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_normal();
+         term_goto_row($rows);
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'u' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
          if ( $show_only_utilized == 0 ) {
-            $scr->puts("Displaying utilized nodes only...");
+            print "Displaying utilized nodes only...";
             $show_only_utilized = '1';
          } else {
-            $scr->puts("Redisplaying nodes that are not utilized...");
+            print "Redisplaying nodes that are not utilized...";
             $show_only_utilized = '0';
          }
          sleep 1;
-         $scr->normal();
-         $scr->at($rows,0);
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_normal();
+         term_goto_row($rows);
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'd' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
          if ( $show_only_dead == 0 ) {
-            $scr->puts("Displaying dead/problem nodes only...");
+            print "Displaying dead/problem nodes only...";
             $show_only_dead = '1';
          } else {
-            $scr->puts("Redisplaying nodes that are not dead/problem...");
+            print "Redisplaying nodes that are not dead/problem...";
             $show_only_dead = '0';
          }
          sleep 1;
-         $scr->normal();
-         $scr->at($rows,0);
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_normal();
+         term_goto_row($rows);
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'r' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
          if ( ! $reverse_sort_order ) {
-            $scr->puts("Reversing sort order...");
+            print "Reversing sort order...";
             $reverse_sort_order = '1';
          } else {
-            $scr->puts("Unreversing sort order...");
+            print "Unreversing sort order...";
             $reverse_sort_order = ();
          }
          sleep 1;
-         $scr->normal();
-         $scr->at($rows,0);
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_normal();
+         term_goto_row($rows);
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'f' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
-         $scr->puts("Flushing current filters...");
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
+         print "Flushing current filters...";
          sleep 1;
-         $scr->normal();
-         $scr->at($rows,0);
+         term_normal();
+         term_goto_row($rows);
          $show_only_dead = '0';
          $show_only_idle = '0';
          $show_only_utilized = '0';
          $metric_sort_util = "nodename";
          $reverse_sort_order = ();
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'c' ) {
          $display_page = 1;
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } elsif ( $key eq 'p' ) {
          $display_page = 1;
-         $scr->flush_input();
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
-         $scr->puts("Press any key to unpause");
-         $scr->normal();
-         $scr->key_pressed(100000);
-         $scr->flush_input();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
+         print "Press any key to unpause";
+         term_normal();
+	 term_key_pressed();
       } elsif ( $key eq "pgdn" || $key eq "pgup" || $key eq "home" || $key eq "end" ) {
          if ( $key eq "home" ) {
             $display_page = 1;
@@ -751,23 +742,111 @@ while (1) {
          if ( $key eq "pgup" and $display_page > 1 ) {
            $display_page--;
          }
-         $scr->normal();
-         $scr->at($rows,0);
-         $scr->clrscr();
-         $scr->resize();
-         $rows = $scr->rows();
-         $scr->flush_input();
+         term_normal();
+         term_goto_row($rows);
+         term_clear();
+         term_resize();
+         $rows = $term{ROWS};
       } else {
-         $scr->at(5,0);
-         $scr->clreol();
-         $scr->bold();
-         $scr->puts("Unknown key '$key' pressed...");
-         $scr->normal();
-         $scr->flush_input();
+         term_goto_row(5);
+         term_clr_eol();
+         term_bold();
+         print "Unknown key '$key' pressed...";
+         term_normal();
          sleep 1;
       }
    }
    $nodeSet = $monitor->query_data();
+}
+
+
+
+sub init_term{
+    my $ospeed = system('stty speed');
+    $term{THIS}=Tgetent Term::Cap { 'TERM' => '', 'OSPEED' => $ospeed };
+    $term{ROWS}=0;
+    $term{COLS}=0;
+    term_goto_row(0);
+    $| = 1;
+    system('stty raw -echo');
+}
+
+sub kill_term{
+    system('stty -raw echo');
+}
+
+sub term_goto_row{
+    my ($row) = @_;
+    term_goto_xy(0,$row);
+}
+
+sub term_goto_xy{
+    my ($x,$y) = @_;
+    $term{THIS}->Tgoto( 'cm', $x, $y, *STDOUT );
+}
+
+sub term_clear{
+    $term{THIS}->Tputs( 'cl', 1, *STDOUT );
+}
+
+sub term_resize{
+    my $rows;
+    my $cols;
+    my $sttySize = `stty size`;    
+    if ( $sttySize =~ /^\s*(\d+)\s+(\d+)\s*/ ){
+	$rows = $1;
+	$cols = $2;
+    }
+    $term{ROWS} = $rows;
+    $term{COLS} = $cols;
+}
+
+sub term_clr_eol{
+    if (exists($term{THIS}->{'_ce'})){
+	$term{THIS}->Tputs('ce',1,*STDOUT);
+    }
+}
+
+sub term_reverse{
+    $term{THIS}->Tputs( 'mr', 1, *STDOUT );
+}
+
+sub term_bold{
+    $term{THIS}->Tputs( 'md', 1, *STDOUT );
+}
+
+sub term_normal{
+    $term{THIS}->Tputs( 'me', 1, *STDOUT );
+}
+
+sub term_key_pressed{
+    my $rin = '';
+    vec($rin,fileno(STDIN),1) = 1;
+    return select($rin, undef, undef, undef);
+}
+
+
+sub term_key_pressed2
+{
+    my $seconds  = @_;
+    my $readfields = '';
+    my $ready      = 0;
+
+    $seconds = 0 if ( !defined $seconds );
+    vec( $readfields, fileno(STDIN), 1 ) = 1;    # set up to check STDIN
+    eval { $ready = select( $readfields, undef, undef, $seconds ); };
+    return $ready;
+}
+
+
+sub term_getch(){
+    my $c = '';
+    $c = getc(STDIN);
+    return $c;
+}
+
+sub define_key{
+    
 }
 
 sub print_help {
