@@ -149,7 +149,7 @@ complete()
     if (exists($ARGV[1])) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "print", "help", "poweron", "poweroff");
+        @ret = ("list", "set", "print", "help", "poweron", "poweroff", "powercycle");
     }
 
     @ARGV = ();
@@ -335,23 +335,48 @@ exec()
             my $name = $o->name();
             my $cmd = $o->ipmi_command("poweron");
             if ($cmd) {
-                $parallel->queue("echo ". $cmd);
+                &nprint("$name:\n");
+                $parallel->queue($cmd);
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "poweroff") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("poweroff");
+            if ($cmd) {
+                &nprint("$name:\n");
+                $parallel->queue($cmd);
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "powercycle") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("powercycle");
+            if ($cmd) {
+                &nprint("$name:\n");
+                $parallel->queue($cmd);
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "powerstatus") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("powerstatus");
+            if ($cmd) {
+                &nprint("$name:\n");
+                $parallel->queue($cmd);
             }
         }
         $parallel->run();
 
-    } elsif ($command eq "powercycle") {
-        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
-        $ipmi_cmd->nodeset($objSet);
-        $ipmi_cmd->powercycle();
-    } elsif ($command eq "poweroff") {
-        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
-        $ipmi_cmd->nodeset($objSet);
-        $ipmi_cmd->poweroff();
-    } elsif ($command eq "powerstatus") {
-        my $ipmi_cmd = Warewulf::Ipmi::Command->new();
-        $ipmi_cmd->nodeset($objSet);
-        $ipmi_cmd->powerstatus();
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name() || "UNDEF";

@@ -221,10 +221,10 @@ ipmi_command()
         }
     } else {
         &eprint("Could not build IPMI command for $name, unconfigured requirement(s)\n");
-        &dprint("IPADDR: $ipaddr\n");
-        &dprint("USERNAME: $username\n");
-        &dprint("PASSWORD: $password\n");
-        &dprint("PROTO: $proto\n");
+        &wprint("IPADDR: ". ($ipaddr || "UNDEF") ."\n");
+        &wprint("USERNAME: ". ($username || "UNDEF") ."\n");
+        &wprint("PASSWORD: ". ($password || "UNDEF") ."\n");
+        &wprint("PROTO: ". ($proto || "UNDEF") ."\n");
         return()
     }
 
