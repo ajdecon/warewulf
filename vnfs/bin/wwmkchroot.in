@@ -23,7 +23,7 @@ usage() {
     echo "TEMPLATE_NAME (select one of the following):"
     for i in $libexecdir/warewulf/wwmkchroot/*.tmpl; do
         NAME=`basename $i | sed -e 's/\.tmpl$//'`
-        echo "   $NAME"
+        echo "   * $NAME"
     done
     echo
     echo "PATH:"
@@ -31,7 +31,7 @@ usage() {
     echo
     echo "EXAMPLES:"
     echo
-    echo " # wwmkchroot rhel-6 /var/chroots/rhel-6"
+    echo " # wwmkchroot rhel-generic /var/chroots/rhel"
     echo
 }
 

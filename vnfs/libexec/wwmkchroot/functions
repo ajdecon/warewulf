@@ -61,6 +61,7 @@ configure_pam() {
 }
 
 configure_password() {
+    /usr/sbin/chroot $VNFSDIR /usr/sbin/pwconv
     if [ -x "$VNFSDIR/usr/bin/passwd" ]; then
         echo "Setting root password..."
         /usr/sbin/chroot $VNFSDIR /usr/bin/passwd root

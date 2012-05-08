@@ -6,7 +6,7 @@
 
 
 # Define the location of the YUM repository
-YUM_MIRROR="http://ftp.scientificlinux.org/linux/scientific/6rolling/\$basearch/os/"
+YUM_MIRROR="http://ftp.scientificlinux.org/linux/scientific/5rolling/\$basearch/SL/"
 
 # Install only what is necessary/specific for this distribution
 PKGLIST="SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
@@ -15,9 +15,7 @@ PKGLIST="SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
     sed setup shadow-utils rsyslog tcp_wrappers tzdata util-linux words zlib \
     tar less gzip which util-linux module-init-tools udev openssh-clients \
     openssh-server passwd dhclient pciutils vim-minimal shadow-utils strace \
-    cronie crontabs"
-
-
+    vixie-cron crontabs"
 
 
 # vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
