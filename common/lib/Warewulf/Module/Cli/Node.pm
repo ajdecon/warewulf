@@ -450,7 +450,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.GATEWAY", $opt_netmask));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.GATEWAY", $opt_gateway));
                     }
                 } else {
                     &eprint("Option 'gateway' has invalid characters\n");
