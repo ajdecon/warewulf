@@ -198,7 +198,6 @@ persist()
             $config_template .= "subnet $network netmask $netmask {\n";
             $config_template .= "   not authoritative;\n";
             $config_template .= "   option subnet-mask $netmask;\n";
-            $config_template .= "   option routers $ipaddr;\n";
             $config_template .= "}\n";
             $config_template .= "\n";
             $config_template .= "# Node entries will follow below\n";
@@ -253,6 +252,7 @@ persist()
                 foreach my $devname ($n->netdevs_list()) {
                     my $hwaddr = $n->hwaddr($devname);
                     my $ipv4_addr = $n->ipaddr($devname);
+                    my $gateway = $n->gateway($devname);
 
                     if (! $hwaddr) {
                         &dprint("Skipping $devname as it has no defined HWADDR\n");
@@ -285,6 +285,9 @@ persist()
 
                         $dhcpd_contents .= "   host $nodename-$devname {\n";
                         $dhcpd_contents .= "      option host-name $nodename;\n";
+                        if ($gateway) {
+                            $dhcpd_contents .= "      option routers $gateway;\n";
+                        }
                         if ($domain) {
                             $dhcpd_contents .= "      option domain-name \"$domain\";\n";
                         }
