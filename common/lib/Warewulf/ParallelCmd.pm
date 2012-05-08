@@ -257,16 +257,17 @@ forkobj($)
     my $pid;
 
     &dprint("Spawning command: $command\n");
-    $pid = open($fh, "$command |");
-    $select->add($fh);
+    if ($pid = open($fh, "$command |")) {
+        $select->add($fh);
 
-    &dprint("Created fileno: ". $fh->fileno() ."\n");
+        &dprint("Created fileno: ". $fh->fileno() ."\n");
 
-    $obj->set("fh", $fh);
-    $obj->set("fileno", $fh->fileno());
-    $obj->set("starttime", time());
-    $obj->set("pid", $pid);
-    $self->pcount("+1");
+        $obj->set("fh", $fh);
+        $obj->set("fileno", $fh->fileno());
+        $obj->set("starttime", time());
+        $obj->set("pid", $pid);
+        $self->pcount("+1");
+    }
 }
 
 sub
