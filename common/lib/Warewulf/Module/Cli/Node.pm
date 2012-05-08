@@ -227,11 +227,16 @@ exec()
         foreach my $string (&expand_bracket(@ARGV)) {
             my $node;
 
-            $node = Warewulf::Node->new();
-            $node->nodename($string);
-            $objSet->add($node);
-            $persist_count++;
-            push(@changes, sprintf("%8s: %-20s = %s\n", "NEW", "NODE", $string));
+            if ($string =~ /^([a-zA-Z0-9\-_]+)$/) {
+                my $nodename = $1;
+                $node = Warewulf::Node->new();
+                $node->nodename($nodename);
+                $objSet->add($node);
+                $persist_count++;
+                push(@changes, sprintf("%8s: %-20s = %s\n", "NEW", "NODE", $nodename));
+            } else {
+                &eprint("Nodename '$string' contains invalid characters\n");                
+            }
         }
     } else {
         if ($opt_lookup eq "hwaddr") {
