@@ -587,7 +587,7 @@ while (1) {
     print "$hostname> ";
 
 
-   if ( term_key_pressed() ) {
+   if ( term_key_pressed(1) ) {
       $key = term_getch();
       if ( $key eq 'q' ) {
          term_goto_row(5);
@@ -820,24 +820,15 @@ sub term_normal{
 }
 
 sub term_key_pressed{
+    my $seconds  = @_;
     my $rin = '';
     vec($rin,fileno(STDIN),1) = 1;
-    return select($rin, undef, undef, undef);
+    if ( !defined $seconds ){
+	return select($rin, undef, undef, undef);
+    }else{
+	return select($rin, undef, undef, $seconds);
+    }
 }
-
-
-sub term_key_pressed2
-{
-    my $seconds  = @_;
-    my $readfields = '';
-    my $ready      = 0;
-
-    $seconds = 0 if ( !defined $seconds );
-    vec( $readfields, fileno(STDIN), 1 ) = 1;    # set up to check STDIN
-    eval { $ready = select( $readfields, undef, undef, $seconds ); };
-    return $ready;
-}
-
 
 sub term_getch(){
     my $c = '';
