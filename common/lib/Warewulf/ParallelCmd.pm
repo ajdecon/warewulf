@@ -80,21 +80,25 @@ init()
     return($self);
 }
 
-=item queue()
+=item queue($command, $output_prefix, $format)
 
-Add a command to the queue to run in parallel
+Add a command to the queue to run in parallel. Optionally you can define a
+prefix to be appended to all command output and a format string to define the
+specific output format (e.g. "%-20s %s").
 
 =cut
 
 sub
-queue($)
+queue($$$$)
 {
-    my ($self, $command) = @_;
+    my ($self, $command, $prefix, $format) = @_;
     my $obj = Warewulf::Object->new();
     my $queueset = $self->get("queueset");
 
     &dprint("Adding command to queue: $command\n");
     $obj->set("command", $command);
+    $obj->set("prefix", $prefix);
+    $obj->set("format", $format);
     $queueset->add($obj);
 
     return;
@@ -208,8 +212,20 @@ run($)
                 } while ( $length == 1024 );
 
                 if ($buffer) {
-                    foreach my $line (split(/\n/, $buffer)) {
-                        print "$line\n";
+                    my $fileno = $fh->fileno();
+                    my $obj = $queueset->find("fileno", $fileno);
+                    if ($obj) {
+                        my $prefix = $obj->get("prefix");
+                        my $format = $obj->get("format");
+                        foreach my $line (split(/\n/, $buffer)) {
+                            if ($prefix and $format) {
+                                printf($format, $prefix, $line);
+                            } elsif ($prefix) {
+                                print "$prefix$line\n";
+                            } else {
+                                print "$line\n";
+                            }
+                        }
                     }
 
                 } else {
