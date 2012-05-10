@@ -74,8 +74,6 @@ init()
     $self->set("select", $select);
     $self->set("queueset", $queueset);
     $self->set("fanout", 32);
-    $self->set("wtime", 10);
-    $self->set("ktime", 20);
 
     return($self);
 }
@@ -122,7 +120,7 @@ fanout($$)
 =item wtime()
 
 How many seconds to wait before throwing a warning to the user that a command is
-still running. If undefined, no warning will be given. (default=10)
+still running. If undefined, no warning will be given.
 
 =cut
 
@@ -138,7 +136,7 @@ wtime($$)
 =item ktime()
 
 How many seconds to wait before killing the processes. If undefined, the
-process will wait indefinitely. (default=20)
+process will wait indefinitely.
 
 =cut
 
