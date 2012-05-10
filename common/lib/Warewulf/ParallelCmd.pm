@@ -272,8 +272,9 @@ forkobj($)
     my $fh;
     my $pid;
 
+#TODO: At some point capture STDERR seperately and print properly
     &dprint("Spawning command: $command\n");
-    if ($pid = open($fh, "$command |")) {
+    if ($pid = open($fh, "$command 2>&1 |")) {
         $select->add($fh);
 
         &dprint("Created fileno: ". $fh->fileno() ."\n");
@@ -327,11 +328,21 @@ timer($)
         my $pid = $obj->get("pid");
         if (! $obj->get("done") and $fileno ) {
             if (! $warning and $wtime and $curtime > ($starttime + $wtime)) {
-                &wprint("Process $pid still running ($command)\n");
+                my $prefix = $obj->get("prefix");
+                if ($prefix) {
+                    &wprint("$prefix Process $pid still running ($command)\n");
+                } else {
+                    &wprint("Process $pid still running ($command)\n");
+                }
                 $obj->set("warning", 1);
             } elsif ($ktime and $curtime > ($starttime + $ktime)) {
+                my $prefix = $obj->get("prefix");
                 my $fh = $obj->get("fh");
-                &wprint("Killing process $pid ($command)\n");
+                if ($prefix) {
+                    &wprint("$prefix Killing process $pid ($command)\n");
+                } else {
+                    &wprint("Killing process $pid ($command)\n");
+                }
                 kill("TERM", $pid);
                 kill("INT", $pid);
                 kill("KILL", $pid);
