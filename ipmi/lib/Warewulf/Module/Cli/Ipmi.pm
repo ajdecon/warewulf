@@ -335,8 +335,7 @@ exec()
             my $name = $o->name();
             my $cmd = $o->ipmi_command("poweron");
             if ($cmd) {
-                &nprint("$name:\n");
-                $parallel->queue($cmd);
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
             }
         }
         $parallel->run();
@@ -347,8 +346,7 @@ exec()
             my $name = $o->name();
             my $cmd = $o->ipmi_command("poweroff");
             if ($cmd) {
-                &nprint("$name:\n");
-                $parallel->queue($cmd);
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
             }
         }
         $parallel->run();
@@ -359,8 +357,7 @@ exec()
             my $name = $o->name();
             my $cmd = $o->ipmi_command("powercycle");
             if ($cmd) {
-                &nprint("$name:\n");
-                $parallel->queue($cmd);
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
             }
         }
         $parallel->run();
@@ -371,8 +368,7 @@ exec()
             my $name = $o->name();
             my $cmd = $o->ipmi_command("powerstatus");
             if ($cmd) {
-                &nprint("$name:\n");
-                $parallel->queue($cmd);
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
             }
         }
         $parallel->run();
