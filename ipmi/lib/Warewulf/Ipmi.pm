@@ -10,6 +10,7 @@
 
 package Warewulf::Ipmi;
 
+use Warewulf::ACVars;
 use Warewulf::Object;
 use Warewulf::Node;
 use Warewulf::Network;
@@ -203,7 +204,8 @@ ipmi_command()
     my $password = $self->ipmi_password();
     my $proto = $self->ipmi_proto();
     my $name = $self->name() || "UNDEF";
-    my $ret = "ipmitool ";
+    my $libexecdir = Warewulf::ACVars->libexecdir();
+    my $ret = "$libexecdir/warewulf/ipmitool ";
 
     if ($ipaddr and $username and $password and $proto) {
         $ret .= "-I $proto -U $username -P $password -H $ipaddr ";

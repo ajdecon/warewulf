@@ -13,7 +13,6 @@ ExclusiveOS: linux
 Requires: warewulf-common
 BuildRequires: warewulf-common
 Conflicts: warewulf < 3
-BuildArch: noarch
 BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
 
 %description
@@ -45,6 +44,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
 %{_localstatedir}/warewulf/initramfs/capabilities/setup-ipmi
+%{_libexecdir}/warewulf/ipmitool
 %{perl_vendorlib}/Warewulf/Ipmi.pm
 %{perl_vendorlib}/Warewulf/Module/Cli/*
 

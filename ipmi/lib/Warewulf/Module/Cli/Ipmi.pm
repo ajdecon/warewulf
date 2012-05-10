@@ -331,6 +331,7 @@ exec()
     } elsif ($command eq "poweron") {
 
         my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name();
             my $cmd = $o->ipmi_command("poweron");
@@ -342,6 +343,7 @@ exec()
     } elsif ($command eq "poweroff") {
 
         my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name();
             my $cmd = $o->ipmi_command("poweroff");
@@ -353,6 +355,7 @@ exec()
     } elsif ($command eq "powercycle") {
 
         my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name();
             my $cmd = $o->ipmi_command("powercycle");
@@ -364,6 +367,7 @@ exec()
     } elsif ($command eq "powerstatus") {
 
         my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name();
             my $cmd = $o->ipmi_command("powerstatus");

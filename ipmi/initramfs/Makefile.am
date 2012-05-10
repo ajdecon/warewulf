@@ -41,7 +41,9 @@ capability.cpio: rootfs
 
 install-data-local: capability.cpio
 	install -d -m 755 $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/capabilities
+	install -d -m 755 $(DESTDIR)/$(WAREWULF_LIBEXECDIR)/warewulf
 	install -m 644 capability.cpio $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/capabilities/setup-ipmi
+	install -m 755 ipmitool $(DESTDIR)/$(WAREWULF_LIBEXECDIR)/warewulf
 
 uninstall-local:
 	rm -rf $(DESTDIR)/$(WAREWULF_STATEDIR)/warewulf/initramfs/capabilities/setup-ipmi

@@ -49,6 +49,15 @@ WAREWULF_STATEDIR="$force_prefix$WAREWULF_STATEDIR"
 AC_MSG_RESULT($WAREWULF_STATEDIR)
 AC_SUBST(WAREWULF_STATEDIR)
 
+AC_MSG_CHECKING([for Warewulf's configuration for libexecdir])
+eval `$WWCONFIGBIN -s libexecdir`
+if test -z "$WAREWULF_LIBEXECDIR"; then
+    AC_MSG_ERROR([Warewulf libexecdir not found])
+fi
+WAREWULF_LIBEXECDIR="$force_prefix$WAREWULF_LIBEXECDIR"
+AC_MSG_RESULT($WAREWULF_LIBEXECDIR)
+AC_SUBST(WAREWULF_LIBEXECDIR)
+
 
 dnl# Try to get SVN revision
 SVNVERSION=`svnversion -c | sed 's/^.*://g' 2>/dev/null || echo 0000`
