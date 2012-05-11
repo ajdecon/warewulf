@@ -33,6 +33,9 @@ supporting libs.
 groupadd -r warewulf >/dev/null 2>&1 || :
 
 %post
+if [ $1 -eq 2 ] ; then
+    %{_bindir}/wwsh object canonicalize >/dev/null 2>&1 || :
+fi
 service mysqld start >/dev/null 2>&1 || :
 chkconfig mysqld on >/dev/null 2>&1 || :
 
