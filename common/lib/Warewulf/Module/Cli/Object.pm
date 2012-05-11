@@ -58,6 +58,7 @@ help()
     $h .= "     print           Display object(s) and their members\n";
     $h .= "     delete          Completely remove object(s) from the datastore\n";
     $h .= "     dump            Recursively dump objects in internal format\n";
+    $h .= "     canonicalize    Check and Update objects to current standard format\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
@@ -100,7 +101,7 @@ complete()
     my $opt_lookup = "name";
     my $db = $self->{"DB"};
     my $opt_type;
-    my @ret = ("print", "modify", "dump", "help", "delete");
+    my @ret = ("print", "modify", "dump", "help", "delete", "canonicalize");
 
     if (! $db) {
         return ();
@@ -116,7 +117,7 @@ complete()
     );
 
     if (exists($ARGV[1])) {
-        if (($ARGV[1] eq "print") || ($ARGV[1] eq "modify") || ($ARGV[1] eq "delete")) {
+        if (($ARGV[1] eq "print") || ($ARGV[1] eq "modify") || ($ARGV[1] eq "delete") || ($ARGV[1] eq "canonicalize")) {
             @ret = $db->get_lookups(undef, "name");
         } elsif (($ARGV[1] eq "dump") || ($ARGV[1] eq "help")) {
             @ret = ();
@@ -211,6 +212,19 @@ exec()
             my $o = $objectSet->get_object($i);
 
             &nprint(&examine_object($o, "Object #$i:  "), "\n\n");
+        }
+        return 0;
+    }
+    if ($command eq "canonicalize") {
+        my $obj_count = $objectSet->count();
+        my $count = 0;
+        foreach my $o (@objList) {
+            # Eventually we should walk @ISA for the object class in question
+            $count += $o->canonicalize();
+        }
+        &nprint("There were $count changes made to $obj_count objects\n");
+        if ($count > 0) {
+            $db->persist(@objList);
         }
         return 0;
     }

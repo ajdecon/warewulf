@@ -446,6 +446,22 @@ debug_string()
     return sprintf("{ $self:  %s }", join(", ", map { "\"$_\" => \"$self->{$_}\"" } sort(keys(%{$self}))));
 }
 
+
+=item canonicalize()
+
+Check and update the object format if necessary. Should return the number of
+changes that were made to the object.
+
+=cut
+
+sub
+canonicalize()
+{
+    return(0);
+}
+
+
+
 =back
 
 =head1 SEE ALSO

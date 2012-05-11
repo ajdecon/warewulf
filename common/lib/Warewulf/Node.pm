@@ -252,10 +252,49 @@ groupdel()
 }
 
 
+=item canonicalize()
+
+Check and update the object if necessary. Returns the number of changes made.
+
+=cut
+
+sub
+canonicalize()
+{
+    my ($self) = @_;
+    my $netdevs = $self->get("netdevs");
+    my $changed = 0;
+
+    if ($netdevs) {
+        if (ref($netdevs) eq "ARRAY") {
+            &iprint("Converting netdev array to ObjectSet\n");
+            my $new_netdevs = Warewulf::ObjectSet->new();
+            foreach my $n (@{$netdevs}) {
+                bless($n, "Warewulf::Object");
+                $self->add("_ipaddr", $n->get("ipaddr"));
+                $self->add("_hwaddr", $n->get("hwaddr"));
+                $new_netdevs->add($n);
+            }
+            $self->set("netdevs", $new_netdevs);
+            $changed++;
+        }
+    } else {
+        my $new_netdevs = $self->get("_netdevset");
+        if ($new_netdevs) {
+            &iprint("Moving _netdevset netdevs\n");
+            $self->set("netdevs", $new_netdevs);
+            $self->del("_netdevset");
+            $changed++;
+        }
+    }
+    return($changed);
+}
+
+
 =item netdevs($match)
 
-List the configured network devices configured for this node object. If a
-match string is given, it will return just that device name.
+Return the netdev ObjectSet for this node object. If a device name is passed
+it will return just the netdev Object for that device.
 
 =cut
 
@@ -268,21 +307,16 @@ netdevs()
 
     $netdevs = $self->get("netdevs");
 
-    if (! $netdevs) {
-        if ($self->get("_netdevset")) {
-            # FIXME:  Remove this?
-            $netdevs = $self->set("netdevs", $self->get("_netdevset"));
-            $self->del("_netdevset");
-        } else {
-            $netdevs = $self->set("netdevs", Warewulf::ObjectSet->new());
-        }
-
-    } elsif (ref($netdevs) eq "ARRAY") {
-        my @netdev_objs;
-
-        @netdev_objs = map { bless($_, "Warewulf::Object") } @{$netdevs};
-        $self->set("netdevs", Warewulf::ObjectSet->new(@netdev_objs));
+    if ($netdevs and ref($netdevs) ne "Warewulf::ObjectSet") {
+        &wprint("Temporarily canonicalizing node Object\n");
+        $self->canonicalize();
+        $netdevs = $self->get("netdevs");
     }
+
+    if (! $netdevs) {
+        $netdevs = $self->set("netdevs", Warewulf::ObjectSet->new());
+    }
+
     if ($match) {
         return $netdevs->find("name", $match);
     } else {
