@@ -91,14 +91,17 @@ name()
     my @names;
 
     if (scalar(@_)) {
+        &dprint("Setting nodename: $_[0]\n");
         $self->nodename($_[0]);
         shift(@_);
     }
     if (scalar(@_)) {
+        &dprint("Setting cluster name: $_[0]\n");
         $self->cluster($_[0]);
         shift(@_);
     }
     if (scalar(@_)) {
+        &dprint("Setting domain name: $_[0]\n");
         $self->domain($_[0]);
         shift(@_);
     }
@@ -122,6 +125,7 @@ nodename()
     my $nodename = $self->prop("nodename", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
     if (@_) {
+        &dprint("Set nodename to: $_[0]\n");
         $self->genname();
     }
 
@@ -143,6 +147,7 @@ cluster()
     my $cluster = $self->prop("cluster", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
     if (@_) {
+        &dprint("Set cluster name to: $_[0]\n");
         $self->genname();
     }
 
@@ -163,6 +168,7 @@ domain()
     my $domain = $self->prop("domain", qr/^([a-zA-Z0-9_\-\.]+)$/, @_);
 
     if (@_) {
+        &dprint("Set domain name to: $_[0]\n");
         $self->genname();
     }
 
@@ -290,7 +296,9 @@ canonicalize()
         }
     }
     if ($name and ! $nodename) {
-        $self->name(split(".", $name));
+        &iprint("Updating name array ($name): ". join(",", split(/\./, $name)) ."\n");
+        $self->name(split(/\./, $name));
+        $changed++;
     }
     return($changed);
 }
