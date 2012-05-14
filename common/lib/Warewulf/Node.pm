@@ -263,6 +263,8 @@ canonicalize()
 {
     my ($self) = @_;
     my $netdevs = $self->get("netdevs");
+    my $nodename = $self->get("nodename");
+    my $name = $self->get("name");
     my $changed = 0;
 
     if ($netdevs) {
@@ -286,6 +288,9 @@ canonicalize()
             $self->del("_netdevset");
             $changed++;
         }
+    }
+    if ($name and ! $nodename) {
+        $self->name(split(".", $name));
     }
     return($changed);
 }
