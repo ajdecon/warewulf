@@ -153,7 +153,10 @@ update()
         if ($bootstrapid) {
             my $bootstrapObj = $db->get_objects("bootstrap", "_id", $bootstrapid)->get_object(0);
             if ($bootstrapObj) {
-                $bootstrapname = $bootstrapObj->get("name");
+                $bootstrapname = $bootstrapObj->name();
+            } else {
+                &wprint("Defined bootstrap is not valid for node $nodename, skipping...\n");
+                next;
             }
         } else {
             &dprint("No bootstrap defined for node $nodename, skipping...\n");
