@@ -285,6 +285,13 @@ canonicalize()
             }
             $self->set("netdevs", $new_netdevs);
             $changed++;
+        } elsif (ref($netdevs) eq "Warewulf::DSO::Netdev") {
+            my $new_netdevs = Warewulf::ObjectSet->new();
+            my $n = $netdevs;
+            bless($n, "Warewulf::Object");
+            $new_netdevs->add($n);
+            $self->set("netdevs", $new_netdevs);
+            $changed++;
         }
     } else {
         my $new_netdevs = $self->get("_netdevset");
