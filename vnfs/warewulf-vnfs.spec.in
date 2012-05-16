@@ -15,6 +15,9 @@ BuildRequires: warewulf-common
 Conflicts: warewulf < 3
 BuildArch: noarch
 BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
+# Previous version had an architecture in its release. This is necessary for
+# YUM to properly update a package of a different BuildArch...
+Obsoletes: warewulf-vnfs < 3.2-0
 
 %description
 Warewulf >= 3 is a set of utilities designed to better enable
