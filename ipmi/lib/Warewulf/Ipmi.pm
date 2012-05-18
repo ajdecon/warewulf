@@ -192,6 +192,11 @@ Return the IPMI shell command for a given action as follows:
     poweroff    Turn the node off
     powercycle  Cycle the power on the node
     powerstatus Check power status
+    ident       Set chassis identify light to forced on
+    noident     Set chassis identify light to off
+    printsel    Print System Event Log
+    clearsel    Clear System Event Log
+    printsdr    Print sensor data records
 
 =cut
 
@@ -217,6 +222,16 @@ ipmi_command()
             $ret .= "chassis power cycle";
         } elsif ( $action eq "powerstatus") {
             $ret .= "chassis power status";
+        } elsif ( $action eq "ident") {
+            $ret .= "chassis identify force";
+        } elsif ( $action eq "noident") {
+            $ret .= "chassis identify off";
+        } elsif ( $action eq "printsel") {
+            $ret .= "sel elist";
+        } elsif ( $action eq "clearsel") {
+            $ret .= "sel clear";
+        } elsif ( $action eq "printsdr") {
+            $ret .= "sdr elist";
         } else {
             &eprint("Unsupported IPMI action: $action\n");
             return();

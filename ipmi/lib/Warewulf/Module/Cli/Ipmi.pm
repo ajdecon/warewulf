@@ -76,6 +76,11 @@ help()
     $h .= "         poweroff        Power off the list of nodes\n";
     $h .= "         powercycle      Power cycle the list of nodes\n";
     $h .= "         powerstatus     Print the power status of the nodes\n";
+    $h .= "         ident           Set chassis identify light to on for the nodes\n";
+    $h .= "         noident         Set chassis identify light to off for the nodes\n";
+    $h .= "         printsel        Print system event log for the nodes\n";
+    $h .= "         clearsel        Clear system event log for the nodes\n";
+    $h .= "         printsdr        Print sensor data records for the nodes\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -149,7 +154,8 @@ complete()
     if (exists($ARGV[1])) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "print", "help", "poweron", "poweroff", "powercycle");
+        @ret = ("list", "set", "print", "help", "poweron", "poweroff", 
+            "powercycle", "ident", "noident", "printsel", "clearsel", "printsdr");
     }
 
     @ARGV = ();
@@ -376,7 +382,66 @@ exec()
             }
         }
         $parallel->run();
+    } elsif ($command eq "ident") {
 
+        my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("ident");
+            if ($cmd) {
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "noident") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("noident");
+            if ($cmd) {
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "printsel") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("printsel");
+            if ($cmd) {
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "clearsel") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("clearsel");
+            if ($cmd) {
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
+            }
+        }
+        $parallel->run();
+    } elsif ($command eq "printsdr") {
+
+        my $parallel = Warewulf::ParallelCmd->new();
+        $parallel->ktime(30);
+        foreach my $o ($objSet->get_list()) {
+            my $name = $o->name();
+            my $cmd = $o->ipmi_command("printsdr");
+            if ($cmd) {
+                $parallel->queue($cmd, "$name: ", "%-20s %s\n");
+            }
+        }
+        $parallel->run();
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name() || "UNDEF";
