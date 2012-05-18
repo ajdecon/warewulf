@@ -29,7 +29,7 @@ administrative tools.  To actually provision systems, the
 Summary: Warewulf - Provisioning Module - Server
 Group: System Environment/Clustering
 Requires: %{name} = %{version}-%{release}
-Requires: mod_perl httpd tftp-server dhcp
+Requires: mod_perl httpd tftp-server dhcp tftp-server
 
 %description server
 Warewulf >= 3 is a set of utilities designed to better enable
@@ -80,6 +80,9 @@ available the included GPL software.
 usermod -a -G warewulf apache >/dev/null 2>&1 || :
 service httpd restart >/dev/null 2>&1 || :
 chkconfig httpd on >/dev/null 2>&1 || :
+chkconfig tftp on >/dev/null 2>&1 || :
+chkconfig xinetd on >/dev/null 2>&1 || :
+service xinetd restart >/dev/null 2>&1 || :
 
 
 %clean
