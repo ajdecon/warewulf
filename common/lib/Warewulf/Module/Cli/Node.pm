@@ -327,6 +327,7 @@ exec()
             push(@changes, sprintf("%8s: %-20s\n", "DEL", $opt_netdev));
         } else {
             if ($opt_hwaddr) {
+                $opt_hwaddr = lc($opt_hwaddr);
                 if ($opt_hwaddr =~ /^((?:[0-9a-f]{2}:){5}[0-9a-f]{2})$/) {
                     my $show_changes;
                     foreach my $o ($objSet->get_list()) {
