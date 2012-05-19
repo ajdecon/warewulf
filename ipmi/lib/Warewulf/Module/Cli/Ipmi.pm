@@ -100,6 +100,7 @@ help()
     $h .= "         --netmask       The netmask defined for this node\n";
     $h .= "         --username      Define the IPMI username for this node\n";
     $h .= "         --password      Define the IPMI password for this node\n";
+    $h .= "         --proto         Define the IPMI protocol for this node (defaults to lan)\n";
     $h .= "         --autoconfig    Automatically try and configure this node's IPMI settings\n";
     $h .= "                         on boot (if no password is set for the node, one will be\n";
     $h .= "                         randomly generated)\n";
@@ -174,6 +175,7 @@ exec()
     my $opt_netmask;
     my $opt_username;
     my $opt_password;
+    my $opt_proto;
     my $opt_autoconfig;
     my $opt_noautoconfig;
     my $return_count;
@@ -193,6 +195,7 @@ exec()
         'netmask=s'     => \$opt_netmask,
         'username=s'    => \$opt_username,
         'password=s'    => \$opt_password,
+        'proto=s'       => \$opt_proto,
         'autoconfig'    => \$opt_autoconfig,
         'noautoconfig'  => \$opt_noautoconfig,
         'l|lookup=s'    => \$opt_lookup,
@@ -276,6 +279,18 @@ exec()
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PASSWORD", $opt_password));
                 $persist_bool = 1;
+            }
+        }
+        if ($opt_proto) {
+            my $new_proto;
+            foreach my $o ($objSet->get_list()) {
+                $new_proto = $o->ipmi_proto(lc($opt_proto));
+            }
+            if ($opt_proto eq $new_proto) {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "IPMI_PROTO", $opt_proto));
+                $persist_bool = 1;
+            } else {
+                print "IPMI protocol $opt_proto is not supported.\n";
             }
         }
         if ($opt_autoconfig) {
@@ -454,6 +469,7 @@ exec()
             printf("%15s: %-16s = %s\n", $name, "IPMI_USERNAME", $o->get("ipmi_username") || "UNDEF");
             printf("%15s: %-16s = %s\n", $name, "IPMI_PASSWORD", $o->get("ipmi_password") || "UNDEF");
             printf("%15s: %-16s = %s\n", $name, "IPMI_AUTOCONFIG", $o->get("ipmi_autoconfig") || "UNDEF");
+            printf("%15s: %-16s = %s\n", $name, "IPMI_PROTO", $o->ipmi_proto() || "UNDEF");
         }
 
     } elsif ($command eq "list") {
