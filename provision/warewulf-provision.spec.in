@@ -29,7 +29,7 @@ administrative tools.  To actually provision systems, the
 Summary: Warewulf - Provisioning Module - Server
 Group: System Environment/Clustering
 Requires: %{name} = %{version}-%{release}
-Requires: mod_perl httpd tftp-server dhcp tftp-server
+Requires: mod_perl httpd tftp-server dhcp
 
 %description server
 Warewulf >= 3 is a set of utilities designed to better enable
