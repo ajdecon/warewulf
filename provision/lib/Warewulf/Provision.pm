@@ -100,6 +100,40 @@ fileids()
     return($self->get($key));
 }
 
+=item kargs()
+
+Set or return the list of kernel arguments. If an array element
+includes whitespace (i.e. it includes multiple kernel arguments),
+split it and store it as separate array elements.
+
+=cut
+
+sub 
+kargs()
+{
+    my ($self, @strings) = @_;
+    my $key = "kargs";
+
+    if (uc($strings[0]) eq "UNDEF") {
+        $self->del($key);
+        return $self->get($key);
+    }
+
+    if (@strings) {
+        my $name = $self->get("name");
+        my @new;
+        foreach my $string (@strings) {
+            my @kargs = split(/\s+/,$string); # pre-emptively split
+            foreach my $karg (@kargs) {
+                &dprint("Object $name set $key +=' $karg'\n");
+                push(@new,$karg);
+            }
+        }
+        $self->set($key,@new);
+    }
+
+    return $self->get($key);
+}
 
 =item fileidadd(@fileids)
 

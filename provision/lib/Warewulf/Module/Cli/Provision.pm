@@ -96,6 +96,7 @@ help()
     $h .= "         --filedel       Remove a file to be provisioned from this node\n";
     $h .= "         --preshell      Start a shell on the node before provisioning (boolean)\n";
     $h .= "         --postshell     Start a shell on the node after provisoining (boolean)\n";
+    $h .= "         --kargs         Define the kernel arguments (assumes \"quiet\" if UNDEF)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -103,6 +104,7 @@ help()
     $h .= "     Warewulf> provision set n00[00-99] --fileadd=ifcfg-eth0\n";
     $h .= "     Warewulf> provision set -l=cluster mycluster --vnfs=rhel-6.0\n";
     $h .= "     Warewulf> provision set -l=group mygroup hello group123\n";
+    $h .= "     Warewulf> provision set n00[0-4] --kargs=\"console=ttyS0,57600 quiet\"\n";
     $h .= "     Warewulf> provision list n00[00-99]\n";
     $h .= "\n";
 
@@ -173,6 +175,7 @@ exec()
     my @opt_files;
     my @opt_fileadd;
     my @opt_filedel;
+    my $opt_kargs;
     my $return_count;
     my $objSet;
     my @changes;
@@ -189,6 +192,7 @@ exec()
         'files=s'       => \@opt_files,
         'fileadd=s'     => \@opt_fileadd,
         'filedel=s'     => \@opt_filedel,
+        'kargs=s'       => \$opt_kargs,
         'master=s'      => \@opt_master,
         'bootserver=s'  => \@opt_bootserver,
         'b|bootstrap=s' => \$opt_bootstrap,
@@ -411,6 +415,26 @@ exec()
             }
         }
 
+        if ($opt_kargs) {
+            $opt_kargs =~ s/\"//g;
+            my @kargs = split(/\s+/,$opt_kargs);
+            foreach my $k (@kargs) {
+                &dprint("Including kernel argument += $k\n");
+            }
+
+            foreach my $obj ($objSet->get_list()) {
+                my $name = $obj->name() || "UNDEF";
+                $obj->kargs(@kargs);
+                &dprint("Setting kernel arguments for node name: $name\n");
+                $persist_bool = 1;
+            }
+            if (uc($kargs[0]) eq "UNDEF") {
+                push(@changes, sprintf("     DEL: %-20s = %s\n", "KARGS", "[ALL]"));
+            } else {
+                push(@changes, sprintf("     SET: %-20s = %s\n", "KARGS", '"' . join(" ",@kargs) . '"'));
+            }
+        }
+
         if ($persist_bool) {
             if ($command ne "new" and $term->interactive()) {
                 print "Are you sure you want to make the following changes to ". $object_count ." node(s):\n\n";
@@ -464,12 +488,15 @@ exec()
                     $bootstrap = $bootstrapObj->name();
                 }
             }
+            my $kargs = join(" ",$o->kargs()) || "quiet";
+
             &nprintf("#### %s %s#\n", $name, "#" x (72 - length($name)));
             printf("%15s: %-16s = %s\n", $name, "BOOTSTRAP", $bootstrap);
             printf("%15s: %-16s = %s\n", $name, "VNFS", $vnfs);
             printf("%15s: %-16s = %s\n", $name, "FILES", join(",", @files));
             printf("%15s: %-16s = %s\n", $name, "PRESHELL", $o->preshell() ? "TRUE" : "FALSE");
             printf("%15s: %-16s = %s\n", $name, "POSTSHELL", $o->postshell() ? "TRUE" : "FALSE");
+            printf("%15s: %-16s = \"%s\"\n", $name, "KARGS", $kargs);
             if ($o->get("filesystems")) {
                 printf("%15s: %-16s = %s\n", $name, "FILESYSTEMS", join(",", $o->get("filesystems")));
             }
