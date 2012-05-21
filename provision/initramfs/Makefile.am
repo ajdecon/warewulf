@@ -74,11 +74,11 @@ rootfs: busybox e2fsprogs
 	install -m 755 $(srcdir)/detect rootfs/sbin/
 	install -m 755 $(srcdir)/transporthandler rootfs/sbin/
 	install -m 755 $(srcdir)/provisionhandler rootfs/sbin/
+	install -m 755 $(srcdir)/wwlogger rootfs/sbin/
 	ln -s transporthandler rootfs/sbin/wwgetvnfs
 	ln -s transporthandler rootfs/sbin/wwgetscript
 	ln -s transporthandler rootfs/sbin/wwgetnodeconfig
 	ln -s transporthandler rootfs/sbin/wwgetfiles
-	ln -s transporthandler rootfs/sbin/wwlogger
 
 initramfs.cpio: rootfs
 	install -m 644 $(srcdir)/devs.cpio initramfs.cpio
@@ -96,5 +96,5 @@ clean-local:
 
 
 
-EXTRA_DIST = busybox.config init devs.cpio functions dhcp-script detect transporthandler provisionhandler
+EXTRA_DIST = busybox.config init devs.cpio functions dhcp-script detect transporthandler provisionhandler wwlogger
 

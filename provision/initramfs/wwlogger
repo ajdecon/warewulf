@@ -7,8 +7,10 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 
-. /warewulf/transports/http/functions
-
-for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
-    echo "<6>$WWNAME wwbootstrap: $1" | nc -w 0 -u $master 514 2>/dev/null
-done
+if [ -n "$1" ]; then
+    if ! logger -t wwlogger "$1"; then
+        echo "Failed to spawn logger" >&2
+    fi
+else
+    echo "USAGE: wwlogger 'message to send'"
+fi

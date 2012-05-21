@@ -20,6 +20,7 @@ if [ -d "/warewulf/provision/" ]; then
             NAME=`basename $i | sed -e 's/^[0-9]*-\(.*\)/\1/'`
             wwlogger "Running provision script: $NAME"
             msg_white " * $NAME "
+            usleep 250000
             echo -ne $GRAY
             sh -x $i 2>/var/log/provision/$NAME.log
             RETVAL=$?
