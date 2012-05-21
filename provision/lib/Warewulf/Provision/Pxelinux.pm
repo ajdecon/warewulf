@@ -222,7 +222,7 @@ update()
                 print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
                 print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
                 if (@kargs) {
-                    print PXELINUX join(" ", @kargs);
+                    print PXELINUX join(" ", @kargs) . " ";
                 } else {
                     print PXELINUX "quiet ";
                 }
