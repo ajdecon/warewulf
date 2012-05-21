@@ -28,9 +28,6 @@ DESTDIR=$NEWROOT
 export DESTDIR
 
 dmesg -n 1 >/dev/null 2>&1
-mkdir -p /var/log/
-syslog
-
 clear
 
 msg_blue "Now Booting Warewulf...\n"
