@@ -197,6 +197,7 @@ Return the IPMI shell command for a given action as follows:
     printsel    Print System Event Log
     clearsel    Clear System Event Log
     printsdr    Print sensor data records
+    console     Start an IPMI serial-over-lan console
 
 =cut
 
@@ -232,6 +233,8 @@ ipmi_command()
             $ret .= "sel clear";
         } elsif ( $action eq "printsdr") {
             $ret .= "sdr elist";
+        } elsif ( $action eq "console") {
+            $ret .= "sol activate";
         } else {
             &eprint("Unsupported IPMI action: $action\n");
             return();

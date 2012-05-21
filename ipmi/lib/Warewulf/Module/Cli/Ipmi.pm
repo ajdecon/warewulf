@@ -81,6 +81,9 @@ help()
     $h .= "         printsel        Print system event log for the nodes\n";
     $h .= "         clearsel        Clear system event log for the nodes\n";
     $h .= "         printsdr        Print sensor data records for the nodes\n";
+    $h .= "         console         Start a serial-over-lan console session.\n";
+    $h .= "                         NOTE: Requires that a serial console be defined\n";
+    $h .= "                         in kernel arguments, i.e. console=ttyS0,57600\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -155,7 +158,7 @@ complete()
     if (exists($ARGV[1])) {
         @ret = $db->get_lookups($entity_type, $opt_lookup);
     } else {
-        @ret = ("list", "set", "print", "help", "poweron", "poweroff", 
+        @ret = ("list", "set", "print", "help", "poweron", "poweroff", "console", 
             "powercycle", "ident", "noident", "printsel", "clearsel", "printsdr");
     }
 
@@ -457,6 +460,16 @@ exec()
             }
         }
         $parallel->run();
+    } elsif ($command eq "console") {
+        if ($objSet->count() > 1) {
+            print "You can only launch a serial-over-lan console for one node at a time!\n";
+        } else {
+            $o = $objSet->get_object(0);
+            print "WARNING! Starting an IPMI SOL console for " . $o->name() ."!\n";
+            print "Execution will return to Warewulf after you exit the console.\n";
+            sleep(1);
+            system($o->ipmi_command("console"));
+        }
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
             my $name = $o->name() || "UNDEF";
