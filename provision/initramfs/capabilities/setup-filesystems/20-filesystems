@@ -50,12 +50,17 @@ mkdir $TMPDIR/disks
 > /tmp/mptab
 > /tmp/mtab
 
+# Workaround for bug where mkfs.ext3/4 fails if /etc/mtab is missing:
+# http://sourceforge.net/tracker/index.php?func=detail&aid=3509398&group_id=2406&atid=102406
+# Symlink /tmp/mtab to /etc/mtab 
+# --AJD
+ln -s /tmp/mtab /etc/mtab
+
 if [ -n "$NEWROOT" ]; then
     if [ ! -d $NEWROOT ]; then
         mkdir -p $NEWROOT
     fi
 fi
-
 
 for FSYS in `echo $WWFILESYSTEMS | sed 's/,/ /g'` ; do
     ( 
