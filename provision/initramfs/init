@@ -205,6 +205,7 @@ fi
 if [ -n "$HOSTNAME" ]; then
     msg_white "Setting the hostname ($HOSTNAME): "
     hostname $HOSTNAME
+    export HOSTNAME
     wwsuccess
 else
     msg_white "Setting the hostname: "
