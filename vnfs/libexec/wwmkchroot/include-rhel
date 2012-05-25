@@ -58,6 +58,11 @@ buildchroot() {
 
 postchroot() {
     touch $VNFSDIR/fastboot
+    if grep -q rename_device $VNFSDIR/etc/sysconfig/network-scripts/network-functions; then
+        echo "" >> $VNFSDIR/etc/sysconfig/network-scripts/network-functions
+        echo "# This is a kludge added by Warewulf so devices don't get renamed (broke things with IB)" >> $VNFSDIR/etc/sysconfig/network-scripts/network-functions
+        echo "rename_device() { return 0; }" >> $VNFSDIR/etc/sysconfig/network-scripts/network-functions
+    fi
     return 0
 }
 
