@@ -157,7 +157,7 @@ if (exists($ARGV[0]) and -f $ARGV[0]) {
         my $line;
 
         chomp($line = $_);
-        &run_cmd($line);
+        &run_cmd(&quotewords('\s+', 1, $_));
     }
 }
 
