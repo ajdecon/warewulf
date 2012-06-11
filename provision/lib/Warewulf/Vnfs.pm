@@ -95,7 +95,7 @@ checksum()
 
 =item size($string)
 
-Set or return the size of the raw file stored within the datastore.
+Set or return the size of the raw file stored within the data store.
 
 =cut
 
@@ -112,7 +112,7 @@ size()
 
 =item vnfs_import($file)
 
-Import a VNFS image at the defined path into the datastore directly. This
+Import a VNFS image at the defined path into the data store directly. This
 will interact directly with the DataStore because large file imports may
 exhaust memory.
 
@@ -172,7 +172,7 @@ vnfs_import()
 
 =item vnfs_export($path)
 
-Export the VNFS from the datastore to a location on the file system.
+Export the VNFS from the data store to a location on the file system.
 
 =cut
 

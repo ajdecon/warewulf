@@ -106,7 +106,7 @@ if ($q->param('hwaddr')) {
                         }
 
                     } else {
-                        &dprint("Sending VNFS from the datastore\n");
+                        &dprint("Sending VNFS from the data store\n");
                         my $binstore = $db->binstore($obj->get("_id"));
                         while(my $buffer = $binstore->get_chunk()) {
                             $q->print($buffer);

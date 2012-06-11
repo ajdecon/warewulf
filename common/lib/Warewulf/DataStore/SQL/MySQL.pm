@@ -384,11 +384,11 @@ persist($$)
                     $self->{"STH_LASTID"} = $self->{"DBH"}->prepare("SELECT LAST_INSERT_ID() AS id");
                 }
                 $id = $self->{"DBH"}->selectrow_array($self->{"STH_LASTID"});
-                &dprint("Inserted a new object into the datastore (ID: $id)\n");
+                &dprint("Inserted a new object into the data store (ID: $id)\n");
                 $o->set("_id", $id);
             }
 
-            dprint("Updating datastore ID = $id\n");
+            dprint("Updating data store ID = $id\n");
             if (!exists($self->{"STH_SETOBJ"})) {
                 $self->{"STH_SETOBJ"} = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
             }
@@ -464,7 +464,7 @@ del_object($$)
         my $type = $o->type;
 
         if ($id) {
-            dprint("Deleting object from the datastore: ID=$id\n");
+            dprint("Deleting object from the data store: ID=$id\n");
             if (!exists($self->{"STH_RMLOOK"})) {
                 $self->{"STH_RMLOOK"} = $self->{"DBH"}->prepare("DELETE FROM lookup WHERE object_id = ?");
             }
@@ -472,7 +472,7 @@ del_object($$)
                 $self->{"STH_RMBS"} = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
             }
             if (!exists($self->{"STH_RMDS"})) {
-                $self->{"STH_RMDS"} = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
+                $self->{"STH_RMDS"} = $self->{"DBH"}->prepare("DELETE FROM data store WHERE id = ?");
             }
             $self->{"STH_RMLOOK"}->execute($id);
             $self->{"STH_RMBS"}->execute($id);

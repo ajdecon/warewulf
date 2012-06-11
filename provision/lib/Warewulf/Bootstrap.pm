@@ -96,7 +96,7 @@ checksum()
 
 =item size($string)
 
-Set or return the size of the raw file stored within the datastore.
+Set or return the size of the raw file stored within the data store.
 
 =cut
 
@@ -111,7 +111,7 @@ size()
 
 =item bootstrap_import($file)
 
-Import a bootstrap image at the defined path into the datastore directly.
+Import a bootstrap image at the defined path into the data store directly.
 This will interact directly with the DataStore because large file imports
 may exhaust memory.
 
@@ -171,7 +171,7 @@ bootstrap_import()
 
 =item bootstrap_export($path)
 
-Export the bootstrap from the datastore to a location on the file system.
+Export the bootstrap from the data store to a location on the file system.
 
 =cut
 

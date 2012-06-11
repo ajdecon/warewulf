@@ -170,7 +170,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                         print $send_buffer;
                     }
                 } else {
-                    &eprint("Checksum does not match datastore: $cachefile\n");
+                    &eprint("Checksum does not match data store: $cachefile\n");
                     $q->print("Content-Type: application/octet-stream\r\n");
                     $q->print("Status: 500\r\n");
                     $q->print("\r\n");

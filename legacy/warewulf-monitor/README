@@ -3,7 +3,7 @@ Readme file for the Warewulf 3.x series
 Earlier versions of Warewulf were focused on the entire cluster
 solution. While this is the proper solution for many midsized HPC
 clusters, it was not the right solution for many power users and other
-provisoining requirements. It also limited its development.
+provisioning requirements. It also limited its development.
 
 Warewulf 3 implements a new paradigym. It seperates out the provisioning
 subsystems from the user facilitating and management tools. Warewulf3 is
@@ -32,7 +32,7 @@ which provisioning model is used. There are already people using the
 Warewulf toolkit on non-Warewulf clusters, so this is simply making it
 easier for them.
 
-All node provisoining (eg. network booting, OS installation, etc) has
+All node provisioning (eg. network booting, OS installation, etc) has
 been migrated to a new project called Perceus. Perceus is a completly
 new design offering a very advanced and platform neutral provisioning
 mechanism. The model can be used to boot statefull or stateless nodes as

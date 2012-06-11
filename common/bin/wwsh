@@ -93,7 +93,7 @@ if ($opt_debug) {
 $db = Warewulf::DataStore->new();
 
 if (! defined($db)) {
-    &eprint("Failed initialization of the datastore!\n");
+    &eprint("Failed initialization of the data store!\n");
     exit 1;
 }
 

@@ -100,7 +100,7 @@ serialize()
 =item type()
 
 Returns a string that defines this object type as it will be stored in
-the datastore.
+the data store.
 
 =cut
 
@@ -139,7 +139,7 @@ lookups($)
 
 =item persist()
 
-Persist this object into the datastore
+Persist this object into the data store
 
 =cut
 

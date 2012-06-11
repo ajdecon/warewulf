@@ -186,7 +186,7 @@ gid()
 
 =item size($string)
 
-Set or return the size of the raw file stored within the datastore.
+Set or return the size of the raw file stored within the data store.
 
 =cut
 
@@ -348,7 +348,7 @@ sync()
 
 =item file_import($file)
 
-Import a file at the defined path into the datastore directly. This will
+Import a file at the defined path into the data store directly. This will
 interact directly with the DataStore because large file imports may
 exhaust memory.
 

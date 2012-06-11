@@ -58,12 +58,12 @@ help()
     $h .= "     The file command is used for manipulating file objects.  It allows you to\n";
     $h .= "     import, export, create, and modify files within the Warewulf data store.\n";
     $h .= "     File objects may be used to supply files to nodes at provision time,\n";
-    $h .= "     dynamically create files or scripts based on Warewulf data, and more.\n";
+    $h .= "     dynamically create files or scripts based on Warewulf data and more.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "     import             Import a file into a file object\n";
     $h .= "     export             Export file objects(s)\n";
-    $h .= "     edit               Edit the file in the datastore directly\n";
+    $h .= "     edit               Edit the file in the data store directly\n";
     $h .= "     set                Set file attributes/metadata\n";
     $h .= "     show               Show the contents of a file\n";
     $h .= "     list               List a summary of imported files\n";
@@ -104,7 +104,7 @@ summary()
 {
     my $output;
 
-    $output .= "Manage files within the Warewulf datastore";
+    $output .= "Manage files within the Warewulf data store";
 
     return $output;
 }
@@ -403,10 +403,10 @@ exec()
                         $obj->file_import($tmpfile);
                         unlink($tmpfile);
                     } else {
-                        &nprint("File unchanged or empty.  Not updating datastore.\n");
+                        &nprint("File unchanged or empty.  Not updating data store.\n");
                     }
                 } else {
-                    &iprint("Command \"$program\" failed.  Not updating datastore.\n");
+                    &iprint("Command \"$program\" failed.  Not updating data store.\n");
                 }
             } else {
                 &eprint("Edit only one file object at a time.\n");

@@ -27,7 +27,7 @@ use Warewulf::DSO::File;
 =head1 NAME
 
 Warewulf::Provision::HostsFile - Generate a basic hosts file from the Warewulf
-datastore.
+data store.
 
 =head1 ABOUT
 
@@ -170,7 +170,7 @@ generate()
 
 =item update_datastore()
 
-Update the Warewulf datastore with the current hosts file.
+Update the Warewulf data store with the current hosts file.
 
 =cut
 
@@ -182,7 +182,7 @@ update_datastore()
     my $name = "dynamic_hosts";
     my $datastore = Warewulf::DataStore->new();
 
-    &dprint("Updating datastore\n");
+    &dprint("Updating data store\n");
 
     my $hosts = $self->generate();
     my $len = length($hosts);

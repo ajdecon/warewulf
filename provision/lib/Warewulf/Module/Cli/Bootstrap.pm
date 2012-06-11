@@ -228,7 +228,7 @@ exec()
                                 $obj = $objSet->get_object(0);
                                 if ($term->interactive()) {
                                     my $name = $obj->name() || "UNDEF";
-                                    &wprint("Do you wish to overwrite '$name' in the Warewulf datastore?\n");
+                                    &wprint("Do you wish to overwrite '$name' in the Warewulf data store?\n");
                                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                     if ($yesno ne "y" and $yesno ne "yes") {
                                         &nprint("Not exporting '$name'\n");

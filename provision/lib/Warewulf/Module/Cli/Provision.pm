@@ -95,7 +95,7 @@ help()
     $h .= "         --fileadd       Add a file to be provisioned this node\n";
     $h .= "         --filedel       Remove a file to be provisioned from this node\n";
     $h .= "         --preshell      Start a shell on the node before provisioning (boolean)\n";
-    $h .= "         --postshell     Start a shell on the node after provisoining (boolean)\n";
+    $h .= "         --postshell     Start a shell on the node after provisioning (boolean)\n";
     $h .= "         --kargs         Define the kernel arguments (assumes \"quiet\" if UNDEF)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";

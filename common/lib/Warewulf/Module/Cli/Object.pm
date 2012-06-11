@@ -51,12 +51,12 @@ help()
 
     $h .= "SUMMARY:\n";
     $h .= "     The object command provides an interface for generically manipulating all\n";
-    $h .= "     object types within the Warewulf datastore.\n";
+    $h .= "     object types within the Warewulf data store.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "     modify          Add, delete, and/or set object member variables\n";
     $h .= "     print           Display object(s) and their members\n";
-    $h .= "     delete          Completely remove object(s) from the datastore\n";
+    $h .= "     delete          Completely remove object(s) from the data store\n";
     $h .= "     dump            Recursively dump objects in internal format\n";
     $h .= "     canonicalize    Check and Update objects to current standard format\n";
     $h .= "     help            Show usage information\n";
@@ -70,8 +70,8 @@ help()
     $h .= "     -d, --del       Delete value(s) from specified member variable\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
-    $h .= "     Warewulf> object -p :all\n";
-    $h .= "     Warewulf> object -p _id,name,_type\n";
+    $h .= "     Warewulf> object print -p :all\n";
+    $h .= "     Warewulf> object print -p _id,name,_type\n";
     $h .= "\n";
     $h .= "WARNING:  This command is VERY POWERFUL.  It is primarily intended for\n";
     $h .= "developers and power users.  Please use CAREFULLY, if at all.  Data\n";
@@ -88,7 +88,7 @@ summary()
 {
     my $output;
 
-    $output .= "Generically manipulate all Warewulf datastore entries";
+    $output .= "Generically manipulate all Warewulf data store entries";
 
     return ($output);
 }

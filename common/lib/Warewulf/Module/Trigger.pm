@@ -54,7 +54,7 @@ sub object_del() {};
 
 =item object_persist($obj/$objSet)
 
-What happens when an object is persisted to the datastore
+What happens when an object is persisted to the data store
 
 =cut
 

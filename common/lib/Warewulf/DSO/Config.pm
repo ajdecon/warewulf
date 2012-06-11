@@ -59,7 +59,7 @@ new($$)
 =item type()
 
 Return a string that defines this object type as it will be stored in the
-datastore.
+data store.
 
 =cut
 
