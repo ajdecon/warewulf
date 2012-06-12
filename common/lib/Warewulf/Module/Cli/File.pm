@@ -62,11 +62,11 @@ help()
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "     import             Import a file into a file object\n";
-    $h .= "     export             Export file objects(s)\n";
+    $h .= "     export             Export file object(s)\n";
     $h .= "     edit               Edit the file in the data store directly\n";
     $h .= "     set                Set file attributes/metadata\n";
     $h .= "     show               Show the contents of a file\n";
-    $h .= "     list               List a summary of imported files\n";
+    $h .= "     list               List a summary of imported file(s)\n";
     $h .= "     print              Print all file attributes\n";
     $h .= "     (re)sync           Sync the data of a file object with its source(s)\n";
     $h .= "     delete             Remove a node configuration from the data store\n";

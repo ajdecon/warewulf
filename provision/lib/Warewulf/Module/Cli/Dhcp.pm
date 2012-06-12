@@ -34,7 +34,7 @@ summary()
 {
     my $output;
 
-    $output .= "Manage DHCP services and configuration";
+    $output .= "Manage DHCP service and configuration";
 
     return($output);
 }
@@ -51,7 +51,7 @@ help()
     $h .= "     dhcp [command]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
-    $h .= "        The DHCP command configures/reconfigures the DHCP services.\n";
+    $h .= "        The DHCP command configures/reconfigures the DHCP service.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";

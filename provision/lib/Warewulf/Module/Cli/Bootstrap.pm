@@ -71,7 +71,7 @@ help()
     $h .= "         export          Export a bootstrap image to the local file system\n";
     $h .= "         delete          Delete a bootstrap image from Warewulf\n";
     $h .= "         list            Show all of the currently imported bootstrap images\n";
-    $h .= "         (re)build       Build (or rebuild) the tftp bootable image on this host\n";
+    $h .= "         (re)build       Build (or rebuild) the tftp bootable image(s) on this host\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";

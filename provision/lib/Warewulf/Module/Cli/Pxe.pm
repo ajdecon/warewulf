@@ -38,7 +38,7 @@ summary()
 {
     my $output;
 
-    $output .= "Configure node PXE configuration";
+    $output .= "Manage PXE configuration";
 
     return($output);
 }
@@ -54,7 +54,7 @@ help()
     $h .= "     pxe [command]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
-    $h .= "        Configure the node's PXE configuration.\n";
+    $h .= "        Manage PXE configuration.\n";
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
