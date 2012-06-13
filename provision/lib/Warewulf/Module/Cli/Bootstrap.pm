@@ -168,7 +168,10 @@ exec()
     }
 
     if ($command) {
-        if ($command eq "export") {
+        if ($command eq "help") {
+            print $self->help();
+            return();
+        } elsif ($command eq "export") {
             if (scalar(@ARGV) eq 2) {
                 my $bootstrap = shift(@ARGV);
                 my $bootstrap_path = shift(@ARGV);
