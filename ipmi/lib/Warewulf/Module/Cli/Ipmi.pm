@@ -66,9 +66,6 @@ help()
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
-    $h .= "     the action, the order of the options and the targets is not specific.\n";
-    $h .= "\n";
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         list            List a summary of the node(s) ipmi configuration\n";
     $h .= "         print           Print the full node(s) ipmi configuration\n";

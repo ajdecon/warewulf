@@ -64,9 +64,6 @@ help()
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
-    $h .= "     the action, the order of the options and the targets is not specific.\n";
-    $h .= "\n";
     $h .= "         import          Import a VNFS image into Warewulf\n";
     $h .= "         export          Export a VNFS image to the local file system\n";
     $h .= "         delete          Delete a VNFS image from Warewulf\n";
@@ -170,7 +167,10 @@ exec()
     }
 
     if ($command) {
-        if ($command eq "export") {
+        if ($command eq "help") {
+            print $self->help();
+            return();
+        } elsif ($command eq "export") {
             if (scalar(@ARGV) eq 2) {
                 my $vnfs = shift(@ARGV);
                 my $vnfs_path = shift(@ARGV);

@@ -64,9 +64,6 @@ help()
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
-    $h .= "     the action, the order of the options and the targets is not specific.\n";
-    $h .= "\n";
     $h .= "         import          Import a bootstrap image into Warewulf\n";
     $h .= "         export          Export a bootstrap image to the local file system\n";
     $h .= "         delete          Delete a bootstrap image from Warewulf\n";

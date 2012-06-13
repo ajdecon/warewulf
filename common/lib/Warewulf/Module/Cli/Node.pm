@@ -69,7 +69,7 @@ help()
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
-    $h .= "     The target(s) specify which nodes will be affected by the chosen\n";
+    $h .= "     The target(s) specify which node(s) will be affected by the chosen\n";
     $h .= "     action(s).  By default, node(s) will be identified by their name(s).\n";
     $h .= "     Use the --lookup option to specify another property (e.g., \"hwaddr\"\n";
     $h .= "     or \"groups\").\n";

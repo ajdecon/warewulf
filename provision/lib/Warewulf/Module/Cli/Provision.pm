@@ -66,9 +66,6 @@ help()
     $h .= "\n";
     $h .= "COMMANDS:\n";
     $h .= "\n";
-    $h .= "     The first argument MUST be the desired action you wish to take and after\n";
-    $h .= "     the action, the order of the options and the targets is not specific.\n";
-    $h .= "\n";
     $h .= "         set             Modify an existing node configuration\n";
     $h .= "         list            List a summary of the node(s) provision configuration\n";
     $h .= "         print           Print the full node(s) provision configuration\n";
@@ -85,15 +82,15 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -l, --lookup        How should we reference this node? (default is name)\n";
-    $h .= "     -b, --bootstrap     Define the bootstrap image should this node use\n";
+    $h .= "     -b, --bootstrap     Define the bootstrap image that this node should use\n";
     $h .= "     -v, --vnfs          Define the VNFS that this node should use\n";
 # TODO: Master and bootserver are not used yet...
 #    $h .= "         --master        Specifically set the Warewulf master(s) for this node\n";
 #    $h .= "         --bootserver    If you have multiple DHCP/TFTP servers, which should be\n";
 #    $h .= "                         used to boot this node\n";
     $h .= "         --files         Define the files that should be provisioned to this node\n";
-    $h .= "         --fileadd       Add a file to be provisioned this node\n";
-    $h .= "         --filedel       Remove a file to be provisioned from this node\n";
+    $h .= "         --fileadd       Add a file to be provisioned to this node\n";
+    $h .= "         --filedel       Remove a file to be provisioned to this node\n";
     $h .= "         --preshell      Start a shell on the node before provisioning (boolean)\n";
     $h .= "         --postshell     Start a shell on the node after provisioning (boolean)\n";
     $h .= "         --kargs         Define the kernel arguments (assumes \"quiet\" if UNDEF)\n";

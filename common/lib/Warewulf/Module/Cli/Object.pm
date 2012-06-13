@@ -58,7 +58,7 @@ help()
     $h .= "     print           Display object(s) and their members\n";
     $h .= "     delete          Completely remove object(s) from the data store\n";
     $h .= "     dump            Recursively dump objects in internal format\n";
-    $h .= "     canonicalize    Check and Update objects to current standard format\n";
+    $h .= "     canonicalize    Check and update objects to current standard format\n";
     $h .= "     help            Show usage information\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";

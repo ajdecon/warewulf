@@ -78,9 +78,9 @@ help()
     $h .= "     -d, --path         Set destination (i.e., output) path for this file\n";
     $h .= "     -o, --origin       Set origin (i.e., input) path for this file\n";
     $h .= "     -m, --mode         Set permission attribute for this file\n";
-    $h .= "     -u, --uid          Set the UID of this file\n";
-    $h .= "     -g, --gid          Set the GID of this file\n";
-    $h .= "     -n, --name         Set the reference name of this file (not path!)\n";
+    $h .= "     -u, --uid          Set the UID for this file\n";
+    $h .= "     -g, --gid          Set the GID for this file\n";
+    $h .= "     -n, --name         Set the reference name for this file (not path!)\n";
     $h .= "         --interpreter  Set the interpreter name to parse this file\n";
     $h .= "\n";
     $h .= "NOTE:  Use \"UNDEF\" to erase the current contents of a given field.\n";
