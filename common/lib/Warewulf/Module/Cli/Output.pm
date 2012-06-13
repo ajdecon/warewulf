@@ -29,18 +29,25 @@ new()
 sub
 exec()
 {
-    my ($self, $debug_level) = @_;
+    my ($self, $command) = @_;
 
-    if (uc($debug_level) eq "NORMAL") {
-        &set_log_level("NOTICE");
-    } elsif (uc($debug_level) eq "QUIET") {
-        &set_log_level("WARNING");
-    } elsif (uc($debug_level) eq "VERBOSE") {
-        &set_log_level("INFO");
-    } elsif (uc($debug_level) eq "DEBUG") {
-        &set_log_level("DEBUG");
-    } elsif ($debug_level) {
-        &eprint("Unknown output level: $debug_level\n");
+    if ($command) {
+        if ($command eq "help") {
+            print $self->help();
+            return;
+        }
+
+        if (uc($command) eq "NORMAL") {
+            &set_log_level("NOTICE");
+        } elsif (uc($command) eq "QUIET") {
+            &set_log_level("WARNING");
+        } elsif (uc($command) eq "VERBOSE") {
+            &set_log_level("INFO");
+        } elsif (uc($command) eq "DEBUG") {
+            &set_log_level("DEBUG");
+        } elsif ($command) {
+            &eprint("Unknown output level: $command\n");
+        }
     }
 
     if (&get_log_level() eq $Warewulf::Logger::WWLOG_CRITICAL) {
