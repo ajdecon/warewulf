@@ -161,9 +161,7 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
                     if ($send_buffer) {
                         $q->print("Content-Type: application/octet-stream; name=\"vnfs.img\"\r\n");
-                        if (my $size = $fileObj->size()) {
-                            $q->print("Content-length: $size\r\n");
-                        }
+                        #$q->print("Content-length: ". length($send_buffer) ."\r\n");
                         $q->print("Content-Disposition: attachment; filename=\"vnfs.img\"\r\n");
                         $q->print("\r\n");
 
