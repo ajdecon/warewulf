@@ -52,7 +52,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     file <command> [option(s)] [target(s)]\n";
+    $h .= "     file <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     The file command is used for manipulating file objects.  It allows you to\n";

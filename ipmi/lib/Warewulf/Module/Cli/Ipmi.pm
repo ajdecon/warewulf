@@ -59,7 +59,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     ipmi [command] [options] [targets]\n";
+    $h .= "     ipmi <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "    The ipmi command is used for setting node ipmi configuration attributes.\n";

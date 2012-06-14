@@ -48,7 +48,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     dhcp [command]\n";
+    $h .= "     dhcp <command>\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "        The DHCP command configures/reconfigures the DHCP service.\n";

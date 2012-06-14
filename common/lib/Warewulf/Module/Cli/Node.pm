@@ -55,7 +55,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     node <command> [option(s)] [target(s)]\n";
+    $h .= "     node <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     The node command is used for viewing and manipulating node objects.\n";

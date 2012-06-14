@@ -59,7 +59,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     provision [command] [options] [targets]\n";
+    $h .= "     provision <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "    The provision command is used for setting node provisioning attributes.\n";

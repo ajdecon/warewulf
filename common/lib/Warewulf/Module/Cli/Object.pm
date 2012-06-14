@@ -49,6 +49,9 @@ help()
 {
     my $h;
 
+    $h .= "USAGE:\n";
+    $h .= "     object <command> [options] [targets]\n";
+    $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     The object command provides an interface for generically manipulating all\n";
     $h .= "     object types within the Warewulf data store.\n";

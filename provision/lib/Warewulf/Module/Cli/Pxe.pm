@@ -51,7 +51,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     pxe [command] [options] [targets]\n";
+    $h .= "     pxe <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "        Manage PXE configuration.\n";

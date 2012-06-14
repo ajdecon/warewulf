@@ -56,7 +56,7 @@ help()
     my $h;
 
     $h .= "USAGE:\n";
-    $h .= "     vnfs [command] [options] [targets]\n";
+    $h .= "     vnfs <command> [options] [targets]\n";
     $h .= "\n";
     $h .= "SUMMARY:\n";
     $h .= "     This interface allows you to manage your VNFS images within the Warewulf\n";
