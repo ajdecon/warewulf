@@ -388,7 +388,7 @@ persist($$)
                 $o->set("_id", $id);
             }
 
-            dprint("Updating data store ID = $id\n");
+            &dprint("Updating data store ID = $id\n");
             if (!exists($self->{"STH_SETOBJ"})) {
                 $self->{"STH_SETOBJ"} = $self->{"DBH"}->prepare("UPDATE datastore SET serialized = ? WHERE id = ?");
             }
@@ -472,7 +472,7 @@ del_object($$)
                 $self->{"STH_RMBS"} = $self->{"DBH"}->prepare("DELETE FROM binstore WHERE object_id = ?");
             }
             if (!exists($self->{"STH_RMDS"})) {
-                $self->{"STH_RMDS"} = $self->{"DBH"}->prepare("DELETE FROM data store WHERE id = ?");
+                $self->{"STH_RMDS"} = $self->{"DBH"}->prepare("DELETE FROM datastore WHERE id = ?");
             }
             $self->{"STH_RMLOOK"}->execute($id);
             $self->{"STH_RMBS"}->execute($id);
