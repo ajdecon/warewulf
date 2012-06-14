@@ -87,9 +87,9 @@ if [ $1 -eq 1 ] ; then
 elif [ $1 -eq 2 ] ; then
     # This is a horrid thing to do, but not doing it causes potential massive
     # incompatibilties between bootstrap and server thus making nodes not
-    # bootable after an upgrade. This is may go away or prove to not be needed
+    # bootable after an upgrade. This may go away or prove unnecessary
     # later.
-    echo "Rebuilding bootstrap objects, may take a moment..."
+    echo "Rebuilding bootstrap objects, this may take a moment..."
     %{_bindir}/wwsh bootstrap rebuild >/dev/null 2>&1 || :
 fi
 usermod -a -G warewulf apache >/dev/null 2>&1 || :
