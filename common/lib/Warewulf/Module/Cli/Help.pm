@@ -67,8 +67,8 @@ exec()
         print "Warewulf command line shell interface\n";
         print "\n";
         print "Welcome to the Warewulf shell interface. This application allows you\n";
-        print "to interface to the Warewulf backend database, modules, and interfaces\n";
-        print "via a single shell interface.\n";
+        print "to interact with the Warewulf backend database and modules via a\n";
+        print "single interface.\n";
         print "\n";
 
         foreach my $mod (sort $modules->list()) {
