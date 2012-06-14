@@ -76,7 +76,7 @@ help()
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
-    $h .= "     -n, --name      When importing a VNFS use this name instead of the file name\n";
+    $h .= "     -n, --name          When importing a VNFS use this name instead of the file name\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
