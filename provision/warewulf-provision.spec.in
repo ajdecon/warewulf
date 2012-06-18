@@ -89,7 +89,7 @@ elif [ $1 -eq 2 ] ; then
     # incompatibilties between bootstrap and server thus making nodes not
     # bootable after an upgrade. This may go away or prove unnecessary
     # later.
-    echo "Rebuilding bootstrap objects, this may take a moment..."
+    echo "Rebuilding bootstrap objects, this may take a moment..." >&2
     %{_bindir}/wwsh bootstrap rebuild >/dev/null 2>&1 || :
 fi
 usermod -a -G warewulf apache >/dev/null 2>&1 || :
