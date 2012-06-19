@@ -39,17 +39,16 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
         if (! $fileid and $node) {
             my $nodeName = $node->name();
-            my @files = $node->get("fileids");
             my %metadata;
 
-            print $q->header("text/plain");
-            if (scalar(@files)) {
-                my $objSet = $db->get_objects("file", "_id", @files);
-
+            foreach my $file ($node->get("fileids")) {
+                if (! $file) {
+                    next;
+                }
+                my $objSet = $db->get_objects("file", "_id", $file);
                 foreach my $obj ($objSet->get_list()) {
                     if ($obj) {
                         my $obj_timestamp = $obj->timestamp() || 0;
-
                         if ($timestamp and $timestamp >= $obj_timestamp) {
                             next;
                         }
@@ -64,9 +63,10 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
                         );
                     }
                 }
-                foreach my $t (sort {$a <=> $b} keys %metadata) {
-                    print $metadata{$t};
-                }
+            }
+            print $q->header("text/plain");
+            foreach my $t (sort {$a <=> $b} keys %metadata) {
+                print $metadata{$t};
             }
         } elsif ($fileid =~ /^([0-9]+)$/ ) {
             $fileid = $1;
