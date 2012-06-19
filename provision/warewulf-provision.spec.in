@@ -89,7 +89,7 @@ elif [ $1 -eq 2 ] ; then
     # incompatibilties between bootstrap and server thus making nodes not
     # bootable after an upgrade. This may go away or prove unnecessary
     # later.
-    if [ -w /dev/tty -a -t 0 ]; then
+    if [ -w /dev/tty ]; then
         echo "Rebuilding bootstrap objects; this may take a moment..." >/dev/tty
     else
         echo "Rebuilding bootstrap objects; this may take a moment..."
