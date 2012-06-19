@@ -89,3 +89,7 @@ Tue Apr  3 19:05:31 2012                        Michael Jennings (mej)
 
 Add some missing newlines.
 ----------------------------------------------------------------------
+Tue Jun 19 12:37:17 2012                        Michael Jennings (mej)
+
+Make sure /dev/tty exists and is writeable before writing to it.
+----------------------------------------------------------------------
