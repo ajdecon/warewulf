@@ -12,6 +12,7 @@ use Warewulf::Object;
 use Warewulf::Logger;
 use Warewulf::DataStore;
 use Warewulf::Util;
+use Warewulf::EventHandler;
 use File::Basename;
 use File::Path;
 use Digest::MD5 qw(md5_hex);
@@ -339,6 +340,11 @@ sync()
             $self->size($total_len);
             $db->persist($self);
         }
+
+    } elsif ($name eq "dynamic_hosts") {
+        my $event = Warewulf::EventHandler->new();
+        $event->handle("dynamic_hosts.update", ());
+        &dprint("File was dynamic_hosts; triggering dynamic_hosts.update event\n");
 
     } else {
         &dprint("Skipping file object '$name' as it has no origin paths set\n");

@@ -26,9 +26,11 @@ update_hosts()
     $obj->update_datastore(@_);
 }
 
-
+# Update dynamic_hosts when a node is modified
 $event->register("node.add", \&update_hosts);
 $event->register("node.delete", \&update_hosts);
 $event->register("node.modify", \&update_hosts);
 
+# Allow for explicit trigger of this event
+$event->register("dynamic_hosts.update", \&update_hosts);
 1;
