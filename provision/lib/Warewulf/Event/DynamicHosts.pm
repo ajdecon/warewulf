@@ -32,5 +32,5 @@ $event->register("node.delete", \&update_hosts);
 $event->register("node.modify", \&update_hosts);
 
 # Allow for explicit trigger of this event
-$event->register("dynamic_hosts.update", \&update_hosts);
+$event->register("file::dynamic_hosts.sync", \&update_hosts);
 1;

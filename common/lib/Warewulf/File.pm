@@ -341,14 +341,16 @@ sync()
             $db->persist($self);
         }
 
-    } elsif ($name eq "dynamic_hosts") {
-        my $event = Warewulf::EventHandler->new();
-        $event->handle("dynamic_hosts.update", ());
-        &dprint("File was dynamic_hosts; triggering dynamic_hosts.update event\n");
-
     } else {
         &dprint("Skipping file object '$name' as it has no origin paths set\n");
     }
+
+    # Trigger file::$name.sync event for special behaviors
+    # (i.e. warewulf-provision's dynamic_hosts)
+    my $event = Warewulf::EventHandler->new();
+    my $event_name = "file::$name.sync";
+    $event->handle($event_name, ());
+    &dprint("Triggered event $event_name\n");
 }
 
 
