@@ -426,7 +426,7 @@ exec()
                         $show_changes = 1;
                     }
                     if ($show_changes) {
-                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.NETWORK", $opt_netmask));
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.NETWORK", $opt_network));
                     }
                 } else {
                     &eprint("Option 'network' has invalid characters\n");
