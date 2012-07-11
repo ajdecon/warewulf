@@ -219,13 +219,14 @@ if ($opt_chroot and $opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
 
 if ($opt_hybrid) {
     $opt_hybrid =~ s/\%\{name\}/$opt_name/g;
+    $opt_hybrid =~ s/\/$//g;
 
     my $hybrid_good;
     if (open(FSTAB, "$opt_chroot/etc/fstab")) {
         while (my $line = <FSTAB>) {
             chomp($line);
-            if ($line =~ /^\s*\S+\s+(\/\S+)\s+.+/) {
-                if ($opt_hybrid eq $1) {
+            if ($line =~ /^\s*\S+\s+(\/\S+*)\/?\s+.+/) {
+                if (substr($1, 0, length($opt_hybrid)) eq $opt_hybrid) {
                     $hybrid_good = 1;
                 }
             }
