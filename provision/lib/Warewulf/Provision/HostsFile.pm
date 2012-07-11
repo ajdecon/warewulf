@@ -119,7 +119,7 @@ generate()
         my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
         my $default_name;
 
-        if (! defined($nodename)) {
+        if (! defined($nodename) or $nodename eq "DEFAULT") {
             next;
         }
 
