@@ -115,7 +115,7 @@ generate()
     close(HOSTS);
 
     foreach my $n ($datastore->get_objects("node")->get_list()) {
-        my $nodename = $n->name();
+        my $nodename = $n->nodename();
         my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
         my $default_name;
 
@@ -150,10 +150,10 @@ generate()
                 push(@name_entries, reverse $n->name());
             }
 
-            foreach my $name (reverse $n->name()) {
-                &dprint("Adding a name_entry for '$name-$devname'\n");
-                push(@name_entries, "$name-$devname");
-            }
+            # Renaming the node to include the device name... This will not be
+            # persisted, so this is just temporary.
+            $n->nodename($nodename ."-". $devname);
+            push(@name_entries, reverse $n->name());
 
             if ($node_ipaddr and @name_entries) {
                 $hosts .= sprintf("%-23s %s\n", $node_ipaddr, join(" ", @name_entries));
