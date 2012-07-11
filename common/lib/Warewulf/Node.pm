@@ -90,17 +90,17 @@ name()
     my $self = shift;
     my @names;
 
-    if (scalar(@_)) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Setting nodename: $_[0]\n");
         $self->nodename($_[0]);
         shift(@_);
     }
-    if (scalar(@_)) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Setting cluster name: $_[0]\n");
         $self->cluster($_[0]);
         shift(@_);
     }
-    if (scalar(@_)) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Setting domain name: $_[0]\n");
         $self->domain($_[0]);
         shift(@_);
@@ -124,7 +124,7 @@ nodename()
     my $self = shift;
     my $nodename = $self->prop("nodename", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
-    if (@_) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Set nodename to: $_[0]\n");
         $self->genname();
     }
@@ -146,7 +146,7 @@ cluster()
     my $self = shift;
     my $cluster = $self->prop("cluster", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
-    if (@_) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Set cluster name to: $_[0]\n");
         $self->genname();
     }
@@ -167,7 +167,7 @@ domain()
     my $self = shift;
     my $domain = $self->prop("domain", qr/^([a-zA-Z0-9_\-\.]+)$/, @_);
 
-    if (@_) {
+    if (scalar(@_) && defined($_[0])) {
         &dprint("Set domain name to: $_[0]\n");
         $self->genname();
     }
