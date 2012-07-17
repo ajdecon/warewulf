@@ -23,7 +23,8 @@ usage() {
     echo "TEMPLATE_NAME (select one of the following):"
     for i in $libexecdir/warewulf/wwmkchroot/*.tmpl; do
         NAME=`basename $i | sed -e 's/\.tmpl$//'`
-        echo "   * $NAME"
+        DESC=`grep '^#DESC: ' $i | sed -e 's/#DESC: //'`
+        printf "   * %-20s %s\n" "$NAME" "$DESC"
     done
     echo
     echo "PATH:"
@@ -60,10 +61,10 @@ shift $((OPTIND-1))
 
 export VNFSTEMPLATE=$1
 shift
-export VNFSDIR=$1
+export CHROOTDIR=$1
 shift
 
-if [ -z "$VNFSTEMPLATE" -o -z "$VNFSDIR" ]; then
+if [ -z "$VNFSTEMPLATE" -o -z "$CHROOTDIR" ]; then
     usage
     exit 1
 fi

@@ -1,3 +1,4 @@
+#DESC: A base RHEL chroot to match this build host
 
 # The general RHEL include has all of the necessary functions, but requires
 # some basic variables specific to each chroot type to be defined.
@@ -19,11 +20,11 @@ PKGLIST="SysVinit basesystem bash redhat-release chkconfig coreutils e2fsprogs \
 prechroot() {
     VERSION=`rpm -qf /etc/redhat-release  --qf '%{VERSION}\n'`
 
-    mkdir -p $VNFSDIR
-    mkdir -p $VNFSDIR/etc
+    mkdir -p $CHROOTDIR
+    mkdir -p $CHROOTDIR/etc
 
-    cp -rap /etc/yum.conf /etc/yum.repos.d $VNFSDIR/etc
-    sed -i -e "s/\$releasever/$VERSION/g" `find $VNFSDIR/etc/yum* -type f`
+    cp -rap /etc/yum.conf /etc/yum.repos.d $CHROOTDIR/etc
+    sed -i -e "s/\$releasever/$VERSION/g" `find $CHROOTDIR/etc/yum* -type f`
 }
 
 
