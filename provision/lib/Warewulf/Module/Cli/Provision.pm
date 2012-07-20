@@ -93,6 +93,7 @@ help()
     $h .= "         --filedel       Remove a file to be provisioned to this node\n";
     $h .= "         --preshell      Start a shell on the node before provisioning (boolean)\n";
     $h .= "         --postshell     Start a shell on the node after provisioning (boolean)\n";
+    $h .= "         --bootlocal     Boot the node from the local disk (do not provision)\n";
     $h .= "         --kargs         Define the kernel arguments (assumes \"quiet\" if UNDEF)\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
@@ -167,6 +168,7 @@ exec()
     my $opt_vnfs;
     my $opt_preshell;
     my $opt_postshell;
+    my $opt_bootlocal;
     my @opt_master;
     my @opt_bootserver;
     my @opt_files;
@@ -196,6 +198,7 @@ exec()
         'v|vnfs=s'      => \$opt_vnfs,
         'preshell=s'    => \$opt_preshell,
         'postshell=s'   => \$opt_postshell,
+        'bootlocal=s'   => \$opt_bootlocal,
         'l|lookup=s'    => \$opt_lookup,
     );
 
@@ -316,6 +319,31 @@ exec()
                     $persist_bool = 1;
                 }
                 push(@changes, sprintf("     SET: %-20s = %s\n", "POSTSHELL", 1));
+            }
+        }
+
+        if (defined($opt_bootlocal)) {
+            if (uc($opt_bootlocal) eq "UNDEF" or
+                uc($opt_bootlocal) eq "FALSE" or
+                uc($opt_bootlocal) eq "NO" or
+                uc($opt_bootlocal) eq "N" or
+                $opt_bootlocal == 0
+            ) {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->bootlocal(0);
+                    &dprint("Disabling bootlocal for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("   UNDEF: %-20s\n", "BOOTLOCAL"));
+            } else {
+                foreach my $obj ($objSet->get_list()) {
+                    my $name = $obj->name() || "UNDEF";
+                    $obj->bootlocal(1);
+                    &dprint("Enabling bootlocal for node name: $name\n");
+                    $persist_bool = 1;
+                }
+                push(@changes, sprintf("     SET: %-20s = %s\n", "BOOTLOCAL", 1));
             }
         }
 
@@ -503,6 +531,7 @@ exec()
             if ($o->get("diskpartition")) {
                 printf("%15s: %-16s = %s\n", $name, "DISKPARTITION", join(",", $o->get("diskpartition")));
             }
+            printf("%15s: %-16s = %s\n", $name, "BOOTLOCAL", $o->bootlocal() ? "TRUE" : "FALSE");
         }
 
     } elsif ($command eq "list") {

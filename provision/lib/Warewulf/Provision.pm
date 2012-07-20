@@ -231,6 +231,27 @@ postshell()
 }
 
 
+=item bootlocal($bool)
+
+Set or return the bootlocal boolean
+
+=cut
+
+sub
+bootlocal()
+{
+    my ($self, $bool) = @_;
+
+    if (defined($bool)) {
+        if ($bool) {
+            $self->set("bootlocal", 1);
+        } else {
+            $self->del("bootlocal");
+        }
+    }
+
+    return $self->get("bootlocal");
+}
 
 
 =back
