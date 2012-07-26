@@ -236,20 +236,20 @@ exec()
                                     }
                                 }
                             } else {
-                                &dprint("Creating a new Warewulf VNFS object\n");
+                                &dprint("Creating a new Warewulf bootstrap object\n");
                                 $obj = Warewulf::Bootstrap->new();
                                 $obj->name($name);
-                                &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
+                                &dprint("Persisting the new Warewulf bootstrap object with name: $name\n");
                                 $db->persist($obj);
                             }
 
                             $obj->bootstrap_import($path);
 
                         } else {
-                            &eprint("VNFS not Found: $path\n");
+                            &eprint("Bootstrap not Found: $path\n");
                         }
                     } else {
-                        &eprint("VNFS contains illegal characters: $path\n");
+                        &eprint("Bootstrap contains illegal characters: $path\n");
                     }
                 }
             } else {
@@ -278,7 +278,7 @@ exec()
                     &nprint("No bootstrap images found\n");
                 }
             } elsif ($command eq "list" or $command eq "print") {
-                &nprint("VNFS NAME                 SIZE (M)\n");
+                &nprint("BOOTSTRAP NAME            SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
                     printf("%-25s %-8.1f\n",
                         $obj->name() || "UNDEF",
