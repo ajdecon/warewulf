@@ -14,9 +14,9 @@ use Exporter;
 
 our @ISA = ('Exporter');
 
-our @EXPORT = ('ret_ok', 'ret_success', 'ret_err', 'ret_msg',
-               'ret_err_msg', 'ret_fail', 'ret_failure', 'ret_libc',
-               'ret_err_libc');
+our @EXPORT = ('retvalid', 'retvalize', 'ret_ok', 'ret_success',
+               'ret_err', 'ret_msg', 'ret_err_msg', 'ret_fail',
+               'ret_failure', 'ret_libc', 'ret_err_libc');
 our @EXPORT_OK = @EXPORT;
 our %EXPORT_TAGS = (':all' => [ @EXPORT_OK ], ':clean' => [ ]);
 
@@ -60,6 +60,16 @@ from functions in a flexible, extensible manner.
         return 0;
     }
 
+    # Check to see if we got a RetVal back!
+    if (!retvalid($obj->some_func())) {
+        die("some_func() method returned invalid value!");
+    }
+
+    # Guarantee we have a RetVal for paranoia.
+    if (retvalize(other_func())->is_ok()) {
+        next;
+    }
+
 
 =head1 DESCRIPTION
 
@@ -70,7 +80,7 @@ string, and/or one or more arbitrary results.
 
 The default exports contain some shortcuts for speeding up common
 returns.  These are the C<ret_*()> functions.  To avoid importing
-these, use the C<:clean> import tag when C<use>ing this module.  If
+these, use the C<:clean> import tag when C<use>-ing this module.  If
 you do this, you may still invoke the C<ret_*()> functions as static
 methods of C<Warewulf::RetVal>.
 
@@ -233,7 +243,7 @@ zero.
 =cut
 
 sub
-to_string()
+to_string($)
 {
     my $self = shift;
 
@@ -247,7 +257,7 @@ Return debugging output for the C<RetVal> object's contents.
 =cut
 
 sub
-debug_string()
+debug_string($)
 {
     my $self = shift;
 
@@ -270,6 +280,64 @@ To suppress the import of these shortcut function names into your
 program or module namespace, use the C<:clean> tag when importing the
 C<RetVal> module.
 
+=head2 Return Value Wrappers
+
+When using C<RetVal> objects robustly, one will want to verify that
+functions or methods are actually returning valid C<RetVal> objects
+before invoking methods on them.  One may also want to guarantee the
+return of a C<RetVal> object in all cases.  These two shortcuts do
+that.
+
+=over 4
+
+=item retvalid(I<funcreturn>)
+
+Returns I<funcreturn> if it is a valid C<RetVal> object or false (in
+the Perl sense; i.e., 0) otherwise.
+
+B<NOTE>:  ONLY call this as a function, not a method!
+
+=cut
+
+sub
+retvalid($)
+{
+    my ($self) = @_;
+
+    if (!defined($self) || !ref($self) || !UNIVERSAL::isa($self, "Warewulf::RetVal")) {
+        return 0;
+    }
+    return $self;
+}
+
+=item retvalize(I<funcreturn>)
+
+If I<funcreturn> is a valid C<RetVal> object, it is returned.
+
+Otherwise, one is created with an error I<code> of C<0xbadc0de> and
+"C<retvalize>" as its C<message>.  Its C<results> member is populated
+with the original value(s) returned (i.e., I<funcreturn>), if any.
+This new C<RetVal> object is then returned.
+
+In other words, this function will guarantee that a valid C<RetVal>
+object is returned, even if the original function returned something
+else.
+
+B<NOTE>:  ONLY call this as a function, not a method!
+
+=cut
+
+sub
+retvalize($)
+{
+    if (retvalid($_[0])) {
+        return $_[0];
+    }
+    return Warewulf::RetVal->new(0xbadc0de, "retvalize", @_);
+}
+
+=back
+
 =head2 Successful Return
 
 A successful return is represented by a C<RetVal> object whose
@@ -290,8 +358,15 @@ Both are equivalent to C<Warewulf::RetVal::new(0, "", [ I<result>, [ ... ] ])>
 
 =cut
 
-sub ret_ok()      {return Warewulf::RetVal->new(0, "", @_);}
-sub ret_success() {return Warewulf::RetVal->new(0, "", @_);}
+sub ret_ok()      {return ret_success(@_);}
+sub ret_success() {
+    my (@results) = @_;
+
+    if ((ref($_[0]) eq "Warewulf::RetVal") || ($_[0] eq "Warewulf::RetVal")) {
+        shift @results;
+    }
+    return Warewulf::RetVal->new(0, "", @results);
+}
 
 =back
 
@@ -335,6 +410,10 @@ ret_msg()
 {
     my ($msg, @results) = @_;
 
+    if (ref($msg) || ($msg eq "Warewulf::RetVal")) {
+        shift;
+        ($msg, @results) = @_;
+    }
     return Warewulf::RetVal->new(-1, ($msg || ""), @results);
 }
 
@@ -357,7 +436,12 @@ ret_err_msg()
 {
     my ($code, $msg, @results) = @_;
 
-    return Warewulf::RetVal->new((! defined $code || -1), ($msg || ""), @results);
+    if (ref($code) || ($code eq "Warewulf::RetVal")) {
+        shift;
+        ($code, $msg, @results) = @_;
+    }
+    return Warewulf::RetVal->new(((defined($code)) ? ($code) : (-1)),
+                                 ($msg || ""), @results);
 }
 
 =back
@@ -390,6 +474,9 @@ ret_libc()
     my $code = 1 + $! - 1;
     my $msg = $!;
 
+    if ((ref($_[0]) eq "Warewulf::RetVal") || ($_[0] eq "Warewulf::RetVal")) {
+        shift;
+    }
     return Warewulf::RetVal->new($code, $msg, @_);
 }
 

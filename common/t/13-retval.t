@@ -21,6 +21,7 @@ my @methods = ("new", "init", "error", "msg", "message", "result",
 plan("tests" => (
          + 12             # Instantiation, method, and initialization tests
          + 2              # String representation method tests
+         + 4              # Static method tests
 ));
 
 my ($obj1, $obj2, $obj3);
@@ -57,4 +58,13 @@ undef $obj3;
 #######################################
 is($obj1->to_string(), "Error 1:  error", "to_string() method returns proper result");
 is($obj1->debug_string(), "{ $obj1:  ERROR 1, MESSAGE \"error\", 1 RESULTS }", "debug_string() method returns proper result");
+undef $obj1;
 
+#######################################
+### Static method tests
+#######################################
+$obj1 = Warewulf::RetVal->ret_fail();
+can_ok($obj1, @methods);
+is($obj1->error(), -1, "RetVal default error code is -1");
+is($obj1->msg(), "", "RetVal default error message is empty");
+is(scalar($obj1->result()), 0, "RetVal defaults to empty result set");

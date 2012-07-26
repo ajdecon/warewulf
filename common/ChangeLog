@@ -449,3 +449,12 @@ allowed.
 Fixed a bug in Logger that prevented multiple arguments to the
 *print() functions.
 ----------------------------------------------------------------------
+Thu Jul 26 16:04:20 2012                        Michael Jennings (mej)
+
+Added a few RetVal unit tests to identify a hidden issue.
+
+Fixed invocation of RetVal static methods via -> instead of ::.
+
+Added some function return wrappers to validate or RetVal-ize
+arbitrary functions' return values.
+----------------------------------------------------------------------
