@@ -357,7 +357,7 @@ ret_err_msg()
 {
     my ($code, $msg, @results) = @_;
 
-    return Warewulf::RetVal->new(($code || -1), ($msg || ""), @results);
+    return Warewulf::RetVal->new((! defined $code || -1), ($msg || ""), @results);
 }
 
 =back
