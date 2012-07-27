@@ -30,22 +30,16 @@ if [ -f "$TIMESTAMP_FILE" ]; then
     TIMESTAMP=`cat $TIMESTAMP_FILE`
 fi
 
-# Find wget
-WGET_CMD=`which wget`
-if [ "x$WGET_CMD" == "x" ]; then
-    WGET_CMD=/warewulf/bin/wget
-fi
-
 while true; do
     for master in `echo $WWMASTER | sed -e 's/,/ /g'`; do
         TMPFILE=`mktemp`
-        if $WGET_CMD -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR&timestamp=$TIMESTAMP" 2>/dev/null; then
+        if wget -q -O $TMPFILE "http://$master/WW/file?hwaddr=$HWADDR&timestamp=$TIMESTAMP" 2>/dev/null; then
             cat $TMPFILE | while read id name uid gid mode timestamp path; do
                 basedir=`dirname $path`
                 if [ ! -d "$NEWROOT/$basedir" ]; then
                     mkdir -p $NEWROOT/$basedir
                 fi
-                if $WGET_CMD -q -O $NEWROOT/$path.ww "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id"; then
+                if wget -q -O $NEWROOT/$path.ww "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id"; then
                     chown $uid $NEWROOT/$path.ww
                     chgrp $gid $NEWROOT/$path.ww
                     chmod $mode $NEWROOT/$path.ww
