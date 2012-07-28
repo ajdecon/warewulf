@@ -362,7 +362,9 @@ sub ret_ok()      {return ret_success(@_);}
 sub ret_success() {
     my (@results) = @_;
 
-    if ((ref($_[0]) eq "Warewulf::RetVal") || ($_[0] eq "Warewulf::RetVal")) {
+    if (scalar(@_)
+        && (($_[0] eq "Warewulf::RetVal")
+            || (ref($_[0]) eq "Warewulf::RetVal"))) {
         shift @results;
     }
     return Warewulf::RetVal->new(0, "", @results);
@@ -410,9 +412,10 @@ ret_msg()
 {
     my ($msg, @results) = @_;
 
-    if (ref($msg) || ($msg eq "Warewulf::RetVal")) {
-        shift;
-        ($msg, @results) = @_;
+    if (defined($msg)
+        && (ref($msg) || ($msg eq "Warewulf::RetVal"))) {
+        $msg = $results[0];
+        shift @results;
     }
     return Warewulf::RetVal->new(-1, ($msg || ""), @results);
 }
@@ -436,9 +439,11 @@ ret_err_msg()
 {
     my ($code, $msg, @results) = @_;
 
-    if (ref($code) || ($code eq "Warewulf::RetVal")) {
-        shift;
-        ($code, $msg, @results) = @_;
+    if (defined($code)
+        && (ref($code) || ($code eq "Warewulf::RetVal"))) {
+        $code = $msg;
+        $msg = $results[0];
+        shift @results;
     }
     return Warewulf::RetVal->new(((defined($code)) ? ($code) : (-1)),
                                  ($msg || ""), @results);
@@ -474,7 +479,9 @@ ret_libc()
     my $code = 1 + $! - 1;
     my $msg = $!;
 
-    if ((ref($_[0]) eq "Warewulf::RetVal") || ($_[0] eq "Warewulf::RetVal")) {
+    if (scalar(@_)
+        && ((ref($_[0]) eq "Warewulf::RetVal")
+            || ($_[0] eq "Warewulf::RetVal"))) {
         shift;
     }
     return Warewulf::RetVal->new($code, $msg, @_);

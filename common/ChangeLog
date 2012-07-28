@@ -458,3 +458,7 @@ Fixed invocation of RetVal static methods via -> instead of ::.
 Added some function return wrappers to validate or RetVal-ize
 arbitrary functions' return values.
 ----------------------------------------------------------------------
+Sat Jul 28 08:56:34 2012                        Michael Jennings (mej)
+
+Don't assume parameters exist when they're not required.
+----------------------------------------------------------------------
