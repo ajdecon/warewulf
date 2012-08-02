@@ -375,7 +375,16 @@ persist($$)
 
             if (! $id) {
                 &dprint("Persisting object as new\n");
-                $event->handle("$type.new", $o);
+                my $event_retval = $event->handle("$type.new", $o);
+                if (! $event_retval->is_ok()) {
+                    my $nodename = $o->nodename() || "UNDEF";
+                    my $message = $event_retval->message();
+                    &eprint("Could not add node $nodename\n");
+                    if ($message) {
+                        &eprint("$message\n");
+                    }
+                    next;
+                }
                 if (!exists($self->{"STH_INSTYPE"})) {
                     $self->{"STH_INSTYPE"} = $self->{"DBH"}->prepare("INSERT INTO datastore (type) VALUES (?)");
                 }
