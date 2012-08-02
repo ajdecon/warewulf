@@ -28,6 +28,12 @@ Warewulf::Event - Event base class
 This class acts as a generic base class for all Warewulf Events.  It
 should never be directly instantiated.
 
+=head1 RETURN
+
+Returning undef will cause the event handler to report failure and return
+undef to the caller. Otherwise returning a Warewulf::Retval object will
+allow you to properly return success or failure.
+
 =head1 METHODS
 
 =over 4

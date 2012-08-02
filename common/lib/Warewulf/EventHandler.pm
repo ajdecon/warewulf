@@ -1,6 +1,6 @@
 # Copyright (c) 2001-2003 Gregory M. Kurtzer
 #
-# Copyright (c) 2003-2011, The Regents of the University of California,
+# Copyright (c) 2003-2012, The Regents of the University of California,
 # through Lawrence Berkeley National Laboratory (subject to receipt of any
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
@@ -10,9 +10,11 @@
 
 package Warewulf::EventHandler;
 
+use File::Basename;
+use Warewulf::RetVal;
 use Warewulf::Util;
 use Warewulf::Logger;
-use File::Basename;
+use Warewulf::RetVal;
 
 my %events;
 my $disable = 0;
@@ -178,6 +180,8 @@ handle()
 {
     my ($self, $event, @arguments) = @_;
     my $event_name = uc($event);
+    my $event_count = 0;
+    my $ret_true = undef();
 
     if ($disable) {
         &iprint("Event handler is disabled, not running any events for: $event_name\n");
@@ -185,7 +189,17 @@ handle()
         if (exists($events{"$event_name"})) {
             &dprint("Handling events for '$event_name'\n");
             foreach my $func (@{$events{"$event_name"}}) {
-                &$func(@arguments);
+                my $retval = &$func(@arguments);
+                if (! &retvalid($retval)) {
+                    &eprint("Event did not return a valid Warewulf::RetVal object!\n");
+                    next;
+                }
+                if ($retval->is_ok()) {
+                    &dprint("Event returned success\n");
+                    $event_count++;
+                } else {
+                    return($retval);
+                }
             }
         } else {
             &dprint("No events registered for: $event_name\n");
@@ -196,19 +210,45 @@ handle()
             if (exists($events{"$type.*"})) {
                 &dprint("Handling events for '$type.*'\n");
                 foreach my $func (@{$events{"$type.*"}}) {
-                    &$func(@arguments);
+                    my $retval = &$func(@arguments);
+                    if (! &retvalid($retval)) {
+                        &eprint("Event did not return a valid Warewulf::RetVal object!\n");
+                        next;
+                    }
+                    if ($retval->is_ok()) {
+                        &dprint("Event returned success\n");
+                        $event_count++;
+                    } else {
+                        return($retval);
+                    }
                 }
+            } else {
+                &dprint("No events registered for: $type.*\n");
             }
             if (exists($events{"*.$action"})) {
                 &dprint("Handling events for '*.$action'\n");
                 foreach my $func (@{$events{"*.$action"}}) {
-                    &$func(@arguments);
+                    my $retval = &$func(@arguments);
+                    if (! &retvalid($retval)) {
+                        &eprint("Event did not return a valid Warewulf::RetVal object!\n");
+                        next;
+                    }
+                    if ($retval->is_ok()) {
+                        &dprint("Event returned success\n");
+                        $event_count++;
+                    } else {
+                        return($retval);
+                    }
                 }
+            } else {
+                &dprint("No events registered for: *.$action\n");
             }
         } else {
             &dprint("event_name couldn't be parsed for type.action\n");
         }
     }
+
+    return &ret_success();
 }
 
 =back

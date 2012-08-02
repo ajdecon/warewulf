@@ -10,11 +10,12 @@
 
 package Warewulf::Event::NewObject;
 
-use Warewulf::Logger;
-use Warewulf::Event;
-use Warewulf::EventHandler;
 use Warewulf::Config;
 use Warewulf::DataStore;
+use Warewulf::Event;
+use Warewulf::EventHandler;
+use Warewulf::RetVal;
+use Warewulf::Logger;
 
 my $event = Warewulf::EventHandler->new();
 
@@ -38,7 +39,7 @@ default_config()
             }
         }
     }
-
+    return &ret_success();
 }
 
 

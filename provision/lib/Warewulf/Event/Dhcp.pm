@@ -10,10 +10,11 @@
 
 package Warewulf::Event::Dhcp;
 
-use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
+use Warewulf::Logger;
 use Warewulf::Provision::DhcpFactory;
+use Warewulf::RetVal;
 
 
 my $event = Warewulf::EventHandler->new();
@@ -24,6 +25,8 @@ update_dhcp()
 {
     my $dhcp = Warewulf::Provision::DhcpFactory->new();
     $dhcp->persist();
+
+    return &ret_success();
 }
 
 

@@ -10,9 +10,10 @@
 
 package Warewulf::Event::Bootstrap;
 
-use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
+use Warewulf::Logger;
+use Warewulf::RetVal;
 
 my $event = Warewulf::EventHandler->new();
 
@@ -22,6 +23,7 @@ build_bootstrap()
     foreach my $obj (@_) {
         $obj->build_local_bootstrap();
     }
+    return &ret_success();
 }
 
 sub
@@ -30,6 +32,7 @@ delete_bootstrap()
     foreach my $obj (@_) {
         $obj->delete_local_bootstrap();
     }
+    return &ret_success();
 }
 
 $event->register("bootstrap.add", \&build_bootstrap);

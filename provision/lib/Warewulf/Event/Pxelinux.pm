@@ -10,10 +10,11 @@
 
 package Warewulf::Event::Pxelinux;
 
-use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
+use Warewulf::Logger;
 use Warewulf::Provision::Pxelinux;
+use Warewulf::RetVal;
 
 
 my $event = Warewulf::EventHandler->new();
@@ -24,18 +25,24 @@ sub
 update_pxe()
 {
     $pxe->update(@_);
+
+    return &ret_success();
 }
 
 sub
 delete_pxe()
 {
     $pxe->delete(@_);
+
+    return &ret_success();
 }
 
 sub
 setup_pxe()
 {
     $pxe->setup(@_);
+
+    return &ret_success();
 }
 
 

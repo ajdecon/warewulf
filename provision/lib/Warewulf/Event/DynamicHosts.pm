@@ -10,10 +10,11 @@
 
 package Warewulf::Event::DynamicHosts;
 
-use Warewulf::Logger;
 use Warewulf::Event;
 use Warewulf::EventHandler;
+use Warewulf::Logger;
 use Warewulf::Provision::HostsFile;
+use Warewulf::RetVal;
 
 
 my $event = Warewulf::EventHandler->new();
@@ -24,6 +25,8 @@ sub
 update_hosts()
 {
     $obj->update_datastore(@_);
+
+    return &ret_success();
 }
 
 # Update dynamic_hosts when a node is modified
