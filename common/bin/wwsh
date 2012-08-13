@@ -78,6 +78,7 @@ GetOptions(
 
 
 &set_log_level("NOTICE");
+$term = Warewulf::Term->new();
 
 if ($opt_debug) {
     &set_log_level("DEBUG");
@@ -99,7 +100,6 @@ if (! defined($db)) {
 
 $events = Warewulf::EventHandler->new();
 $modules = Warewulf::ModuleLoader->new("Cli");
-$term = Warewulf::Term->new();
 
 
 foreach my $module ($modules->list()) {
