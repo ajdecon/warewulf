@@ -102,3 +102,12 @@ Thu Jul 26 18:36:25 2012                        Michael Jennings (mej)
 Redundant.  /warewulf/bin is already put into $PATH by "functions"
 file.  If that's not working, we need to figure out why.  :-)
 ----------------------------------------------------------------------
+Tue Aug 14 14:50:07 2012                        Michael Jennings (mej)
+
+Bump SVN version to 3.3.
+
+Add "autoconfig" mode to wwnodescan which allows pre-population of the
+data store with node objects without MAC addresses and subsequent
+automatic assignment of newly-booted nodes' MAC addresses to the
+previously defined nodes.
+----------------------------------------------------------------------

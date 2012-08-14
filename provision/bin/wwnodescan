@@ -29,6 +29,8 @@ my $opt_vnfs;
 my $opt_bootstrap;
 my $opt_groups;
 my $opt_help;
+my $opt_autoconfig;
+my $opt_replace;
 my $ipaddr_bin;
 my $ipaddr_max;
 my $opt_scriptfile;
@@ -42,20 +44,26 @@ my $help = "USAGE: $0 [options] nodes....
     SUMMARY:
         Scan for new systems making DHCP requests.
     
-    OPTIONS:
+    GENERAL OPTIONS:
         -h, --help          Show the help/utilization summary
         -d, --debug         Display debugging information
         -v, --verbose       Be more verbose in output
-        -t, --test          Test mode; do not modify data store
-            --file          Create a Warewulf script instead of auto-import
-            --netdev        Define the network device for the new nodes
-            --ipaddr        IP address for the new node(s)
-            --netmask       Netmask for the new node(s)
-            --vnfs          Set the VNFS for the node(s)
-            --bootstrap     Set the bootstrap for the node(s)
-            --groups        Set the groups for the node(s)
+        -f, --file          Create a Warewulf script instead of auto-import
         -l, --listen        Interface to listen on (tcpdump -D for list)
-            --tcpdump       Specify the full path to the tcpdump command
+        -c, --tcpdump       Specify the full path to the tcpdump command
+
+    MODES:
+        -t, --test          Test mode; do not modify data store
+        -r, --replace       Replace existing nodes (by name)
+        -a, --autoconfig    Assign HW addresses to unassigned nodes
+
+    SETTINGS:
+        -n, --netdev        Define the network device for the new nodes
+        -i, --ipaddr        IP address for the new node(s)
+        -m, --netmask       Netmask for the new node(s)
+        -V, --vnfs          Set the VNFS for the node(s)
+        -b, --bootstrap     Set the bootstrap for the node(s)
+        -g, --groups        Set the groups for the node(s)
 
     NODES:
         You can scan for any number of nodes; this program will exit after all
@@ -90,6 +98,7 @@ GetOptions(
     'v|verbose'     => \$opt_verbose,
     't|test'        => \$opt_testmode,
     'r|replace'     => \$opt_replace,
+    'a|autoconfig'  => \$opt_autoconfig,
     'i|ipaddr=s'    => \$opt_ipaddr,
     'm|netmask=s'   => \$opt_netmask,
     'n|netdev=s'    => \$opt_netdev,
@@ -101,11 +110,15 @@ GetOptions(
     'c|tcpdump=s'   => \$opt_tcpdump
 );
 
-if ($opt_help || !scalar(@ARGV)) {
-    print $help;
-    exit(0);
+if (! $opt_autoconfig) {
+    if ($opt_help || !scalar(@ARGV)) {
+        print $help;
+        exit(0);
+    }
+    @nodenames = &expand_bracket(@ARGV);
+} elsif (scalar(@ARGV)) {
+    @nodenames = &expand_bracket(@ARGV);
 }
-@nodenames = &expand_bracket(@ARGV);
 
 if ($opt_verbose) {
     &set_log_level("INFO");
@@ -167,7 +180,7 @@ if ($opt_testmode) {
         }
     }
 
-    if (! $opt_replace) {
+    if (! $opt_replace && ! $opt_autoconfig) {
         if (! $opt_ipaddr) {
             &eprint("Starting IP address is required (e.g., --ipaddr 10.0.1.0).\n");
             exit(1);
@@ -246,7 +259,7 @@ while (my $line = <TCPDUMP>) {
             next;
         }
         $seen{$hwaddr} = 1;
-        $name = shift(@nodenames);
+        $name = shift(@nodenames) || "";
         $ip = $net->ip_unserialize($ipaddr_bin);
 
         if (! $opt_testmode) {
@@ -293,6 +306,38 @@ while (my $line = <TCPDUMP>) {
                     next;
                 }
                 # ELSE:  Fall through to adding a new node.
+            } elsif ($opt_autoconfig) {
+                $node = $datastore->get_objects("node", "_hwaddr", "UNDEF")->get_object(0);
+                if ($node) {
+                    my $nodename = $node->name();
+                    my $netdevs = $node->netdevs();
+                    my $netdevs_count = $netdevs->count();
+                    my $netdev;
+
+                    &dprintf("Autoconfig mode:  Got node $nodename (%d) with no MAC address and %d netdevs.\n",
+                             $node->id(), $netdevs_count);
+                    if (! $netdevs_count) {
+                        # No network devices present?!
+                        $netdev = $node->netdev_get_add($opt_netdev || "");
+                        &wprintf("No network devices found on node $nodename.  Assuming %s.\n", $netdev->name());
+                    } else {
+                        my @uninit_netdevs;
+
+                        @uninit_netdevs = grep { !defined($_->get("hwaddr")); } $netdevs->get_list();
+                        if (scalar(@uninit_netdevs)) {
+                            $netdev = $uninit_netdevs[0];
+                        }
+                    }
+                    if ($netdev) {
+                        $node->hwaddr($netdev->get("name"), $hwaddr);
+                        &nprintf("Configured $nodename.%s.hwaddr:  $hwaddr\n", ($netdev->get("name") || "<default>"));
+                        $datastore->persist($node);
+                        next;
+                    } else {
+                        &wprint("No network devices found on node $nodename with unconfigured hardware address.\n");
+                    }
+                }
+                # ELSE:  Fall through to adding a new node.
             } else {
                 # Avoid node name conflicts
                 while ($node = $datastore->get_objects("node", "name", $name)->get_object(0)) {
@@ -307,6 +352,7 @@ while (my $line = <TCPDUMP>) {
             }
         }
 
+        # If we get here, we're adding a new node.
         if ($opt_scriptfile) {
             my $entry;
 
@@ -326,7 +372,7 @@ while (my $line = <TCPDUMP>) {
         } elsif ($opt_testmode) {
             &nprint("[TEST] Add to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
         } elsif (! $opt_netdev) {
-            &eprint("Unable to add node $hwaddr as $name; netdev-n/--netdev required when adding new nodes.\n");
+            &eprint("Unable to add node $hwaddr as $name; -n/--netdev required when adding new nodes.\n");
             unshift(@nodenames, $name);
         } else {
             my $new_node = Warewulf::Node->new();
