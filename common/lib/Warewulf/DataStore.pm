@@ -79,6 +79,21 @@ new($$)
     return();
 }
 
+
+=item initialize()
+
+Test and initalize the underlying datastore so it can be used with Warewulf.
+This will also upgrade a database schema if necessary.
+
+=cut
+
+sub
+initalize()
+{
+    return undef;
+}
+
+
 =item get_objects($type, $field, $match_string_1, [...])
 
 Return a Warewulf::ObjectSet that includes all of the matched Warewulf::Object
@@ -91,6 +106,20 @@ get_objects()
 {
     return undef;
 }
+
+=item del_object($objectSet);
+
+Delete objects within a Warewulf::ObjectSet.
+
+=cut
+
+sub
+del_object($$)
+{
+    return undef;
+}
+
+
 
 =item persist($object)
 
@@ -120,6 +149,17 @@ add_lookup($$$$)
     return undef;
 }
 
+=item get_lookups($type, $field, $val1, $val2, $val3);
+
+=cut
+
+sub
+get_lookups($$$@)
+{   
+    return undef;
+}
+
+
 =item del_lookup($object, [$type, [$field, [$value]]])
 
 This will delete lookup entries. The Object is required, but the other
@@ -136,6 +176,66 @@ del_lookup()
 {
     return undef;
 }
+
+
+=item binstore($object_id);
+
+Return a binstore object for the given object ID. The binstore object can have
+data put or gotten (put_chunk or get_chunk methods respectively) from this
+object.
+
+=cut
+
+sub
+binstore()
+{   
+    return undef;
+}
+
+
+=item put_chunk($buffer);
+
+Put data into the binstore object one chunk at a time. Iterate through the
+entire datastream until all data has been added. Make sure you don't try to
+put a chunk bigger then the chunk_size() for this particular database.
+
+=cut
+
+sub
+put_chunk()
+{   
+    return undef;
+}
+
+
+=item get_chunk();
+
+Get all of the data out of the binstore object one chunk at a time.
+
+=cut
+
+sub
+get_chunk()
+{
+    return undef;
+}
+
+
+
+=item chunk_size()
+
+Return the proper chunk size. (default it 1m)
+
+=cut
+
+sub
+chunk_size()
+{   
+    return(1024*1024*1024);
+}
+
+
+
 
 =back
 
