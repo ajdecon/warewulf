@@ -135,19 +135,6 @@ persist($)
     return undef;
 }
 
-=item add_lookup($object, $type, $field, $value)
-
-Add a lookup entry to the DataStore for the specified object.  Queries
-for objects of type $type whose $field value is $value will return
-$object.
-
-=cut
-
-sub
-add_lookup($$$$)
-{
-    return undef;
-}
 
 =item get_lookups($type, $field, $val1, $val2, $val3);
 
@@ -156,24 +143,6 @@ add_lookup($$$$)
 sub
 get_lookups($$$@)
 {   
-    return undef;
-}
-
-
-=item del_lookup($object, [$type, [$field, [$value]]])
-
-This will delete lookup entries. The Object is required, but the other
-arguments are optional. Any arguments not supplied will not be used to
-determine which lookup(s) are deleted. The more arguments you supply,
-the finer the granularity with which you can specify what to
-remove. If only the object instance is supplied, all lookups for that
-object will be removed.
-
-=cut
-
-sub
-del_lookup()
-{
     return undef;
 }
 
