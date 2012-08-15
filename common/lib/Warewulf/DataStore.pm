@@ -80,20 +80,6 @@ new($$)
 }
 
 
-=item initialize()
-
-Test and initalize the underlying datastore so it can be used with Warewulf.
-This will also upgrade a database schema if necessary.
-
-=cut
-
-sub
-initalize()
-{
-    return undef;
-}
-
-
 =item get_objects($type, $field, $match_string_1, [...])
 
 Return a Warewulf::ObjectSet that includes all of the matched Warewulf::Object

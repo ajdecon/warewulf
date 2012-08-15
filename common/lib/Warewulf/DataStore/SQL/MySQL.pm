@@ -111,17 +111,67 @@ init()
         my $db_pass = $config->get("database password");
 
         if ($db_name and $db_server and $db_user) {
+            my $newDB;
             &dprint("DATABASE NAME:      $db_name\n");
             &dprint("DATABASE SERVER:    $db_server\n");
             &dprint("DATABASE USER:      $db_user\n");
 
+            my @databases = DBI->data_sources("mysql", {"host" => "$db_server", "user" => "$db_user", password => "$db_pass"});
+
+            if (@databases) {
+                if (! grep({ $_ eq "DBI:mysql:$db_name"} @databases)) {
+                    my $drh = DBI->install_driver("mysql");
+                    if ($drh->func('createdb', $db_name, $db_server, $db_user, $db_pass, 'admin')) {
+                        &nprint("Created new MySQL database\n");
+                        $newDB = 1;
+                    } else {
+                        &eprint("Could not create database!\n");
+                        return undef;
+                    }
+                }
+            } else {
+                &eprint("Could not connect to MySQL database. Check credentials!\n");
+                return undef;
+            }
+
             if ($self->{"DBH"} = DBI->connect_cached("DBI:mysql:database=$db_name;host=$db_server", $db_user, $db_pass)) {
                 &iprint("Successfully connected to database!\n");
+                $self->{"DBH"}->{"mysql_auto_reconnect"} = 1;
             } else {
                 &wprint("Could not connect to DB: $DBI::errstr!\n");
                 return undef;
             }
-            $self->{"DBH"}->{"mysql_auto_reconnect"} = 1;
+
+            if ($newDB) {
+                $self->{"DBH"}->do("CREATE TABLE IF NOT EXISTS datastore (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+                        type VARCHAR(64),
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        serialized BLOB,
+                        data BLOB,
+                        INDEX (id),
+                        PRIMARY KEY (id)
+                    ) ENGINE=INNODB");
+                $self->{"DBH"}->do("CREATE TABLE IF NOT EXISTS binstore (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+                        object_id INT UNSIGNED,
+                        chunk LONGBLOB,
+                        FOREIGN KEY (object_id) REFERENCES datastore (id),
+                        INDEX (id),
+                        PRIMARY KEY (id)
+                    ) ENGINE=INNODB");
+                $self->{"DBH"}->do("CREATE TABLE IF NOT EXISTS lookup (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+                        object_id INT UNSIGNED,
+                        field VARCHAR(64) BINARY,
+                        value VARCHAR(64) BINARY,
+                        FOREIGN KEY (object_id) REFERENCES datastore (id),
+                        INDEX (id),
+                        UNIQUE KEY (object_id, field, value),
+                        PRIMARY KEY (id)
+                    ) ENGINE=INNODB");
+            }
+
         } else {
             &wprint("Could not connect to the database (undefined credentials)!\n");
             return undef;
