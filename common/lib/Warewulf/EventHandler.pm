@@ -11,10 +11,9 @@
 package Warewulf::EventHandler;
 
 use File::Basename;
-use Warewulf::RetVal;
-use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::RetVal;
+use Warewulf::Util;
 
 my %events;
 my $disable = 0;
