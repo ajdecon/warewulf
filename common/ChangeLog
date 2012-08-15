@@ -462,3 +462,7 @@ Sat Jul 28 08:56:34 2012                        Michael Jennings (mej)
 
 Don't assume parameters exist when they're not required.
 ----------------------------------------------------------------------
+Wed Aug 15 14:04:38 2012                        Michael Jennings (mej)
+
+This should be a more efficient method of computing the MD5 checksum.
+----------------------------------------------------------------------

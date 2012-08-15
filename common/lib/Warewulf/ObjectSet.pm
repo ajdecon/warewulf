@@ -150,12 +150,12 @@ find($$$)
     my ($self, $key, $val) = @_;
     my @ret;
 
-    if (! $key or ! $val) {
+    if (! $key || ! $val) {
         return undef;
     }
 
     foreach my $obj (@{$self->{"ARRAY"}}) {
-        if ($obj->get($key) and uc($obj->get($key)) eq uc($val)) {
+        if ($obj->get($key) && uc($obj->get($key)) eq uc($val)) {
             push(@ret, $obj);
         }
     }

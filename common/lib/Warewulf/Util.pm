@@ -12,7 +12,7 @@ package Warewulf::Util;
 
 use Exporter;
 use File::Basename;
-use Digest::MD5 ('md5_hex');
+use Digest::MD5;
 
 our @ISA = ('Exporter');
 
@@ -290,7 +290,8 @@ digest_file_hex_md5($)
     local *DATA;
 
     if (open(DATA, $filename)) {
-        return md5_hex(join("", <DATA>));
+        binmode(DATA);
+        return Digest::MD5->new()->addfile(*DATA)->hexdigest();
     } else {
         return undef;
     }
