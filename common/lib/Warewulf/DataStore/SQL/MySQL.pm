@@ -544,7 +544,7 @@ del_object($$)
 
     # Run all events grouped together.
     foreach my $type (keys %events) {
-        $event->handle("$type.modify", @{$events{"$type"}});
+        $event->handle("$type.delete", @{$events{"$type"}});
     }
 
     return scalar(@objlist);
