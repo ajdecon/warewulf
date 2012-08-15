@@ -24,7 +24,7 @@ my $obj = Warewulf::Provision::HostsFile->new();
 sub
 update_hosts()
 {
-    $obj->update_datastore(@_);
+    $obj->update(@_);
 
     return &ret_success();
 }
