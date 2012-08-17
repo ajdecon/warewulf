@@ -62,13 +62,8 @@ configure_pam() {
 
 configure_password() {
     /usr/sbin/chroot $CHROOTDIR /usr/sbin/pwconv
-    if [ -x "$CHROOTDIR/usr/bin/passwd" ]; then
-        echo "Setting root password..."
-        /usr/sbin/chroot $CHROOTDIR /usr/bin/passwd root
-    else
-        echo "Setting root password to NULL (be sure to fix this yourself)"
-        sed -i -e 's/^root:\*:/root::/' $CHROOTDIR/etc/shadow
-    fi
+    echo "Setting root password to NULL (be sure to fix this yourself)"
+    sed -i -e 's/^root:\*:/root::/' $CHROOTDIR/etc/shadow
     return 0
 }
 
