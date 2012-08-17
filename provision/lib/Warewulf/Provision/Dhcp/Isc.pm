@@ -226,7 +226,9 @@ persist()
 
         &dprint("Iterating through nodes\n");
         foreach my $n ($datastore->get_objects("node")->get_list()) {
-            my $nodename = $n->nodename() || "undef";
+            my $hostname = $n->nodename() || "undef";
+            my $nodename = $n->name() || "undef";
+            $nodename =~ s/\./_/g;
             &dprint("Evaluating node: $nodename\n");
             my @bootservers = $n->get("bootserver");
             if (! @bootservers or scalar(grep { $_ eq $ipaddr} @bootservers)) {
@@ -284,7 +286,7 @@ persist()
                         &dprint("Adding a host entry for: $nodename-$devname\n");
 
                         $dhcpd_contents .= "   host $nodename-$devname {\n";
-                        $dhcpd_contents .= "      option host-name $nodename;\n";
+                        $dhcpd_contents .= "      option host-name $hostname;\n";
                         if ($gateway) {
                             $dhcpd_contents .= "      option routers $gateway;\n";
                         }

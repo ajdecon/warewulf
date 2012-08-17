@@ -142,7 +142,8 @@ update()
     }
 
     foreach my $nodeobj (@nodeobjs) {
-        my $nodename = $nodeobj->nodename() || "undefined";
+        my $hostname = $nodeobj->name() || "undef";
+        my $nodename = $nodeobj->nodename() || "undef";
         my $bootstrapid = $nodeobj->get("bootstrapid");
         my @kargs = $nodeobj->get("kargs");
         my @masters = $nodeobj->get("master");
@@ -208,6 +209,7 @@ update()
                     &eprint("Could not open PXELinux config: $!\n");
                     next;
                 }
+                print PXELINUX "# Configuration for Warewulf node: $hostname\n";
                 if ($nodeobj->get("bootlocal")) {
                     print PXELINUX "DEFAULT bootlocal\n";
                 } else {
@@ -218,7 +220,7 @@ update()
                 print PXELINUX "APPEND hd0\n";
 
                 print PXELINUX "LABEL bootstrap\n";
-                print PXELINUX "SAY Now booting Warewulf bootstrap image: $bootstrapname\n";
+                print PXELINUX "SAY Now booting $hostname with Warewulf bootstrap ($bootstrapname\n";
                 print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
                 print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
                 if (@kargs) {
