@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exec `wwconfig -as`
+eval `wwconfig -as`
 
 export FUNCTIONS="sanity_check
                   init
