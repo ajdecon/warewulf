@@ -1,5 +1,6 @@
 #!/bin/bash
 
+exec `wwconfig -as`
 
 export FUNCTIONS="sanity_check
                   init
@@ -8,6 +9,7 @@ export FUNCTIONS="sanity_check
                   postchroot
                   configure_fstab
                   configure_network
+                  configure_ntp
                   configure_pam
                   configure_password
                   configure_sshkeys
@@ -104,6 +106,28 @@ configure_timezone() {
     if [ -f "/etc/localtime" ]; then
         cp /etc/localtime $CHROOTDIR/etc/localtime
     fi
+}
+
+configure_ntp() {
+    NETDEV=`grep "^network device =" $WAREWULF_SYSCONFDIR/warewulf/provision.conf | cut -d = -f 2`
+    if [ -f "/etc/sysconfig/network-scripts/ifcfg-$NETDEV" ]; then
+        . /etc/sysconfig/network-scripts/ifcfg-$NETDEV
+        if [ -n "$IPADDR" -a "x$BOOTPROTO" == "xstatic" ]; then
+            echo "# Written by Warewulf:wwmkchroot" >> $CHROOTDIR/etc/ntp.conf
+            echo "driftfile /var/lib/ntp/drift" >> $CHROOTDIR/etc/ntp.conf
+
+            echo "restrict default kod nomodify notrap nopeer noquery" >> $CHROOTDIR/etc/ntp.conf
+            echo "restrict -6 default kod nomodify notrap nopeer noquery" >> $CHROOTDIR/etc/ntp.conf
+
+            echo "restrict 127.0.0.1" >> $CHROOTDIR/etc/ntp.conf
+            echo "restrict -6 ::1" >> $CHROOTDIR/etc/ntp.conf
+
+            echo "server $IPADDR prefer" >> $CHROOTDIR/etc/ntp.conf
+            echo "restrict $IPADDR mask 255.255.255.255 nomodify notrap noquery" >> $CHROOTDIR/etc/ntp.conf
+
+        fi
+    fi
+
 }
 
 configure_services() {
