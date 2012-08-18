@@ -38,6 +38,11 @@ default_config()
                 }
             }
         }
+
+        # Generate the names on node objects
+        if ($type eq "node") {
+            $obj->genname();
+        }
     }
     return &ret_success();
 }
@@ -46,3 +51,5 @@ default_config()
 $event->register("*.new", \&default_config);
 
 1;
+
+# vim:filetype=perl:syntax=perl:expandtab:ts=4:sw=4:
