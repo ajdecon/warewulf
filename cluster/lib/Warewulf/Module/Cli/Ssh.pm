@@ -45,6 +45,7 @@ exec()
     my $netmask = $netobj->netmask($devname);
     my $network = $netobj->network($devname);
     my $opt_lookup = "name";
+    my $opt_allnodes;
     my $address;
     my $objSet;
     my $user;
@@ -60,6 +61,7 @@ exec()
 
     GetOptions(
         'l|lookup=s'    => \$opt_lookup,
+        'a|allnodes'    => \$opt_allnodes,
     );
 
     if (scalar(@ARGV) == 0) {
@@ -67,19 +69,23 @@ exec()
         return;
     }
 
-    $searchstring = shift(@ARGV);
-    if ($searchstring =~ /^([^\@]+\@)(.+)$/) {
-        $user = $1;
-        $searchstring = $2;
-    }
-    $command = join(" ", @ARGV);
-
+    if ($opt_allnodes) {
+        $objSet = $db->get_objects("node", $opt_lookup);
+    } else {
+        $searchstring = shift(@ARGV);
+        if ($searchstring =~ /^([^\@]+\@)(.+)$/) {
+            $user = $1;
+            $searchstring = $2;
+        }
 #TODO: Split searchstring up by commas without interfering with bracketed commas.
 #      for example: n000[0,1,2,3],test0000 should just split up n000[0,1,2,3] and 
 #      test0000
-    if ($searchstring) {
-        $objSet = $db->get_objects("node", $opt_lookup, &expand_bracket($searchstring));
+        if ($searchstring) {
+            $objSet = $db->get_objects("node", $opt_lookup, &expand_bracket($searchstring));
+        }
     }
+    $command = join(" ", @ARGV);
+
 
     if (! $objSet or $objSet->count() == 0) {
         &nprint("No nodes found\n");
@@ -143,12 +149,6 @@ exec()
     @ARGV = ();
 }
 
-&set_log_level("DEBUG");
-my $o = Warewulf::Module::Cli::Ssh->new();
-$o->exec("n000[0-2],n0001", "test");
-
-
-
 
 sub
 complete()
@@ -211,6 +211,7 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -l, --lookup        Identify nodes by specified property (default: \"name\")\n";
+    $h .= "     -a, --allnodes      Send command to all configured nodes\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
