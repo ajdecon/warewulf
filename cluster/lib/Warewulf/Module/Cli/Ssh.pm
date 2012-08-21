@@ -72,11 +72,13 @@ exec()
         $user = $1;
         $searchstring = $2;
     }
-    @search = split(",", $searchstring);
     $command = join(" ", @ARGV);
 
-    if (@search) {
-        $objSet = $db->get_objects("node", $opt_lookup, &expand_bracket(@search));
+#TODO: Split searchstring up by commas without interfering with bracketed commas.
+#      for example: n000[0,1,2,3],test0000 should just split up n000[0,1,2,3] and 
+#      test0000
+    if ($searchstring) {
+        $objSet = $db->get_objects("node", $opt_lookup, &expand_bracket($searchstring));
     }
 
     if (! $objSet or $objSet->count() == 0) {
@@ -131,7 +133,7 @@ exec()
         }
 
         if ($address) {
-            $pcmd->queue("/usr/bin/ssh $user$address $command\n", "$node_name: ");
+            $pcmd->queue("/usr/bin/ssh -o BatchMode=yes $user$address $command\n", "$node_name: ");
         } else {
             &eprint("Can not determine address to: $node_name\n");
         }
@@ -140,6 +142,12 @@ exec()
 
     @ARGV = ();
 }
+
+&set_log_level("DEBUG");
+my $o = Warewulf::Module::Cli::Ssh->new();
+$o->exec("n000[0-2],n0001", "test");
+
+
 
 
 sub
@@ -199,8 +207,6 @@ help()
     $h .= "\n";
     $h .= "         n00[0-99]       All nodes from n0000 through n0099 (inclusive)\n";
     $h .= "         n00[00,10-99]   n0000 and all nodes from n0010 through n0099\n";
-    $h .= "\n";
-    $h .= "     Mulitple targets must be comma seperated with no space.\n";
     $h .= "\n";
     $h .= "OPTIONS:\n";
     $h .= "\n";
