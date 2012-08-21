@@ -46,9 +46,9 @@ exec()
     my $network = $netobj->network($devname);
     my $opt_lookup = "name";
     my $opt_allnodes;
+    my $user = "";
     my $address;
     my $objSet;
-    my $user;
     my $searchstring;
     my @search;
     my $command;

@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+#
+# $Id: wwuseradd 1038 2012-08-02 21:18:25Z gmk $
+#
+
+
+if ! which wwsh >/dev/null 2>&1; then
+   echo "ERROR: wwsh not in PATH!" >&2
+   exit 1
+fi
+
+exec `wwconfig -as`
+
+if [ -z "`sudo wwsh file print passwd`" ]; then
+    if ! wwsh file import /etc/passwd --name=passwd; then
+       echo "ERROR: Could not import /etc/passwd to Warewulf!" >&2
+       exit 1
+    fi
+fi
+
+if [ -z "`sudo wwsh file print group`" ]; then
+    if ! wwsh file import /etc/group --name=group; then
+       echo "ERROR: Could not import /etc/passwd to Warewulf!" >&2
+       exit 1
+    fi
+fi
+
+#TODO: Remove this and put in the NODE.NEW event for warewulf-cluster
+yes | wwsh provision set DEFAULT --fileadd=passwd,group
+
+
+if ! yes | wwsh provision set --fileadd passwd,group; then
+    echo "ERROR: Could not set nodes to provision passwd and group files" >&2
+    exit 1
+fi
+
+
+
+
+

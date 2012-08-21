@@ -42,7 +42,8 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-, root, root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
-%{perl_vendorlib}/*
+%{_bindir}/*
+%{perl_vendorlib}/Warewulf/Module/Cli/*
 
 
 %changelog

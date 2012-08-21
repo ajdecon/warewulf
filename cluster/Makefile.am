@@ -1,4 +1,4 @@
-SUBDIRS = lib
+SUBDIRS = bin lib
 
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* ltmain.sh install-sh missing
 DISTCLEANFILES = 
