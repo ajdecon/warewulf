@@ -11,6 +11,7 @@
 
 package Warewulf::Module::Cli::Node;
 
+use Warewulf::Config;
 use Warewulf::Logger;
 use Warewulf::Module::Cli;
 use Warewulf::Term;
@@ -53,6 +54,8 @@ sub
 help()
 {
     my $h;
+    my $config_defaults = Warewulf::Config->new("defaults/node.conf");
+    my $netdev = $config_defaults->get("netdev") || "UNDEF";
 
     $h .= "USAGE:\n";
     $h .= "     node <command> [options] [targets]\n";
@@ -84,14 +87,14 @@ help()
     $h .= "     -g, --groups        Specify all groups to which this node belongs\n";
     $h .= "         --groupadd      Add node to specified group(s)\n";
     $h .= "         --groupdel      Remove node from specified group(s)\n";
-    $h .= "     -D, --netdev        Specify network device (\"netdev\") to add or modify\n";
+    $h .= "     -D, --netdev        Specify network device to add or modify (defaults: $netdev)\n";
     $h .= "         --netdel        Remove specified netdev from node\n";
-    $h .= "     -I, --ipaddr        Set IP address of given netdev (requires --netdev)\n";
-    $h .= "     -M, --netmask       Set subnet mask of given netdev (requires --netdev)\n";
-    $h .= "     -N, --network       Set network address of netdev (requires --netdev)\n";
-    $h .= "     -G, --gateway       Set gateway of given netdev (requires --netdev)\n";
-    $h .= "     -H, --hwaddr        Set hardware/MAC address (requires --netdev)\n";
-    $h .= "     -f, --fqdn          Set FQDN of given netdev (requires --netdev)\n";
+    $h .= "     -I, --ipaddr        Set IP address of given netdev\n";
+    $h .= "     -M, --netmask       Set subnet mask of given netdev\n";
+    $h .= "     -N, --network       Set network address of netdev\n";
+    $h .= "     -G, --gateway       Set gateway of given netdev\n";
+    $h .= "     -H, --hwaddr        Set hardware/MAC address\n";
+    $h .= "     -f, --fqdn          Set FQDN of given netdev\n";
     $h .= "     -c, --cluster       Specify cluster name for this node\n";
     $h .= "     -d, --domain        Specify domain name for this node\n";
     $h .= "     -n, --name          Specify new name for this node\n";
@@ -164,13 +167,14 @@ exec()
     my $self = shift;
     my $db = $self->{"DB"};
     my $term = Warewulf::Term->new();
+    my $config_defaults = Warewulf::Config->new("defaults/node.conf");
+    my $opt_netdev = $config_defaults->get("netdev");
     my $opt_lookup = "name";
     my $opt_hwaddr;
     my $opt_ipaddr;
     my $opt_netmask;
     my $opt_network;
     my $opt_gateway;
-    my $opt_netdev;
     my $opt_devremove;
     my $opt_cluster;
     my $opt_name;
