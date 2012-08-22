@@ -102,7 +102,7 @@ get($)
     $key = uc($key);
     if (exists($self->{$key})) {
         if (ref($self->{$key}) eq "ARRAY") {
-            return ((wantarray()) ? (@{$self->{$key}}) : ($self->{$key}));
+            return ((wantarray()) ? (@{$self->{$key}}) : ($self->{$key}[0]));
         } else {
             return $self->{$key};
         }
