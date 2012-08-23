@@ -220,7 +220,7 @@ update()
                 print PXELINUX "APPEND hd0\n";
 
                 print PXELINUX "LABEL bootstrap\n";
-                print PXELINUX "SAY Now booting $hostname with Warewulf bootstrap ($bootstrapname\n";
+                print PXELINUX "SAY Now booting $hostname with Warewulf bootstrap ($bootstrapname)\n";
                 print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
                 print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
                 if (@kargs) {
