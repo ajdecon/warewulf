@@ -95,19 +95,23 @@ is_deeply(scalar($obj1->get_hash()), \%test_hash, "get_hash() returns accurate r
 shift @tmp;
 $obj1->init();
 is($obj1->set(@test_array), 4, "set() with an array returns the number of items set");
-is_deeply(scalar($obj1->get("interfaces")), \@tmp, "get() returns the correct data");
+is(scalar($obj1->get("interfaces")), $tmp[0], "scalar(get()) returns the first element");
 
 # set() with an array reference
 $obj1->init();
 is($obj1->set(\@test_array), 4, "set() with an array reference works just like an array");
 isnt($obj1->get("interfaces"), \@test_array, "get() does NOT return the original array reference");
-is_deeply(scalar($obj1->get("interfaces")), \@tmp, "get() returns the correct data");
+is(scalar($obj1->get("interfaces")), $tmp[0], "scalar(get()) returns the first element");
 
 # set() with a complex, hashref-based data structure
 is($obj1->init(\%test_complex), $obj1, "init() with complex hashref returns the object");
 is($obj1->get("name"), $test_complex{"name"}, "Complex object set test -- scalar value");
-isnt(scalar($obj1->get("groups")), $test_complex{"groups"}, "Complex object set test -- arrayref set by value");
-is_deeply(scalar($obj1->get("groups")), $test_complex{"groups"}, "Complex object set test -- array");
+@tmp = $obj1->get("groups");
+is_deeply(\@tmp, $test_complex{"groups"}, "Complex object set test -- array");
+$test_complex{"groups"}[0] = "replaced";
+@tmp = $obj1->get("groups");
+isnt($tmp[0], "replaced", "Complex object set test -- arrayref set by value, not by reference");
+$test_complex{"groups"}[0] = $tmp[0];
 isnt(scalar($obj1->get("devices")), $test_complex{"devices"}, "Complex object set test -- hashref set by value");
 is_deeply(scalar($obj1->get("devices")), $test_complex{"devices"}, "Complex object set test -- hash");
 
@@ -122,7 +126,8 @@ ok(!defined($obj1->set(\$test_scalar)), "obj->set(<scalarref>) returns undef");
 ok(!defined($obj1->set("devices", undef)), "obj->set(\"key\", undef) returns undef");
 ok(!defined($obj1->get("devices")), "obj->set(\"key\", undef) removes the member variable");
 is($obj1->get("name"), $test_complex{"name"}, "obj->set(\"key\", undef) leaves other members intact");
-is_deeply(scalar($obj1->get("groups")), $test_complex{"groups"}, "obj->set(\"key\", undef) leaves other members intact");
+@tmp = $obj1->get("groups");
+is_deeply(\@tmp, $test_complex{"groups"}, "obj->set(\"key\", undef) leaves other members intact");
 
 # Make sure simple key/value pairs work correctly.
 is($obj1->set("name", "n0001"), "n0001", "obj->set(\"key\", \"value\") returns \"value\"");
@@ -132,7 +137,8 @@ is($obj1->get("name"), "n0001", "obj->set(\"key\", \"value\") changes member \"k
 push(@{$test_complex{"groups"}}, $test_scalar);
 is(scalar($obj1->set("groups", $obj1->get("groups"), $test_scalar)), scalar(@{$test_complex{"groups"}}),
    "Object member list append using set/get returns new value count");
-is_deeply(scalar($obj1->get("groups")), $test_complex{"groups"}, "Object member list append using set/get works");
+@tmp = $obj1->get("groups");
+is_deeply(\@tmp, $test_complex{"groups"}, "Object member list append using set/get works");
 
 #######################################
 ### add()/del() method tests
@@ -141,13 +147,15 @@ my @test_list = (0, 1, 2, 3, 4);
 
 $obj1->init();
 is(scalar($obj1->add("stuff", @test_list)), scalar(@test_list), "obj->add(\"key\", <list>) returns correctly");
-is_deeply(scalar($obj1->get("stuff")), \@test_list, "obj->add(\"key\", <list>) works correctly");
+@tmp = $obj1->get("stuff");
+is_deeply(\@tmp, \@test_list, "obj->add(\"key\", <list>) works correctly");
 is(scalar($obj1->del("stuff", @test_list)), 0, "obj->del(\"key\", <list>) purges the object member completely");
 ok(!defined($obj1->get("stuff")), "obj->del(\"key\", <list>) works correctly");
 is_deeply($obj1, {}, "Object is fully purged");
 
 is(scalar($obj1->add("stuff", $test_list[$#test_list])), 1, "obj->add(\"key\", <item>) returns correctly");
-is_deeply(scalar($obj1->get("stuff")), [ $test_list[$#test_list] ], "obj->add() creates an array, even for a single item");
+@tmp = $obj1->get("stuff");
+is_deeply(\@tmp, [ $test_list[$#test_list] ], "obj->add() creates an array, even for a single item");
 is(scalar($obj1->del("stuff", $test_list[$#test_list])), 0, "obj->del(\"key\", <item>) purges the object member completely");
 ok(!defined($obj1->get("stuff")), "obj->del(\"key\", <item>) works correctly");
 is_deeply($obj1, {}, "Object is fully purged");
@@ -167,25 +175,30 @@ $obj1->init();
 ok(!defined(scalar($obj1->add())), "obj->add() returns undef");
 ok(!defined(scalar($obj1->del())), "obj->del() returns undef");
 is(scalar($obj1->add("stuff")), 0, "obj->add(\"key\") creates an empty member variable");
-ok(defined($obj1->get("stuff")), "obj->add(\"key\") works correctly");
-is_deeply(scalar($obj1->get("stuff")), [], "obj->add(\"key\") created the empty member variable");
+@tmp = $obj1->get("stuff");
+is(scalar(@tmp), 0, "obj->add(\"key\") works correctly");
+is_deeply(\@tmp, [], "obj->add(\"key\") created the empty member variable");
 is(scalar($obj1->del("stuff")), 0, "obj->del(\"key\") has removed the empty member variable");
 is(scalar($obj1->del("moo")), 0, "obj->del(\"bad key\") returns empty list");
 
 $obj1->init("stuff" => 1);
 is(scalar($obj1->add("stuff", 2, 3, 4)), 4, "obj->add(\"oldkey\", <list>) properly converts a single-value member to a list");
-is_deeply(scalar($obj1->get("stuff")), [ 1, 2, 3, 4 ], "obj->add(\"oldkey\", <list>) appends new values correctly");
+@tmp = $obj1->get("stuff");
+is_deeply(\@tmp, [ 1, 2, 3, 4 ], "obj->add(\"oldkey\", <list>) appends new values correctly");
 is(scalar($obj1->add("stuff", 3, 4, 1, 2)), 4, "obj->add(\"oldkey\", <dupes>) properly ignores duplicate values");
-is_deeply(scalar($obj1->get("stuff")), [ 1, 2, 3, 4 ], "obj->add(\"oldkey\", <dupes>) does not change the member variable");
+@tmp = $obj1->get("stuff");
+is_deeply(\@tmp, [ 1, 2, 3, 4 ], "obj->add(\"oldkey\", <dupes>) does not change the member variable");
 is(scalar($obj1->add("stuff", @test_list)), scalar(@test_list), "obj->add(\"oldkey\", <some dupes>) filters duplicates");
-is_deeply(scalar(@{scalar($obj1->get("stuff"))}), scalar(@test_list), "obj->add(\"oldkey\", <some dupes>) merges correctly");
+@tmp = $obj1->get("stuff");
+is_deeply(scalar(@tmp), scalar(@test_list), "obj->add(\"oldkey\", <some dupes>) merges correctly");
 is(scalar($obj1->del("stuff", $test_list[$#test_list])), $#test_list,
    "obj->del(\"key\", <item>) removes an item and leaves the rest");
 
 $obj1->init("stuff" => 5);
 is_deeply($obj1->get("stuff"), 5, "Before obj->del(), we have a scalar");
 is(scalar($obj1->del("stuff", 2)), 1, "obj->del(\"key\", <nonexistent item>) still has a single value");
-is_deeply(scalar($obj1->get("stuff")), [ 5 ], "But now it's an array");
+@tmp = $obj1->get("stuff");
+is_deeply(\@tmp, [ 5 ], "But now it's an array");
 
 #######################################
 ### prop() wrapper method tests

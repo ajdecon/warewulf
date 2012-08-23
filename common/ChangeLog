@@ -466,3 +466,7 @@ Wed Aug 15 14:04:38 2012                        Michael Jennings (mej)
 
 This should be a more efficient method of computing the MD5 checksum.
 ----------------------------------------------------------------------
+Thu Aug 23 13:53:29 2012                        Michael Jennings (mej)
+
+Update unit tests for new Object::get() logic.
+----------------------------------------------------------------------
