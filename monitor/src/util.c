@@ -436,8 +436,7 @@ send_json(int sock, json_object *jobj)
         appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
 
         app_h->len = json_len;
-	//app_h->timestamp = timer;
-	app_h->timestamp = timer-1000;
+	app_h->timestamp = timer;
         strcpy(app_h->nodename,unameinfo.nodename);
 
         bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
