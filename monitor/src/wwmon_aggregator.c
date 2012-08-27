@@ -74,34 +74,28 @@ update_dbase(time_t TimeStamp, char *NodeName, json_object *jobj)
   int DBTimeStamp = -1;
   int blobid = -1;
   int overwrite = 0;
-  if ( (DBTimeStamp = NodeTS_fromDB(NodeName, db)) == -1 ) { // PKT with a new node data
+  if ( (DBTimeStamp = NodeTS_fromDB(NodeName, db)) == -1 ) { // PKT with data from a new node 
     insert_json(NodeName, TimeStamp, jobj, db);
     blobid = NodeBID_fromDB(NodeName, db);
     insertLookups(blobid, jobj, db);
 
   } else if ( DBTimeStamp < TimeStamp ) { // PKT with newer time stamp
 
-    // TODO : Compare keys if older exist merge json, set new timestamp
-    update_json(NodeName, TimeStamp, jobj, db);
     blobid = NodeBID_fromDB(NodeName, db);
     overwrite = 1;
     update_insertLookups(blobid, jobj, db, overwrite);
+    merge_json(NodeName, TimeStamp, jobj, db, overwrite);
+    printf("Just finished processing PKT with newer time stamp\n");
 
-  } else if (DBTimeStamp = TimeStamp ) { // PKT with same time stamp
+  } else if (DBTimeStamp >= TimeStamp ) { // PKT with same time stamp or with older time stamp
 
-    // Inserting new keys only
+    blobid = NodeBID_fromDB(NodeName, db);
     overwrite = 0;
+    printf("About to update & insert\n");
     update_insertLookups(blobid, jobj, db, overwrite);
-
-    // TODO : Check the list of the new keys and merge json.
-
-  } else if (DBTimeStamp > TimeStamp) { // PKT with older time stamp
-
-    // Inserting new keys only
-    overwrite = 0;
-    update_insertLookups(blobid, jobj, db, overwrite);
-
-    // TODO : Check the list of the new keys and merge json.
+    printf("Just finished half processing PKT with older or same time stamp\n");
+    merge_json(NodeName, TimeStamp, jobj, db, overwrite);
+    printf("Just finished processing PKT with older or same time stamp\n");
 
   }
 }

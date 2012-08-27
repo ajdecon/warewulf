@@ -62,7 +62,8 @@ int main(int argc, char *argv[]){
     jobj = json_object_new_object();
 
     timer = time(NULL);
-    json_object_object_add(jobj,"TIMESTAMP",json_object_new_int(timer));
+    //json_object_object_add(jobj,"TIMESTAMP",json_object_new_int(timer));
+    json_object_object_add(jobj,"TIMESTAMP",json_object_new_int(timer-1000));
 
     get_sysinfo(jobj);    // PROCS, UPTIME
     get_cpu_info(jobj);   // CPUCOUNT, CPUCLOCK, CPUMODEL

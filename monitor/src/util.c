@@ -45,6 +45,15 @@ nothing_todo(void *NotUsed, int argc, char **argv, char **azColName)
 }
 
 static int
+getjson_callback(void *void_json, int argc, char **argv, char **azColName)
+{
+  json_object *json_db = (json_object *)void_json;
+  json_object_object_add(json_db, "NODE-JSON", json_object_new_string(argv[argc-1]));
+
+  return 0;
+}
+
+static int
 getint_callback(void *void_int, int argc, char **argv, char **azColName)
 {
   int *int_value = (int *)void_int;
@@ -80,25 +89,26 @@ update_insertLookups(int blobid, json_object *jobj, sqlite3 *db, int overwrite)
     //First check if the key exisits in the table
     int rowid = -1;
     slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "select rowid from %s where key='%s'", SQLITE_DB_TB2NAME, key);
-    //printf("UL SQL CMD - %s\n",sqlite_cmd);
+    //printf("UIL SQL CMD - %s\n",sqlite_cmd);
     char *emsg = 0;
     rc = sqlite3_exec(db, sqlite_cmd, getint_callback, &rowid, &emsg);
     if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
+      fprintf(stderr, "UIL : SQL error: %s\n", emsg);
       sqlite3_free(emsg);
     }
 
-    if( rowid > 0 && overwrite == 1 ) { // Already existing entry in the table
+    if( rowid > 0 && overwrite == 1 ) { // Existing entry in the table and permission to overwrite
 	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "update %s set value=%s where key='%s' and blobid='%s'", SQLITE_DB_TB2NAME, vals, key, blobID);
-    } else { // This is a new key, value to be inserted
+    } else if (rowid < 0 ) { // This is a new key, value to be inserted
 	  slen = snprintf(sqlite_cmd, MAX_SQL_SIZE+1, "insert into %s(blobid, key, value) values('%s','%s',%s)", SQLITE_DB_TB2NAME, blobID, key, vals);
           // TODO : Make a note of this key value pairs so that we can merge into JSON
+          // Call a routine to get the jsonblob for this blobid from TB1 and json add this key, value pair
     }
 
-    //printf("UL SQL CMD - %s\n",sqlite_cmd);
+    //printf("UIL SQL CMD - %s\n",sqlite_cmd);
     rc = sqlite3_exec(db, sqlite_cmd, nothing_todo, 0, &emsg);
     if( rc!=SQLITE_OK ){
-      fprintf(stderr, "SQL error: %s\n", emsg);
+      fprintf(stderr, "UIL : SQL error: %s\n", emsg);
       sqlite3_free(emsg);
     }
 
@@ -162,18 +172,85 @@ insert_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
 }
 
 void
-update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db)
+update_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db, int overwrite)
 {
   char *sqlcmd = malloc(MAX_SQL_SIZE+1);
   int slen, rc; char *emsg = 0;
- 
-  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s', timestamp=%d where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
+
+  if (overwrite == 1) { 
+    slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s', timestamp=%d where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), timestamp, nodename); 
+  } else if (overwrite == 0) {
+    slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "update %s set jsonblob='%s' where nodename='%s'", SQLITE_DB_TB1NAME, json_object_to_json_string(jobj), nodename); 
+  }
+
   //printf("UJ - %s\n",sqlcmd);
   if( (rc = sqlite3_exec(db, sqlcmd, nothing_todo, 0, &emsg) != SQLITE_OK )) {
-    fprintf(stderr, "SQL error: %s\n", emsg);
+    fprintf(stderr, "UJ : SQL error: %s\n", emsg);
     sqlite3_free(emsg);
   }
   free(sqlcmd);
+
+  return;
+}
+
+void
+merge_json(char *nodename, time_t timestamp, json_object *jobj, sqlite3 *db, int overwrite)
+{ 
+  int slen, rc;
+  char *emsg = 0;
+  json_object *nodejobj;
+  json_object *json_db = json_object_new_object();
+  char *sqlcmd = malloc(MAX_SQL_SIZE+1);
+
+  slen = snprintf(sqlcmd, MAX_SQL_SIZE+1, "select jsonblob from %s where nodename='%s'", SQLITE_DB_TB1NAME, nodename); 
+  //printf("JB CMD - %s\n",sqlcmd);
+  if( (rc = sqlite3_exec(db, sqlcmd, getjson_callback, json_db , &emsg) != SQLITE_OK )) {
+    fprintf(stderr, "MJ : SQL error : %s\n", emsg);
+    sqlite3_free(emsg);
+  }
+  free(sqlcmd);
+
+  json_object_object_foreach(json_db, key, value) {
+     if(strcmp(key,"NODE-JSON") == 0) {
+       nodejobj = json_tokener_parse(json_object_get_string(value));
+     }
+  }
+  //printf("Obtained string - %s\n", json_object_to_json_string(nodejobj));
+
+  json_object *newjobj, *oldjobj;
+  if ( overwrite == 1 ) {
+    newjobj = jobj;
+    oldjobj = nodejobj;
+  } else {
+    newjobj = nodejobj;
+    oldjobj = jobj;
+  }
+
+  int found = 0;
+  enum json_type oldkey_type;
+  json_object_object_foreach(oldjobj, oldkey, oldval) {
+    found = 0;
+    json_object_object_foreach(newjobj, newkey, newval) {
+	if( strcmp(oldkey, newkey) == 0 ) found = 1;
+    }
+  
+    if ( found == 0 ) {
+       //printf("Exisiting old key %s is missing from new Json Object, lets add it now \n", oldkey);
+       oldkey_type = json_object_get_type(oldval);
+       switch(oldkey_type) {
+       case json_type_string: 
+	 json_object_object_add(newjobj, oldkey, json_object_new_string(json_object_get_string(oldval)));
+         break;
+       case json_type_int: 
+	 json_object_object_add(newjobj, oldkey, json_object_new_int(json_object_get_int(oldval)));
+         break;
+       }
+    } 
+  }
+
+  // Add the newjobj back in the table
+  update_json(nodename, timestamp, newjobj, db, overwrite);
+  json_object_put(json_db);
 
   return;
 }
@@ -359,7 +436,8 @@ send_json(int sock, json_object *jobj)
         appdata *app_d = (appdata *) (buffer + sizeof(apphdr));
 
         app_h->len = json_len;
-	app_h->timestamp = timer;
+	//app_h->timestamp = timer;
+	app_h->timestamp = timer-1000;
         strcpy(app_h->nodename,unameinfo.nodename);
 
         bytestocopy = (MAXDATASIZE < bytes_left ? MAXDATASIZE : bytes_left);
@@ -603,7 +681,8 @@ setup_ConnectSocket(char *hostname, int port) {
 }
 
 int 
-createTable(sqlite3 *db, char *tName) {
+createTable(sqlite3 *db, char *tName) 
+{
 
   //printf("Table Name - %s\n",tName);
 

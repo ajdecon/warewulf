@@ -259,7 +259,7 @@ char * get_mem_stats(json_object *jobj) {
 	ret[BUFFERSIZE] = '\0';
 
         json_object_object_add(jobj,"MEMTOTAL",json_object_new_int(memt/1024));
-        json_object_object_add(jobj,"MEMAVAIL",json_object_new_int(mema/1024));
+        json_object_object_add(jobj,"MEMAVAILL",json_object_new_int(mema/1024));
         json_object_object_add(jobj,"MEMUSED",json_object_new_int((memt - mema)/1024));
         json_object_object_add(jobj,"MEMPERCENT",json_object_new_int(memp));
         json_object_object_add(jobj,"SWAPTOTAL",json_object_new_int(swapt/1024));
