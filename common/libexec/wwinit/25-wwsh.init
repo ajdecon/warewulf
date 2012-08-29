@@ -20,7 +20,7 @@ fi
 
 
 wwprint "Confirming that wwsh runs properly"
-if ! action wwsh quit; then
+if ! wwaction wwsh quit; then
     exit 255
 fi
 

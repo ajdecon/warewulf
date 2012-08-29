@@ -24,17 +24,17 @@ DATASTORE=`egrep "^database driver\s*=" /etc/warewulf/database.conf | awk -F = '
 
 if [ $DATASTORE == "mysql" ]; then
     wwprint "Checking /etc/rc.d/init.d/mysqld is installed"
-    if ! action test -f /etc/rc.d/init.d/mysqld; then
+    if ! wwtest -f /etc/rc.d/init.d/mysqld; then
         exit 255
     fi
 
     wwprint "Confirming mysqld is configured to start at boot"
-    if ! action /sbin/chkconfig mysqld on; then
+    if ! wwaction /sbin/chkconfig mysqld on; then
         exit 255
     fi
 
     wwprint "Restart mysqld service"
-    if ! action /sbin/service mysqld restart; then
+    if ! wwaction /sbin/service mysqld restart; then
         exit 255
     fi
 

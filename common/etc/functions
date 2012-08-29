@@ -55,6 +55,52 @@ msg_blue() {
     echo -ne "$NORMAL"
 }
    
+msg_yellow() {
+    echo -ne "$YELLOW"
+    echo -ne "$1"
+    echo -ne "$NORMAL"
+}
+   
+reply_ok() {
+    echo -en "\\033[78G"
+    msg_green "OK\n"
+}
+
+reply_yes() {
+    echo -en "\\033[77G"
+    msg_green "YES\n"
+}
+
+reply_no() {
+    echo -en "\\033[78G"
+    msg_yellow "NO\n"
+}
+
+reply_done() {
+    echo -en "\\033[76G"
+    msg_green "DONE\n"
+}
+
+reply_success() {
+    echo -en "\\033[72G"
+    msg_green "SUCCESS\n"
+}
+
+reply_warn() {
+    echo -en "\\033[76G"
+    msg_yellow "WARN\n"
+}
+
+reply_skipped() {
+    echo -en "\\033[73G"
+    msg_gray "SKIPPED\n"
+}
+
+reply_error() {
+    echo -en "\\033[75G"
+    msg_red "ERROR\n"
+}
+
 wwprint() {
     MSG=$1
     COLOR=$GRAY
@@ -68,37 +114,32 @@ wwprint() {
         blue|BLUE)              COLOR=$BLUE ;;
     esac
 
-    echo -ne "$NORMAL$COMMAND: $COLOR$MSG$NORMAL"
+    echo -ne "$NORMAL$COMMAND:\\033[14G $COLOR$MSG$NORMAL"
 }
 
-success() {
-    echo -en "\\033[78G"
-    msg_green "OK\n"
-}
-
-skipped() {
-    echo -en "\\033[73G"
-    msg_gray "SKIPPED\n"
-}
-
-failure() {
-    echo -en "\\033[75G"
-    msg_red "ERROR\n"
-}
-
-action() {
+wwaction() {
     TMPFILE=`mktemp`
-    $@ >$TMPFILE 2>&1
+    "$@" >$TMPFILE 2>&1
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
-        success
+        reply_ok
     else
-        failure
+        reply_error
         cat $TMPFILE | while read i; do
             wwprint "$i\n" YELLOW
         done
     fi
     rm -f $TMPFILE
     return $RETVAL
+}
+
+wwtest() {
+    if test "$@"; then
+        reply_ok
+        return 0
+    else
+        reply_no
+        return 1
+    fi
 }
 

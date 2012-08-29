@@ -20,12 +20,12 @@ fi
 
 
 wwprint "Checking that wwsh is in path"
-if ! action which wwsh ; then
+if ! wwaction which wwsh ; then
     exit 255
 fi
 
 wwprint "Checking for root user"
-if ! action test `id -u` -eq 0; then
+if ! wwtest `id -u` -eq 0; then
     exit 255
 fi
 
