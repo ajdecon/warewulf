@@ -44,17 +44,22 @@ int main(int argc, char *argv[]){
 
   int sock; 
 
-  if((sock=setup_ConnectSocket(argv[1], atoi(argv[2])))<0)
-    exit(1);
-
-  registerConntype(sock,PROGRAM_TYPE);
-  
   time_t timer;
   char *rbuf;
   json_object *jobj;
 
+  int setup_connection = 1;
   while(1) {
 
+    if(setup_connection == 1) {
+      if((sock=setup_ConnectSocket(argv[1], atoi(argv[2])))<0) {
+        printf("Will poll after some time \n");
+        //exit(1);
+      } else 
+        setup_connection = 0;
+    } else {
+
+    registerConntype(sock,PROGRAM_TYPE);
     rbuf = recvall(sock);
     printf("Received - %s\n",rbuf);
     free(rbuf);
@@ -74,11 +79,19 @@ int main(int argc, char *argv[]){
     get_node_status(jobj);// NODESTATUS
 
     printf("%s\n", json_object_to_json_string(jobj));
-    send_json(sock,jobj);
-
+    int rval = 0;
+    if ( (rval = send_json(sock,jobj)) == ESPIPE ) {
+        //printf("Remove pipe has been severed \n");
+        setup_connection = 1;
+    }
     json_object_put(jobj);
 
-    sleep(60);
+    if(setup_connection == 1) {
+	printf("Closing sock\n");
+	close(sock);
+    }
+    }
+    sleep(2);
   }
 
   close(sock);

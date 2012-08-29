@@ -394,14 +394,14 @@ sendall(int s, char *buf, int total)
   int n = 0;
 
   while( sendbytes < total) {
-        if( (n = send(s, buf+sendbytes, bytesleft, 0)) == -1) {
+        if( (n = send(s, buf+sendbytes, bytesleft, MSG_NOSIGNAL)) == -1) {
           perror("send");
           break;
         }
         sendbytes = sendbytes + n;
-        bytesleft = bytesleft + n;
+        bytesleft = bytesleft - n;
   }
-  return n==-1? -1: 0;
+  return n==-1? errno: 0;
 }
 
 int
@@ -426,6 +426,7 @@ send_json(int sock, json_object *jobj)
   bytes_read = 0;
   bytes_left = json_len;
 
+  int rval = 0;
   while(bytes_read < json_len)
     {
       buffer_len = 0;
@@ -451,13 +452,17 @@ send_json(int sock, json_object *jobj)
       buffer_len += bytestocopy;
 
       printf("Sending data ..\n");
-      sendall(sock, buffer, buffer_len);
+      if ( (rval = sendall(sock, buffer, buffer_len)) != 0 ) {
+	//printf("Remote pipe has been severed \n");
+	break;
+      }
 
       bytes_read += bytestocopy;
       bytes_left -= bytestocopy;
     }
   free(json_str);
-  return json_len;
+  free(buffer);
+  return rval;
 }
 
 void

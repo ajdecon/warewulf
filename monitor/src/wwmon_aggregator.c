@@ -240,6 +240,7 @@ readHandler(int fd)
 
   printf("Done reading totally, now processing the received data packet\n");
 
+/*
   if(sock_data[fd].ctype == UNKNOWN) {
 	int ctype;
 	ctype = get_int_from_json(json_tokener_parse(sock_data[fd].accural_buf),"CONN_TYPE");
@@ -250,6 +251,21 @@ readHandler(int fd)
 	  //printf("Conn type - %d on sock - %d\n",ctype, fd);
 	}
    } else if(sock_data[fd].ctype == COLLECTOR) {
+*/
+
+  int ctype;
+  int is_reg_pkt = 0;
+  ctype = get_int_from_json(json_tokener_parse(sock_data[fd].accural_buf),"CONN_TYPE");
+  if(ctype == -1) {
+    printf("Either not able to determine type or not a registration packet\n");
+  } else {
+    sock_data[fd].ctype = ctype;
+    is_reg_pkt = 1;
+    //printf("Conn type - %d on sock - %d\n",ctype, fd);
+  }
+
+  if (is_reg_pkt != 1) {
+  if(sock_data[fd].ctype == COLLECTOR) {
 
       //printf("%s\n",sock_data[fd].accural_buf);
       apphdr *app_h = (apphdr *) rbuf;
@@ -278,6 +294,7 @@ readHandler(int fd)
 	strcat(sock_data[fd].sqlite_cmd,SQLITE_DB_TB1NAME);
       }
    } 
+   }
 
   if(sock_data[fd].accural_buf != NULL){
     free(sock_data[fd].accural_buf);
