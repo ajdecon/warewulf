@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# 
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2012, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+# $Id: wwinit 913 2012-04-19 00:33:31Z gmk $
+
+if ! which wwconfig >/dev/null 2>&1; then
+    echo "ERROR: wwconfig is not in path!"
+    exit 255
+fi
+
+
+eval `wwconfig -sea`
+
+WWINITDIR="$WAREWULF_LIBEXECDIR/warewulf/wwinit"
+WWFUNCTIONS="$WAREWULF_SYSCONFDIR/warewulf/functions"
+
+export WWINITDIR WWFUNCTIONS
+
+if [ ! -d "$WWINITDIR" ]; then
+    echo "ERROR: $WWINITDIR is not found"
+    exit 255
+fi
+
+if [ ! -f "$WWFUNCTIONS" ]; then
+    echo "ERROR: $WWFUNCTIONS is not found"
+    exit 255
+fi
+
+usage() {
+    echo "$0 [options] [initialization(s)]"
+    echo
+    echo "OPTIONS:"
+    echo "    -d        Debug output"
+    echo "    -v        Verbose output"
+    echo "    -h        Usage summary"
+    echo
+    echo "INITIALIZATIONS:"
+    grep -h "^#INIT: " $WWINITDIR/*.init | sort | uniq | while read i; do
+        NAME=`echo $i | sed -e 's/^#INIT: //' | tr a-z A-Z`
+        echo "   * $NAME"
+    done
+    echo
+    echo "NOTE:"
+    echo "   If there is no initialization given, all actions are run"
+    echo
+    echo "EXAMPLES:"
+    echo
+    echo " # wwinit"
+    echo " # wwinit ssh_keys authfiles timeserver"
+    echo
+}
+
+
+### Argument processing
+while getopts "a:dhv" opt; do
+    case $opt in
+        d)
+            VERBOSE=1
+            DEBUG=1
+            set -x
+        ;;
+        v)
+            VERBOSE=1
+        ;;
+        h)
+            usage
+            exit
+        ;;
+        a)
+            var=$OPTARG
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+if [ -z "$1" ]; then
+    usage
+fi
+
+for init in $@; do
+    test -n "$VERBOSE" && echo "VERBOSE:  Running init: $init"
+    grep -i -l "^#INIT: $init\$" $WWINITDIR/*.init | sort | uniq | while read file; do
+        test -n "$VERBOSE" && echo "VERBOSE:  Running module: $file"
+        if [ -n "$DEBUG" ]; then
+            sh -x $file $init
+            RETVAL=$?
+        else
+            sh $file $init
+            RETVAL=$?
+        fi
+        if [ $RETVAL -eq 0 ]; then
+            test -n "$VERBOSE" && echo "VERBOSE:  Module ran successfully"
+        elif [ $RETVAL -eq 1 ]; then
+            test -n "$VERBOSE" && echo "VERBOSE:  Module did nothing"
+        else
+            echo "Lethal error thrown by: $file"
+            exit $RETVAL
+        fi
+    done
+done
+
+

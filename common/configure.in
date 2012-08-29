@@ -52,5 +52,7 @@ AC_OUTPUT(Makefile
    lib/Warewulf/Module/Cli/Makefile
    lib/Warewulf/DataStore/Makefile
    lib/Warewulf/DataStore/SQL/Makefile
+   libexec/Makefile
+   libexec/wwinit/Makefile
 )
 

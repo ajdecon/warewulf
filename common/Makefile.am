@@ -1,4 +1,4 @@
-SUBDIRS = lib share etc bin
+SUBDIRS = lib share etc bin libexec
 
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure compile config.* install-sh missing
 DISTCLEANFILES = 

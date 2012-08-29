@@ -46,12 +46,14 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-, root, root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
-%attr(0710, root, warewulf) %dir %{_sysconfdir}/warewulf/
+%attr(0755, root, warewulf) %dir %{_sysconfdir}/warewulf/
 %attr(0755, root, warewulf) %dir %{_sysconfdir}/warewulf/defaults/
+%attr(0444, root, warewulf) %config(noreplace) %{_sysconfdir}/warewulf/functions
 %attr(0640, root, warewulf) %config(noreplace) %{_sysconfdir}/warewulf/database.conf
 %attr(0644, root, warewulf) %config(noreplace) %{_sysconfdir}/warewulf/defaults/node.conf
 %{_bindir}/*
 %{_datadir}/warewulf/
+%{_libexecdir}/warewulf/wwinit
 %{perl_vendorlib}/*
 
 %changelog
