@@ -104,6 +104,10 @@ history_load()
     my ($self, $file) = @_;
     my $dir = dirname($file);
 
+    if (! $self->term() or ! $self->interactive()) {
+        return;
+    }
+
     if ($self->term()->can("ReadHistory")) {
         if ($file) {
             if (! -d $dir) {
@@ -131,7 +135,11 @@ history_save()
 {
     my ($self, $file) = @_;
     my $dir;
-    
+
+    if (! $self->term() or ! $self->interactive()) {
+        return;
+    }
+
     if ($self->term()->can("WriteHistory")) {
         if ($file) {
             $dir = dirname($file);
@@ -164,6 +172,10 @@ sub
 history_add($)
 {
     my ($self, $set) = @_;
+
+    if (! $self->term() or ! $self->interactive()) {
+        return;
+    }
 
     if ($self->term()->can("AddHistory")) {
         if ($set) {
@@ -215,7 +227,7 @@ get_input($)
     my ($self, $prompt, @completions) = @_;
     my $ret;
 
-    if ($self->interactive()) {
+    if ($self->term() and $self->interactive()) {
         if (@completions) {
             @{$self->{"COMPLIST"}} = @completions;
         }
