@@ -42,7 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-, root, root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%{_sysconfdir}/profile.d/*
 %{_bindir}/*
+%{_libexecdir}/warewulf/wwinit/*
 %{perl_vendorlib}/Warewulf/Module/Cli/*
 
 

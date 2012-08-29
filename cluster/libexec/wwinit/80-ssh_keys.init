@@ -1,0 +1,52 @@
+#!/bin/sh
+##
+## Copyright (c) 2001-2003 Gregory M. Kurtzer
+##
+## Copyright (c) 2003-2012, The Regents of the University of California,
+## through Lawrence Berkeley National Laboratory (subject to receipt of any
+## required approvals from the U.S. Dept. of Energy).  All rights reserved.
+##
+
+#INIT: all
+#INIT: authorization
+
+if [ -f "$WWFUNCTIONS" ]; then
+    . $WWFUNCTIONS
+else
+    echo "ERROR: could not load warewulf functions!"
+    exit 255
+fi
+
+RETVAL=1
+
+if [ ! -d "$HOME/.ssh" ]; then
+    install -d -m 700 $HOME/.ssh
+fi
+
+wwprint "Checking ssh keys for root"
+if ! wwtest -f "$HOME/.ssh/cluster"; then
+    wwprint "Generating ssh keypairs for local cluster access"
+    if ! wwaction ssh-keygen -t dsa -f $HOME/.ssh/cluster -N ''; then
+        exit 255
+    fi
+    wwprint "Updating authorized keys"
+    cat $HOME/.ssh/cluster.pub >> $HOME/.ssh/authorized_keys
+    chmod 0600 $HOME/.ssh/authorized_keys
+    reply_ok
+    RETVAL=0
+fi
+
+wwprint "Checking root's ssh config"
+if ! wwtest -f "$HOME/.ssh/config"; then
+    wwprint "Creating ssh configuration for root"
+    echo "Host *" >> $HOME/.ssh/config
+    echo "   IdentityFile ~/.ssh/identity" >> $HOME/.ssh/config
+    echo "   IdentityFile ~/.ssh/id_rsa" >> $HOME/.ssh/config
+    echo "   IdentityFile ~/.ssh/id_dsa" >> $HOME/.ssh/config
+    echo "   IdentityFile ~/.ssh/cluster" >> $HOME/.ssh/config
+    chmod 0600 $HOME/.ssh/config
+    RETVAL=0
+    reply_done
+fi
+
+exit $RETVAL

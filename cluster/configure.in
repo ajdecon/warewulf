@@ -38,9 +38,12 @@ AC_SUBST(SVNVERSION)
 AC_OUTPUT(Makefile
    warewulf-cluster.spec
    bin/Makefile
+   etc/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
    lib/Warewulf/Module/Makefile
    lib/Warewulf/Module/Cli/Makefile
+   libexec/Makefile
+   libexec/wwinit/Makefile
 )
 

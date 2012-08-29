@@ -1,0 +1,45 @@
+#!/bin/sh
+##
+## Copyright (c) 2001-2003 Gregory M. Kurtzer
+##
+## Copyright (c) 2003-2012, The Regents of the University of California,
+## through Lawrence Berkeley National Laboratory (subject to receipt of any
+## required approvals from the U.S. Dept. of Energy).  All rights reserved.
+##
+
+#INIT: all
+#INIT: authorization
+#INIT: datastore
+
+if [ -f "$WWFUNCTIONS" ]; then
+    . $WWFUNCTIONS
+else
+    echo "ERROR: could not load warewulf functions!"
+    exit 255
+fi
+
+RETVAL=1
+
+
+wwprint "Checking to see if /etc/passwd is in the WW Datastore"
+if ! wwtest -n "`sudo wwsh file print passwd`"; then
+    wwprint "Adding /etc/passwd to the datastore"
+    if wwaction wwsh file import /etc/passwd --name=passwd; then
+        RETVAL=1
+    else
+        exit 255
+    fi
+fi
+
+wwprint "Checking to see if /etc/group is in the WW Datastore"
+if ! wwtest -n "`sudo wwsh file print group`"; then
+    wwprint "Adding /etc/group to the datastore"
+    if wwaction wwsh file import /etc/group --name=group; then
+        RETVAL=1
+    else
+        exit 255
+    fi
+fi
+
+
+exit $RETVAL
