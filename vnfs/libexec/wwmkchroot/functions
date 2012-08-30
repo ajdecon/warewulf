@@ -79,10 +79,22 @@ configure_fstab() {
 }
 
 configure_sshkeys() {
-    echo "Creating SSH host keys"
-    /usr/bin/ssh-keygen -q -t rsa1 -f $CHROOTDIR/etc/ssh/ssh_host_key -C '' -N ''
-    /usr/bin/ssh-keygen -q -t rsa -f $CHROOTDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
-    /usr/bin/ssh-keygen -q -t dsa -f $CHROOTDIR/etc/ssh/ssh_host_dsa_key -C '' -N ''
+    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key" ]; then
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key $CHROOTDIR/etc/ssh/ssh_host_key
+    else
+        /usr/bin/ssh-keygen -q -t rsa1 -f $CHROOTDIR/etc/ssh/ssh_host_key -C '' -N ''
+    fi
+    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key" ]; then
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key $CHROOTDIR/etc/ssh/ssh_rsa_key
+    else
+        /usr/bin/ssh-keygen -q -t rsa -f $CHROOTDIR/etc/ssh/ssh_rsa_key -C '' -N ''
+    fi
+    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key" ]; then
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key $CHROOTDIR/etc/ssh/ssh_dsa_key
+    else
+        /usr/bin/ssh-keygen -q -t dsa -f $CHROOTDIR/etc/ssh/ssh_dsa_key -C '' -N ''
+    fi
+
     mkdir -m 0700 -p $CHROOTDIR/root/.ssh
     > $CHROOTDIR/root/.ssh/authorized_keys
     for i in `ls /root/.ssh/*.pub 2>/dev/null`; do
