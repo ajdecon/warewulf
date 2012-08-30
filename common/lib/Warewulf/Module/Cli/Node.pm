@@ -219,13 +219,13 @@ exec()
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
-        return;
+        return undef;
     }
 
     if (! $command) {
         &eprint("You must provide a command!\n\n");
         print $self->help();
-        return;
+        return undef;
     } elsif ($command eq "new") {
         $objSet = Warewulf::ObjectSet->new();
         foreach my $string (&expand_bracket(@ARGV)) {
@@ -256,7 +256,7 @@ exec()
     }
     if (! $objSet || ($object_count == 0)) {
         &nprint("No nodes found\n");
-        return;
+        return undef;
     }
 
     if ($command eq "delete") {
@@ -282,6 +282,7 @@ exec()
                 join(",", $o->ipaddr_list()),
                 join(",", $o->hwaddr_list())
             );
+            $return_count++;
         }
     } elsif ($command eq "print") {
         foreach my $o ($objSet->get_list()) {
@@ -302,6 +303,7 @@ exec()
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.GATEWAY", $o->gateway($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.FQDN", $o->fqdn($devname) || "UNDEF");
             }
+            $return_count++;
         }
 
     } elsif ($command eq "set" or $command eq "new") {
@@ -312,7 +314,7 @@ exec()
                 $opt_netdev = $1;
             } else {
                 &eprint("Option 'netdev' has invalid characters\n");
-                return;
+                return undef;
             }
         }
 
@@ -342,7 +344,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --hwaddr requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->hwaddr($opt_netdev, $1);
@@ -368,7 +370,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --ipaddr requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->ipaddr($opt_netdev, Warewulf::Network->ip_unserialize($ip_serialized));
@@ -394,7 +396,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --netmask requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->netmask($opt_netdev, $1);
@@ -422,7 +424,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --network requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->network($opt_netdev, $1);
@@ -447,7 +449,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --gateway requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->gateway($opt_netdev, $1);
@@ -472,7 +474,7 @@ exec()
                                 $opt_netdev = shift(@devs);
                             } else {
                                 &eprint("Option --fqdn requires the --netdev option for: $nodename\n");
-                                return;
+                                return undef;
                             }
                         }
                         $o->fqdn($opt_netdev, $opt_fqdn);
@@ -596,7 +598,7 @@ exec()
                 $question .= join('', @changes) . "\n";
                 if (! $term->yesno($question)) {
                     &nprint("No update performed\n");
-                    return;
+                    return undef;
                 }
             }
 

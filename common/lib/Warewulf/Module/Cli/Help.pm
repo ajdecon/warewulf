@@ -60,7 +60,8 @@ exec()
             }
         }
         if (! $printed) {
-            print "This module has no help methods defined.\n";
+            &eprint("This module has no help methods defined.\n");
+            return undef;
         }
     } else {
         my $last_keyword = "";
@@ -88,6 +89,8 @@ exec()
         }
         print "\n";
     }
+
+    return 1;
 }
 
 

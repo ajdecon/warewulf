@@ -47,7 +47,10 @@ exec()
     } else {
         &eprint("Unknown command: $command\n\n");
         print $self->help();
+        return undef;
     }
+
+    return 1;
 }
 
 

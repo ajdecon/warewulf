@@ -43,7 +43,7 @@ run_cmd()
             foreach my $module ($modules->list($keyword)) {
                 if ($module->can("exec")) {
                     $run_modules++;
-                    if ($module->exec(@arg) ) {
+                    if (! $module->exec(@arg) ) {
                         $retval++;
                     }
                 } else {

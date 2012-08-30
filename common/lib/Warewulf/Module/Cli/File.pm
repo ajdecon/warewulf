@@ -203,7 +203,7 @@ exec()
             $opt_program = $1;
         } else {
             &eprint("Program name contains illegal characters: $program\n");
-            return;
+            return undef;
         }
     }
 
@@ -211,16 +211,16 @@ exec()
 
     if (! $db) {
         &eprint("Database object not available!\n");
-        return;
+        return undef;
     }
 
     if (! $command) {
         &eprint("You must provide a command!\n\n");
         print $self->help();
-        return;
+        return undef;
     } elsif ($command eq "help") {
         print $self->help();
-        return;
+        return 1;
     }
 
     # Import and export commands are done separately because they take a
@@ -234,14 +234,14 @@ exec()
 
             if ($ocount == 0) {
                 &nprint("File(s) not found\n");
-                return;
+                return undef;
             }
 
             if ($path =~ /^([a-zA-Z0-9\.\-_\/]+?)\/?$/) {
                 $path = $1;
             } else {
                 &eprint("Destination path contains illegal characters: $path\n");
-                return;
+                return undef;
             }
 
             if (! -d $path) {
@@ -250,11 +250,11 @@ exec()
                     $fname = basename($path);
                     if (! -d $path) {
                         &eprint("Destination directory \"$path\" does not exist.\n");
-                        return;
+                        return undef;
                     }
                 } else {
                     &eprint("Exporting multiple files, and destination \"$path\" is not a directory.\n");
-                    return;
+                    return undef;
                 }
             }
 
@@ -302,7 +302,7 @@ exec()
                         $oname = $obj->name() || "UNDEF";
                         if (! $term->yesno("Overwrite existing file object \"$oname\" in the data store?")) {
                             &nprint("Not exporting \"$name\"\n");
-                            return;
+                            return undef;
                         }
                     } else {
                         &dprint("Creating a new Warewulf file object\n");
@@ -345,6 +345,11 @@ exec()
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
         }
 
+        if ($objSet->count() == 0) {
+            &nprint("No objects found\n");
+            return undef;
+        }
+
         if ($command eq "delete") {
             my $object_count = $objSet->count();
             if ($term->interactive()) {
@@ -356,7 +361,7 @@ exec()
                 my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                 if ($yesno ne "y" and $yesno ne "yes") {
                     &nprint("No update performed\n");
-                    return;
+                    return undef;
                 }
             }
             $db->del_object($objSet);
@@ -417,10 +422,6 @@ exec()
             my @changes;
             my @objlist;
 
-            if (! $objSet) {
-                &nprint("File(s) not found\n");
-                return;
-            }
             $object_count = $objSet->count();
             @objlist = $objSet->get_list();
 
@@ -515,6 +516,8 @@ exec()
             &eprint("Invalid command: $command\n");
         }
     }
+
+    return 1;
 }
 
 

@@ -34,7 +34,7 @@ exec()
     if ($command) {
         if ($command eq "help") {
             print $self->help();
-            return;
+            return 1;
         }
 
         if (uc($command) eq "NORMAL") {
@@ -47,6 +47,7 @@ exec()
             &set_log_level("DEBUG");
         } elsif ($command) {
             &eprint("Unknown output level: $command\n");
+            return undef;
         }
     }
 
@@ -67,6 +68,7 @@ exec()
         &set_log_level("NOTICE");
     }
 
+    return 1;
 }
 
 
