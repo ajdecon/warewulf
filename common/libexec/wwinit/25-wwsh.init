@@ -18,11 +18,14 @@ else
     exit 255
 fi
 
+wwprint "Confirming that wwsh accepts some basic commands\n"
 
-wwprint "Confirming that wwsh runs properly"
-if ! wwaction wwsh quit; then
-    exit 255
-fi
+wwcmd wwsh quit || exit 255
+wwcmd wwsh help || exit 255
+wwcmd wwsh node list || exit 255
+wwcmd wwsh node new testnode0000 || exit 255
+wwcmd wwsh node delete testnode0000 || exit 255
+wwcmd wwsh file list || exit 255
 
 
 exit 0

@@ -143,3 +143,12 @@ wwtest() {
     fi
 }
 
+wwcmd() {
+    wwprint "+ $*"
+    if "$@" >/dev/null 2>&1; then
+        reply_ok
+    else
+        reply_error
+    fi
+}
+
