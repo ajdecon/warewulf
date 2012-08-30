@@ -8,6 +8,7 @@
 ##
 
 #INIT: all
+#INIT: ssh
 #INIT: authorization
 
 if [ -f "$WWFUNCTIONS" ]; then
@@ -47,6 +48,37 @@ if ! wwtest -f "$HOME/.ssh/config"; then
     chmod 0600 $HOME/.ssh/config
     RETVAL=0
     reply_done
+fi
+
+
+wwprint "Checking for default RSA1 host key for nodes"
+if ! wwtest -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key"; then
+    install -d -m 700 $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh
+    wwprint "Creating default node ssh_host_key"
+    if ! wwaction ssh-keygen -q -t rsa1 -f $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key -C '' -N ''; then
+        exit 255
+    fi
+    RETVAL=1
+fi
+
+wwprint "Checking for default RSA host key for nodes"
+if ! wwtest -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key"; then
+    install -d -m 700 $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh
+    wwprint "Creating default node ssh_rsa_key"
+    if ! wwaction ssh-keygen -q -t rsa -f $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key -C '' -N ''; then
+        exit 255
+    fi
+    RETVAL=1
+fi
+
+wwprint "Checking for default DSA host key for nodes"
+if ! wwtest -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key"; then
+    install -d -m 700 $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh
+    wwprint "Creating default node ssh_dsa_key"
+    if ! wwaction ssh-keygen -q -t dsa -f $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key -C '' -N ''; then
+        exit 255
+    fi
+    RETVAL=1
 fi
 
 exit $RETVAL
