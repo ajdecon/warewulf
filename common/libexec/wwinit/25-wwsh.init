@@ -20,12 +20,12 @@ fi
 
 wwprint "Confirming that wwsh accepts some basic commands\n"
 
-wwcmd wwsh quit || exit 255
-wwcmd wwsh help || exit 255
-wwcmd wwsh node list || exit 255
-wwcmd wwsh node new testnode0000 || exit 255
-wwcmd wwsh node delete testnode0000 || exit 255
-wwcmd wwsh file list || exit 255
+wwrun wwsh quit || exit 255
+wwrun wwsh help || exit 255
+wwrun wwsh node list || exit 255
+wwrun wwsh node new testnode0000 || exit 255
+wwrun wwsh node delete testnode0000 || exit 255
+wwrun wwsh file list || exit 255
 
 
 exit 0

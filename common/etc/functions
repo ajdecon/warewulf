@@ -143,7 +143,7 @@ wwtest() {
     fi
 }
 
-wwcmd() {
+wwrun() {
     wwprint "+ $*"
     if "$@" >/dev/null 2>&1; then
         reply_ok
