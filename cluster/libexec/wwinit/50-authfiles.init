@@ -22,7 +22,7 @@ RETVAL=1
 
 
 wwprint "Checking to see if /etc/passwd is in the WW Datastore"
-if ! wwsh --quiet file list passwd; then
+if ! wwrun wwsh file list passwd; then
     wwprint "Adding /etc/passwd to the datastore"
     if wwaction wwsh file import /etc/passwd --name=passwd; then
         RETVAL=1
@@ -32,7 +32,7 @@ if ! wwsh --quiet file list passwd; then
 fi
 
 wwprint "Checking to see if /etc/group is in the WW Datastore"
-if ! wwsh --quiet file list group; then
+if ! wwrun wwsh file list group; then
     wwprint "Adding /etc/group to the datastore"
     if wwaction wwsh file import /etc/group --name=group; then
         RETVAL=1
