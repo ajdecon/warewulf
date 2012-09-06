@@ -145,6 +145,7 @@ exec()
     my $opt_lookup = "name";
     my $opt_name;
     my $command;
+    my $return_count = 0;
 
 
     @ARGV = ();
@@ -201,6 +202,8 @@ exec()
 
                     $bootstrap_object->bootstrap_export($bootstrap_path);
 
+                    $return_count ++;
+
                 } else {
                     &eprint("Destination path contains illegal characters: $bootstrap_path\n");
                 }
@@ -245,6 +248,8 @@ exec()
 
                             $obj->bootstrap_import($path);
 
+                            $return_count++;
+
                         } else {
                             &eprint("Bootstrap not Found: $path\n");
                         }
@@ -258,6 +263,10 @@ exec()
 
         } else {
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+            if ($objSet->count() == 0) {
+                &wprint("No bootstrap images found\n");
+                return undef;
+            }
             if ($command eq "delete") {
                 my $object_count = $objSet->count();
                 if ($object_count > 0) {
@@ -273,7 +282,7 @@ exec()
                             return();
                         }
                     }
-                    $db->del_object($objSet);
+                    $return_count = $db->del_object($objSet);
                 } else {
                     &nprint("No bootstrap images found\n");
                 }
@@ -284,11 +293,13 @@ exec()
                         $obj->name() || "UNDEF",
                         $obj->size() ? $obj->size()/(1024*1024) : "0"
                     );
+                    $return_count ++;
                 }
             } elsif ($command eq "rebuild" or $command eq "build") {
                 foreach my $o ($objSet->get_list()) {
                     &dprint("Calling build_local_bootstrap()\n");
                     $o->build_local_bootstrap();
+                    $return_count ++;
                 }
             } else {
                 &eprint("Invalid command: $command\n");
@@ -297,7 +308,7 @@ exec()
     } else {
         &eprint("You must provide a command!\n\n");
         print $self->help();
-        return();
+        return undef;
 
     }
 
