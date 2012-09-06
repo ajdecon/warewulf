@@ -1,0 +1,39 @@
+#!/bin/sh
+##
+## Copyright (c) 2001-2003 Gregory M. Kurtzer
+##
+## Copyright (c) 2003-2012, The Regents of the University of California,
+## through Lawrence Berkeley National Laboratory (subject to receipt of any
+## required approvals from the U.S. Dept. of Energy).  All rights reserved.
+##
+
+#INIT: all
+#INIT: datastore
+#INIT: warewulf
+#INIT: cluster
+#INIT: bootstrap
+
+if [ -f "$WWFUNCTIONS" ]; then
+    . $WWFUNCTIONS
+else
+    echo "ERROR: could not load warewulf functions!"
+    exit 255
+fi
+
+RETVAL=1
+
+KVERSION=`uname -r`
+
+wwprint "Checking on a Warewulf bootstrap"
+if ! wwrun wwsh bootstrap list; then
+    wwprint "Creating and importing a bootstrap for $KVERSION"
+    if wwaction wwbootstrap $KVERSION; then
+# This will eventually also add this to defaults/provision.conf
+        RETVAL=1
+    else
+        exit 255
+    fi
+fi
+
+
+exit $RETVAL

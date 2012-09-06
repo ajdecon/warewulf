@@ -1,0 +1,50 @@
+#!/bin/sh
+##
+## Copyright (c) 2001-2003 Gregory M. Kurtzer
+##
+## Copyright (c) 2003-2012, The Regents of the University of California,
+## through Lawrence Berkeley National Laboratory (subject to receipt of any
+## required approvals from the U.S. Dept. of Energy).  All rights reserved.
+##
+
+#INIT: all
+#INIT: datastore
+#INIT: warewulf
+#INIT: cluster
+#INIT: vnfs
+
+if [ -f "$WWFUNCTIONS" ]; then
+    . $WWFUNCTIONS
+else
+    echo "ERROR: could not load warewulf functions!"
+    exit 255
+fi
+
+RETVAL=1
+
+
+# FIGURE OUT WHAT DISTRO TO RUN HERE AND SET TO:
+DISTRO="sl-6"
+
+
+
+wwprint "Checking on an existing Warewulf VNFS image"
+#TODO: need to fix wwsh vnfs to output correct retval
+if ! wwrun wwsh vnfs list; then
+    wwprint "Building a template chroot at /var/chroots/$DISTRO"
+    mkdir -p /var/chroots
+    if wwaction wwmkchroot $KVERSION /var/chroots/$DISTRO; then
+        if wwaction wwvnfs --chroot /var/chroots/$DISTRO; then
+# This will eventually also add this to defaults/provision.conf
+            RETVAL=1
+        else
+            exit 255
+        fi
+        RETVAL=1
+    else
+        exit 255
+    fi
+fi
+
+
+exit $RETVAL
