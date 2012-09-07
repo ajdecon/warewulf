@@ -75,6 +75,19 @@ available the included GPL software.
 %install
 %{__make} install DESTDIR=$RPM_BUILD_ROOT %{?mflags_install}
 
+%triggerin server -- %{name}-server < %{version}
+# This is a horrid thing to do, but not doing it causes potential massive
+# incompatibilties between bootstrap and server thus making nodes not
+# bootable after an upgrade. This may go away or prove unnecessary
+# later. But until then, we do this here and now only on an actual version
+# upgrade.
+if [ -w /dev/tty ]; then
+    echo "Rebuilding bootstrap objects; this may take a moment..." >/dev/tty
+else
+    echo "Rebuilding bootstrap objects; this may take a moment..."
+fi
+%{_bindir}/wwsh bootstrap rebuild >/dev/null 2>&1 || :
+
 
 %post server
 if [ $1 -eq 1 ] ; then
@@ -84,17 +97,6 @@ if [ $1 -eq 1 ] ; then
     %{_bindir}/wwsh dhcp update >/dev/null 2>&1 || :
     %{_bindir}/wwsh pxe update >/dev/null 2>&1 || :
     %{_bindir}/wwsh bootstrap build >/dev/null 2>&1 || :
-elif [ $1 -eq 2 ] ; then
-    # This is a horrid thing to do, but not doing it causes potential massive
-    # incompatibilties between bootstrap and server thus making nodes not
-    # bootable after an upgrade. This may go away or prove unnecessary
-    # later.
-    if [ -w /dev/tty ]; then
-        echo "Rebuilding bootstrap objects; this may take a moment..." >/dev/tty
-    else
-        echo "Rebuilding bootstrap objects; this may take a moment..."
-    fi
-    %{_bindir}/wwsh bootstrap rebuild >/dev/null 2>&1 || :
 fi
 usermod -a -G warewulf apache >/dev/null 2>&1 || :
 service httpd restart >/dev/null 2>&1 || :
