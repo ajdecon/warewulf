@@ -85,7 +85,7 @@ help()
     $h .= "     Warewulf> vnfs list\n";
     $h .= "\n";
 
-    return($h);
+    return $h;
 }
 
 
@@ -97,7 +97,7 @@ summary()
 
     $output .= "Manage your VNFS images";
 
-    return($output);
+    return $output;
 }
 
 
@@ -110,7 +110,7 @@ complete()
     my @ret;
 
     if (! $db) {
-        return();
+        return undef;
     }
 
     @ARGV = ();
@@ -135,7 +135,7 @@ complete()
 
     @ARGV = ();
 
-    return(@ret);
+    return @ret;
 
 }
 
@@ -148,6 +148,7 @@ exec()
     my $opt_lookup = "name";
     my $opt_name;
     my $command;
+    my $return_count = 0;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -163,13 +164,13 @@ exec()
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
-        return();
+        return undef;
     }
 
     if ($command) {
         if ($command eq "help") {
             print $self->help();
-            return();
+            return 1;
         } elsif ($command eq "export") {
             if (scalar(@ARGV) eq 2) {
                 my $vnfs = shift(@ARGV);
@@ -186,7 +187,7 @@ exec()
                         my $dirname = dirname($vnfs_path);
                         if (! -d $dirname) {
                             &eprint("Parent directory $dirname does not exist!\n");
-                            return();
+                            return undef;
                         }
                     }
 
@@ -196,18 +197,22 @@ exec()
                             my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                             if ($yesno ne "y" and $yesno ne "yes") {
                                 &nprint("Not exporting '$vnfs_name'\n");
-                                return();
+                                return undef;
                             }
                         }
                     }
 
                     $vnfs_object->vnfs_export($vnfs_path);
 
+                    $return_count ++;
+
                 } else {
                     &eprint("Destination path contains illegal characters: $vnfs_path\n");
+                    return undef;
                 }
             } else {
                 &eprint("USAGE: vnfs export [vnfs name] [destination]\n");
+                return undef;
             }
         } elsif ($command eq "import") {
             if (scalar(@ARGV) >= 1) {
@@ -234,7 +239,7 @@ exec()
                                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                     if ($yesno ne "y" and $yesno ne "yes") {
                                         &nprint("Not importing '$name'\n");
-                                        return();
+                                        return undef;
                                     }
                                 }
                             } else {
@@ -247,37 +252,43 @@ exec()
 
                             $obj->vnfs_import($path);
 
+                            $return_count ++;
+
                         } else {
                             &eprint("VNFS not Found: $path\n");
+                            return undef;
                         }
                     } else {
                         &eprint("VNFS contains illegal characters: $path\n");
+                        return undef;
                     }
                 }
             } else {
                 &eprint("USAGE: vnfs import [vnfs path]\n");
+                return undef;
             }
         } else {
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+
+            if ($objSet->count() == 0) {
+                &eprint("No VNFS images found\n");
+                return undef;
+            }
             if ($command eq "delete") {
                 my $object_count = $objSet->count();
-                if ($object_count > 0) {
-                    if ($term->interactive()) {
-                        print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
-                        foreach my $o ($objSet->get_list()) {
-                            printf("     DEL: %-20s = %s\n", "VNFS", $o->name());
-                        }
-                        print "\n";
-                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                        if ($yesno ne "y" and $yesno ne "yes") {
-                            &nprint("No update performed\n");
-                            return();
-                        }
+                if ($term->interactive()) {
+                    print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "VNFS", $o->name());
                     }
-                    $db->del_object($objSet);
-                } else {
-                    &nprint("No VNFS images found\n");
+                    print "\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
+                        return undef;
+                    }
                 }
+                $return_count = $db->del_object($objSet);
             } elsif ($command eq "list" or $command eq "print") {
                 &nprint("VNFS NAME                 SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
@@ -285,22 +296,24 @@ exec()
                         $obj->get("name") || "UNDEF",
                         $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
                     );
+                    $return_count ++;
                 }
             } else {
                 &eprint("Invalid command: $command\n");
+                return undef;
             }
         }
     } else {
         &eprint("You must provide a command!\n\n");
         print $self->help();
-        return();
+        return undef;
 
     }
 
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();
 
-    return;
+    return $return_count;
 }
 
 

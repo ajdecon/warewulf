@@ -82,7 +82,7 @@ help()
     $h .= "     Warewulf> bootstrap list\n";
     $h .= "\n";
 
-    return($h);
+    return $h;
 }
 
 
@@ -94,7 +94,7 @@ summary()
 
     $output .= "Manage your bootstrap images";
 
-    return($output);
+    return $output;
 }
 
 
@@ -107,7 +107,7 @@ complete()
     my @ret;
 
     if (! $db) {
-        return();
+        return undef;
     }
 
     @ARGV = ();
@@ -132,7 +132,7 @@ complete()
 
     @ARGV = ();
 
-    return(@ret);
+    return @ret;
 
 }
 
@@ -162,13 +162,13 @@ exec()
 
     if (! $db) {
         &eprint("Database object not avaialble!\n");
-        return();
+        return undef;
     }
 
     if ($command) {
         if ($command eq "help") {
             print $self->help();
-            return();
+            return 1;
         } elsif ($command eq "export") {
             if (scalar(@ARGV) eq 2) {
                 my $bootstrap = shift(@ARGV);
@@ -185,7 +185,7 @@ exec()
                         my $dirname = dirname($bootstrap_path);
                         if (! -d $dirname) {
                             &eprint("Parent directory $dirname does not exist!\n");
-                            return();
+                            return undef;
                         }
                     }
 
@@ -195,7 +195,7 @@ exec()
                             my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                             if ($yesno ne "y" and $yesno ne "yes") {
                                 &nprint("Not exporting '$bootstrap_name'\n");
-                                return();
+                                return undef;
                             }
                         }
                     }
@@ -206,9 +206,11 @@ exec()
 
                 } else {
                     &eprint("Destination path contains illegal characters: $bootstrap_path\n");
+                    return undef;
                 }
             } else {
                 &eprint("USAGE: bootstrap export [bootstrap name] [destination]\n");
+                return undef;
             }
         } elsif ($command eq "import") {
             if (scalar(@ARGV) >= 1) {
@@ -235,7 +237,7 @@ exec()
                                     my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
                                     if ($yesno ne "y" and $yesno ne "yes") {
                                         &nprint("Not exporting '$name'\n");
-                                        return();
+                                        return undef;
                                     }
                                 }
                             } else {
@@ -252,13 +254,16 @@ exec()
 
                         } else {
                             &eprint("Bootstrap not Found: $path\n");
+                            return undef;
                         }
                     } else {
                         &eprint("Bootstrap contains illegal characters: $path\n");
+                        return undef;
                     }
                 }
             } else {
                 &eprint("USAGE: bootstrap import [bootstrap path]\n");
+                return undef;
             }
 
         } else {
@@ -267,25 +272,22 @@ exec()
                 &wprint("No bootstrap images found\n");
                 return undef;
             }
+
             if ($command eq "delete") {
                 my $object_count = $objSet->count();
-                if ($object_count > 0) {
-                    if ($term->interactive()) {
-                        print "Are you sure you want to delete $object_count bootstrap(s):\n\n";
-                        foreach my $o ($objSet->get_list()) {
-                            printf("     DEL: %-20s = %s\n", "BOOTSTRAP", $o->name());
-                        }
-                        print "\n";
-                        my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                        if ($yesno ne "y" and $yesno ne "yes") {
-                            &nprint("No update performed\n");
-                            return();
-                        }
+                if ($term->interactive()) {
+                    print "Are you sure you want to delete $object_count bootstrap(s):\n\n";
+                    foreach my $o ($objSet->get_list()) {
+                        printf("     DEL: %-20s = %s\n", "BOOTSTRAP", $o->name());
                     }
-                    $return_count = $db->del_object($objSet);
-                } else {
-                    &nprint("No bootstrap images found\n");
+                    print "\n";
+                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                    if ($yesno ne "y" and $yesno ne "yes") {
+                        &nprint("No update performed\n");
+                        return undef;
+                    }
                 }
+                $return_count = $db->del_object($objSet);
             } elsif ($command eq "list" or $command eq "print") {
                 &nprint("BOOTSTRAP NAME            SIZE (M)\n");
                 foreach my $obj ($objSet->get_list()) {
@@ -303,6 +305,7 @@ exec()
                 }
             } else {
                 &eprint("Invalid command: $command\n");
+                return undef;
             }
         }
     } else {
@@ -315,7 +318,7 @@ exec()
     # We are done with ARGV, and it was internally modified, so lets reset
     @ARGV = ();
 
-    return($return_count);
+    return $return_count;
 }
 
 
