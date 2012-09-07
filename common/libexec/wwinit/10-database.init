@@ -18,13 +18,18 @@ else
     exit 255
 fi
 
+if ! wwisuser root; then
+    wwprint "Not root, skipping\n" warn
+    exit 1
+fi
+
 
 DATASTORE=`egrep "^database driver\s*=" /etc/warewulf/database.conf | awk -F = '{print $2}' | sed -e 's/\s*//g'`
 
 
 if [ $DATASTORE == "mysql" ]; then
     wwprint "Checking /etc/rc.d/init.d/mysqld is installed"
-    if ! wwtest -f /etc/rc.d/init.d/mysqld; then
+    if ! wwtest test -f /etc/rc.d/init.d/mysqld; then
         exit 255
     fi
 

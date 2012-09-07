@@ -109,8 +109,8 @@ wwprint() {
     case $2 in
         white|WHITE)            COLOR=$WHITE ;;
         gray|GRAY|grey|GREY)    COLOR=$GRAY ;;
-        red|RED)                COLOR=$RED ;;
-        yellow|YELLOW)          COLOR=$YELLOW ;;
+        red|RED|error)          COLOR=$RED ;;
+        yellow|YELLOW|warn)     COLOR=$YELLOW ;;
         blue|BLUE)              COLOR=$BLUE ;;
     esac
 
@@ -134,7 +134,7 @@ wwaction() {
 }
 
 wwtest() {
-    if test "$@"; then
+    if "$@" >/dev/null 2>&1; then
         reply_ok
         return 0
     else
@@ -147,8 +147,25 @@ wwrun() {
     wwprint "+ $*"
     if "$@" >/dev/null 2>&1; then
         reply_ok
+        return 0
     else
         reply_error
+        return 1
     fi
 }
+
+wwisuser() {
+    USERNAME=$1
+    if [ -n $USERNAME ]; then
+        REQUESTED_UID=`id -u $USERNAME`
+        ACTUAL_UID=`id -u`
+        if [ "x$REQUESTED_UID" == "x$ACTUAL_UID" ]; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+
 
