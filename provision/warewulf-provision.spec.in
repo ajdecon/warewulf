@@ -114,6 +114,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-, root, root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO LICENSE
 %config(noreplace) %{_sysconfdir}/warewulf/provision.conf
+%config(noreplace) %{_sysconfdir}/warewulf/defaults/provision.conf
 %{_bindir}/*
 %{_localstatedir}/warewulf/*
 %{_datadir}/warewulf/*
@@ -124,6 +125,7 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/Warewulf/Module/*
 %{perl_vendorlib}/Warewulf/Provision
 %{perl_vendorlib}/Warewulf/Event/DynamicHosts.pm
+%{perl_vendorlib}/Warewulf/Event/DefaultProvisionNode.pm
 
 
 %files server
