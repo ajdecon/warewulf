@@ -62,43 +62,43 @@ msg_yellow() {
 }
    
 reply_ok() {
-    echo -en "\\033[78G"
-    msg_green "OK\n"
+    echo -en "\\033[77G"
+    msg_green " OK\n"
 }
 
 reply_yes() {
-    echo -en "\\033[77G"
-    msg_green "YES\n"
+    echo -en "\\033[76G"
+    msg_green " YES\n"
 }
 
 reply_no() {
-    echo -en "\\033[78G"
-    msg_yellow "NO\n"
+    echo -en "\\033[77G"
+    msg_yellow " NO\n"
 }
 
 reply_done() {
-    echo -en "\\033[76G"
-    msg_green "DONE\n"
+    echo -en "\\033[75G"
+    msg_green " DONE\n"
 }
 
 reply_success() {
-    echo -en "\\033[72G"
-    msg_green "SUCCESS\n"
+    echo -en "\\033[71G"
+    msg_green " SUCCESS\n"
 }
 
 reply_warn() {
-    echo -en "\\033[76G"
-    msg_yellow "WARN\n"
+    echo -en "\\033[75G"
+    msg_yellow " WARN\n"
 }
 
 reply_skipped() {
-    echo -en "\\033[73G"
-    msg_gray "SKIPPED\n"
+    echo -en "\\033[72G"
+    msg_gray " SKIPPED\n"
 }
 
 reply_error() {
-    echo -en "\\033[75G"
-    msg_red "ERROR\n"
+    echo -en "\\033[74G"
+    msg_red " ERROR\n"
 }
 
 wwprint() {
@@ -125,6 +125,7 @@ wwaction() {
         reply_ok
     else
         reply_error
+        wwprint "+ $*\n" RED
         cat $TMPFILE | while read i; do
             wwprint "$i\n" YELLOW
         done
@@ -144,14 +145,22 @@ wwtest() {
 }
 
 wwrun() {
-    wwprint "+ $*"
-    if "$@" >/dev/null 2>&1; then
+    TMPFILE=`mktemp`
+    MSG=`echo "$*" | cut -c 1-60`
+    wwprint " + $MSG"
+    "$@" >$TMPFILE 2>&1
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
         reply_ok
         return 0
     else
         reply_error
-        return 1
+        cat $TMPFILE | while read i; do
+            wwprint "$i\n" YELLOW
+        done
     fi
+    rm -f $TMPFILE
+    return $RETVAL
 }
 
 wwisuser() {
@@ -167,5 +176,16 @@ wwisuser() {
     return 1
 }
 
+wwreqroot() {
+    MSG=$1
+    if ! wwisuser root; then
+        if [ -n "$MSG" ]; then
+            wwprint $MSG warn
+        else
+            wwprint "Can only be run by the root user" warn
+        fi
+        exit 255
+    fi
+}
 
 
