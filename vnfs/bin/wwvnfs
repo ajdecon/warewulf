@@ -156,7 +156,7 @@ if ($opt_hybrid) {
         while (my $line = <FSTAB>) {
             chomp($line);
             if ($line =~ /^\s*\S+\s+(\/\S+?)\/?\s+.+/) {
-                if (substr($1, 0, length($opt_hybrid)) eq $opt_hybrid) {
+                if (substr($opt_hybrid, 0, length($1)) eq $1) {
                     $hybrid_good = 1;
                 }
             }

@@ -11,12 +11,14 @@ export FUNCTIONS="sanity_check
                   configure_network
                   configure_ntp
                   configure_pam
-                  configure_password
+                  configure_authentication
                   configure_sshkeys
+                  configure_rootacct
                   configure_runlevel
                   configure_services
                   configure_timezone
                   finalize"
+
 
 
 if [ -z "$CHROOTDIR" ]; then
@@ -62,37 +64,59 @@ configure_pam() {
     return 0
 }
 
-configure_password() {
+configure_authentication() {
     /usr/sbin/chroot $CHROOTDIR /usr/sbin/pwconv
-    echo "Setting root password to NULL (be sure to fix this yourself)"
-    sed -i -e 's/^root:\*:/root::/' $CHROOTDIR/etc/shadow
+    return 0
+}
+
+configure_rootacct() {
+    sed -i -e 's/^root:[^:]*:/root:*:/' $CHROOTDIR/etc/passwd
+    cp $CHROOTDIR/etc/skel/.[a-ZA-Z]* $CHROOTDIR/root/
     return 0
 }
 
 configure_fstab() {
+    WWIPADDR=`perl -e '
+        use Warewulf::Network;
+        use Warewulf::Config;
+
+        my $config = Warewulf::Config->new("provision.conf");
+        my $netobj = Warewulf::Network->new();
+        my $netdev = $config->get("network device");
+        my $ipaddr = $netobj->ipaddr("$netdev");
+
+        print "$ipaddr\n";
+    '`
+
     echo "#GENERATED_ENTRIES#" > $CHROOTDIR/etc/fstab
     echo "tmpfs /dev/shm tmpfs defaults 0 0" >> $CHROOTDIR/etc/fstab
     echo "devpts /dev/pts devpts gid=5,mode=620 0 0" >> $CHROOTDIR/etc/fstab
     echo "sysfs /sys sysfs defaults 0 0" >> $CHROOTDIR/etc/fstab
     echo "proc /proc proc defaults 0 0" >> $CHROOTDIR/etc/fstab
+
+    grep "^#WWEXPORT:" /etc/exports  | while read i; do
+        SHARE=`echo $i | cut -d : -f 2`
+        echo "$WWIPADDR:$SHARE $SHARE nfs defaults 0 0" >> $CHROOTDIR/etc/fstab
+        mkdir -p $CHROOTDIR/$SHARE
+    done
     return 0
 }
 
 configure_sshkeys() {
     if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key" ]; then
-        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key $CHROOTDIR/etc/ssh/ssh_host_key
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_key* $CHROOTDIR/etc/ssh/
     else
         /usr/bin/ssh-keygen -q -t rsa1 -f $CHROOTDIR/etc/ssh/ssh_host_key -C '' -N ''
     fi
-    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key" ]; then
-        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_rsa_key $CHROOTDIR/etc/ssh/ssh_rsa_key
+    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_rsa_key" ]; then
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_rsa_key* $CHROOTDIR/etc/ssh/
     else
-        /usr/bin/ssh-keygen -q -t rsa -f $CHROOTDIR/etc/ssh/ssh_rsa_key -C '' -N ''
+        /usr/bin/ssh-keygen -q -t rsa -f $CHROOTDIR/etc/ssh/ssh_host_rsa_key -C '' -N ''
     fi
-    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key" ]; then
-        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_dsa_key $CHROOTDIR/etc/ssh/ssh_dsa_key
+    if [ -f "$WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_dsa_key" ]; then
+        cp -a $WAREWULF_SYSCONFDIR/warewulf/vnfs/ssh/ssh_host_dsa_key* $CHROOTDIR/etc/ssh/
     else
-        /usr/bin/ssh-keygen -q -t dsa -f $CHROOTDIR/etc/ssh/ssh_dsa_key -C '' -N ''
+        /usr/bin/ssh-keygen -q -t dsa -f $CHROOTDIR/etc/ssh/ssh_host_dsa_key -C '' -N ''
     fi
 
     mkdir -m 0700 -p $CHROOTDIR/root/.ssh
