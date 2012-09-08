@@ -20,16 +20,21 @@ else
     exit 255
 fi
 
+wwreqroot
+
+
 RETVAL=1
 
 KVERSION=`uname -r`
 
 wwprint "Checking on a Warewulf bootstrap"
-if ! wwrun wwsh bootstrap list; then
-    wwprint "Creating and importing a bootstrap for $KVERSION"
-    if wwaction wwbootstrap $KVERSION; then
-# This will eventually also add this to defaults/provision.conf
-        RETVAL=1
+if ! wwtest wwsh bootstrap list; then
+    wwprint "Creating bootstrap for $KVERSION:\n"
+    if wwrun wwbootstrap $KVERSION; then
+        if [ -f "/etc/warewulf/defaults/provision.conf" ]; then
+            sed -i -e "s/^.*bootstrap[ ]*=.*/bootstrap = $KVERSION/" /etc/warewulf/defaults/provision.conf
+        fi
+        RETVAL=0
     else
         exit 255
     fi

@@ -1,0 +1,99 @@
+#!/bin/sh
+##
+## Copyright (c) 2001-2003 Gregory M. Kurtzer
+##
+## Copyright (c) 2003-2012, The Regents of the University of California,
+## through Lawrence Berkeley National Laboratory (subject to receipt of any
+## required approvals from the U.S. Dept. of Energy).  All rights reserved.
+##
+
+#INIT: all
+#INIT: services
+#INIT: cluster
+#INIT: master
+
+if [ -f "$WWFUNCTIONS" ]; then
+    . $WWFUNCTIONS
+else
+    echo "ERROR: could not load warewulf functions!"
+    exit 255
+fi
+
+wwreqroot
+
+
+if [ -x "/etc/rc.d/init.d/nfs" ]; then
+    SERVICE_NAME="nfs"
+elif [ -x "/etc/rc.d/init.d/nfsd" ]; then
+    SERVICE_NAME="nfsd"
+else
+    wwprint "Is NFS installed and loaded properly?" error
+    exit 255
+fi
+
+
+
+RETVAL=1
+
+
+NET=`perl -e '
+use Warewulf::Network;
+use Warewulf::Config;
+
+my $config = Warewulf::Config->new("provision.conf");
+my $netobj = Warewulf::Network->new();
+my $netdev = $config->get("network device");
+my $network = $netobj->network("$netdev");
+my $netmask = $netobj->netmask("$netdev");
+
+print "$network/$netmask\n";
+'`
+
+if ! grep -q "^#WWEXPORT:/home:$NET" /etc/exports; then
+    wwprint "Exporting /home to node private network ($NET)"
+    echo >> /etc/exports
+    echo "#WWEXPORT:/home:$NET" >> /etc/exports
+    echo "/home $NET(rw,root_squash)" >> /etc/exports
+    RETVAL=0
+fi
+
+if ! grep -q "^#WWEXPORT:/var/chroots:$NET" /etc/exports; then
+    wwprint "Exporting /var/chroots to node private network ($NET)"
+    echo >> /etc/exports
+    echo "#WWEXPORT:/var/chroots:$NET" >> /etc/exports
+    echo "/var/chroots $NET(ro,no_root_squash)" >> /etc/exports
+    RETVAL=0
+fi
+
+if ! grep -q "^#WWEXPORT:/usr/local:$NET" /etc/exports; then
+    wwprint "Exporting /usr/local to node private network ($NET)"
+    echo >> /etc/exports
+    echo "#WWEXPORT:/usr/local:$NET" >> /etc/exports
+    echo "/usr/local $NET(ro,no_root_squash)" >> /etc/exports
+    RETVAL=0
+fi
+
+if ! grep -q "^#WWEXPORT:/opt:$NET" /etc/exports; then
+    wwprint "Exporting /opt to node private network ($NET)"
+    echo >> /etc/exports
+    echo "#WWEXPORT:/opt:$NET" >> /etc/exports
+    echo "/opt $NET(ro,no_root_squash)" >> /etc/exports
+    RETVAL=0
+fi
+
+
+wwprint "Confirming NFS is enabled at boot"
+wwrun chkconfig nfs on
+
+wwprint "Checking to see if NFS needs to be started"
+if ! wwrun service nfs start; then
+   wwprint "Is NFS already running?" warn
+fi
+
+wwprint "Re-exporting NFS shares"
+if ! wwrun exportfs -a; then
+    exit 255
+fi
+
+
+exit $RETVAL

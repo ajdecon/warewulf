@@ -9,6 +9,8 @@
 
 #INIT: all
 #INIT: services
+#INIT: cluster
+#INIT: master
 
 if [ -f "$WWFUNCTIONS" ]; then
     . $WWFUNCTIONS
@@ -16,6 +18,9 @@ else
     echo "ERROR: could not load warewulf functions!"
     exit 255
 fi
+
+wwreqroot
+
 
 RETVAL=1
 
