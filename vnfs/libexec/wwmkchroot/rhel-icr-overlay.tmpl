@@ -11,9 +11,6 @@ export FUNCTIONS="sanity_check
                   finalize"
 
 
-# Packages related to the Warewulf system (epel repo)
-WWPKG="json-c"
-
 # Additional packages which are very nice to have on a cluser
 ADDPKG="lsof ntpdate ntp openmpi openmpi.i686 openmpi-devel openmpi-devel.i686 \
     mpitests-openmpi mpich2 mpich2.i686 mpich2-devel mpich2-devel.i686 mpich2-doc"
@@ -32,7 +29,7 @@ ICRPKG="bzip2-libs.i686 bzip2-libs.x86_64 compat-libcap1.i686 compat-libcap1.x86
     libsepol.i686 libsepol.x86_64 libstdc++.i686 libstdc++.x86_64 mesa-libGL.x86_64 \
     ncurses-libs.i686 ncurses-libs.x86_64 pam.i686 pam.x86_64 xorg-x11-apps.x86_64 \
     xorg-x11-drv-intel.x86_64 xorg-x11-utils.x86_64 xterm.x86_64 zlib.i686 zlib.x86_64 \
-    java-1.6.0-openjdk redhat-lsb tcsh ksh ${ADDPKG} ${WWPKG}"
+    java-1.6.0-openjdk redhat-lsb tcsh ksh ${ADDPKG}"
 
 
 sanity_check() {
