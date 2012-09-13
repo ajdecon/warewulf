@@ -81,12 +81,21 @@ if ! grep -q "^#WWEXPORT:/opt:$NET" /etc/exports; then
     RETVAL=0
 fi
 
+if [ -f "$WAREWULF_SYSCONFDIR/warewulf/defaults/node.conf" ]; then
+    DOMAIN=`grep "^domain =" $WAREWULF_SYSCONFDIR/warewulf/defaults/node.conf | cut -d = -f 2 | sed -e 's/ //g'`
+    if [ -n "$DOMAIN" ]; then
+        # Set the NFSv4 domain for nodes.
+        wwprint "Setting domain \"$DOMAIN\" for IDMAPD/NFSv4"
+        wwaction sed -i -e "s/#*[ ]*Domain =.*/Domain = $DOMAIN/" /etc/idmapd.conf
+        RETVAL=0
+    fi
+fi
 
 wwprint "Confirming NFS is enabled at boot"
 wwrun chkconfig nfs on
 
-wwprint "Checking to see if NFS needs to be started"
-if ! wwrun service nfs start; then
+wwprint "Restarting NFS services"
+if ! wwrun service nfs restart; then
    wwprint "Is NFS already running?" warn
 fi
 
