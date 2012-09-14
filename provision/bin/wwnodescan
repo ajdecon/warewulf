@@ -268,7 +268,7 @@ if (! open(TCPDUMP, "exec $opt_tcpdump 2>&1 |")) {
     exit(1);
 }
 
-&iprintf("Scanning for node(s)%s...\n", (($opt_maxnodes < 0) ? ("") : (" (maximum of $opt_maxnodes)")));
+&iprintf("Scanning for node(s) (%s)...\n", (($opt_maxnodes < 0) ? ("Ctrl-C to exit") : ("maximum of $opt_maxnodes")));
 while (my $line = <TCPDUMP>) {
     chomp($line);
     &dprint("From tcpdump:  \"$line\"\n");
