@@ -30,6 +30,7 @@ my $opt_bootstrap;
 my $opt_groups;
 my $opt_help;
 my $opt_autoconfig;
+my $opt_maxnodes;
 my $opt_replace;
 my $ipaddr_bin;
 my $ipaddr_max;
@@ -45,25 +46,26 @@ my $help = "USAGE: $0 [options] nodes....
         Scan for new systems making DHCP requests.
     
     GENERAL OPTIONS:
-        -h, --help          Show the help/utilization summary
-        -d, --debug         Display debugging information
-        -v, --verbose       Be more verbose in output
-        -f, --file          Create a Warewulf script instead of auto-import
-        -l, --listen        Interface to listen on (tcpdump -D for list)
-        -c, --tcpdump       Specify the full path to the tcpdump command
+        -h, --help              Show the help/utilization summary
+        -d, --debug             Display debugging information
+        -v, --verbose           Be more verbose in output
+        -f, --file <file>       Create Warewulf script instead of auto-import
+        -l, --listen <iface>    Interface to listen on (tcpdump -D for list)
+        -c, --tcpdump <cmd>     Specify the full path to the tcpdump command
+        -x, --max [<cnt>]       Exit after <cnt> new nodes (0 for auto)
 
     MODES:
-        -t, --test          Test mode; do not modify data store
-        -r, --replace       Replace existing nodes (by name)
-        -a, --autoconfig    Assign HW addresses to unassigned nodes
+        -t, --test              Test mode; do not modify data store
+        -r, --replace           Replace existing nodes (by name)
+        -a, --autoconfig        Assign HW addresses to unassigned nodes
 
     SETTINGS:
-        -n, --netdev        Define the network device for the new nodes
-        -i, --ipaddr        IP address for the new node(s)
-        -m, --netmask       Netmask for the new node(s)
-        -V, --vnfs          Set the VNFS for the node(s)
-        -b, --bootstrap     Set the bootstrap for the node(s)
-        -g, --groups        Set the groups for the node(s)
+        -n, --netdev <dev>      Network device for the new node(s)
+        -i, --ipaddr <addr>     IP address for the new node(s)
+        -m, --netmask <mask>    Netmask for the new node(s)
+        -V, --vnfs <vnfs>       VNFS for the node(s)
+        -b, --bootstrap <name>  Bootstrap for the node(s)
+        -g, --groups <groups>   Groups for the node(s)
 
     NODES:
         You can scan for any number of nodes; this program will exit after all
@@ -99,6 +101,7 @@ GetOptions(
     't|test'        => \$opt_testmode,
     'r|replace'     => \$opt_replace,
     'a|autoconfig'  => \$opt_autoconfig,
+    'x|max:0'      => \$opt_maxnodes,
     'i|ipaddr=s'    => \$opt_ipaddr,
     'm|netmask=s'   => \$opt_netmask,
     'n|netdev=s'    => \$opt_netdev,
@@ -110,12 +113,19 @@ GetOptions(
     'c|tcpdump=s'   => \$opt_tcpdump
 );
 
+if (!defined($opt_maxnodes)) {
+    $opt_maxnodes = -1;
+}
+
 if (! $opt_autoconfig) {
     if ($opt_help || !scalar(@ARGV)) {
         print $help;
         exit(0);
     }
     @nodenames = &expand_bracket(@ARGV);
+    if ($opt_maxnodes == 0) {
+        $opt_maxnodes = scalar(@nodenames);
+    }
 } elsif (scalar(@ARGV)) {
     @nodenames = &expand_bracket(@ARGV);
 }
@@ -202,6 +212,21 @@ if (! $opt_listen) {
     $opt_listen = "any";
 }
 
+if ($opt_autoconfig && $opt_maxnodes == 0) {
+    my $nodeset;
+
+    $nodeset = $datastore->get_objects("node", "_hwaddr", "UNDEF");
+    $nodeset->del("nodename", "DEFAULT");
+
+    # Automatically set maximum based on total number of unconfigured nodes
+    # plus the number of names specified on the command line, if any.
+    $opt_maxnodes = $nodeset->count() + scalar(@nodenames);
+    if ($opt_maxnodes == 0) {
+        &eprint("Automatic detection of max node count found no unconfigured nodes.\n");
+        exit(1);
+    }
+}
+
 # The --tcpdump option can take just an executable or an entire command line.  We
 # only want to modify the command if it wasn't specified at all or if only a path
 # to an executable was specified (i.e., it does not contain a space).
@@ -243,7 +268,7 @@ if (! open(TCPDUMP, "exec $opt_tcpdump 2>&1 |")) {
     exit(1);
 }
 
-&iprint("Scanning for node(s)...\n");
+&iprintf("Scanning for node(s)%s...\n", (($opt_maxnodes < 0) ? ("") : (" (maximum of $opt_maxnodes)")));
 while (my $line = <TCPDUMP>) {
     chomp($line);
     &dprint("From tcpdump:  \"$line\"\n");
@@ -307,7 +332,19 @@ while (my $line = <TCPDUMP>) {
                 }
                 # ELSE:  Fall through to adding a new node.
             } elsif ($opt_autoconfig) {
-                $node = $datastore->get_objects("node", "_hwaddr", "UNDEF")->get_object(0);
+                my $nodeset;
+
+                $nodeset = $datastore->get_objects("node", "_hwaddr", "UNDEF");
+                # FIXME: $nodeset->del("nodename", "DEFAULT");
+                while (defined($node = $nodeset->get_object(0))) {
+                    if ($node->nodename() eq "DEFAULT") {
+                        $nodeset->del($node);
+                        next;
+                    }
+                    # FIXME:  Other sanity checks?
+                    last;
+                }
+
                 if ($node) {
                     my $nodename = $node->name();
                     my $netdevs = $node->netdevs();
@@ -318,7 +355,11 @@ while (my $line = <TCPDUMP>) {
                              $node->id(), $netdevs_count);
                     if (! $netdevs_count) {
                         # No network devices present?!
-                        $netdev = $node->netdev_get_add($opt_netdev || "");
+                        if (! $opt_netdev) {
+                            &eprintf("Node $nodename has no network devices and --netdev was not specified.\n");
+                            exit(1);
+                        }
+                        $netdev = $node->netdev_get_add($opt_netdev);
                         &wprintf("No network devices found on node $nodename.  Assuming %s.\n", $netdev->name());
                     } else {
                         my @uninit_netdevs;
@@ -332,12 +373,21 @@ while (my $line = <TCPDUMP>) {
                         $node->hwaddr($netdev->get("name"), $hwaddr);
                         &nprintf("Configured $nodename.%s.hwaddr:  $hwaddr\n", ($netdev->get("name") || "<default>"));
                         $datastore->persist($node);
+                        if (--$opt_maxnodes == 0) {
+                            &iprint("Configured all nodes requested.  Exiting.\n");
+                            exit(0);
+                        }
                         next;
                     } else {
                         &wprint("No network devices found on node $nodename with unconfigured hardware address.\n");
                     }
                 }
-                # ELSE:  Fall through to adding a new node.
+                # ELSE:  Fall through to adding a new node.  But first, make sure we CAN!
+                if (! $name || ! $opt_netdev) {
+                    &wprint("Autoconfiguration mode fallback unavailable; name(s) and/or network device not specified.\n");
+                    # We can't do anything with this node.
+                    next;
+                }
             } else {
                 # Avoid node name conflicts
                 while ($node = $datastore->get_objects("node", "name", $name)->get_object(0)) {
@@ -353,6 +403,15 @@ while (my $line = <TCPDUMP>) {
         }
 
         # If we get here, we're adding a new node.
+        if (! $name) {
+            if (scalar(@nodenames)) {
+                $name = shift(@nodenames);
+            } else {
+                &eprint("Unable to add new node $hwaddr -- Node name range not specified.\n");
+                exit(1);
+            }
+        }
+
         if ($opt_scriptfile) {
             my $entry;
 
@@ -374,6 +433,7 @@ while (my $line = <TCPDUMP>) {
         } elsif (! $opt_netdev) {
             &eprint("Unable to add node $hwaddr as $name; -n/--netdev required when adding new nodes.\n");
             unshift(@nodenames, $name);
+            $opt_maxnodes++;
         } else {
             my $new_node = Warewulf::Node->new();
 
@@ -395,8 +455,8 @@ while (my $line = <TCPDUMP>) {
             &nprint("Added to data store:  $name:  $ip/$opt_netmask/$hwaddr\n");
         }
 
-        if (scalar(@nodenames) == 0) {
-            &iprint("Done.\n");
+        if ((--$opt_maxnodes == 0) || (scalar(@nodenames) == 0)) {
+            &iprint("Configured all nodes requested.  Exiting.\n");
             last;
         }
 

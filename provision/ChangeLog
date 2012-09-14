@@ -111,3 +111,11 @@ data store with node objects without MAC addresses and subsequent
 automatic assignment of newly-booted nodes' MAC addresses to the
 previously defined nodes.
 ----------------------------------------------------------------------
+Fri Sep 14 10:58:40 2012                        Michael Jennings (mej)
+
+New option to specify max node count to create/populate.
+
+Cleaned up help display.
+
+Properly handle missing network device on unconfigured node.
+----------------------------------------------------------------------
