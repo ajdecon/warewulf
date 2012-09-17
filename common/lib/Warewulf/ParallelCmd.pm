@@ -93,13 +93,18 @@ queue($$$$)
     my $obj = Warewulf::Object->new();
     my $queueset = $self->get("queueset");
 
-    &dprint("Adding command to queue: $command\n");
-    $obj->set("command", $command);
-    $obj->set("prefix", $prefix);
-    $obj->set("format", $format);
-    $queueset->add($obj);
+    if ($command =~ /^([a-zA-Z0-9\.\s_\-\;\'\"\$]+)$/) {
+        &dprint("Adding command to queue: $1\n");
+        $obj->set("command", $1);
+        $obj->set("prefix", $prefix);
+        $obj->set("format", $format);
+        $queueset->add($obj);
+    } else {
+        &eprint("Illegal characters in command: $command\n");
+        return undef;
+    }
 
-    return;
+    return 1;
 }
 
 =item fanout()
