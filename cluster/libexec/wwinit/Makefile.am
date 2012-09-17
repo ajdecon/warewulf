@@ -1,6 +1,6 @@
 wwinitdir = $(libexecdir)/warewulf/wwinit
 
-dist_wwinit_SCRIPTS = 50-authfiles.init 55-wwbootstrap.init 55-wwvnfs.init 80-ssh_keys.init 90-nfsd.init 90-ntpd.init 95-hostfile.init
+dist_wwinit_SCRIPTS = 40-authfiles.init 50-nfsd.init 50-ntpd.init 50-ssh_keys.init 60-hostfile.init 90-wwbootstrap.init 90-wwvnfs.init
 
 MAINTAINERCLEANFILES = Makefile.in
 
