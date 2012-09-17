@@ -272,7 +272,8 @@ yesno()
         $default_notty = 1;
     }
     if ($question) {
-        print($question);
+        chomp($question);
+        &nprint($question ."\n");
     }
     if ($self->interactive()) {
         my $ret;
