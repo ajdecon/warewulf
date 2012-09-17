@@ -276,11 +276,11 @@ exec()
         }
 
     } elsif ($command eq "import") {
-        foreach my $o (@opt_origin) {
-            if (!scalar(grep { $_ eq $o} @ARGV)) {
-                push(@ARGV, @opt_origin);
-            }
-        }
+#        foreach my $o (@opt_origin) {
+#            if (!scalar(grep { $_ eq $o} @ARGV)) {
+#                push(@ARGV, @opt_origin);
+#            }
+#        }
         foreach my $path (@ARGV) {
             if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
                 my @statinfo;
@@ -313,11 +313,11 @@ exec()
                     }
                     
                     $obj->file_import($path);
-                    $obj->mode($mode);
-                    $obj->uid($uid);
-                    $obj->gid($gid);
-                    $obj->path($path);
-                    $obj->origin($path);
+                    $obj->mode($opt_mode || $mode);
+                    $obj->uid($opt_uid || $uid);
+                    $obj->gid($opt_gid || $gid);
+                    $obj->path($opt_path || $path);
+                    $obj->origin((scalar(@opt_origin) ? (split(",", join(",",@opt_origin))) : ($path)));
                     $db->persist($obj);
                 } else {
                     &eprint("\"$path\" not found -- $!\n");
