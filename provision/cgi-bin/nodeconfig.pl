@@ -11,6 +11,7 @@
 use CGI;
 use Warewulf::DataStore;
 use Warewulf::Node;
+use Warewulf::Logger;
 
 my $db = Warewulf::DataStore->new();
 my $q = CGI->new();
