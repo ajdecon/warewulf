@@ -93,7 +93,7 @@ queue($$$$)
     my $obj = Warewulf::Object->new();
     my $queueset = $self->get("queueset");
 
-    if ($command =~ /^([a-zA-Z0-9\.\s_\-\;\'\"\$]+)$/) {
+    if ($command =~ /^(.*)$/) {
         &dprint("Adding command to queue: $1\n");
         $obj->set("command", $1);
         $obj->set("prefix", $prefix);
@@ -277,7 +277,13 @@ forkobj($)
 
 #TODO: At some point capture STDERR seperately and print properly
     &dprint("Spawning command: $command\n");
-    if ($pid = open($fh, "$command 2>&1 |")) {
+    $pid = open($fh, '-|');  # Fork off child process securely.
+    if (!defined($pid)) {
+        # Disaster
+        &wprint("Unable to spawn command ($command):  $!\n");
+        return 0;
+    } elsif ($pid) {
+        # Parent
         $select->add($fh);
 
         &dprint("Created fileno: ". $fh->fileno() ."\n");
@@ -287,6 +293,14 @@ forkobj($)
         $obj->set("starttime", time());
         $obj->set("pid", $pid);
         $self->pcount("+1");
+        return 1;
+    } else {
+        # Child
+        # Securely pass $command intact to shell
+        close(STDERR);
+        open(STDERR, ">&STDOUT");
+        exec("/bin/sh", "-c", $command);
+        die("Unable to execute $command -- $!");
     }
 }
 

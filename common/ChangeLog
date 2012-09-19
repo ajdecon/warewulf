@@ -470,3 +470,7 @@ Thu Aug 23 13:53:29 2012                        Michael Jennings (mej)
 
 Update unit tests for new Object::get() logic.
 ----------------------------------------------------------------------
+Wed Sep 19 10:45:26 2012                        Michael Jennings (mej)
+
+Parallel command should be able to be anything.
+----------------------------------------------------------------------
