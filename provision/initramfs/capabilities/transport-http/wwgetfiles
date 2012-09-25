@@ -18,7 +18,7 @@ fi
 
 if [ -n "$RANDOM" -a ! -f "/init" ]; then
     SLEEPTIME=`expr $RANDOM % 30`
-#    sleep $SLEEPTIME
+    sleep $SLEEPTIME
 fi
 
 TIMESTAMP_FILE="$NEWROOT/tmp/.wwgetfiles_timestamp"
@@ -27,7 +27,9 @@ if [ ! -d $NEWROOT/tmp/ ]; then
 fi
 
 if [ -f "$TIMESTAMP_FILE" ]; then
-    TIMESTAMP=`cat $TIMESTAMP_FILE`
+    if [ -z "$NEWROOT" ]; then
+        TIMESTAMP=`cat $TIMESTAMP_FILE`
+    fi
 fi
 
 while true; do
@@ -39,11 +41,11 @@ while true; do
                 if [ ! -d "$NEWROOT/$basedir" ]; then
                     mkdir -p $NEWROOT/$basedir
                 fi
-                if wget -q -O $NEWROOT/$path.ww "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id"; then
-                    chown $uid $NEWROOT/$path.ww
-                    chgrp $gid $NEWROOT/$path.ww
-                    chmod $mode $NEWROOT/$path.ww
-                    mv $NEWROOT/$path.ww $NEWROOT/$path
+                if wget -q -O $NEWROOT/$path.ww$timestamp "http://$master/WW/file?hwaddr=$HWADDR&fileid=$id"; then
+                    chown $uid $NEWROOT/$path.ww$timestamp
+                    chgrp $gid $NEWROOT/$path.ww$timestamp
+                    chmod $mode $NEWROOT/$path.ww$timestamp
+                    mv $NEWROOT/$path.ww$timestamp $NEWROOT/$path
                     echo $timestamp > $TIMESTAMP_FILE
                 else
                     echo "ERROR: Could not download $name"
