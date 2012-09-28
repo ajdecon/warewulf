@@ -10,6 +10,10 @@ sanity_check() {
 
 prechroot() {
 
+    if [ -n "$OS_MIRROR" ]; then
+        YUM_MIRROR="$OS_MIRROR"
+    fi
+
     if [ -z "$YUM_MIRROR" ]; then
         echo "ERROR: You must define the \$YUM_MIRROR variable in the template!"
         exit 1
@@ -31,7 +35,7 @@ prechroot() {
     echo 'gpgcheck=0' >> $CHROOTDIR/etc/yum.conf
     echo 'plugins=1' >> $CHROOTDIR/etc/yum.conf
 
-    echo '[base]' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
+    echo '[os-base]' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
     echo 'name=Linux $releasever - $basearch' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
     echo "baseurl=$YUM_MIRROR" >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
     echo 'enabled=1' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
@@ -63,6 +67,11 @@ postchroot() {
         echo "# This is a kludge added by Warewulf so devices don't get renamed (broke things with IB)" >> $CHROOTDIR/etc/sysconfig/network-scripts/network-functions
         echo "rename_device() { return 0; }" >> $CHROOTDIR/etc/sysconfig/network-scripts/network-functions
     fi
+    # Disable all other repositories on node except for what we just used to
+    # install from. They are still present, but they will require to be
+    # activated by hand.
+    sed -i -e 's/^enabled=/enabled=0/g' $CHROOTDIR/etc/yum.repos.d/*.repo
+    sed -i -e 's/^enabled=/enabled=1/g' $CHROOTDIR/etc/yum.repos.d/os-base.repo
     return 0
 }
 
