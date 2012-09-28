@@ -11,11 +11,7 @@ export FUNCTIONS="sanity_check
                   finalize"
 
 
-# Additional packages which are very nice to have on a cluser
-ADDPKG="lsof ntpdate ntp openmpi openmpi.i686 openmpi-devel openmpi-devel.i686 \
-    mpitests-openmpi mpich2 mpich2.i686 mpich2-devel mpich2-devel.i686 mpich2-doc"
-
-# Many of these will probably be installed... *shrug*
+# Many of these will probably be installed, but best to be sure!
 ICRPKG="bzip2-libs.i686 bzip2-libs.x86_64 compat-libcap1.i686 compat-libcap1.x86_64 \
     compat-libstdc++-33.i686 compat-libstdc++-33.x86_64 fontconfig.x86_64 freetype.x86_64 \
     glibc.i686 glibc.x86_64 glx-utils.x86_64 libICE.x86_64 libSM.x86_64 libX11.x86_64 \
@@ -29,7 +25,7 @@ ICRPKG="bzip2-libs.i686 bzip2-libs.x86_64 compat-libcap1.i686 compat-libcap1.x86
     libsepol.i686 libsepol.x86_64 libstdc++.i686 libstdc++.x86_64 mesa-libGL.x86_64 \
     ncurses-libs.i686 ncurses-libs.x86_64 pam.i686 pam.x86_64 xorg-x11-apps.x86_64 \
     xorg-x11-drv-intel.x86_64 xorg-x11-utils.x86_64 xterm.x86_64 zlib.i686 zlib.x86_64 \
-    java-1.6.0-openjdk redhat-lsb tcsh ksh ${ADDPKG}"
+    java-1.6.0-openjdk redhat-lsb tcsh ksh lsof ntpdate ntp"
 
 
 sanity_check() {
@@ -59,7 +55,6 @@ overlay() {
     # Setup basic ICR structure
     mkdir -m 0755 -p $CHROOTDIR/opt/intel
     mkdir -m 0755 -p $CHROOTDIR/etc/intel
-    mkdir -m 0755 -p $CHROOTDIR/var/log/intel
     echo "CLUSTER_READY_VERSION=1.2" > $CHROOTDIR/etc/intel/icr
 
     return 0
