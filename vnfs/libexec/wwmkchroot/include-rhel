@@ -1,5 +1,7 @@
 
 
+REPO_NAME="os-base"
+
 sanity_check() {
     if ! rpm -q yum >/dev/null 2>&1; then
         echo "ERROR: Could not query RPM for YUM"
@@ -23,23 +25,23 @@ prechroot() {
     mkdir -m 0755 -p $CHROOTDIR/etc/yum.repos.d
 
     > $CHROOTDIR/etc/yum.conf
-    > $CHROOTDIR/etc/yum.repos.d/os-base.repo
+    > $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
 
-    echo '[main]' >> $CHROOTDIR/etc/yum.conf
+    echo "[main]" >> $CHROOTDIR/etc/yum.conf
     echo 'cachedir=/var/cache/yum/$basearch/$releasever' >> $CHROOTDIR/etc/yum.conf
-    echo 'keepcache=0' >> $CHROOTDIR/etc/yum.conf
-    echo 'debuglevel=2' >> $CHROOTDIR/etc/yum.conf
-    echo 'logfile=/var/log/yum.log' >> $CHROOTDIR/etc/yum.conf
-    echo 'exactarch=1' >> $CHROOTDIR/etc/yum.conf
-    echo 'obsoletes=1' >> $CHROOTDIR/etc/yum.conf
-    echo 'gpgcheck=0' >> $CHROOTDIR/etc/yum.conf
-    echo 'plugins=1' >> $CHROOTDIR/etc/yum.conf
+    echo "keepcache=0" >> $CHROOTDIR/etc/yum.conf
+    echo "debuglevel=2" >> $CHROOTDIR/etc/yum.conf
+    echo "logfile=/var/log/yum.log" >> $CHROOTDIR/etc/yum.conf
+    echo "exactarch=1" >> $CHROOTDIR/etc/yum.conf
+    echo "obsoletes=1" >> $CHROOTDIR/etc/yum.conf
+    echo "gpgcheck=0" >> $CHROOTDIR/etc/yum.conf
+    echo "plugins=1" >> $CHROOTDIR/etc/yum.conf
 
-    echo '[os-base]' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
-    echo 'name=Linux $releasever - $basearch' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
-    echo "baseurl=$YUM_MIRROR" >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
-    echo 'enabled=1' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
-    echo 'gpgcheck=0' >> $CHROOTDIR/etc/yum.repos.d/os-base.repo
+    echo "[$REPO_NAME]" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    echo 'name=Linux $releasever - $basearch' >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    echo "baseurl=$YUM_MIRROR" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    echo "enabled=1" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    echo "gpgcheck=0" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
 
 }
 
@@ -70,8 +72,16 @@ postchroot() {
     # Disable all other repositories on node except for what we just used to
     # install from. They are still present, but they will require to be
     # activated by hand.
-    sed -i -e 's/^enabled=/enabled=0/g' $CHROOTDIR/etc/yum.repos.d/*.repo
-    sed -i -e 's/^enabled=/enabled=1/g' $CHROOTDIR/etc/yum.repos.d/os-base.repo
+    for i in $CHROOTDIR/etc/yum.repos.d/*.repo; do
+        filename=`basename $i`
+        if [ "$filename" != "$REPO_NAME.repo" ]; then
+            if grep -q "^enabled" $i; then
+                sed -i -e 's/^enabled=.*/enabled=0/g' $i
+            else
+                sed -i -e 's/^\(\[.*\]\)/\1\nenabled=0/' $i
+            fi
+        fi
+    done
     return 0
 }
 
