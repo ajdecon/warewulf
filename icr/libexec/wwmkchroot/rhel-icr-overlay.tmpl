@@ -1,10 +1,9 @@
 #DESC: Intel Cluster Ready 1.2 Overlay for Red Hat
 
-#
-# rhel-icr1.2.tmpl
-#
-# Required System Packages to make a system ICR 1.2 Compliant
-#
+# The general RHEL include has all of the necessary functions, but requires
+# some basic variables specific to each chroot type to be defined.
+. include-rhel
+
 
 export FUNCTIONS="sanity_check
                   overlay
@@ -45,7 +44,7 @@ sanity_check() {
 }
 
 overlay() {
-    yum --tolerant --installroot $CHROOTDIR -y install $ICRPKG
+    $YUM_CMD install $ICRPKG
 
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to install ICR packages"

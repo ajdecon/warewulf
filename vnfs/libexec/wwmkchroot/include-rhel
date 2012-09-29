@@ -1,6 +1,9 @@
 
 
 REPO_NAME="os-base"
+YUM_CONF="$CHROOTDIR/root/yum-ww.conf"
+YUM_CONF="/root/yum-ww.conf"
+YUM_CMD="yum --config=$CHROOTDIR/$YUM_CONF --tolerant --installroot $CHROOTDIR -y"
 
 sanity_check() {
     if ! rpm -q yum >/dev/null 2>&1; then
@@ -21,27 +24,28 @@ prechroot() {
         exit 1
     fi
 
-    mkdir -m 0755 -p $CHROOTDIR/etc
-    mkdir -m 0755 -p $CHROOTDIR/etc/yum.repos.d
+    YUM_CONF_DIRNAME=`dirname $YUM_CONF`
+    mkdir -m 0755 -p $CHROOTDIR/$YUM_CONF_DIRNAME
 
-    > $CHROOTDIR/etc/yum.conf
-    > $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    > $CHROOTDIR/$YUM_CONF
 
-    echo "[main]" >> $CHROOTDIR/etc/yum.conf
-    echo 'cachedir=/var/cache/yum/$basearch/$releasever' >> $CHROOTDIR/etc/yum.conf
-    echo "keepcache=0" >> $CHROOTDIR/etc/yum.conf
-    echo "debuglevel=2" >> $CHROOTDIR/etc/yum.conf
-    echo "logfile=/var/log/yum.log" >> $CHROOTDIR/etc/yum.conf
-    echo "exactarch=1" >> $CHROOTDIR/etc/yum.conf
-    echo "obsoletes=1" >> $CHROOTDIR/etc/yum.conf
-    echo "gpgcheck=0" >> $CHROOTDIR/etc/yum.conf
-    echo "plugins=1" >> $CHROOTDIR/etc/yum.conf
+    echo "[main]" >> $CHROOTDIR/$YUM_CONF
+    echo 'cachedir=/var/cache/yum/$basearch/$releasever' >> $CHROOTDIR/$YUM_CONF
+    echo "keepcache=0" >> $CHROOTDIR/$YUM_CONF
+    echo "debuglevel=2" >> $CHROOTDIR/$YUM_CONF
+    echo "logfile=/var/log/yum.log" >> $CHROOTDIR/$YUM_CONF
+    echo "exactarch=1" >> $CHROOTDIR/$YUM_CONF
+    echo "obsoletes=1" >> $CHROOTDIR/$YUM_CONF
+    echo "gpgcheck=0" >> $CHROOTDIR/$YUM_CONF
+    echo "plugins=1" >> $CHROOTDIR/$YUM_CONF
+    echo "reposdir=0" >> $CHROOTDIR/$YUM_CONF
+    echo "" >> $CHROOTDIR/$YUM_CONF
 
-    echo "[$REPO_NAME]" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
-    echo 'name=Linux $releasever - $basearch' >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
-    echo "baseurl=$YUM_MIRROR" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
-    echo "enabled=1" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
-    echo "gpgcheck=0" >> $CHROOTDIR/etc/yum.repos.d/$REPO_NAME.repo
+    echo "[$REPO_NAME]" >> $CHROOTDIR/$YUM_CONF
+    echo 'name=Linux $releasever - $basearch' >> $CHROOTDIR/$YUM_CONF
+    echo "baseurl=$YUM_MIRROR" >> $CHROOTDIR/$YUM_CONF
+    echo "enabled=1" >> $CHROOTDIR/$YUM_CONF
+    echo "gpgcheck=0" >> $CHROOTDIR/$YUM_CONF
 
 }
 
@@ -52,7 +56,7 @@ buildchroot() {
         exit 1
     fi
 
-    yum --tolerant --installroot $CHROOTDIR -y install $PKGLIST
+    $YUM_CMD install $PKGLIST
 
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to create chroot"
@@ -69,19 +73,6 @@ postchroot() {
         echo "# This is a kludge added by Warewulf so devices don't get renamed (broke things with IB)" >> $CHROOTDIR/etc/sysconfig/network-scripts/network-functions
         echo "rename_device() { return 0; }" >> $CHROOTDIR/etc/sysconfig/network-scripts/network-functions
     fi
-    # Disable all other repositories on node except for what we just used to
-    # install from. They are still present, but they will require to be
-    # activated by hand.
-    for i in $CHROOTDIR/etc/yum.repos.d/*.repo; do
-        filename=`basename $i`
-        if [ "$filename" != "$REPO_NAME.repo" ]; then
-            if grep -q "^enabled" $i; then
-                sed -i -e 's/^enabled=.*/enabled=0/g' $i
-            else
-                sed -i -e 's/^\(\[.*\]\)/\1\nenabled=0/' $i
-            fi
-        fi
-    done
     return 0
 }
 
