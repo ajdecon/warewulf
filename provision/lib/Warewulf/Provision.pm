@@ -70,6 +70,20 @@ vnfsid()
     return $self->prop("vnfsid", qr/^([0-9]+)$/, @_);
 }
 
+=item vnfs($string)
+
+Return the name of the VNFS this node is configured to use
+
+=cut
+
+sub
+vnfs()
+{
+    my $self = shift;
+
+
+}
+
 
 =item fileids(@fileids)
 

@@ -68,6 +68,7 @@ help()
     $h .= "         export          Export a VNFS image to the local file system\n";
     $h .= "         delete          Delete a VNFS image from Warewulf\n";
     $h .= "         list            Show all of the currently imported VNFS images\n";
+    $h .= "         set             Set any VNFS attributes\n";
     $h .= "         help            Show usage information\n";
     $h .= "\n";
     $h .= "TARGETS:\n";
@@ -77,6 +78,7 @@ help()
     $h .= "OPTIONS:\n";
     $h .= "\n";
     $h .= "     -n, --name          When importing a VNFS use this name instead of the file name\n";
+    $h .= "     -c, --chroot        Define the location of the template chroot\n";
     $h .= "\n";
     $h .= "EXAMPLES:\n";
     $h .= "\n";
@@ -147,6 +149,7 @@ exec()
     my $term = Warewulf::Term->new();
     my $opt_lookup = "name";
     my $opt_name;
+    my $opt_chroot;
     my $command;
     my $return_count = 0;
 
@@ -158,6 +161,7 @@ exec()
     GetOptions(
         'n|name=s'      => \$opt_name,
         'l|lookup=s'    => \$opt_lookup,
+        'c|chroot=s'    => \$opt_chroot,
     );
 
     $command = shift(@ARGV);
@@ -274,7 +278,35 @@ exec()
                 &eprint("No VNFS images found\n");
                 return undef;
             }
-            if ($command eq "delete") {
+
+            if ($command eq "set") {
+                my $persist_count = 0;
+                my @changes;
+
+                if ($opt_chroot) {
+                    if ($opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
+                        if (-d $opt_chroot) {
+                            foreach my $o ($objSet->get_list()) {
+                                $o->chroot($opt_chroot);
+                                $persist_count++;
+                            }
+                            push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "CHROOT", $opt_chroot));
+                        } else {
+                            &eprint("Chroot directory '$opt_chroot' does not exist\n");
+                        }
+                    } else {
+                        &eprint("Option 'chroot' has illegal characters\n");
+                    }
+                }
+
+                if ($persist_count > 0) {
+                    if ($self->confirm_changes($term, $objSet->count(), "VNFS(s)", @changes)) {
+                        $return_count = $db->persist($objSet);
+                        &iprint("Updated $return_count object(s).\n");
+                    }
+                }
+
+            } elsif ($command eq "delete") {
                 my $object_count = $objSet->count();
                 if ($term->interactive()) {
                     print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
@@ -290,11 +322,12 @@ exec()
                 }
                 $return_count = $db->del_object($objSet);
             } elsif ($command eq "list" or $command eq "print") {
-                &nprint("VNFS NAME                 SIZE (M)\n");
+                &nprint("VNFS NAME            SIZE (M) CHROOT LOCATION\n");
                 foreach my $obj ($objSet->get_list()) {
-                    printf("%-25s %-8.1f\n",
-                        $obj->get("name") || "UNDEF",
-                        $obj->get("size") ? $obj->get("size")/(1024*1024) : "0"
+                    printf("%-20s %-8.1f %s\n",
+                        $obj->name() || "UNDEF",
+                        ($obj->size() ? ($obj->size()/(1024*1024)) : ("0")),
+                        $obj->chroot() || "UNDEF"
                     );
                     $return_count ++;
                 }

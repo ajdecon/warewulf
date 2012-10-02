@@ -64,7 +64,7 @@ new($$)
 
 =item name($string)
 
-Set or return the name of this object.
+Get or set the name of this vnfs object.
 
 =cut
 
@@ -73,13 +73,13 @@ name()
 {
     my $self = shift;
 
-    return $self->prop("name", qr/^([a-z0-9_\.\-]+)$/, @_);
+    return $self->prop("name", qr/^([a-zA-Z0-9_\.\-]+)$/, @_);
 }
 
 
 =item checksum($string)
 
-Get the checksum of this vnfs.
+Get or set the checksum of this vnfs.
 
 =cut
 
@@ -89,6 +89,21 @@ checksum()
     my $self = shift;
 
     return $self->prop("checksum", qr/^([a-zA-Z0-9]+)$/, @_);
+}
+
+
+=item chroot($string)
+
+Get or set the chroot location of this vnfs.
+
+=cut
+
+sub
+chroot()
+{
+    my $self = shift;
+
+    return $self->prop("chroot", qr/^([a-zA-Z0-9\/\.\-_]+)$/, @_);
 }
 
 
