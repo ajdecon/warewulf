@@ -1,5 +1,5 @@
 
-dist_bin_SCRIPTS = wwnodescan ww-configure-stateful.sh ww-disable-stateful.sh
+dist_bin_SCRIPTS = wwnodescan wwlivesync
 
 
 MAINTAINERCLEANFILES = Makefile.in

@@ -1,0 +1,129 @@
+#!/usr/bin/perl -Tw
+#
+# Copyright (c) 2001-2003 Gregory M. Kurtzer
+#
+# Copyright (c) 2003-2011, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+#
+
+use Warewulf::Util;
+use Warewulf::Logger;
+use Warewulf::Config;
+use Warewulf::ParallelCmd;
+use Warewulf::Node;
+use Warewulf::DSO::Node;
+use Warewulf::DataStore;
+use Warewulf::Vnfs;
+use Warewulf::Provision;
+use Warewulf::DSO::Vnfs;
+use File::Path;
+use File::Basename;
+use Getopt::Long;
+
+my $db = Warewulf::DataStore->new();
+my $pcmd = Warewulf::ParallelCmd->new();
+my $opt_lookup = "name";
+my $opt_help;
+my $opt_debug;
+my $opt_verbose;
+my $opt_quiet;
+
+
+Getopt::Long::Configure ("bundling");
+
+GetOptions(
+    'l|lookup=s'    => \$opt_lookup,
+    'h|help'        => \$opt_help,
+    'debug'         => \$opt_debug,
+    'verbose'       => \$opt_verbose,
+    'quiet'         => \$opt_quiet,
+);
+
+
+&set_log_level("NOTICE");
+
+if ($opt_debug) {
+    &set_log_level("DEBUG");
+} elsif ($opt_verbose) {
+    &set_log_level("INFO");
+} elsif ($opt_quiet) {
+    &set_log_level("WARNING");
+}
+
+# Sanitize PATH environment
+$ENV{"PATH"} = "/bin:/usr/bin:/sbin:/usr/sbin";
+
+
+if (! $db) {
+    &eprint("Could not connect to the data store!\n");
+    exit 255;
+}
+
+if (! @ARGV) {
+    $opt_help = 1;
+}
+
+if ($opt_help) {
+    print "USAGE: $0 <options> [nodes...]\n";
+    exit 0;
+}
+
+
+$pcmd->wtime(0);
+$pcmd->ktime(3600);
+$pcmd->fanout(4);
+
+$objSet = $db->get_objects("node", $opt_lookup, &expand_bracket(@ARGV));
+
+if (! $objSet || ($objSet->count() == 0)) {
+    &nprint("No nodes found\n");
+    exit 1;
+}
+
+
+foreach my $o ($objSet->get_list()) {
+    my ($name, $vnfs_name, $vnfsid, $vnfs, $config, @excludes, $chroot, $excludes_opts, $cmd);
+
+    $name = $o->name();
+    $vnfsid = $o->vnfsid();
+    $vnfs_name = $o->name();
+
+    if (! $vnfsid) {
+        &wprint("VNFS not defined for node: $name\n");
+        next;
+    }
+
+    $vnfs = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
+
+    if (! $vnfs) {
+        &wprint("Unknown VNFS ID '$vnfsid' set for node: $name\n");
+        next;
+    }
+
+    $config = Warewulf::Config->new("vnfs.conf", "vnfs/$name.conf");
+    @excludes = $config->get("excludes");
+    $chroot = $vnfs->chroot() || $config->get("chroot");
+
+    if (! $chroot) {
+        &wprint("Unknown VNFS chroot location for VNFS: $vnfs_name\n");
+        next;
+    }
+
+    foreach my $exclude (@excludes) {
+        $excludes_opts .= " --exclude='./$exclude'";
+    }
+
+    $cmd = "cd $chroot; rsync -aqHP $excludes_opts . $name:/ 2>&1 && echo done";
+
+    &iprint("Queuing command: $cmd\n");
+    $pcmd->queue($cmd, "$name: ");
+
+}
+
+
+&iprint("Running all queued commands:\n");
+$pcmd->run();
+
+# Eventually we should return with a proper error code!
+exit 0;
