@@ -162,6 +162,12 @@ persist()
         my $dhcpd_contents;
         my %seen;
 
+        if (! $ipaddr or ! $netmask or ! $network) {
+            &wprint("Could not configure DHCP, check 'network device' configuration!\n");
+            return undef;
+        }
+
+
         if (! $ipaddr) {
             &wprint("Could not obtain IP address of this system!\n");
             &wprint("Check provision.conf 'network device'\n");

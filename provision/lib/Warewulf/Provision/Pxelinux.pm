@@ -128,6 +128,12 @@ update()
     my $devname = $config->get("network device");
     my $master_ipaddr = $netobj->ipaddr($devname);
 
+    if (! $master_ipaddr) {
+        &wprint("Could not generate PXE configurations, check 'network device' configuration!\n");
+        return undef;
+    }
+
+
 
     &dprint("Updating PXE configuration files now\n");
 

@@ -95,6 +95,11 @@ generate()
     my $netmask = $netobj->netmask($netdev);
     my $network = $netobj->network($netdev);
 
+    if (! $ipaddr or ! $netmask or ! $network) {
+        &wprint("Could not generate hostfile, check 'network device' configuration!\n");
+        return undef;
+    }
+
     my $delim = "### ALL ENTRIES BELOW THIS LINE WILL BE OVERWRITTEN BY WAREWULF ###";
 
     my $hosts;
@@ -116,7 +121,6 @@ generate()
 
     foreach my $n ($datastore->get_objects("node")->get_list()) {
         my $nodename = $n->nodename();
-        my $master_ipv4_addr = $netobj->ip_unserialize($master_ipv4_bin);
         my $devcount = scalar $n->netdevs_list();
         my $default_name;
 
@@ -254,18 +258,18 @@ update()
 {
     my ($self) = @_;
     my $config = Warewulf::Config->new("provision.conf");
-    my $hosts_contents;
+    my $hosts_contents = $self->generate();
 
     if (! $config->get("generate dynamic_hosts") or $config->get("generate dynamic_hosts") eq "yes") {
-        $hosts_contents = $self->generate();
-        $self->update_datastore($hosts_contents);
+        if ($hosts_contents) {
+            $self->update_datastore($hosts_contents);
+        }
     }
     if ($config->get("update hostfile") eq "yes") {
         my $hostfile = $config->get("hostfile") ? $config->get("hostfile") : "/etc/hosts";
-        if (! $hosts_contents) {
-            $hosts_contents = $self->generate();
+        if ($hosts_contents) {
+            $self->update_hostfile($hostfile, $hosts_contents);
         }
-        $self->update_hostfile($hostfile, $hosts_contents);
     }
 }
 
