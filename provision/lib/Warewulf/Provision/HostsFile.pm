@@ -124,6 +124,10 @@ generate()
             next;
         }
 
+        if (! $n->domain() and ! $n->cluster()) {
+            $n->domain("localdomain");
+        }
+
         &dprint("Evaluating node: $nodename\n");
 
         foreach my $devname ($n->netdevs_list()) {
@@ -148,10 +152,6 @@ generate()
                 &dprint("Using $nodename-$devname as default\n");
                 $default_name = 1;
                 $n->nodename($nodename);
-                if (! $n->domain() and ! $n->cluster()) {
-                    $n->domain("localdomain");
-                    #push(@name_entries, $n->nodename() .".localcluster");
-                }
                 push(@name_entries, reverse $n->name());
             }
 
