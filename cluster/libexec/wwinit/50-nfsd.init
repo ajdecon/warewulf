@@ -91,18 +91,9 @@ if [ -f "$WAREWULF_SYSCONFDIR/warewulf/defaults/node.conf" ]; then
     fi
 fi
 
-wwprint "Confirming NFS is enabled at boot"
 wwrun chkconfig nfs on
-
-wwprint "Restarting NFS services"
-if ! wwrun service nfs restart; then
-   wwprint "Is NFS already running?" warn
-fi
-
-wwprint "Re-exporting NFS shares"
-if ! wwrun exportfs -a; then
-    exit 255
-fi
+wwrun service nfs restart
+wwrun exportfs -a || exit 255
 
 
 exit $RETVAL
