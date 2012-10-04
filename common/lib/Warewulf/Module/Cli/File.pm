@@ -64,6 +64,7 @@ help()
     $h .= "     import             Import a file into a file object\n";
     $h .= "     export             Export file object(s)\n";
     $h .= "     edit               Edit the file in the data store directly\n";
+    $h .= "     new                Create a new file in the data store\n";
     $h .= "     set                Set file attributes/metadata\n";
     $h .= "     show               Show the contents of a file\n";
     $h .= "     list               List a summary of imported file(s)\n";
