@@ -35,49 +35,38 @@ fi
 
 RETVAL=1
 
+NETWORK=`perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->network(Warewulf::Config->new("provision.conf")->get("network device"));'`
+NETMASK=`perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->netmask(Warewulf::Config->new("provision.conf")->get("network device"));'`
 
-NET=`perl -e '
-use Warewulf::Network;
-use Warewulf::Config;
-
-my $config = Warewulf::Config->new("provision.conf");
-my $netobj = Warewulf::Network->new();
-my $netdev = $config->get("network device");
-my $network = $netobj->network("$netdev");
-my $netmask = $netobj->netmask("$netdev");
-
-print "$network/$netmask\n";
-'`
-
-if ! grep -q "^#WWEXPORT:/home:$NET" /etc/exports; then
-    wwprint "Exporting /home to node private network ($NET)"
+if ! grep -q "^#WWEXPORT:/home:$NETWORK/$NETMASK" /etc/exports; then
+    wwprint "Exporting /home to node private network ($NETWORK/$NETMASK)"
     echo >> /etc/exports
-    echo "#WWEXPORT:/home:$NET" >> /etc/exports
-    echo "/home $NET(rw,root_squash)" >> /etc/exports
+    echo "#WWEXPORT:/home:$NETWORK/$NETMASK" >> /etc/exports
+    echo "/home $NETWORK/$NETMASK(rw,root_squash)" >> /etc/exports
     RETVAL=0
 fi
 
-if ! grep -q "^#WWEXPORT:/var/chroots:$NET" /etc/exports; then
-    wwprint "Exporting /var/chroots to node private network ($NET)"
+if ! grep -q "^#WWEXPORT:/var/chroots:$NETWORK/$NETMASK" /etc/exports; then
+    wwprint "Exporting /var/chroots to node private network ($NETWORK/$NETMASK)"
     echo >> /etc/exports
-    echo "#WWEXPORT:/var/chroots:$NET" >> /etc/exports
-    echo "/var/chroots $NET(ro,no_root_squash)" >> /etc/exports
+    echo "#WWEXPORT:/var/chroots:$NETWORK/$NETMASK" >> /etc/exports
+    echo "/var/chroots $NETWORK/$NETMASK(ro,no_root_squash)" >> /etc/exports
     RETVAL=0
 fi
 
-if ! grep -q "^#WWEXPORT:/usr/local:$NET" /etc/exports; then
-    wwprint "Exporting /usr/local to node private network ($NET)"
+if ! grep -q "^#WWEXPORT:/usr/local:$NETWORK/$NETMASK" /etc/exports; then
+    wwprint "Exporting /usr/local to node private network ($NETWORK/$NETMASK)"
     echo >> /etc/exports
-    echo "#WWEXPORT:/usr/local:$NET" >> /etc/exports
-    echo "/usr/local $NET(ro,no_root_squash)" >> /etc/exports
+    echo "#WWEXPORT:/usr/local:$NETWORK/$NETMASK" >> /etc/exports
+    echo "/usr/local $NETWORK/$NETMASK(ro,no_root_squash)" >> /etc/exports
     RETVAL=0
 fi
 
-if ! grep -q "^#WWEXPORT:/opt:$NET" /etc/exports; then
-    wwprint "Exporting /opt to node private network ($NET)"
+if ! grep -q "^#WWEXPORT:/opt:$NETWORK/$NETMASK" /etc/exports; then
+    wwprint "Exporting /opt to node private network ($NETWORK/$NETMASK)"
     echo >> /etc/exports
-    echo "#WWEXPORT:/opt:$NET" >> /etc/exports
-    echo "/opt $NET(ro,no_root_squash)" >> /etc/exports
+    echo "#WWEXPORT:/opt:$NETWORK/$NETMASK" >> /etc/exports
+    echo "/opt $NETWORK/$NETMASK(ro,no_root_squash)" >> /etc/exports
     RETVAL=0
 fi
 

@@ -28,17 +28,7 @@ RETVAL=1
 HOSTNAME=`hostname`
 HOSTNAME_S=`hostname -s`
 
-IPADDR=`perl -e '
-use Warewulf::Network;
-use Warewulf::Config;
-
-my $config = Warewulf::Config->new("provision.conf");
-my $netobj = Warewulf::Network->new();
-my $netdev = $config->get("network device");
-my $ipaddr = $netobj->ipaddr("$netdev");
-
-print "$ipaddr\n";
-'`
+IPADDR=`perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->ipaddr(Warewulf::Config->new("provision.conf")->get("network device"));'`
 
 if [ -n "$IPADDR" ]; then
     if ! grep -q "^$IPADDR" /etc/hosts; then

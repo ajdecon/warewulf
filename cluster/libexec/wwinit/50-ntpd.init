@@ -23,29 +23,8 @@ wwreqroot
 
 RETVAL=1
 
-NETWORK=`perl -e '
-use Warewulf::Network;
-use Warewulf::Config;
-
-my $config = Warewulf::Config->new("provision.conf");
-my $netobj = Warewulf::Network->new();
-my $netdev = $config->get("network device");
-my $network = $netobj->network("$netdev");
-
-print "$network\n";
-'`
-
-NETMASK=`perl -e '
-use Warewulf::Network;
-use Warewulf::Config;
-
-my $config = Warewulf::Config->new("provision.conf");
-my $netobj = Warewulf::Network->new();
-my $netdev = $config->get("network device");
-my $netmask = $netobj->netmask("$netdev");
-
-print "$netmask\n";
-'`
+NETWORK=`perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->network(Warewulf::Config->new("provision.conf")->get("network device"));'`
+NETMASK=`perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->netmask(Warewulf::Config->new("provision.conf")->get("network device"));'`
 
 if ! grep -q "^# This file was created by Warewulf" /etc/ntp.conf; then
     cp /etc/ntp.conf /etc/ntp.conf-orig
