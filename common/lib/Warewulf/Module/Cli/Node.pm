@@ -95,6 +95,7 @@ help()
     $h .= "     -G, --gateway       Set gateway of given netdev\n";
     $h .= "     -H, --hwaddr        Set hardware/MAC address\n";
     $h .= "     -f, --fqdn          Set FQDN of given netdev\n";
+    $h .= "     -m, --mtu           Set MTU of given netdev\n";
     $h .= "     -c, --cluster       Specify cluster name for this node\n";
     $h .= "     -d, --domain        Specify domain name for this node\n";
     $h .= "     -n, --name          Specify new name for this node\n";
@@ -180,6 +181,7 @@ exec()
     my $opt_name;
     my $opt_domain;
     my $opt_fqdn;
+    my $opt_mtu;
     my @opt_print;
     my @opt_groups;
     my @opt_groupadd;
@@ -210,6 +212,7 @@ exec()
         'c|cluster=s'   => \$opt_cluster,
         'n|name=s'      => \$opt_name,
         'f|fqdn=s'      => \$opt_fqdn,
+        'm|mtu=s'       => \$opt_mtu,
         'd|domain=s'    => \$opt_domain,
         'l|lookup=s'    => \$opt_lookup,
 
@@ -301,6 +304,7 @@ exec()
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.NETMASK", $o->netmask($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.NETWORK", $o->network($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.GATEWAY", $o->gateway($devname) || "UNDEF");
+                printf("%15s: %-16s = %s\n", $nodename, "$devname.MTU", $o->mtu($devname) || "UNDEF");
                 printf("%15s: %-16s = %s\n", $nodename, "$devname.FQDN", $o->fqdn($devname) || "UNDEF");
             }
             $return_count++;
@@ -486,6 +490,31 @@ exec()
                     }
                 } else {
                     &eprint("Option 'fqdn' has invalid characters\n");
+                }
+            }
+            if ($opt_mtu) {
+                if ($opt_mtu =~ /^([0-9]+)$/) {
+                    my $show_changes;
+                    foreach my $o ($objSet->get_list()) {
+                        my $nodename = $o->name();
+                        if (! $opt_netdev) {
+                            my @devs = $o->netdevs_list();
+                            if (scalar(@devs) == 1) {
+                                $opt_netdev = shift(@devs);
+                            } else {
+                                &eprint("Option --mtu requires the --netdev option for: $nodename\n");
+                                return undef;
+                            }
+                        }
+                        $o->mtu($opt_netdev, $opt_mtu);
+                        $persist_count++;
+                        $show_changes = 1;
+                    }
+                    if ($show_changes) {
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "$opt_netdev.MTU", $opt_mtu));
+                    }
+                } else {
+                    &eprint("Option 'mtu' has invalid characters\n");
                 }
             }
         }

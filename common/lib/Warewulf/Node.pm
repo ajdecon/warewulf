@@ -549,6 +549,22 @@ fqdn()
 }
 
 
+=item mtu($devname, [ $value ])
+
+Get or set the MTU for the network device named I<$devname>.
+
+=cut
+
+sub
+mtu()
+{
+    my ($self, $devname, $new_mtu) = @_;
+
+    return $self->update_netdev_member($devname, "mtu", "", $new_mtu,
+                                       qr/^([0-9]+)$/);
+}
+
+
 =back
 
 =head1 SEE ALSO
