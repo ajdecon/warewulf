@@ -91,11 +91,11 @@ generate()
     my $config = Warewulf::Config->new("provision.conf");
 
     my $netdev = $config->get("network device");
-    my $ipaddr = $netobj->ipaddr($netdev);
-    my $netmask = $netobj->netmask($netdev);
-    my $network = $netobj->network($netdev);
+    my $master_ipaddr = $netobj->ipaddr($netdev);
+    my $master_netmask = $netobj->netmask($netdev);
+    my $master_network = $netobj->network($netdev);
 
-    if (! $ipaddr or ! $netmask or ! $network) {
+    if (! $master_ipaddr or ! $master_netmask or ! $master_network) {
         &wprint("Could not generate hostfile, check 'network device' configuration!\n");
         return undef;
     }
@@ -136,6 +136,7 @@ generate()
 
         foreach my $devname ($n->netdevs_list()) {
             my $node_ipaddr = $n->ipaddr($devname);
+            my $node_netmask = $n->netmask($devname) || $master_netmask;
             my $node_fqdn = $n->fqdn($devname);
             my $node_testnetwork;
             my @name_entries;
@@ -145,14 +146,14 @@ generate()
                 next;
             }
 
-            $node_testnetwork = $netobj->calc_network($node_ipaddr, $netmask);
+            $node_testnetwork = $netobj->calc_network($node_ipaddr, $node_netmask);
 
             if ($node_fqdn) {
                 push(@name_entries, $node_fqdn);
             }
 
-            &dprint("Checking to see if node is on same network as master: $node_testnetwork ?= $network\n");
-            if ($devcount == 1 or (($node_testnetwork eq $network) and ! defined($default_name))) {
+            &dprint("Checking to see if node is on same network as master: $node_testnetwork ?= $master_network\n");
+            if ($devcount == 1 or (($node_testnetwork eq $master_network) and ! defined($default_name))) {
                 &dprint("Using $nodename-$devname as default\n");
                 $default_name = 1;
                 $n->nodename($nodename);

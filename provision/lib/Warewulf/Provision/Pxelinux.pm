@@ -127,6 +127,8 @@ update()
     my $config = Warewulf::Config->new("provision.conf");
     my $devname = $config->get("network device");
     my $master_ipaddr = $netobj->ipaddr($devname);
+    my $master_network = $netobj->network($devname);
+    my $master_netmask = $netobj->netmask($devname);
 
     if (! $master_ipaddr) {
         &wprint("Could not generate PXE configurations, check 'network device' configuration!\n");
@@ -173,18 +175,25 @@ update()
 
         foreach my $devname (sort($nodeobj->netdevs_list())) {
             my $hwaddr = $nodeobj->hwaddr($devname);
-            my $ipv4_addr = $nodeobj->ipaddr($devname);
-            my $netmask = $nodeobj->netmask($devname);
-            my $gateway = $nodeobj->gateway($devname);
+            my $node_ipaddr = $nodeobj->ipaddr($devname);
+            my $node_netmask = $nodeobj->netmask($devname) || $master_netmask;
+            my $node_gateway = $nodeobj->gateway($devname);
+            my $mtu = $nodeobj->mtu($devname);
+            my $node_testnetwork = $netobj->calc_network($node_ipaddr, $node_netmask);
             my $hwprefix = "01";
 
             if (! $devname) {
-                &iprint("Skipping unknown device name for: $nodename\n");
+                &iprint("Skipping PXE config for unknown device name: $nodename\n");
                 next;
             }
 
             if (! $hwaddr) {
-                &iprint("Skipping $nodename-$devname: No hwaddr defined\n");
+                &iprint("Skipping PXE config for $nodename-$devname (No hwaddr defined)\n");
+                next;
+            }
+
+            if ($node_testnetwork ne $master_network) {
+                &iprint("Skipping PXE config for $nodename-$devname (on a different network)\n");
                 next;
             }
 
@@ -240,15 +249,20 @@ update()
                 } else {
                     print PXELINUX "wwmaster=$master_ipaddr ";
                 }
-                if ($devname and $ipv4_addr and $netmask) {
-                    print PXELINUX "wwipaddr=$ipv4_addr wwnetmask=$netmask wwnetdev=$devname ";
+                if ($devname and $node_ipaddr and $node_netmask) {
+                    print PXELINUX "wwipaddr=$node_ipaddr wwnetmask=$node_netmask wwnetdev=$devname ";
                 } else {
-                    &dprint("Skipping static network definition because configuration not complete\n");
+                    &dprint("$hostname: Skipping static network definition because configuration not complete\n");
                 }
-                if ($gateway) {
-                    print PXELINUX "wwgateway=$gateway ";
+                if ($node_gateway) {
+                    print PXELINUX "wwgateway=$node_gateway ";
                 } else {
-                    &dprint("Skipping static gateway configuration as it is unconfigured\n");
+                    &dprint("$hostname: Skipping static gateway configuration as it is unconfigured\n");
+                }
+                if ($mtu) {
+                    print PXELINUX "wwmtu=$mtu";
+                } else {
+                    &dprint("$hostname: Skipping static MTU configuration as it is unconfigured\n");
                 }
                 print PXELINUX "\n";
                 if (! close PXELINUX) {

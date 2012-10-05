@@ -54,7 +54,17 @@ wwsuccess
 ifup() {
     DEVICE=$1
     RETVAL=1
+    msg_white "Checking for network device: $DEVICE "
     if ifconfig $DEVICE up >/dev/null 2>&1; then
+        wwsuccess
+        if [ -n "$WWMTU" ]; then
+            msg_white "Setting the MTU to: $WWMTU "
+            if ifconfig $DEVICE mtu $WWMTU >/dev/null 2>&1; then
+                wwsuccess
+            else
+                wwfailure
+            fi
+        fi
         if [ -n "$WWIPADDR" -a -n "$WWNETMASK" -a -n "$WWMASTER" ]; then
             msg_white "Configuring $DEVICE statically: "
             msg_gray "($WWIPADDR/$WWNETMASK)"
@@ -66,6 +76,9 @@ ifup() {
                 echo "IPADDR=$WWIPADDR" >> /tmp/ifcfg-$DEVICE
                 echo "NETMASK=$WWNETMASK" >> /tmp/ifcfg-$DEVICE
                 echo "GATEWAY=$WWGATEWAY" >> /tmp/ifcfg-$DEVICE
+                if [ -n "$WWMTU" ]; then
+                    echo "MTU=$WWMTU" >> /tmp/ifcfg-$DEVICE
+                fi
                 COUNT=0
                 msg_white  "Trying to reach the master node at $WWMASTER "
                 while [ $COUNT -le $WWNETRETRY ]; do
@@ -97,6 +110,9 @@ ifup() {
                 echo "IPADDR=$IPADDR" >> /tmp/ifcfg-$DEVICE
                 echo "NETMASK=$NETMASK" >> /tmp/ifcfg-$DEVICE
                 echo "GATEWAY=$GATEWAY" >> /tmp/ifcfg-$DEVICE
+                if [ -n "$WWMTU" ]; then
+                    echo "MTU=$WWMTU" >> /tmp/ifcfg-$DEVICE
+                fi
                 return 0
             fi
             msg_white "."
@@ -104,6 +120,8 @@ ifup() {
             sleep 1
         done
         wwfailure
+    else
+        wwskip
     fi
     return 255
 }
