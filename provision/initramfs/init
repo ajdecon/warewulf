@@ -123,6 +123,9 @@ ifup() {
     else
         wwskip
     fi
+    # If we have gotten here, give up for this device, and bring device down
+    # just in case its present.
+    ifconfig $DEVICE down >/dev/null 2>&1
     return 255
 }
 
