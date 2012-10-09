@@ -1,12 +1,9 @@
 AC_PREREQ(2.59)
 AC_INIT(warewulf-cluster, 0.0.1, warewulf-devel@lbl.gov)
 AC_CONFIG_SRCDIR([.])
-AM_CONFIG_HEADER([config.h])
 
 AC_PROG_INSTALL
-AM_INIT_AUTOMAKE
-AC_PROG_LIBTOOL
-AC_PROG_CC
+AM_INIT_AUTOMAKE([foreign])
 
 AC_PATH_PROG(PERLBIN, perl)
 if test -z "$PERLBIN"; then
