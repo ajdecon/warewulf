@@ -71,7 +71,7 @@ configure_authentication() {
 
 configure_rootacct() {
     sed -i -e 's/^root:[^:]*:/root:*:/' $CHROOTDIR/etc/passwd
-    cp $CHROOTDIR/etc/skel/.[a-ZA-Z]* $CHROOTDIR/root/
+    cp $CHROOTDIR/etc/skel/.[a-zA-Z]* $CHROOTDIR/root/ > /dev/null 2>&1
     return 0
 }
 
