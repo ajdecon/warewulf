@@ -12,11 +12,14 @@ package Warewulf::Event::DefaultProvisionNode;
 
 use Warewulf::Config;
 use Warewulf::DataStore;
-use Warewulf::Node;
+use Warewulf::DSO::Bootstrap;
+use Warewulf::DSO::Vnfs;
 use Warewulf::Event;
 use Warewulf::EventHandler;
-use Warewulf::RetVal;
 use Warewulf::Logger;
+use Warewulf::Node;
+use Warewulf::Provision;
+use Warewulf::RetVal;
 
 my $event = Warewulf::EventHandler->new();
 
