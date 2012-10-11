@@ -12,6 +12,8 @@ use CGI;
 use Warewulf::DataStore;
 use Warewulf::Node;
 use Warewulf::Logger;
+use Warewulf::Object;
+use Warewulf::ObjectSet;
 
 my $db = Warewulf::DataStore->new();
 my $q = CGI->new();
@@ -41,9 +43,18 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
 
         # For arrays, print the first element.  Otherwise, print the value.
         if (ref($nhash{"$key"}) eq "ARRAY") {
-            $val = $nhash{$key}[0];
+            $val = join(",", @{$nhash{$key}});
         } elsif (ref(\$nhash{"$key"}) eq "SCALAR") {
             $val = $nhash{$key};
+        } elsif (ref($nhash{"$key"}) eq "Warewulf::ObjectSet") {
+            my @names;
+            foreach my $o ($nhash{"$key"}->get_list()) {
+                my $n = $o->get("name");
+                if (defined($n)) {
+                    push(@names, $n);
+                }
+            }
+            $val = join(",", @names);
         } else {
             $val = "";
         }
