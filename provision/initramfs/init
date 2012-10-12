@@ -121,7 +121,7 @@ ifup() {
         done
         wwfailure
     else
-        wwskip
+        wwskipped
     fi
     # If we have gotten here, give up for this device, and bring device down
     # just in case its present.
