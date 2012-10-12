@@ -308,13 +308,15 @@ del()
     return @{$self->{$key}};
 }
 
-=item prop(I<key>, I<value>, [ I<validator> ])
+=item prop(I<key>, [ I<validator>, I<value> ])
 
 Wrapper for object properties (member variables that have matching
 combined getter/setter methods).  The I<key> is the member name.
-I<value> is the new value to assign.  If I<value> is undefined, the
-I<key> member will be deleted.  (This is consistent with the behavior
-of the C<set()> and C<del()> methods.)
+I<value> is the new value to assign.  If I<value> is missing, the
+current value of the I<key> property is returned.  (This is consistent
+with the behavior of the C<get()> method.)  If I<value> is present but
+undefined, the I<key> member will be deleted.  (This is consistent
+with the behavior of the C<set()> and C<del()> methods.)
 
 The optional validator is a reference to a regular expression
 (supplied via qr/.../) or a coderef.  I<value> must match the regex
@@ -337,6 +339,12 @@ getter/setter method like so:
 
         return $self->prop("membervar", qr/^(\w+)$/, @_);
     }
+
+This allows for the C<membervar()> method to be used like so:
+
+    $membervar = $obj->membervar();   # get()
+    $obj->membervar($new_value);      # set()
+    $obj->membervar(undef);           # del()
 
 If no validator is required, pass a false value (e.g., 0 or undef) as
 the validator parameter.

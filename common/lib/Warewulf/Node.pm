@@ -124,12 +124,10 @@ nodename()
     my $self = shift;
     my $nodename = $self->prop("nodename", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
-#TODO: If setting to UNDEF, this conditional needs to become true!
-    if (scalar(@_) && defined($_[0])) {
-        &dprint("Set nodename to: $_[0]\n");
+    if (scalar(@_)) {
+        &dprint(((defined($_[0])) ? ("Set nodename to: $_[0]\n") : ("Unset nodename\n")));
         $self->genname();
     }
-
     return $nodename;
 }
 
@@ -147,12 +145,10 @@ cluster()
     my $self = shift;
     my $cluster = $self->prop("cluster", qr/^([a-zA-Z0-9_\-]+)$/, @_);
 
-#TODO: If setting to UNDEF, this conditional needs to become true!
-    if (scalar(@_) && defined($_[0])) {
-        &dprint("Set cluster name to: $_[0]\n");
+    if (scalar(@_)) {
+        &dprint(((defined($_[0])) ? ("Set cluster name to: $_[0]\n") : ("Unset cluster name\n")));
         $self->genname();
     }
-
     return $cluster;
 }
 
@@ -169,12 +165,10 @@ domain()
     my $self = shift;
     my $domain = $self->prop("domain", qr/^([a-zA-Z0-9_\-\.]+)$/, @_);
 
-#TODO: If setting to UNDEF, this conditional needs to become true!
-    if (scalar(@_) && defined($_[0])) {
-        &dprint("Set domain name to: $_[0]\n");
+    if (scalar(@_)) {
+        &dprint(((defined($_[0])) ? ("Set domain name to: $_[0]\n") : ("Unset domain name\n")));
         $self->genname();
     }
-
     return $domain;
 }
 
