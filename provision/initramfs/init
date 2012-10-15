@@ -212,27 +212,15 @@ else
     wwreboot
 fi
 
-if [ -n "$WWFQDN" ]; then
-    HOSTNAME="$WWFQDN"
-elif [ -n "$WWNAME" ]; then
-    HOSTNAME="$WWNAME"
-    if [ -n "$WWCLUSTER" ]; then
-        HOSTNAME="$HOSTNAME.$WWCLUSTER"
-    fi
-    if [ -n "$WWDOMAIN" ]; then
-        HOSTNAME="$HOSTNAME.$WWDOMAIN"
-    fi
+HOSTNAME=`echo "$WWNAME" | sed -e 's/.*\,//'`
+if [ ! -n "$HOSTNAME" ]; then
+    HOSTNAME="localhost"
 fi
-if [ -n "$HOSTNAME" ]; then
-    msg_white "Setting the hostname ($HOSTNAME): "
-    hostname $HOSTNAME
-    export HOSTNAME
-    wwsuccess
-else
-    msg_white "Setting the hostname: "
-    wwskipped
-fi
+export HOSTNAME
 
+msg_white "Setting the hostname ($HOSTNAME): "
+hostname $HOSTNAME
+wwsuccess
 
 if [ -n "$WWPRESHELL" -a "$WWPRESHELL" != "0" ]; then
     echo "This node is configured to run a shell before the provision process"
