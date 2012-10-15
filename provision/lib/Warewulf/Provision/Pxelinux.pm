@@ -150,7 +150,7 @@ update()
     }
 
     foreach my $nodeobj (@nodeobjs) {
-        my $hostname = $nodeobj->name() || "localhost";
+        my $hostname = $nodeobj->name() || "localhost.localdomain";
         my $nodename = $nodeobj->nodename() || "undef";
         my $bootstrapid = $nodeobj->get("bootstrapid");
         my @kargs = $nodeobj->get("kargs");

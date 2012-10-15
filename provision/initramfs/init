@@ -219,7 +219,7 @@ if [ ! -n "$HOSTNAME" ]; then
     if [ ! -n "$WWNAME" ]; then
         HOSTNAME=`echo "$WWNAME" | sed -e 's/.*\,//'`
     else
-        HOSTNAME="localhost"
+        HOSTNAME="localhost.localdomain"
     fi
     export HOSTNAME
 
