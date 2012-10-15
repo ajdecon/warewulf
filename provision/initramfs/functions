@@ -16,8 +16,8 @@ export WWDEBUG
 WWNETRETRY=`sed -e '/ wwnetretry=/!d;s/.*wwnetretry=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWNETRETRY
 
-WWNODE=`sed -e '/ wwnode=/!d;s/.*wwnode=\([^ ]*\).*/\1/' /proc/cmdline`
-export WWNODE
+WWHOSTNAME=`sed -e '/ wwhostname=/!d;s/.*wwhostname=\([^ ]*\).*/\1/' /proc/cmdline`
+export WWHOSTNAME
 
 WWIPADDR=`sed -e '/ wwipaddr=/!d;s/.*wwipaddr=\([^ ]*\).*/\1/' /proc/cmdline`
 export WWIPADDR

@@ -33,10 +33,12 @@ clear
 msg_blue "Now Booting Warewulf...\n"
 echo
 
-if [ -n "$WWNODE" ]; then
-    msg_white "Setting Hostname: "
-    msg_gray "$WWNODE\n"
-    hostname $WWNODE
+if [ -n "$WWHOSTNAME" ]; then
+    HOSTNAME="$WWHOSTNAME"
+    export HOSTNAME
+    msg_white "Setting the hostname ($HOSTNAME): "
+    hostname $HOSTNAME
+    wwsuccess
 fi
 
 if [ -x "/sbin/mdev" ]; then
@@ -212,15 +214,20 @@ else
     wwreboot
 fi
 
-HOSTNAME=`echo "$WWNAME" | sed -e 's/.*\,//'`
 if [ ! -n "$HOSTNAME" ]; then
-    HOSTNAME="localhost"
-fi
-export HOSTNAME
+    # We didn't set the hostname above, lets see if we can set it now...
+    if [ ! -n "$WWNAME" ]; then
+        HOSTNAME=`echo "$WWNAME" | sed -e 's/.*\,//'`
+    else
+        HOSTNAME="localhost"
+    fi
+    export HOSTNAME
 
-msg_white "Setting the hostname ($HOSTNAME): "
-hostname $HOSTNAME
-wwsuccess
+    msg_white "Setting the hostname ($HOSTNAME): "
+    hostname $HOSTNAME
+    wwsuccess
+fi
+
 
 if [ -n "$WWPRESHELL" -a "$WWPRESHELL" != "0" ]; then
     echo "This node is configured to run a shell before the provision process"

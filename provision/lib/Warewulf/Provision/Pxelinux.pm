@@ -150,7 +150,7 @@ update()
     }
 
     foreach my $nodeobj (@nodeobjs) {
-        my $hostname = $nodeobj->name() || "undef";
+        my $hostname = $nodeobj->name() || "localhost";
         my $nodename = $nodeobj->nodename() || "undef";
         my $bootstrapid = $nodeobj->get("bootstrapid");
         my @kargs = $nodeobj->get("kargs");
@@ -237,7 +237,7 @@ update()
                 print PXELINUX "LABEL bootstrap\n";
                 print PXELINUX "SAY Now booting $hostname with Warewulf bootstrap ($bootstrapname)\n";
                 print PXELINUX "KERNEL bootstrap/$bootstrapid/kernel\n";
-                print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz ";
+                print PXELINUX "APPEND ro initrd=bootstrap/$bootstrapid/initfs.gz wwhostname=$hostname ";
                 if (@kargs) {
                     print PXELINUX join(" ", @kargs) . " ";
                 } else {
