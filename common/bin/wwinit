@@ -46,17 +46,22 @@ usage() {
     echo
     echo "INITIALIZATIONS:"
     grep -h "^#INIT: " $WWINITDIR/*.init | sort | uniq | while read i; do
-        NAME=`echo $i | sed -e 's/^#INIT: //' | tr a-z A-Z`
+        NAME=`echo $i | sed -e 's/^#INIT: //'`
         echo "   * $NAME"
     done
-    echo
-    echo "NOTE:"
-    echo "   If there is no initialization given, all actions are run"
+
+    for i in $WWINITDIR/*.init; do
+        NAME=`basename $i | sed -e 's/^[0-9]*\-//' | sed -e 's/\.init$//'`
+        echo "$NAME"
+    done | sort | uniq | while read i; do
+        echo "   * $i"
+    done
+
     echo
     echo "EXAMPLES:"
     echo
-    echo " # wwinit"
-    echo " # wwinit ssh_keys authfiles timeserver"
+    echo " # wwinit ALL"
+    echo " # wwinit TEST database"
     echo
 }
 
@@ -88,6 +93,40 @@ if [ -z "$1" ]; then
     usage
     exit
 fi
+
+
+for arg in $@; do
+    for i in $WWINITDIR/*-${arg}.init; do
+        if [ -f "$i" ]; then
+            echo $i
+        fi
+    done
+
+    grep -l "^#INIT: $arg\$" $WWINITDIR/*.init | while read i; do
+        echo $i
+    done
+
+done | sort | uniq | while read file; do
+
+    test -n "$VERBOSE" && echo "VERBOSE:  Running module: $file"
+    if [ -n "$DEBUG" ]; then
+        sh -x $file "$@"
+        RETVAL=$?
+    else
+        sh $file $init "$@"
+        RETVAL=$?
+    fi
+    if [ $RETVAL -eq 0 ]; then
+        test -n "$VERBOSE" && echo "VERBOSE:  Module ran successfully"
+    elif [ $RETVAL -eq 1 ]; then
+        test -n "$VERBOSE" && echo "VERBOSE:  Module did nothing"
+    else
+        echo "Lethal error thrown by module: $file"
+        break
+    fi
+done
+
+exit $RETVAL
 
 
 for init in $@; do

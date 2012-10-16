@@ -7,11 +7,8 @@
 ## required approvals from the U.S. Dept. of Energy).  All rights reserved.
 ##
 
-#INIT: all
-#INIT: datastore
-#INIT: warewulf
-#INIT: cluster
-#INIT: bootstrap
+#INIT: ALL
+#INIT: VNFS
 
 if [ -f "$WWFUNCTIONS" ]; then
     . $WWFUNCTIONS

@@ -7,12 +7,10 @@
 ## required approvals from the U.S. Dept. of Energy).  All rights reserved.
 ##
 
-#INIT: all
-#INIT: ssh
-#INIT: authorization
-#INIT: cluster
-#INIT: services
-#INIT: master
+#INIT: ALL
+#INIT: AUTH
+#INIT: MASTER
+#INIT: PROVISION
 
 
 if [ -f "$WWFUNCTIONS" ]; then

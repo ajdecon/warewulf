@@ -7,8 +7,8 @@
 ## required approvals from the U.S. Dept. of Energy).  All rights reserved.
 ##
 
-#INIT: all
-#INIT: datastore
+#INIT: ALL
+#INIT: DATASTORE
 
 
 if [ -f "$WWFUNCTIONS" ]; then

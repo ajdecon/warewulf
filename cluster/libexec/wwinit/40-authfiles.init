@@ -7,12 +7,10 @@
 ## required approvals from the U.S. Dept. of Energy).  All rights reserved.
 ##
 
-#INIT: all
-#INIT: authorization
-#INIT: datastore
-#INIT: cluster
-#INIT: warewulf
-#INIT: master
+#INIT: ALL
+#INIT: DATASTORE
+#INIT: PROVISION
+#INIT: AUTH
 
 if [ -f "$WWFUNCTIONS" ]; then
     . $WWFUNCTIONS
