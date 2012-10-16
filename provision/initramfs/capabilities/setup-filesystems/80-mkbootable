@@ -14,17 +14,22 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
         WWBOOTLOADER="/dev/$WWBOOTLOADER"
     fi
     if [ -b "$WWBOOTLOADER" ]; then
-        KERNELVERSION=`ls $NEWROOT/boot/vmlinuz-* 2>/dev/null | tail -n 1 | sed -e 's@.*/boot/vmlinuz-@@'`
-        if [ -n "$KERNELVERSION" ]; then
-            INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* 2>/dev/null`
-            KERNEL=`cd $NEWROOT; find boot/vmlinuz-${KERNELVERSION} 2>/dev/null`
+        KERNEL=`cd $NEWROOT; find boot/vmlinuz-* 2>/dev/null | tail -n 1`
+        if [ -n "$KERNEL" ]; then
+            KERNELVERSION=`echo "$KERNEL" | sed -e 's@.*/boot/vmlinuz-@@'`
             if [ -x "$NEWROOT/sbin/dracut" ]; then
                 chroot $NEWROOT /sbin/dracut --force '' $KERNELVERSION
+                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* >/dev/null 2>&1 | tail -n 1`
             elif [ -x "$NEWROOT/sbin/mkinitrd" ]; then
+                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* >/dev/null 2>&1 | tail -n 1`
+                if [ -n "$INITRD" ]; then
+                    INITRD="boot/initramfs-$KERNELVERSION.img"
+                fi
                 mount -t sysfs none $NEWROOT/sys  
                 chroot $NEWROOT /sbin/mkinitrd -f $INITRD $KERNELVERSION
                 umount $NEWROOT/sys
             fi
+
             if [ -x "$NEWROOT/sbin/grub-install" ]; then
                 ROOTDEV=`cat /tmp/rootdev`
 
@@ -35,6 +40,12 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
                         OSVERSION=`cat $NEWROOT/etc/redhat-release | head -n 1`
                     else
                         OSVERSION="Warewulf"
+                    fi
+                    if [ -f /tmp/mptab ]; then
+                        if grep -q "^/boot " /tmp/mptab; then
+                            INITRD=${INITRD##boot/}
+                            KERNEL=${KERNEL##boot/}
+                        fi
                     fi
 
                     echo "# This file was written by Warewulf bootstrap (capability provision-localdisk)" > $NEWROOT/boot/grub/device.map
