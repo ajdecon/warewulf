@@ -93,7 +93,7 @@ reply_warn() {
 
 reply_skipped() {
     echo -en "\\033[72G"
-    msg_gray " SKIPPED\n"
+    msg_yellow " SKIPPED\n"
 }
 
 reply_error() {
