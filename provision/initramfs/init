@@ -142,8 +142,8 @@ fi
 
 # First try the defined wwnetdev if it exists
 if [ -n "$WWNETDEV" ]; then
-    if ifup $i; then
-        echo "$i" > /tmp/wwdev
+    if ifup $WWNETDEV; then
+        echo "$WWNETDEV" > /tmp/wwdev
     fi
 fi
 

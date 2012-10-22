@@ -98,12 +98,6 @@ msg_gray() {
     echo -ne "$NORMAL"
 }
 
-msg_blue() {
-    echo -ne "$BLUE"
-    echo -ne "$1"
-    echo -ne "$NORMAL"
-}
-
 msg() {
     msg_white $@
 }
