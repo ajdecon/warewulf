@@ -1,0 +1,266 @@
+#!/bin/sh
+## Copyright (c) 2012, Intel Corporation
+##
+## Redistribution and use in source and binary forms, with or without 
+## modification, are permitted provided that the following conditions are met:
+##
+##    * Redistributions of source code must retain the above copyright notice, 
+##      this list of conditions and the following disclaimer.
+##    * Redistributions in binary form must reproduce the above copyright 
+##      notice, this list of conditions and the following disclaimer in the 
+##      documentation and/or other materials provided with the distribution.
+##    * Neither the name of Intel Corporation nor the names of its contributors 
+##      may be used to endorse or promote products derived from this software 
+##      without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+## POSSIBILITY OF SUCH DAMAGE.
+##
+
+#INIT: ALL
+#INIT: OFED
+
+if [ ! -f "$WWFUNCTIONS" ]; then
+    echo "ERROR: Could not load Warewulf functions - $WWFUNCTIONS";
+    exit 255;
+fi
+. $WWFUNCTIONS;
+
+if [ ! -f "$WAREWULF_SYSCONFDIR/warewulf/wwinit/ofed.functions" ]; then
+    echo "ERROR: Could not load OFED wwinit functions!";
+    exit 255;
+fi
+. $WAREWULF_SYSCONFDIR/warewulf/wwinit/ofed.functions;
+
+# Make sure we're the root user
+wwreqroot
+
+# Default Return
+RETVAL=0;
+
+# Variables
+OFEDPKG=${OFEDPKG:-}
+CHROOTDIR=${CHROOTDIR:-}
+ofedinfo="/usr/bin/ofed_info";
+installed_in_master=0;
+skip_master=0;
+skip_vnfs=0;
+
+#XXX: A better determination of if there's an InfiniBand card should be used.
+#  This is an "okay" check, but it's possible it could fail. -jms
+
+# Figure out if we even have an 'InfiniBand' device showing up.
+# Set OFEDFORCE to continue, even if nothing shows up from lspci
+if [ -z $OFEDFORCE ];then 
+    if ! lspci | grep -i 'InfiniBand' &>/dev/null ]]; then
+        wwprint "WARNING: No InfiniBand device seen from lspci. Exiting OFED setup.\n" warn;
+        exit 255;
+    fi
+fi
+
+# Check for existence/usage of ofed_info on host and chroot root... Verify 
+# against version of OFED found.
+if [ -z $OFEDPKG ]; then
+    OFEDPKG=$(/bin/ls -1 $HOME/OFED-*.tgz 2>/dev/null | sort -V | tail -1);
+    OFEDVER=$(basename ${OFEDPKG} | rev | cut -f2- -d '.' | rev);
+fi
+
+if [[ -f /usr/bin/ofed_info && -x /usr/bin/ofed_info ]]; then
+    reported_master_ver=$(${ofedinfo} | head -n 1 | cut -f 1 -d ':');
+    if [ "x${reported_master_ver}" == "x${OFEDVER}" ]; then
+        installed_in_master=1;
+    fi
+fi
+
+if [ ! -z $CHROOTDIR ]; then
+    if [[ -f ${CHROOTDIR}/${ofedinfo} && -x ${CHROOTDIR}/${ofedinfo} ]]; then
+        # ofed_info is just a shell script so no need to use chroot to execute it 
+        # and get the OFED version reported; grep would probably work too...
+        reported_ver=$(${CHROOTDIR}/${ofedinfo} | head -n 1 | cut -f 1 -d ':');
+
+        if [ "x${reported_ver}" == "x${OFEDVER}" ]; then
+            wwprint "OFED version ${reported_ver} found in chroot...";
+            reply_skipped;
+            skip_vnfs=1;
+        fi
+    fi
+    
+    # if chroot exists, only skip the master if installed in both: master and chroot    
+    if [[ $installed_in_master -eq 1 && $skip_vnfs -eq 1 ]]; then 
+        wwprint "OFED version ${reported_master_ver} found...";
+        reply_skipped;
+        skip_master=1;
+    fi
+else
+    # if chroot does not exist, skip the master if installed in the master
+    if [ $installed_in_master -eq 1 ]; then 
+        wwprint "OFED version ${reported_master_ver} found...";
+        reply_skipped;
+        skip_master=1;
+    fi
+fi
+
+
+# We *truly* only skip the full thing if both skip_master and skip_vnfs are 
+# set to 1.
+if [ $skip_master -ne 1 ]; then
+    wwprint "OFED Configuration starting. This will take a while...\n";
+    # Remove any base OS Packages that may conflict
+    wwprint " + Removing conflicting OS packages from Head Node";
+    if ! wwaction uninst_os_ib; then
+        wwprint "\nERROR: Failed removing packages..." error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Install Build Dependencies
+    wwprint " + Installing OFED build dependencies";
+    if ! wwaction inst_build_dep; then
+        wwprint "\nERROR: Failed to install build dependencies..." error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Configure OFED Package
+    wwprint " + Configuring OFED Package";
+    if ! wwaction config_pkg; then
+        wwprint "\nERROR: Failed to configure OFED package" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Build OFED Package
+    wwprint " note: These next steps may take a while...\n" yellow
+    wwprint " + Building OFED Package";
+    if ! wwaction build_pkg; then
+        wwprint "\nERROR: Failed to build OFED package" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Configure IB0 on Head Node
+    wwprint " + Configuring IB0 device on Head Node";
+    if ! wwaction config_ib0; then
+        wwprint "\nERROR: Failed to configure ib0 device" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Configure OFED Services
+    wwprint " + Configure OFED Services";
+    if ! wwaction config_services; then
+        wwprint "\nERROR: Failed to configure OFED services" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Disable YUM updates of packages
+    wwprint " + Disabling YUM updates of OFED related packages";
+    if ! wwaction dis_yum_update; then
+        wwprint "\nWARNING: Failed to configure excludes in yum.conf" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    # Configure SSHD service
+    wwprint " + Configuring SSHD to bypass RLIMIT_MEMLOCK errors";
+    if wwaction sshd_config; then
+        wwprint " + Restarting sshd" warn;
+        # This *should* be fine to do even if we're ssh'd into the machine. The
+        # forked sshd we're connected to just won't have the new settings until
+        # we login again
+        service sshd restart &>/dev/null;
+        reply_ok;
+    else
+        wwprint "\nWARNING: Failed to modify SSHD configuration" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    # Configure SSHD in the CHROOTDIR
+    wwprint " + Configuring dat.conf";
+    if ! wwaction dat_conf ; then
+        wwprint "\nWARNING: Failed to edit dat.donf" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    #XXX: For now, only do these if we have a CHROOTDIR defined, and we have not
+    # already installed OFED into it.
+    wwprint "Configuring chroot Directory";
+    if [[ ! -z $CHROOTDIR && $skip_vnfs -ne 1 ]]; then
+
+        echo; # Echo to get a newline from the prior 'wwprint' call
+        # Uninstall OS Packages from CHROOTDIR
+        wwprint " + Removing conflicting OS packages from DIR";
+        if ! wwaction uninst_os_ib "${CHROOTDIR}"; then
+            wwprint "\nERROR: Failed to remove possibly conflicting RPM packages";
+            reply_error;
+            exit 255;
+        fi
+
+        # Install packages into CHROOTDIR
+        wwprint " + Installing OFED into the chroot";
+        if ! wwaction chroot_install "${CHROOTDIR}"; then
+            wwprint "\nERROR: Failed to install OFED in the chroot" error;
+            reply_error;
+            exit 255;
+        fi
+
+        # Configure SSHD in the CHROOTDIR
+        wwprint " + Configuring SSHD in the chroot";
+        if ! wwaction sshd_config "${CHROOTDIR}"; then
+            wwprint "\nWARNING: Failed to modify SSHD configuration" warn;
+            reply_warn;
+            RETVAL=1;
+        fi
+
+        # Configure SSHD in the CHROOTDIR
+        wwprint " + Configuring dat.conf in the chroot";
+        if ! wwaction dat_conf "${CHROOTDIR}"; then
+            wwprint "\nWARNING: Failed to edit dat.donf in the chroot" warn;
+            reply_warn;
+            RETVAL=1;
+        fi
+    else
+        reply_skipped;
+    fi
+
+    # Configure bootstrap.conf to include new OFED modules
+    wwprint " + Configuring bootstrap.conf For OFED";
+    if ! wwaction config_bootstrap; then
+        wwprint "\nWARNING: Failed to modify bootstrap.conf file" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    # Modify provision settings to include an ifcfg-ib0 file on the nodes
+    wwprint " + Configuring InfiniBand Adapter ifcfg-ib0 file in datastore";
+    if ! wwaction config_ib0_chroot; then
+        wwprint "\nWARNING: Failed to create ifcfg-ib0 file in datastore" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    wwprint " + Cleaning...";
+    if ! wwaction cleanup; then
+        wwprint "\nWARNING: Failed to do cleanup of /tmp" warn;
+        reply_warn;
+        RETVAL=1;
+    fi
+
+    #TODO: Bootstrap/VNFS rebuild needs to happen -jms
+
+    exit $RETVAL
+fi
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

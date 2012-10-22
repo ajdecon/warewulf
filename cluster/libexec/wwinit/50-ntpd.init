@@ -52,6 +52,7 @@ restrict $NETWORK mask $NETMASK nomodify notrap
 server 0.pool.ntp.org
 server 1.pool.ntp.org
 server 2.pool.ntp.org
+server 127.127.1.0
 
 # Enable public key cryptography.
 #crypto

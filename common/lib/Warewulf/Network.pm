@@ -5,6 +5,34 @@
 # required approvals from the U.S. Dept. of Energy).  All rights reserved.
 #
 #
+#########################
+# Copyright (c) 2012, Intel(R) Corporation
+#
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright notice, 
+#      this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright 
+#      notice, this list of conditions and the following disclaimer in the 
+#      documentation and/or other materials provided with the distribution.
+#    * Neither the name of Intel(R) Corporation nor the names of its 
+#      contributors may be used to endorse or promote products derived from 
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#########################
 # $Id$
 #
 
@@ -160,6 +188,47 @@ network()
     return $self->calc_network($self->ipaddr($device), $self->netmask($device));
 }
 
+=item calc_prefix($device)
+
+Return the CIDR Notation prefix of the Netmask for $device
+
+=cut
+
+sub
+calc_prefix()
+{
+    my ($self, $device) = @_;
+
+    my $nm = $self->netmask($device);
+
+    if(! $nm) {
+        &eprint("Invalid netmask recieved\n");
+        return ();
+    }
+
+    # convert the mask to binary
+    my $mask_bin = unpack( "B*", inet_aton($nm) );
+    my $bits     = 0;
+    my $mask_ok  = 1;
+    my @digits   = split m//, $mask_bin;
+
+    # Count the number of 1s
+    # If there is a 0 in between the 1s, mark it as invalid
+    map {
+        my $tmp = $_;
+        $bits += $tmp;
+        $mask_ok = ($mask_ok and (($bits and $tmp) or (!$bits and !$tmp))) ? $mask_ok : 0;
+    } reverse(@digits);
+
+    # check the mask was valid
+    if ( not $mask_ok ) {
+        &eprint("Invalid mask for CIR format.");
+        return ();
+    }
+
+    return ($bits);
+}
+
 =item calc_network($ipaddr, $netmask)
 
 Return the IPv4 network for agiven IPv4 address and netmask
@@ -284,3 +353,5 @@ required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 
 1;
+
+# vim:filetype=perl:syntax=perl:expandtab:ts=4:sw=4:

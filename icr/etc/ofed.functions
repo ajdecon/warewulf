@@ -1,0 +1,519 @@
+#!/bin/sh
+#
+# Copyright (c) 2012, Intel Corporation
+#
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright notice, 
+#      this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright 
+#      notice, this list of conditions and the following disclaimer in the 
+#      documentation and/or other materials provided with the distribution.
+#    * Neither the name of Intel Corporation nor the names of its contributors 
+#      may be used to endorse or promote products derived from this software 
+#      without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+# Helper functions for the wwinit ofed module
+
+ofed_conf='ofed.conf';
+ofed_cmd='';
+ofed_source='';
+tmpdir='';
+
+# Uninstall InfiniBand support from the given chroot path, or the
+# current node.
+uninst_os_ib() {
+    RETVAL=0;
+    WARN=0;
+    if [[ ! -z $1 && -d $1 && -x $1/sbin/init ]]; then
+        chroot_path=$1;
+    fi
+
+    if [ ! -z $chroot_path ]; then
+        yumopt="--config=${chroot_path}/root/yum-ww.conf --installroot=${chroot_path}";
+        rpmopt="--root=${chroot_path}";
+
+        /bin/cp -a ${ofed_source}/uninstall.sh ${chroot_path}/root/ &>/dev/null;
+    fi
+
+    yum_grp_name='"Infiniband Support"';
+    ofed_old_pkg="libibumad libibverbs rds-tools mstflint kernel-ib rdma libibcommon";
+    if yum $yumopt grouplist $yum_grp_name 2>/dev/null | grep 'Installed Groups' 2>/dev/null; then
+        wwprint " + Removing group $yum_grp_name from system." warn
+        yum --tolerant --quiet $yumopt groupremove -y $yum_grp_name;
+        RETVAL=$?;
+    else
+        # If we're here, we're trying to force remove anything instead of 
+        # by the 'Infiniband Support' group
+        wwprint " + Removing individual InfiniBand packages." warn;
+        for pkg in $ofed_old_pkg; do
+            if rpm ${rpmopt} -q ${pkg} &>/dev/null; then
+                yum --tolerant --quiet ${yumopt} -y remove $pkg;
+                RETVAL=$?;
+                if [ $RETVAL -ne 0 ]; then
+                    WARN=1;
+                fi
+            fi
+        done
+    fi
+    
+    # This is only for the CHROOT. uninstall.sh is ran during config_pkg() on
+    # the main node
+    if [ ! -z ${chroot_path} ]; then
+        # Remove any and all conflicting OFED package RPMs. This may take a couple
+        # runs to get rid of everything.
+        for i in 0 1; do
+            /usr/sbin/chroot ${chroot_path} /bin/bash -c "yes | /root/uninstall.sh" &>/dev/null;
+            sleep 1;
+        done
+    
+        # Cleanup chroot after executing bash
+        /bin/rm -f ${chroot_path}/dev/null;
+        /bin/rm -f ${chroot_path}/root/uninstall.sh;
+    fi
+
+    if [ $WARN -eq 0 ]; then
+        reply_ok;
+    else
+        reply_warning;
+    fi
+    return $RETVAL;
+}
+
+# Install the packages required for building OFED
+inst_build_dep() {
+    RETVAL=0;
+    wwprint " + Installing required build packages on $(msg_blue $(hostname -s))";
+
+    yum --tolerant --quiet install -y \
+        bison e2fsprogs-devel flex gcc gcc-c++ gcc-gfortran glibc-devel \
+        kernel-devel krb5-devel krb5-libs libevent libevent-devel libstdc++-devel \
+        libsysfs libtool nfs-utils-lib-devel openldap-devel rpm-build tcl tcl-devel \
+        tk zlib-devel tcsh libgfortran libgomp perl &>/dev/null
+
+    RETVAL=$?;
+
+    if [ $RETVAL -ne 0 ]; then
+        reply_error;
+        exit $RETVAL;
+    else
+        reply_success;
+    fi
+
+    kern_ver=$(uname -r);
+    kern_dev='';
+    kern_dev_pkgs=$(rpm -q kernel-devel);
+    kern_match=0;
+
+    for kern in $kern_dev_pkgs; do
+        kver=$(echo $kern | sed -e 's/kernel-devel-\(.*\)/\1/');
+        kern_dev="${kern_dev}${kver} ";
+        if [ "${kern_ver}" == "${kver}" ]; then
+            kern_match=1;
+            break;
+        fi
+    done
+
+    if [ $kern_match -ne 1 ]; then
+        wwprint "ERROR: The version of the running kernel (${kern_ver}) is not the same as\n" error;
+        wwprint "  the version of the installed kernel-devel package(s) (${kern_dev}).\n" error;
+        wwprint "  Try \'yum update kernel\' and then reboot the system\n" error;
+        exit 255;
+    fi
+
+    return $RETVAL;
+}
+
+# Build the OFED package. This will take a while...
+build_pkg() {
+    wwprint " + Building OFED Packages ... This will take a while." warn;
+    echo;
+    ${ofed_cmd} -c ${ofed_source}/${ofed_conf};
+    return 0;
+}
+
+# Extract the OFED package and set the build flags. Package is passed
+# as a paramater, or try and be smart and find the package in $HOME
+config_pkg() {
+    ofed_all_conf='ofed-all.conf';
+    build_opts='--all --build32 --print-available';
+
+    if [ ! -z $1 ]; then
+        pkg_file=$1;
+    else
+        pkg_file=$(/bin/ls -1 $HOME/OFED-*.tgz 2>/dev/null | sort -V | tail -1);
+    fi
+
+    if [[ -z $pkg_file || ! -f $pkg_file ]]; then
+        wwprint " ! OFED Package not found." error
+        reply_error;
+        exit 255;
+    fi
+
+    wwprint "Package $(msg_green $pkg_file) found.";
+    reply_success;
+    tmpdir=$(mktemp -d /tmp/OFED_ICR-XXXXXXXXXX);
+    OFED_basename=$(basename $pkg_file | rev | cut -f2- -d '.' | rev);
+
+    wwprint " + OFED Version: $OFED_basename\n";
+    # Uncompress OFED
+    tar -xzf $pkg_file -C $tmpdir;
+    if [ $? -ne 0 ]; then
+        wwprint " ! ERROR: Failure when extracting the OFED package" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        exit 255;
+    fi
+
+    # Our full path to the OFED install.pl file
+    ofed_source="${tmpdir}/${OFED_basename}";
+    ofed_cmd="${ofed_source}/install.pl";
+
+    # Remove any and all conflicting OFED RPMs. This may take a couple
+    # runs to get rid of everything.
+    for i in 0 1; do
+        yes | ${ofed_source}/uninstall.sh &>/dev/null;
+        sleep 1;
+    done
+
+    # Build out OFED configuration file
+    ${ofed_cmd} ${build_opts} &>/dev/null;
+
+    if [ $? -ne 0 ]; then
+        wwprint " ! ERROR: Failure running OFED install.pl from $tmpdir/$OFED_basename";
+        reply_error;
+        exit 255;
+    fi
+
+    # Remove debug entries
+    grep -v debuginfo ${ofed_source}/${ofed_all_conf} > ${ofed_source}/${ofed_conf};
+
+    return 0;
+}
+
+# Create the file: /etc/sysconfig/network-scripts/ifcfg-ib0.
+config_ib0() {
+    wwprint " + Configuring ib0 interface";
+    RETVAL=0;
+
+    # Write out the hosts ifcfg-ib0 file
+    /usr/bin/perl -le '
+use Warewulf::ICR::OFED;
+use Warewulf::Logger;
+
+&set_log_level("ERROR");
+
+Warewulf::ICR::OFED::config_ib0();
+';
+
+    if [ $? -eq 0 ]; then 
+        reply_ok;
+    else
+        reply_error;
+        RETVAL=1;
+    fi
+
+    return $RETVAL;
+}
+
+# Configure corresponding services to be on and restart them so new
+# modules are loaded
+config_services() {
+    ib_opensm_service='opensmd';
+    ib_openib_service='openibd';
+
+    wwprint " + Configuring OFED Services\n";
+
+    # Unload cxgb3i to avoid issues stopping openibd service
+    /sbin/modprobe -r cxgb3i;
+
+    # Stop the services. Wait long enough between that it
+    # doesn't cause issues as the services completely exit.
+    /sbin/service $ib_opensm_service stop &>/dev/null;
+    sleep 5;
+    /sbin/service $ib_openib_service stop &>/dev/null;
+    sleep 5;
+
+    # Ensure the services are on
+    /sbin/chkconfig $ib_opensm_service on;
+    sleep 2;
+    /sbin/chkconfig $ib_openib_service on;
+    sleep 2;
+
+    # Start Services
+    /sbin/service $ib_openib_service start;
+    sleep 5;
+    /sbin/service $ib_opensm_service start;
+    sleep 5;
+
+    return 0;
+}
+
+# Configure YUM to disable updating specific packages that would make
+# the OFED modules stop working.
+dis_yum_update() {
+    yum_conf_file='/etc/yum.conf';
+
+    # yum.conf wants space seperated package names. So...
+    exclude_pkgs="kernel\* wordpress tentakel compat-dapl compat-dapl-devel compat-dapl-devel-static \
+compat-dapl-utils dapl dapl-devel dapl-devel-static dapl-utils ib-bonding ibsim ibutils \
+infiniband-diags infinipath-psm infinipath-psm-devel kernel-ib kernel-ib-devel libcxgb3 \
+libcxgb3-devel libibcm libibcm-devel libibmad libibmad-devel libibmad-static libibumad \
+libibumad-devel libibumad-static libibverbs libibverbs-devel libibverbs-devel-static \
+libibverbs-utils libipathverbs libipathverbs-devel libmlx4 libmlx4-devel libmthca \
+libmthca-devel-static libnes libnes-devel-static librdmacm librdmacm-devel librdmacm-utils \
+libsdp libsdp-devel mpi-selector mpitests_mvapich2_gcc mpitests_mvapich_gcc mpitests_openmpi_gcc \
+mstflint mvapich2_gcc mvapich_gcc ofed-docs ofed-scripts openmpi_gcc opensm opensm-devel \
+opensm-libs opensm-static perftest qperf rds-tools scsi-target-utils sdpnetstat srptools tgt \
+compat-dapl-static dapl-static";
+
+    # Sanity Check...
+    if [ ! -f $yum_conf_file ]; then
+        touch $yum_conf_file;
+    fi
+
+    # See if we already have an exclude line, and if so append our excludes
+    # to it
+    /bin/cp -a ${yum_conf_file} ${yum_conf_file}.bak;
+    if egrep ^exclude= $yum_conf_file &>/dev/null; then
+        sed -i -e "s/^\(exclude=.*\)/\1 $exclude_pkgs/" $yum_conf_file;
+    else
+        # Append excludes
+        echo "## Added by OFED wwinit" >> $yum_conf_file;
+        echo "exclude=$exclude_pkgs" >> $yum_conf_file;
+    fi
+
+    return 0;
+}
+
+# Configure SSHD to avoid RLIMIT_MEMLOCK issues.
+sshd_config() {
+    if [ ! -z $1 ]; then
+        chroot_path=$1;
+    fi
+
+    sshd_conf_file="${chroot_path}/etc/sysconfig/sshd";
+    ulimit_options="-l unlimited";
+
+    if [ ! -f $sshd_conf_file ]; then
+        touch $sshd_conf_file &>/dev/null;
+        if [ $? -ne 0 ]; then
+            wwprint " ! ERROR: Could not create: $sshd_conf_file" error;
+            reply_error;
+            exit 255;
+        fi
+    fi
+
+    /bin/cp -a ${sshd_conf_file} ${sshd_conf_file}.bak
+    if egrep '^ulimit ' $sshd_conf_file &>/dev/null; then
+        sed -i -e "s/^ulimit -l.*/ulimit $ulimit_options/" $sshd_conf_file;
+    else
+        echo -e "## OFED Modules\nulimit $ulimit_options\n" >> $sshd_conf_file;
+    fi
+
+    return 0;
+}
+
+# Install OFED RPMS in the CHROOT for compute nodes
+chroot_install() {
+
+    #XXX: Should this be reversed?? i.e. ${1:-$VNFSROOT} ?? -JMS
+    chroot_path=${VNFSROOT:-$1};
+
+    # Some sanity checking...
+    if [[ -z $chroot_path || ! -d $chroot_path ]]; then
+        wwprint " ! ERROR: Invalid CHROOT path: $chroot_path" error;
+        reply_error;
+        exit 255;
+    fi
+    if [ ! -f $chroot_path/sbin/init ]; then
+        wwprint " ! ERROR: $chroot_path/sbin/init not found" error;
+        reply_error;
+        exit 255;
+    fi
+    if [[ -z $ofed_source || ! -d $ofed_source ]]; then
+        wwprint " ! ERROR: OFED Source not found at: ${ofed_source}" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Yum command and options for installing to ${chroot_path}
+    yum_cmd="yum --config=${chroot_path}/root/yum-ww.conf --tolerant --installroot=${chroot_path} -y";
+
+    # Install runtime dependencies
+    ${yum_cmd} install tcsh perl libgomp kernel libgfortran tcl tk;
+
+    if [ $? -ne 0 ]; then
+        wwprint " ! ERROR: Failed to install runtime dependencies for\n  ${chroot_path}" error;
+        reply_error;
+        exit 255;
+    fi
+    
+    # Find our OFED RPM directory
+    dist_rpm=$(rpm -qf /etc/issue | head -1 | tr -d '\n');
+    dist_rpm=$(rpm -q --queryformat "[%{NAME}]-[%{VERSION}]-[%{RELEASE}]" ${dist_rpm});
+
+    OFED_RPM_dir="${ofed_source}/RPMS/${dist_rpm}/x86_64";
+
+    wwprint " + Installing OFED RPMS into CHROOT\n";
+    # Force install because of clashing files between packages.
+    rpm --force --root=${chroot_path} -ivh ${OFED_RPM_dir}/*.rpm;
+    rpm --force --root=${chroot_path} -ivh ${OFED_RPM_dir}/kernel-ib*.rpm;
+
+    return 0;
+}
+
+# Modify Warewulf bootstrap configuration to include OFED modules.
+config_bootstrap() {
+    bootstrap_conf_file="${WAREWULF_SYSCONFDIR}/warewulf/bootstrap.conf";
+
+    # Comment out existing drivers
+    sed -i.bak \
+        -e 's/^\(drivers.*ib_ipath.*\)/#\1/' \
+        -e 's/^\(drivers.*iw_nes.*\)/#\1/' \
+        -e 's/^\(drivers.*ib_ucm.*\)/#\1/' \
+        -e 's/^\(drivers.*rdma_ucm.*\)/#\1/' \
+        -e 's/^\(drivers.*rds.*\)/#\1/' \
+        $bootstrap_conf_file;
+
+    # Add Build OFED Modules
+    if ! grep -q '## OFED Modules' $bootstrap_conf_file; then
+        OFED_mod='## OFED Modules\ndrivers += updates/drivers/infiniband/*, updates/drivers/net/*\n';
+        echo -e ${OFED_mod} >> $bootstrap_conf_file;
+    fi
+    return 0;
+}
+
+# Create an ib0 configuration file for the compute nodes. Add it to the
+# Warewulf files origin, and import it into the datastore.
+config_ib0_chroot() {
+    TMPDIR=${TMPDIR:-/tmp}
+    ibcfg_file='/etc/sysconfig/network-scripts/ifcfg-ib0';
+    master_ib0_ip=$(grep ^IPADDR= $ibcfg_file | cut -f2- -d'=');
+    master_ib0_mask=$(grep ^NETMASK= $ibcfg_file | cut -f2- -d'=');
+
+    node_ib0_file='ifcfg-ib0';
+    node_ib0_file_path="${TMPDIR}/${node_ib0_file}";
+
+    /bin/cp -a ${ibcfg_file} ${node_ib0_file_path};
+
+    provision_def_conf=${WAREWULF_SYSCONFDIR}/warewulf/defaults/provision.conf;
+
+    # Change our tmp file to put in Warewulf Replacements for the network
+    # device IP address and Netmask with what is defined in the datastore
+    # for the node importing the file
+    sed -i.bak \
+        -e 's/^\(IPADDR=\).*/\1%{NETDEVS::IB0::IPADDR}/' \
+        -e 's/^\(NETMASK=\).*/\1%{NETDEVS::IB0::NETMASK}/' \
+        ${node_ib0_file_path};
+
+    wwsh --noask file import ${node_ib0_file_path} --path=${ibcfg_file} --name=${node_ib0_file};
+    wwsh --noask file set ${node_ib0_file} --origin=UNDEF;
+
+    # Test to see if file is in Datastore
+    if ! wwtest wwsh file list ${node_ib0_file}; then
+        wwpint " + InfiniBand configuration not found in datastore" warn;
+        reply_warn;
+        return 1;
+    fi
+    
+    # Remove temporary file. Do this after we check the datastore
+    /bin/rm -f ${node_ib0_file_path};
+
+    nodes=$(wwsh node list);
+    if echo $nodes | grep 'No nodes found' &>/dev/null; then
+        wwprint " + No nodes available. Not setting ib0 config file" warn;
+        reply_warn;
+    else
+        # When generating the IP addresses for nodes. Base the starting
+        # IP address as one (1) more than the masters IB0 address.
+        node_ib0_ip=$(/usr/bin/perl -le "
+use Warewulf::Network;
+use Warewulf::Logger;
+
+&set_log_level("ERROR");
+
+my \$net = Warewulf::Network->new();
+my \$master_ib0_ip_ser = \$net->ip_serialize(\"${master_ib0_ip}\");
+my \$node_ib0_ip_ser = \$master_ib0_ip_ser + 1;
+my \$node_ib0_ip = \$net->ip_unserialize(\$node_ib0_ip_ser);
+print \$node_ib0_ip;
+");
+
+        wwsh --noask node set --netdev=ib0 --ipaddr=${node_ib0_ip} --netmask=${master_ib0_mask};
+        wwsh --noask provision set --fileadd ${node_ib0_file};
+    fi
+
+    # Modify provision.conf to add in the nodes ifcfg-ib0 file
+    if ! grep -q ${node_ib0_file} $WAREWULF_SYSCONFDIR/warewulf/defaults/provision.conf; then
+        wwaction sed -i -e "s/^\([ ]*files[ ]*=.*\)/\1\nfiles += ${node_ib0_file}/" ${provision_def_conf};
+    fi
+
+    return 0;
+}
+
+# Edit the dat.conf file to leave only valid providers
+dat_conf(){
+
+    if [[ ! -z $1 && -d $1 && -x $1/sbin/init ]]; then
+        chroot_path=$1;
+    fi
+
+    if [ ! -f $chroot_path/etc/dat.conf ]; then
+        wwprint " ! ERROR: dat.conf file not present" error;
+        return 255
+        echo 
+    fi
+    
+    sed -i "1i#Edited by wwinit OFED module" $chroot_path/etc/dat.conf;
+    # Comment all entries by default
+    sed -i.orig -e"s/\(.*\)/#\1/" $chroot_path/etc/dat.conf;
+
+    # Check if the devices are ConnectX Cards
+    ibstat -l |grep "mlx4_0" &>/dev/null;
+    if [ $? -eq 0 ]; then
+        sed -i -e "s/#\(OpenIB-mlx4_0-[12]\s.*\)/\1/" $chroot_path/etc/dat.conf;
+        sed -i -e "s/#\(ofa-v2-mlx4_0-[12]\s.*\)/\1/" $chroot_path/etc/dat.conf;
+    fi
+
+    sed -i -e "s/#\(OpenIB-cma u1.2*\)/\1/" $chroot_path/etc/dat.conf;
+    sed -i -e "s/#\(ofa-v2-ib[01]\s.*\)/\1/" $chroot_path/etc/dat.conf;
+    
+    return 0;
+}
+
+
+# Clean up
+cleanup() {
+    RETVAL=0;
+
+    # Remove build directory
+    /bin/rm -rf ${tmpdir};
+    if [ $? -ne 0 ]; then
+        RETVAL=$?;
+    fi
+
+    # Remove logs
+    /bin/rm -rf /tmp/OFED.*.logs;
+    if [ $? -ne 0 ]; then
+        RETVAL=$?;
+    fi
+
+    return $RETVAL;
+}
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

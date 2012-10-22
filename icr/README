@@ -1,0 +1,98 @@
+Warewulf Intel(R) Cluster Ready Initialization Scripts:
+
+  The warewulf-icr package contains scripts, and other helper functions, to
+make your VNFS image compliant with the Intel(R) Cluster Ready Specification.
+
+  For more information see: http://software.intel.com/en-us/cluster-ready
+
+
+wwinit OFED Module:
+
+  The OFED wwinit module provided, will build and install OFED on the master 
+node, create an IB network configuration, and install the built packages
+into the provided chroot.
+
+    KNOWN ISSUES
+
+    1) If the lspci output for an InfiniBand device does *not* have 
+'InfiniBand' in its output, the script will exit. Override this behavior with
+the OFEDFORCE variable.
+
+    2) If CHROOTDIR is not known, the script will not modify any chroot 
+structure on the disk.
+
+
+    ENVIRONMENT VARIABLES
+
+    OFEDFORCE :: Defining this variable will work around issue #1, and
+force the OFED wwinit script to run, even if the lspci output does not
+show any InfiniBand cards.
+
+  CHROOTDIR :: Location of the chroot on disk that we are to modify
+
+  EXAMPLE
+
+  Example runs of the OFED wwinit module.
+
+    1) Build/Install only on the head node ... no chroot structures are modified
+
+    # wwinit ofed
+
+    2) Build/Install, and use /var/chroots/centos-6 as the chroot
+
+    # CHROOTDIR=/var/chroots/centos-6 wwinit ofed
+
+    3) Force #2 to run
+
+    # OFEDFORCE=1 CHROOTDIR=/var/chroots/centos-6 wwinit ofed
+
+wwinit ICR Module:
+
+    The ICR wwinit module provided, automates most of the steps required to
+have an Intel(R) Cluster Ready compliant installation. The tasks performed 
+are:
+	
+    a) Create a chroot based on the Linux* distribution running in the master 
+    node. 
+
+    b) Install the packages that include the libraries required by the Intel(R)
+    Cluster Ready Specification.
+
+    c) Install the Intel(R) Cluster Runtimes. The package path can be defined
+     with the environment variable ICRT_FILE or will be searced at the /root 
+     driectory. E.g: /root/intel_cluster_runtimes_3.4-1.tgz
+
+    d) Install Intel(R) Cluster Checker. The package and the license files must
+    be avilable and can be defined with CLCK_FILE and CLCK_LIC_FILE environment
+    varialbes respectively. If not defined they will be seraced at the /root 
+    directory: E.g: /root/l_clck_p_2.0p.009.tgz and /root/l_clck_com_cd.lic
+
+    e) Install the Intel(R) LAN Drivers in the master node and in the chroot.
+    The package path can be defined with the environment variable ILAND_FILE 
+    or will be searced at the /root  driectory. 
+    E.g: /root/intel-lan_linux_v17.2.zip
+
+    f) Call the OFED wwinit module above explained.
+
+    g) Install the Warewulf First Boot feature in the chroot. The package path 
+    can be defined with the environment variable WWFIRSTBOOT_FILE or will be 
+    searced at the /root  driectory. E.g: /root/warewulf-cluster-node-3.3.rpm
+
+    h) Create VNFS and bootstrap images using the freshly created icr chroot and
+    import them into Warewulf. 
+
+    ENVIRONMENT VARIABLES
+
+    ICRT_FILE: define the path to the Intel(R) Cluster Runtimes package
+
+    CLCK_FILE: define the path to the Intel(R) Cluster Chekcer package
+
+    CLCK_LIC_FILE: define the path to the Intel(R)Cluster Chekcer license file
+
+    ILAND_FILE: define the path to the Intel(R) LAN Drivers package
+
+    WWFIRSTBOOT_FILE: define the path to the warewulf-cluster-node rpm file 
+    that contains the first boot feature
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:
+

@@ -1,0 +1,53 @@
+Information on the warewulf-cluster-node package
+
+wwfirstboot:
+
+  wwfirstboot is an init.d script that will, currently, handle disk 
+partitioning. The configuration file for it is located at:
+
+  /etc/sysconfig/wwfirstboot
+
+  This should be edited before importing your VNFS as the default behavior is 
+to skip over partitioning/formating any disks.
+
+Configuration Variables:
+
+  SKIP=[true|false]
+    - If undefined or true, wwfirstboot will exit upon reading the 
+    configuration file
+
+  DISK=[/dev/xxx|xxx]
+    - What disk to partition/format. The block device given can be either XXX 
+    (sda, sdb), or in the format of /dev/XXX (/dev/sda, /dev/sdb)
+
+wwfirstboot Example Configuration:
+
+  An example configuration for wwfirstboot:
+
+######### EXAMPLE #########
+#
+# Do not skip wwfirstboot
+#SKIP=false
+#
+# Always format all of the partitions
+#FORMAT=always
+#
+# Our disk to work on is: /dev/hdb
+#  - Either will work
+#DISK=hdb
+#DISK=/dev/hdb
+#
+# Define our partitions. We are, currently, limited to
+# a DOS partition table, and four (4) primary
+# partitions
+#  - Swap will *always* be formatted reguardless of
+#    the value of FORMAT
+#  - We exit the partition creation if a size of 'fill' is
+#    seen. If you want to use up the rest of the disk, then
+#    define it as the last partiton
+#PART_1="2048:swap"
+#PART_2="114280:ext3:/scratch:1777"
+#PART_3="fill:ext4:/storage:0755"
+#
+
+ 

@@ -1,0 +1,81 @@
+#!/bin/sh
+## Copyright (c) 2012, Intel(R) Corporation
+##
+## Redistribution and use in source and binary forms, with or without 
+## modification, are permitted provided that the following conditions are met:
+##
+##    * Redistributions of source code must retain the above copyright notice, 
+##      this list of conditions and the following disclaimer.
+##    * Redistributions in binary form must reproduce the above copyright 
+##      notice, this list of conditions and the following disclaimer in the 
+##      documentation and/or other materials provided with the distribution.
+##    * Neither the name of Intel(R) Corporation nor the names of its contributors 
+##      may be used to endorse or promote products derived from this software 
+##      without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+## POSSIBILITY OF SUCH DAMAGE.
+##
+
+#INIT: ALL
+#INIT: ICR
+
+if [ ! -f "$WWFUNCTIONS" ]; then
+    wwprint "ERROR: Could not load Warewulf functions - $WWFUNCTIONS";
+    exit 255;
+fi
+. ${WWFUNCTIONS};
+
+if [ ! -f "$WAREWULF_SYSCONFDIR/warewulf/wwinit/icr.functions" ]; then
+    wwprint "ERROR: Could not locate ICR wwinit functions!";
+    exit 255;
+fi
+. ${WAREWULF_SYSCONFDIR}/warewulf/wwinit/icr.functions;
+
+# Make sure we're the root user
+wwreqroot
+
+# Create basic chroot using the master node OS 
+wwprint "Creating base chroot\n";
+base_chroot;
+
+# Perform Intel(R) Cluster Ready specific configurations
+wwprint "Performing Intel(R) Cluster Ready specific configurations\n";
+icr_configs;
+
+# Install and configure Warewulf firstboot
+wwprint "Installing and configuring Warewulf Firstboot\n";
+wwfirstboot
+
+# Install Intel(R) Cluster Runtimes
+wwprint "Installing Intel(R) Cluster Runtimes\n";
+inst_icrt;
+
+# Install Intel(R) Cluster Checker
+wwprint "Installing Intel(R) Cluster Checker\n";
+inst_clck;
+
+# Install Intel(R) LAN drivers 
+wwprint "Installing and configuring Intel(R) LAN drivers\n";
+inst_iLAN_drivers; 
+
+# Call OFED build wwinit module 
+if [ -f "${WWINITDIR}/89-ofed.init" ]; then
+    sh ${WWINITDIR}/89-ofed.init;
+else
+    wwprint "ERROR: Could not locate OFED wwinit module!" error;
+fi
+
+# Rebuild VNFS and the bootstrap with the installed stuff
+vnfs_boot_build
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

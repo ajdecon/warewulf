@@ -1,8 +1,8 @@
 %{!?_rel:%{expand:%%global _rel 0.r%(test "@SVNVERSION@" != "0000" && echo "@SVNVERSION@" || svnversion | sed 's/[^0-9].*$//' | grep '^[0-9][0-9]*$' || echo 0000)}}
 %define debug_package %{nil}
 
-Summary: Tools used for clustering with Warewulf
-Name: warewulf-cluster
+Summary: Intel Cluster Ready specific configurations for Warewulf
+Name: warewulf-icr
 Version: @PACKAGE_VERSION@
 Release: %{_rel}
 License: US Dept. of Energy (BSD-like)
@@ -19,19 +19,9 @@ BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
 Warewulf >= 3 is a set of utilities designed to better enable
 utilization and maintenance of clusters or groups of computers.
 
-This package contains tools to facilitate management of a Cluster
-with Warewulf.
-
-%package node
-Summary: Tools used for clustering with Warewulf
-Group: System Environment/Clustering
-
-%description node
-Warewulf >= 3 is a set of utilities designed to better enable
-utilization and maintenance of clusters or groups of computers.
-
-This is the cluster-node module, that is installed onto the
-provisioned nodes.
+This package contains scripts and configuration files that will
+enable you to build clusters compliant with the Intel Cluster Ready
+specification.
 
 %prep
 %setup
@@ -52,20 +42,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root)
-%doc AUTHORS COPYING ChangeLog INSTALL LICENSE NEWS README README.node TODO
-%{_sysconfdir}/profile.d/*
-%{_bindir}/*
-%{_libexecdir}/warewulf/wwinit/*
-%{perl_vendorlib}/Warewulf/Module/Cli/*
-
-%files node
-%doc AUTHORS COPYING LICENSE README.node
-%defattr(-, root, root)
-%attr(644, root, root) %config(noreplace) /etc/sysconfig/wwfirstboot
-%attr(755, root, root) %config /etc/init.d/wwfirstboot
-
-%post node
-chkconfig --add wwfirstboot
-
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%{perl_vendorlib}/Warewulf/*
+%attr(0755, root, warewulf) %dir %{_sysconfdir}/warewulf/wwinit/
+%attr(0444, root, warewulf) %{_sysconfdir}/warewulf/wwinit/ofed.functions
+%attr(0444, root, warewulf) %{_sysconfdir}/warewulf/wwinit/icr.functions
+%{_libexecdir}/warewulf/wwinit
+%{_libexecdir}/warewulf/wwmkchroot
 
 %changelog

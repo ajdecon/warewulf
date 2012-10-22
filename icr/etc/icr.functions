@@ -1,0 +1,689 @@
+#!/bin/bash
+#
+# Copyright (c) 2012, Intel(R) Corporation
+#
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright notice, 
+#      this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright 
+#      notice, this list of conditions and the following disclaimer in the 
+#      documentation and/or other materials provided with the distribution.
+#    * Neither the name of Intel(R) Corporation nor the names of its contributors 
+#      may be used to endorse or promote products derived from this software 
+#      without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+# Helper functions for the wwinit icr module
+
+# Create a chroot using the master node OS as base and export the
+# path for the other installers to use it
+base_chroot(){
+
+    if [ -f "/etc/redhat-release" ]; then
+        if grep -q "^Scientific Linux release 6" /etc/redhat-release; then
+            DISTRO="sl-6"
+        elif grep -q "^Scientific Linux release 5" /etc/redhat-release; then
+            DISTRO="sl-5"
+        elif grep -q "^CentOS release 5" /etc/redhat-release; then
+            DISTRO="centos-5"
+        elif grep -q "^CentOS release 6" /etc/redhat-release; then
+            DISTRO="centos-6"
+        else
+            DISTRO="rhel-generic"
+        fi
+    else
+        wwprint " ! ERROR: Only Red Hat* based Linux* supported" error;
+        reply_error;
+        exit 255;
+    fi
+
+    # Add an icr suffix 
+    CHROOT_NAME="${DISTRO}_icr"
+
+    if [ -n "$DISTRO" ]; then
+        wwprint " + Checking on an existing Warewulf ICR VNFS image";
+
+        # Check if the ICR VNFS already exists in Warewulf 
+        wwsh vnfs list 2>/dev/null| grep $CHROOT_NAME &>/dev/null
+        if [ "$?" -ne 0 ];then
+            reply_no;
+            wwprint "note: These next steps may take a while...\n" yellow
+            wwprint "Creating a template chroot at /var/chroots/$CHROOT_NAME:\n"
+            mkdir -p /var/chroots
+            if wwrun wwmkchroot $DISTRO /var/chroots/$CHROOT_NAME; then
+                #define the path to the created chroot
+                export CHROOTDIR="/var/chroots/$CHROOT_NAME";
+            fi
+        else
+            # If the vnfs already exists assume the chroot also exits
+            export CHROOTDIR="/var/chroots/$CHROOT_NAME";
+            reply_ok;
+        fi
+    fi
+}
+
+# Apply specific configurations for the Intel(R) Cluster Ready Specification
+icr_configs() {
+
+    icr_version=${ICR_VERSION:-$1};
+
+    # Some sanity checking
+    if [[ -z "$CHROOTDIR" || ! -d "$CHROOTDIR" ]]; then
+        wwprint " ! ERROR: Invalid CHROOT path" error;
+        reply_error;
+        return 255;
+    fi
+
+    if [ ! -f "${CHROOTDIR}/root/yum-ww.conf" ]; then
+        wwprint " ! ERROR: ${CHROOTDIR}/root/yum-ww.conf not found" error;
+        reply_error;
+        return 255;
+    fi
+
+    # Include the stuff defined for ICR in the overlay to have available the list
+    # of packages to install
+    ICR_OVERLAY="${WAREWULF_LIBEXECDIR}/warewulf/wwmkchroot/rhel-icr-overlay.tmpl"
+    if [ ! -f "$ICR_OVERLAY" ]; then
+        wwprint " ! ERROR: rhel-icr-overlay.tmpl not found" error;
+        reply_error;
+        return 255;
+    fi
+    . $ICR_OVERLAY &>/dev/null;
+
+
+    # if no ICR version defined default to 1.2
+    if [ -z "$icr_version" ]; then
+	    icr_version="1.2"
+    fi	
+
+    wwprint " + Setting Intel(R) Cluster Ready version ${icr_version}";
+    wwaction /bin/mkdir -p /etc/intel;
+    echo "CLUSTER_READY_VERSION=${icr_version}" > /etc/intel/icr
+
+    wwprint " + Installing Intel(R) Cluster Ready dependencies";
+
+    # Receive the list of packages from rhel-icr-overlay.tmpl defined in the 
+    # $ICRPKG variable    
+    for pkg in $ICRPKG; do
+        if ! /bin/rpm -q $pkg &>/dev/null; then
+            /usr/bin/yum -y -q --tolerant install $pkg &>/dev/null
+            if [ "$?" -ne 0 ];then
+                wwprint "  ! ERROR: Failure when installing dependencies." error;
+                reply_error;
+                return 255;
+            fi
+        fi
+    done
+    reply_ok;
+
+    wwprint " note: These next steps may take a while...\n" yellow 
+    wwprint " + Applying Intel(R) Cluster Ready overlay at ${CHROOTDIR} \n";
+    if ! wwrun wwmkchroot rhel-icr-overlay ${CHROOTDIR}; then
+        return 255;
+    fi
+
+    wwprint " + Creating icr user";
+    user_output=$(wwuseradd icr 2>&1);
+
+    # Do not fail if there are no nodes available yet
+    if [[ "$?" -ne 0 && ! "$user_output" =~ "No nodes found" ]];then
+        wwprint "  ! ERROR: Failure creating icr user" error;
+        reply_error;
+        return 255;
+    fi
+    reply_ok;
+
+    wwprint " + Configuring NTP in the chroot";
+    MASTER_IP=$(perl -MWarewulf::Network -MWarewulf::Config -e 'print Warewulf::Network->new()->ipaddr(Warewulf::Config->new("provision.conf")->get("network device"));')
+
+    # Check if already added the Master node in the chroot ntp configuration
+    if ! /bin/grep $MASTER_IP "${CHROOTDIR}/etc/ntp.conf" &>/dev/null ;then
+
+    /bin/cat <<EOF > ${CHROOTDIR}/etc/ntp.conf
+# This file was created by Warewulf/wwinit icr module
+#
+# For more information about this file, see the man pages
+# ntp.conf(5), ntp_acc(5), ntp_auth(5), ntp_clock(5), ntp_misc(5), ntp_mon(5).
+
+driftfile /var/lib/ntp/drift
+
+# By default restrict everything
+restrict default kod nomodify notrap nopeer noquery
+restrict -6 default kod nomodify notrap nopeer noquery
+restrict 127.0.0.1
+restrict -6 ::1
+
+# Use the Master node as NTP server
+server $MASTER_IP iburst
+EOF
+    fi
+    # Ensure ntpd service is running from start
+    /usr/sbin/chroot $CHROOTDIR /sbin/chkconfig ntpd on
+    reply_ok;
+
+    # Set memlock limits
+    wwprint " + Configuring memlock to unlimited" ;
+    wwaction memlock_config ;
+    wwprint " + Configuring memlock to unlimited in the chroot" ;
+    wwaction memlock_config ${CHROOTDIR};
+
+    return 0;
+}
+
+# Set memlock to unlimited, some HPC applications may fail otherwise.
+memlock_config(){
+
+    if [[ ! -z $1 && -d $1 && -x $1/sbin/init ]]; then
+        chroot_dir=$1;
+    fi
+
+    limits_file="${chroot_dir}/etc/security/limits.conf";
+
+    if [ ! -f $limits_file ]; then
+        wwprint " ! ERROR: limits.conf file not present" error;
+        return 255
+    fi
+
+    wwinit_comment="## Edited by wwinit ICR module\n";
+    limits="soft hard";
+
+    # Check if already edited it
+    if ! grep 'wwinit ICR' $limits_file &>/dev/null; then
+        /bin/cp -a ${limits_file} ${limits_file}.bak
+        for limit in $limits;do
+            icr_limit="$wwinit_comment*        $limit   memlock    unlimited\n";
+            # If limit was set, edit it
+            if grep -e "^\\* *$limit *memlock *.*" $limits_file &>/dev/null; then
+                sed -i -e "s/\(\* *$limit *memlock *\).*/$icr_limit/" $limits_file
+            # Otherwise add it
+            else
+                sed -i -e "s/\(\# *End *of *file\).*/$icr_limit\1/" $limits_file
+            fi
+        done
+    fi
+
+    return 0;
+}
+
+# Extract and install the Intel(R) Cluster Runtimes Package. 
+inst_icrt() {
+
+    pkg_file=${ICRT_FILE:-$1};
+
+    if [ -z "$pkg_file" ]; then
+        pkg_file=$(/bin/ls -1 $HOME/intel_cluster_runtimes_*.tgz 2>/dev/null | sort -V | tail -1);
+    fi
+
+    if [[ -z "$pkg_file" || ! -f "$pkg_file" ]]; then
+        wwprint " ! Intel(R) Cluster Runtimes Package not found." error;
+        reply_error;
+        return 255;
+    fi
+
+    wwprint " + Package $(msg_green $pkg_file) found\n";
+
+    tmpdir=$(mktemp -d /tmp/ICRT_ICR-XXXXXXXXXX);
+    ICRT_version=$(basename $pkg_file .tgz  );
+
+    # Uncompress the package 
+    tar -xzf $pkg_file -C $tmpdir &>/dev/null;
+    if [ "$?" -ne 0 ]; then
+        wwprint " ! ERROR: Failure when extracting the Intel(R) Cluster Runtimes package" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        return 255;
+    fi
+
+    # Our full path to the uncompressed folder
+    icrt_dir="${tmpdir}/${ICRT_version}";
+
+    # Check if rpms are installed to avoid showing the EULA
+    icrt_rpms=$(/bin/ls -1 -r ${icrt_dir}/rpm/*.rpm );
+
+    # Collect all rpms that are missing
+    rpm_to_install='';
+    for irt_rpm_file in $icrt_rpms; do
+        pkg_name=$(basename $irt_rpm_file .rpm )	
+        # Check if already installed
+        if ! /bin/rpm -q $pkg_name &>/dev/null; then
+            rpm_to_install="$rpm_to_install $irt_rpm_file";
+        fi
+    done
+
+    # If all Intel(R) Cluster Runtimes are installed return OK
+    if [ "x$rpm_to_install" == 'x' ]; then
+	    wwprint " + Intel(R) Cluster Runtimes already installed";
+	    reply_ok;
+        /bin/rm -rf $tmpdir;
+	    return 0;
+    fi
+
+    wwprint " + Installing dependencies";
+    icrt_dependencies="redhat-lsb.x86_64 libstdc++.i686";
+    for pkg in $icrt_dependencies; do
+        # Check if already installed
+        if ! /bin/rpm -q $pkg &>/dev/null; then
+            /usr/bin/yum -y -q --tolerant install $pkg &>/dev/null;
+            if [ "$?" -ne 0 ];then
+                wwprint "  ! ERROR: Failure when installing dependencies." error;
+                reply_error;
+                return 255;
+            fi
+        fi
+    done
+    reply_ok;
+
+    # Full path to the EULA
+    icrt_EULA="${icrt_dir}/Master_EULA_for_Intel_Tools_Runtimes_Kit.txt";
+
+    # Show the Eula and wait for user to accept it
+    if  ! show_eula ${icrt_EULA} ; then
+        wwprint " ! Didn't accept the Intel(R) Cluster Runtimes EULA" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        return 255;
+    fi	
+
+    wwprint " + Installing Intel(R) Cluster Runtimes"; 
+
+    for irt_rpm_file in $rpm_to_install; do
+        /usr/bin/yum -y -q --tolerant install $irt_rpm_file &>/dev/nul;
+        if [ "$?" -ne 0 ];then
+            wwprint "  ! ERROR: Failure when installing Intel(R) Cluster Runtimes." error;
+            /bin/rm -rf $tmpdir;
+            reply_error;
+            return 255;
+        fi
+    done
+    reply_ok;
+
+    # Remove temporary folder
+    /bin/rm -rf $tmpdir
+
+    return 0;
+}
+
+# Extract and install the Intel(R) Cluster Checker Package. 
+# Note: works for Intel(R) Cluster Checker 2.0 or newer
+inst_clck(){
+    
+    pkg_file=${CLCK_FILE:-$1};
+    lic_file=${CLCK_LIC_FILE:-$2};
+
+    if [ -z "$pkg_file" ]; then
+        pkg_file=$(/bin/ls -1 $HOME/l_clck_*.tgz 2>/dev/null | sort -V | tail -1);
+    fi
+
+    if [[ -z "$pkg_file" || ! -f "$pkg_file" ]]; then
+        wwprint " ! Intel(R) Cluster Checker Package not found." error;
+        reply_error;
+        return 255;
+    fi
+
+    if [ -z "$lic_file" ]; then
+        for file in $(/bin/ls -1 $HOME/*.lic); do
+            # look for the specific tag of Intel(R) Cluster Checker licenses
+            if grep 'SN=IClsValL' $file &>/dev/null;then  
+                lic_file=$file;
+                break;
+            fi
+        done
+    fi
+
+    if [[ -z "$lic_file" || ! -f "$lic_file" ]]; then
+        wwprint " ! Intel(R) Cluster Checker license file not found." error;
+        reply_error;
+        return 255;
+    fi
+
+    wwprint " + Package $(msg_green $pkg_file) found.\n";
+
+    tmpdir=$(mktemp -d /tmp/CLCK_ICR-XXXXXXXXXX);
+    CLCK_version=$(basename $pkg_file .tgz  );
+
+    # Uncompress the package 
+    tar -xzf $pkg_file -C $tmpdir &>/dev/null;
+    if [ "$?" -ne 0 ]; then
+        wwprint " ! ERROR: Failure when extracting the Intel(R) Cluster Checker package" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        return 255;
+    fi
+
+    # Our full path to the uncompressed folder
+    clck_dir="${tmpdir}/${CLCK_version}";
+
+    clck_rpm="$(ls -1 ${clck_dir}/rpm/intel-clck-*.rpm)";
+    rpm_name=$(basename $clck_rpm .rpm )	
+    if  /bin/rpm -q $rpm_name &>/dev/null; then
+	    wwprint " + Intel(R) Cluster Checker already installed";
+	    reply_ok;
+        /bin/rm -rf $tmpdir;
+	    return 0;
+    fi
+
+    wwprint " + Installing dependencies";
+    dependencies="zlib";
+    for pkg in $clck_dependencies; do
+        if ! /bin/rpm -q $pkg &>/dev/null; then
+            /usr/bin/yum -y -q --tolerant install $pkg &>/dev/null;
+            if [ "$?" -ne 0 ];then
+                wwprint "  ! ERROR: Failure when installing dependencies." error;
+                reply_error;
+                return 255;
+            fi
+        fi
+    done
+    reply_ok;
+
+    # Full path to the EULA
+    clck_EULA="${clck_dir}/license.txt";
+
+    # Show the Eula and wait for user to accept it
+    if ! show_eula ${clck_EULA} ; then
+        wwprint " ! Didn't accept the Intel(R) Cluster Checker EULA" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        return 255;
+    fi	
+
+    wwprint " + Installing  Intel(R) Cluster Checker";
+
+    # Full path to the silent install file 
+    clck_silent="${clck_dir}/silent.cfg";
+   
+    /bin/sed -i -e "s/\(ACTIVATION=\).*/\1license_file/" $clck_silent &>/dev/null;    
+    echo "PSET_LICENSE_FILE=$lic_file" >> $clck_silent;
+    /bin/sed -i -e "s/\(ACCEPT_EULA=\)reject/\1accept/" $clck_silent &>/dev/null;    
+
+    if ! $(${clck_dir}/install.sh -s $clck_silent) ;then
+	    wwprint "  ! ERROR: Failure when installing Intel(R) Cluster checker." error;
+	    /bin/rm -rf $tmpdir;
+	    reply_error;
+	    return 255;
+    fi
+    reply_ok;
+
+    /bin/rm -rf $tmpdir;
+
+    return 0;
+}
+
+
+
+# Show required EULA and wait for the user to accept it
+show_eula() {
+
+    eula_file=$1;
+    local RETVAL=1;
+    wwprint "--------------------------------------------------------------------------------\n";
+    wwprint  "Please carefully read each of the following license agreements.  Prior to\n";
+    wwprint  "installing the software you will be asked to agree to the terms and conditions\n"; 
+    wwprint  "of the following license agreements.\n";
+    wwprint  "--------------------------------------------------------------------------------\n"; 
+    read -r -p "Press Enter to continue...";
+
+    /bin/more $eula_file;
+    wwprint  "Do you agree to be bound by the terms and conditions of this license agreement?\n";
+    prompt="Enter 'accept' to continue, 'reject' to exit (accept/reject):"; 
+    while :; do
+        read -e -p "$prompt: " answer;
+
+        case $answer in
+            accept)
+                RETVAL=0;
+		break;
+            ;;
+            reject)
+                RETVAL=1;
+		break;
+            ;;
+            *)
+            echo "Please enter (accept/reject)";
+            ;;
+        esac
+    done
+
+  return $RETVAL;
+}
+
+# Extract and install the Intel(R) LAN drivers Package. 
+inst_iLAN_drivers(){
+
+    pkg_file=${ILAND_FILE:-$1};
+
+    # Flag to control if drivers should be reloaded in the master node
+    RELOAD=0;
+
+    if [ -z "$pkg_file" ]; then
+        pkg_file=$(/bin/ls -1 $HOME/intel-lan_linux_v*.zip 2>/dev/null | sort -V | tail -1);
+    fi
+
+    if [[ -z "$pkg_file" || ! -f "$pkg_file" ]]; then
+        wwprint " ! Intel(R) LAN drivers package not found." error;
+        reply_error;
+        return 255;
+    fi
+
+    wwprint " + Package $(msg_green $pkg_file) found\n";
+
+    # Dependencies for building in the drivers
+    wwprint " + Installing dependencies";
+    build_dependencies="gcc rpm-build.x86_64 kernel-devel";
+
+    for pkg in $build_dependencies; do
+        if ! /bin/rpm -q $pkg &>/dev/null; then
+            /usr/bin/yum -y --quiet install $pkg &>/dev/null;
+            if [ "$?" -ne 0 ]; then
+                wwprint "  ! ERROR: Failure when installing dependencies." error;
+                reply_error;
+                return 255;
+            fi
+        fi
+    done
+    reply_ok;
+
+    version=$(basename $pkg_file .zip  );
+
+    # Uncompress the package
+    RETVAL=0;
+    wwprint " + Extracting the Intel(R) LAN drivers package";
+    tmpdir=$(mktemp -d /tmp/LAN_ICR-XXXXXXXXXX);
+    /usr/bin/unzip -q $pkg_file -d $tmpdir &>/dev/null;
+    if [ "$?" -ne 0 ]; then
+        RETVAL=1;
+    fi
+    tarfile="${tmpdir}/${version}.tar.gz";
+    /bin/tar -xzf $tarfile  -C $tmpdir &>/dev/null;
+    if [ "$?" -ne 0 ]; then
+        RETVAL=1;
+    fi
+
+    if [ "$RETVAL" -ne 0 ]; then
+        wwprint " ! ERROR: Failure when extracting the Intel(R) LAN drivers package" error;
+        reply_error;
+        /bin/rm -rf $tmpdir;
+        return 255;
+    fi
+    reply_ok;
+
+    # Build and install the Intel(R) LAN drivers drivers
+    mkdir -p /root/rpmbuild/{SOURCES,SPECS};
+
+    wwprint " note: These next steps may take a while...\n" yellow;
+    wwprint " + Building and installing Intel(R) LAN drivers";
+    drivers_source_dir="${tmpdir}/drivers/";
+    drivers_rpm_dir="/root/rpmbuild/RPMS/x86_64/";
+
+    for file in $(find $drivers_source_dir -name "*.tar.gz");do
+        pkg_name=$(basename $file .tar.gz)
+
+        # Avoid building and installing if they are already installed
+        if ! /bin/rpm -q $pkg_name &>/dev/null; then	
+            # Build
+            if ! rpmbuild -tb $file &>/dev/null; then
+                wwprint " ! ERROR: Failure when building the Intel(R) LAN drivers" error;
+                reply_error;
+                /bin/rm -rf $tmpdir;
+                return 255;
+            fi
+
+            rpm_file="$(ls -1 ${drivers_rpm_dir}$pkg_name*x86_64.rpm)"	
+            #  Install
+            /usr/bin/yum -y -q --tolerant install $rpm_file &>/dev/null;
+            if [ "$?" -ne 0 ];then
+                 wwprint " ! ERROR: Failure when installing Intel(R) LAN drivers" error;
+                 /bin/rm -rf $tmpdir;
+                 reply_error;
+                 return 255;
+            fi
+            # If at least one driver was compiled, reload
+            RELOAD=1;
+        fi
+    done
+    reply_ok;
+
+    # Drivers are not installed in the chroot because they will be included in the
+    # bootstrap image. NOTE: this will not work for stateful nodes.
+
+    # Configure the throttling rate parameter the drivers.
+    wwprint " + Configuring throttling reate";
+    drivers=$(ls $drivers_source_dir|grep tar.gz| cut -f1 -d '-');
+    RETVAL=0;
+    for driver in $drivers;do
+        if ! /bin/grep $driver /etc/modprobe.d/intel_nic.conf &>/dev/null ;then
+            echo "options $driver InterruptThrottleRate=0,3" >> /etc/modprobe.d/intel_nic.conf;
+            if [ "$?" -ne 0 ]; then
+                RETVAL=1;
+            fi
+            # If at least one driver was not configured, reload
+            RELOAD=1;
+        fi
+        if ! /bin/grep $driver ${CHROOTDIR}/etc/modprobe.d/intel_nic.conf &>/dev/null ;then
+            echo "options $driver InterruptThrottleRate=0,3" >> ${CHROOTDIR}/etc/modprobe.d/intel_nic.conf;
+            if [ "$?" -ne 0 ]; then
+                RETVAL=1;
+            fi
+        fi
+    done
+
+	if [ " $RETVAL" -ne 0 ]; then
+	     wwprint " ! ERROR: Failure configuring Intel(R) LAN drivers throttling rate" error;
+	     /bin/rm -rf $tmpdir;
+	     reply_error;
+	     return 255;
+    fi
+    reply_ok;
+
+    # Restart the network service to load the just installed Intel(R) LAN drivers
+    if [ $RELOAD -ne 0 ]; then
+        wwprint " + Restarting network service" warn;
+        /sbin/service network stop &>/dev/null; 
+        for driver in $drivers; do
+            /sbin/modprobe -r $driver && /sbin/modprobe $driver;
+        done
+
+        /sbin/service network start &>/dev/null;
+        reply_ok;
+    fi
+
+    # Clean the temporary folder used
+    /bin/rm -rf $tmpdir;
+
+    return 0;
+}
+
+# Install and enable Warewulf First boot feature
+wwfirstboot(){
+
+    pkg_file=${WWFIRSTBOOT_FILE:-$1};
+
+    # Some sanity checking
+    if [[ -z "$CHROOTDIR" || ! -d "$CHROOTDIR" ]]; then
+        wwprint " ! ERROR: Invalid CHROOT path: ${CHROOTDIR}" error;
+        reply_error;
+        return 255;
+    fi
+
+    if [ -z "$pkg_file" ]; then
+        pkg_file=$(/bin/ls -1 $HOME/warewulf-cluster-node-*.rpm 2>/dev/null | sort -V | tail -1);
+    fi
+
+    if [[ -z "$pkg_file" || ! -f "$pkg_file" ]]; then
+        wwprint " ! Warewulf First Boot package not found." error;
+        reply_error;
+        return 255;
+    fi
+
+    # Define options for installing packages in the chroot 
+    chrootyumopt="--config=${CHROOTDIR}/root/yum-ww.conf --installroot=${CHROOTDIR}";
+    
+    # Warewulf First Boot configuration file
+    first_boot_config="${CHROOTDIR}/etc/sysconfig/wwfirstboot";
+                                    
+    wwprint " + Installing Warewulf first boot in ${CHROOTDIR}";
+    if ! /bin/rpm --root=${CHROOTDIR} -q 'warewulf-cluster-node' &>/dev/null; then	
+        /usr/bin/yum -y -q --tolerant $chrootyumopt install $pkg_file &>/dev/null;
+        if [[ "$?" -ne 0 || ! -f $first_boot_config ]];then
+             wwprint " ! ERROR: Failure when installing Warewulf First Boot" error;
+             /bin/rm -rf $tmpdir;
+             reply_error;
+             return 255;
+        fi
+    fi
+
+    /bin/sed -i -e "s/SKIP=.*/SKIP=false/" $first_boot_config &>/dev/null;    
+    reply_ok;
+
+    return 0;
+}
+
+
+# Create an ICR vnfs for the chroot created and a bootstrap 
+# with the updated drivers
+vnfs_boot_build(){
+
+    # Some sanity checking
+    if [[ -z "$CHROOTDIR" || ! -d "$CHROOTDIR" ]]; then
+        wwprint " ! ERROR: Invalid CHROOT path: ${CHROOTDIR}" error;
+        reply_error;
+        return 255;
+    fi
+    
+    wwprint "Building the VNFS image and importing into Warewulf:\n"
+    if wwrun wwvnfs -y --hybridpath=${CHROOTDIR} --chroot ${CHROOTDIR}; then
+        if [ -f "/etc/warewulf/defaults/provision.conf" ]; then
+            sed -i -e "s/^.*vnfs[ ]*=.*/vnfs = $CHROOT_NAME/" /etc/warewulf/defaults/provision.conf;
+        fi
+    else 
+        return 255;
+    fi
+
+    KVERSION=`uname -r`
+    wwprint "Creating bootstrap for $KVERSION:\n"
+    if wwrun wwbootstrap $KVERSION; then
+        if [ -f "/etc/warewulf/defaults/provision.conf" ]; then
+            sed -i -e "s/^.*bootstrap[ ]*=.*/bootstrap = $KVERSION/" /etc/warewulf/defaults/provision.conf
+        fi
+    else
+        return 255
+    fi
+    
+    return 0;
+}
+
+# vim:filetype=sh:syntax=sh:expandtab:ts=4:sw=4:

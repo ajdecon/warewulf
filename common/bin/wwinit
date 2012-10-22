@@ -94,20 +94,20 @@ if [ -z "$1" ]; then
     exit
 fi
 
-
 for arg in $@; do
+    wwinit_files="$wwinit_files $( grep -i -l "^#INIT: $arg\$" $WWINITDIR/*.init | sort | uniq)"
+
     for i in $WWINITDIR/*-${arg}.init; do
         if [ -f "$i" ]; then
-            echo $i
+            wwinit_files="$wwinit_files $i";
         fi
     done
+done 
 
-    grep -l "^#INIT: $arg\$" $WWINITDIR/*.init | while read i; do
-        echo $i
-    done
+# Eliminate duplicated files 
+wwinit_files=$( ls $wwinit_files | sort | uniq );
 
-done | sort | uniq | while read file; do
-
+for file in $wwinit_files; do
     test -n "$VERBOSE" && echo "VERBOSE:  Running module: $file"
     if [ -n "$DEBUG" ]; then
         sh -x $file "$@"
@@ -127,28 +127,3 @@ done | sort | uniq | while read file; do
 done
 
 exit $RETVAL
-
-
-for init in $@; do
-    test -n "$VERBOSE" && echo "VERBOSE:  Running init: $init"
-    grep -i -l "^#INIT: $init\$" $WWINITDIR/*.init | sort | uniq | while read file; do
-        test -n "$VERBOSE" && echo "VERBOSE:  Running module: $file"
-        if [ -n "$DEBUG" ]; then
-            sh -x $file $init
-            RETVAL=$?
-        else
-            sh $file $init
-            RETVAL=$?
-        fi
-        if [ $RETVAL -eq 0 ]; then
-            test -n "$VERBOSE" && echo "VERBOSE:  Module ran successfully"
-        elif [ $RETVAL -eq 1 ]; then
-            test -n "$VERBOSE" && echo "VERBOSE:  Module did nothing"
-        else
-            echo "Lethal error thrown by: $file"
-            exit $RETVAL
-        fi
-    done
-done
-
-

@@ -1,7 +1,6 @@
 AC_PREREQ(2.59)
 AC_INIT(warewulf-icr, 0.0.1, warewulf-devel@lbl.gov)
 AC_CONFIG_SRCDIR([.])
-AM_CONFIG_HEADER([config.h])
 
 AC_PROG_INSTALL
 AM_INIT_AUTOMAKE
@@ -35,11 +34,15 @@ if test "$SVNVERSION" = "0000" ; then
 fi
 AC_SUBST(SVNVERSION)
 
-AC_OUTPUT(Makefile
+AC_OUTPUT(
+   Makefile
    warewulf-icr.spec
+   etc/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
+   lib/Warewulf/ICR/Makefile
    libexec/Makefile
+   libexec/wwinit/Makefile
    libexec/wwmkchroot/Makefile
 )
 
