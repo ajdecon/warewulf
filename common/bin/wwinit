@@ -95,7 +95,7 @@ if [ -z "$1" ]; then
 fi
 
 for arg in $@; do
-    wwinit_files="$wwinit_files $( grep -i -l "^#INIT: $arg\$" $WWINITDIR/*.init | sort | uniq)"
+    wwinit_files="$wwinit_files $( grep -i -l "^#INIT: $arg\$" $WWINITDIR/*.init )"
 
     for i in $WWINITDIR/*-${arg}.init; do
         if [ -f "$i" ]; then
@@ -105,7 +105,7 @@ for arg in $@; do
 done 
 
 # Eliminate duplicated files 
-wwinit_files=$( ls $wwinit_files | sort | uniq );
+wwinit_files=$( find $wwinit_files | sort | uniq );
 
 for file in $wwinit_files; do
     test -n "$VERBOSE" && echo "VERBOSE:  Running module: $file"

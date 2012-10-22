@@ -182,7 +182,7 @@ wwreqroot() {
         if [ -n "$MSG" ]; then
             wwprint $MSG warn
         else
-            wwprint "Can only be run by the root user" warn
+            wwprint "Can only be run by the root user\n" warn
         fi
         exit 255
     fi
