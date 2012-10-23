@@ -1,14 +1,41 @@
 #!/bin/bash
 #
+## Copyright (c) 2012, Intel(R) Corporation #{
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are met:
+##
+##    * Redistributions of source code must retain the above copyright notice,
+##      this list of conditions and the following disclaimer.
+##    * Redistributions in binary form must reproduce the above copyright
+##      notice, this list of conditions and the following disclaimer in the
+##      documentation and/or other materials provided with the distribution.
+##    * Neither the name of Intel(R) Corporation nor the names of its
+##      contributors may be used to endorse or promote products derived from
+##      this software without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+## POSSIBILITY OF SUCH DAMAGE.
+#}
+#
 # Start Warewulf Firstboot
 #
-# chkconfig: 2345 95 95
+# chkconfig: 2345 05 05
 # description: Start the Warewulf Firstboot Disk Check
 #
 #
 ### BEGIN INIT INFO
 # Provides: wwfirstboot
-# Required-Start: network
+# Required-Start: 
 # Required-Stop:
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
@@ -24,6 +51,9 @@
 # persistant storage on nodes that lasts between reboots, yet the
 # node configuration does not need to be changed.
 #
+if [ ! -z $DEBUGWW ]; then
+    set -x;
+fi
 
 . /etc/init.d/functions
 
@@ -58,6 +88,14 @@ start()
         DISK=/dev/$DISK;
     fi
 
+    # Check for md# device .... Exit if we're give one
+    if echo $DISK | egrep -q '^/dev/md[0-9]*'; then
+        msg_status;
+        msg_red "DISK set as software raid device... ($DISK)";
+        failure; echo;
+        return 1;
+    fi
+
     if [[ ! -b ${DISK} ]]; then 
         msg_status;
         msg_red "${DISK} does not appear to be a block special device.";
@@ -74,7 +112,8 @@ start()
     msg_status;
     msg_yellow "DISK SIZE - $SIZE bytes ($(($SIZE/1024/1024/1024))GB)\n"
 
-    #XXX: Use $(( )) instead of piping through 'bc' just incase bc isn't installed
+    #XXX: We use $(( )) instead of piping through 'bc' just incase bc isn't 
+    #  installed
     CYLINDERS=$(($SIZE/255/63/512))
 
     msg_status;
@@ -88,13 +127,36 @@ start()
     > $disk_fstab;
     > $disk_fs;
 
-    for v in `set | egrep ^PART_ | sort`; do
+    sfdisk -d $DISK > /tmp/${DISK##/dev/}_sfdisk.dump
+
+    if [ $? -ne 0 ]; then
+        msg_status;
+        msg_red "Disk dump of $DISK failed. Exiting....";
+        failure; echo;
+        logger -t wwfirstboot "Error: sfdisk dump of $DISK filed";
+        return 1;
+    fi
+
+    msg_status;
+    msg_yellow "WARNING -- Clearing partition table\n";
+    dd if=/dev/zero of=${DISK} bs=512 count=1 &>/dev/null;
+
+    vartmp=`mktemp`;
+
+    # Don't put this in the for loop command. Subshells opening messing things up
+    # when trying to pass values back and forth. -jms
+    set | egrep ^PART_ | sort > $vartmp;
+
+    for v in `cat $vartmp`; do
         var=$(echo $v|cut -f1 -d '=');
         val=$(echo $v|cut -f2 -d '=');
         cyl="";
         ptype="L";
 
-        echo $val | tr ':' ' ' | while read size type mp perms; do
+        #XXX: The values for this while loop are being redirected below from the
+        # ending done. This is to work around bash opening a subshell, and then
+        # not being able to break out of the loops. -jms
+        while read size type mp perms; do
             test -z $size && break;
 
             if [ "x${size}" == "xfill" ]; then
@@ -140,21 +202,13 @@ start()
             # If we're going to fill the disk then we need to stop processing things,
             # and continue on our way.
             if [ "x${size}" == "xfill" ]; then
+                msg_status;
+                msg_yellow "Partition found with 'fill' size. Skipping any other partition defines.\n";
                 break 2;
             fi
-        done
-
-    done
-
-    sfdisk -d $DISK > /tmp/${DISK##/dev/}_sfdisk.dump
-
-    if [ $? -ne 0 ]; then
-        msg_status;
-        msg_red "Disk dump of $DISK failed. Exiting....";
-        failure; echo;
-        logger -t wwfirstboot "Error: sfdisk dump of $DISK filed";
-        return 1;
-    fi
+        done< <(echo $val | tr ':' ' ')  # while read
+    
+    done  # for v
 
     # Lets actually partition the disk. Keep a backup of the table "Just Incase". Won't
     # help any if we format though.
@@ -182,9 +236,9 @@ start()
             logger -t wwfirstboot "SWAP Space found. Formatting and running swapon for ${DISK}${pnum}";
             msg_status;
             msg_green "SWAP Space found. Formatting and running swapon for ${DISK}${pnum}\n";
-            swapoff ${DISK}${pnum}; sleep 1;
-            mkswap ${DISK}${pnum}; sleep 1;
-            swapon ${DISK}${pnum}; sleep 1;
+            swapoff ${DISK}${pnum} &>/dev/null; sleep 1;
+            mkswap ${DISK}${pnum} &>/dev/null; sleep 1;
+            swapon ${DISK}${pnum} &>/dev/null; sleep 1;
             continue;
         fi
 
@@ -293,6 +347,7 @@ start()
     /bin/rm -f $sfdisk_script;
     /bin/rm -f $disk_fstab;
     /bin/rm -f $disk_fs;
+    /bin/rm -f $vartmp;
 
 }
 
