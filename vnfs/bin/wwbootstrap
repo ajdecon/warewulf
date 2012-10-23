@@ -282,7 +282,7 @@ system("(cd $tmpdir; find . | cpio -o --quiet -H newc ) | gzip -c9 > $output");
 system("rm -rf $tmpdir");
 
 if ($opt_output) {
-    rename($output, $opt_output);
+    move($output, $opt_output);
     &nprint("Wrote bootstrap to: $opt_output\n");
 } else {
     &iprint("Importing bootstrap into Warewulf\n");
