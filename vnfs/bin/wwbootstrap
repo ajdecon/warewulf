@@ -30,6 +30,7 @@ my $opt_help;
 my $opt_chroot = "";
 my $opt_output;
 my $opt_config;
+my $opt_name;
 my $kversion;
 my $config;
 my $wwsh_bin;
@@ -49,6 +50,9 @@ my $help = "USAGE: $0 [options] kernel_version
         -o, --output    Output the bootstrap image to a file at the specified
                         path location (default automatically imports the
                         file into Warewulf instead of writing to disk).
+        -n, --name      Specify the name to import this bootstrap into the
+                        data store with (note: only used when automatically
+                        importing into the data store)
 
     EXAMPLES:
         # wwbootstrap 2.6.32-71.el6.x86_64
@@ -68,6 +72,7 @@ GetOptions(
     'r|root=s'      => \$opt_chroot,
     'f|file=s'      => \$opt_output,
     'o|output=s'    => \$opt_output,
+    'n|name=s'      => \$opt_name,
     'config=s'      => \$opt_config,
 );
 
@@ -286,7 +291,14 @@ if ($opt_output) {
     &nprint("Wrote bootstrap to: $opt_output\n");
 } else {
     &iprint("Importing bootstrap into Warewulf\n");
-    system("$wwsh_bin bootstrap import $output --name=$opt_kversion");
+    my $name;
+
+    if ($opt_name) {
+        $name = $opt_name;
+    } else {
+        $name = $opt_kversion;
+    }
+    system("$wwsh_bin bootstrap import $output --name=$name");
     unlink($output);
 }
 
