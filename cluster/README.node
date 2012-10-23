@@ -5,7 +5,7 @@ wwfirstboot:
   wwfirstboot is an init.d script that will handle disk partitioning. The 
 configuration file for it is located at:
 
-  /etc/sysconfig/wwfirstboot
+  /etc/sysconfig/wwfirstboot.conf
 
   This should be edited before importing your VNFS as the default behavior is 
 to skip over partitioning/formating any disks.
@@ -54,7 +54,7 @@ KNOWN ISSUES:
 
 wwfirstboot EXAMPLE CONFIGURATION:
 
-  An example configuration for wwfirstboot (/etc/sysconfig/wwfirstboot):
+  An example configuration for wwfirstboot (/etc/sysconfig/wwfirstboot.conf):
 
 ######### EXAMPLE #########
 #

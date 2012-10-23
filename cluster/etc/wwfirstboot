@@ -57,7 +57,7 @@ fi
 
 . /etc/init.d/functions
 
-CONFIG="/etc/sysconfig/wwfirstboot";
+CONFIG="/etc/sysconfig/wwfirstboot.conf";
 
 if [ ! -f $CONFIG ]; then
     echo "No Firstboot configuration found. Skipping";

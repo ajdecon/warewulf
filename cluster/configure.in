@@ -50,8 +50,6 @@ AC_OUTPUT(
    warewulf-cluster.spec
    bin/Makefile
    etc/Makefile
-   etc/wwfirstboot
-   etc/sysconfig/Makefile
    lib/Makefile
    lib/Warewulf/Makefile
    lib/Warewulf/Module/Makefile

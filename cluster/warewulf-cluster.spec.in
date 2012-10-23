@@ -65,7 +65,7 @@ rm -rf $RPM_BUILD_ROOT
 %files node
 %doc AUTHORS COPYING LICENSE README.node
 %defattr(-, root, root)
-%config(noreplace) /etc/sysconfig/wwfirstboot
+%config(noreplace) /etc/sysconfig/wwfirstboot.conf
 /etc/rc.d/init.d/wwfirstboot
 
 %post node
