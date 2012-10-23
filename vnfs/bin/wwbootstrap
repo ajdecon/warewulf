@@ -54,7 +54,7 @@ my $help = "USAGE: $0 [options] kernel_version
         # wwbootstrap 2.6.32-71.el6.x86_64
         # wwbootstrap --config=testbootstrap 2.6.32-71.el6.x86_64
         # wwbootstrap --chroot=/path/to/chroot 2.6.32-71.el6.x86_64
-        # wwbootstrap --file=test-bootstrap.wwbs 2.6.32-71.el6.x86_64
+        # wwbootstrap --output=test-bootstrap.wwbs 2.6.32-71.el6.x86_64
 
 ";
 
@@ -67,6 +67,7 @@ GetOptions(
     'c|chroot=s'    => \$opt_chroot,
     'r|root=s'      => \$opt_chroot,
     'f|file=s'      => \$opt_output,
+    'o|output=s'    => \$opt_output,
     'config=s'      => \$opt_config,
 );
 
