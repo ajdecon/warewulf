@@ -633,7 +633,7 @@ wwfirstboot(){
     chrootyumopt="--config=${CHROOTDIR}/root/yum-ww.conf --installroot=${CHROOTDIR}";
     
     # Warewulf First Boot configuration file
-    first_boot_config="${CHROOTDIR}/etc/sysconfig/wwfirstboot";
+    first_boot_config="${CHROOTDIR}/etc/sysconfig/wwfirstboot.conf";
                                     
     wwprint " + Installing Warewulf first boot in ${CHROOTDIR}";
     if ! /bin/rpm --root=${CHROOTDIR} -q 'warewulf-cluster-node' &>/dev/null; then	
@@ -644,6 +644,15 @@ wwfirstboot(){
              reply_error;
              return 255;
         fi
+    fi
+    reply_ok;
+
+    wwprint " + Enabling Warewulf first boot in ${CHROOTDIR}";
+    if [ ! -f "$first_boot_config" ]; then
+        wwprint " ! ERROR: Warewulf First Boot config file not found" error;
+         /bin/rm -rf $tmpdir;
+         reply_error;
+         return 255;
     fi
 
     /bin/sed -i -e "s/SKIP=.*/SKIP=false/" $first_boot_config &>/dev/null;    
