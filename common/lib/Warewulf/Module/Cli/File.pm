@@ -429,24 +429,24 @@ exec()
             ### Set each member if supplied.
 
             # Interpreter
-            $self->set_file_member("interpreter", qr/^([a-zA-Z0-9\-_\/\.]+)$/,
+            $self->set_file_member("interpreter", qr/^([a-zA-Z0-9\-_\/\.]+|UNDEF)$/,
                                    $opt_interpreter, \$persist_count, \@changes,
                                    \@objlist);
             # Path
-            $self->set_file_member("path", qr/^([a-zA-Z0-9\-_\/\.]+)$/, $opt_path,
+            $self->set_file_member("path", qr/^([a-zA-Z0-9\-_\/\.]+|UNDEF)$/, $opt_path,
                                    \$persist_count, \@changes, \@objlist);
             # Mode
-            $self->set_file_member("mode", qr/^(\d+)$/, $opt_mode,
+            $self->set_file_member("mode", qr/^(\d+|UNDEF)$/, $opt_mode,
                                    \$persist_count, \@changes, \@objlist,
                                    "must be in octal format (e.g., 0644)");
             # UID
-            $self->set_file_member("uid", qr/^(\d+)$/, $opt_uid, \$persist_count,
+            $self->set_file_member("uid", qr/^(\d+|UNDEF)$/, $opt_uid, \$persist_count,
                                    \@changes, \@objlist, "must be in numeric format");
             # GID
-            $self->set_file_member("gid", qr/^(\d+)$/, $opt_gid, \$persist_count,
+            $self->set_file_member("gid", qr/^(\d+|UNDEF)$/, $opt_gid, \$persist_count,
                                    \@changes, \@objlist, "must be in numeric format");
             # Origin(s)
-            $self->set_file_member("origin", qr/^(\/[a-zA-Z0-9\-_\.\/,]+)$/,
+            $self->set_file_member("origin", qr/^(\/[a-zA-Z0-9\-_\.\/,]+|UNDEF)$/,
                                    ((scalar(@opt_origin)) ? (join(',', @opt_origin)) : (undef)),
                                    \$persist_count, \@changes, \@objlist);
             # Then persist.
