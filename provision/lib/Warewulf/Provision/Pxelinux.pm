@@ -192,7 +192,7 @@ update()
                 next;
             }
 
-            if ($node_testnetwork ne $master_network) {
+            if ($node_ipaddr and $node_testnetwork ne $master_network) {
                 &iprint("Skipping PXE config for $nodename-$devname (on a different network)\n");
                 next;
             }
