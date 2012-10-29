@@ -123,3 +123,7 @@ Mon Oct 29 14:39:59 2012                        Michael Jennings (mej)
 
 Add helpful LARTing if autoconfig mode appears to be what is desired.
 ----------------------------------------------------------------------
+Mon Oct 29 15:44:59 2012                        Michael Jennings (mej)
+
+Allow -x to work with -r as well as -a.
+----------------------------------------------------------------------

@@ -335,6 +335,10 @@ while (my $line = <TCPDUMP>) {
                         &nprintf("Updated $name.%s.hwaddr:  $old_hwaddr -> $hwaddr\n",
                                  ($devname || "<default>"));
                         $datastore->persist($node);
+                        if (--$opt_maxnodes == 0) {
+                            &iprint("Configured all nodes requested.  Exiting.\n");
+                            exit(0);
+                        }
                     }
                     next;
                 }
