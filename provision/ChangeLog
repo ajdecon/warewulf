@@ -119,3 +119,7 @@ Cleaned up help display.
 
 Properly handle missing network device on unconfigured node.
 ----------------------------------------------------------------------
+Mon Oct 29 14:39:59 2012                        Michael Jennings (mej)
+
+Add helpful LARTing if autoconfig mode appears to be what is desired.
+----------------------------------------------------------------------

@@ -296,8 +296,16 @@ while (my $line = <TCPDUMP>) {
 
             # Avoid IP address conflicts.
             while ($node = $datastore->get_objects("node", "_ipaddr", $ip)->get_object(0)) {
+                my $hwaddrs_aref = $node->get("_hwaddr");
+
+                if (!defined($hwaddrs_aref) || (ref($hwaddrs_aref) ne "ARRAY")) {
+                    &eprintf("Node %s (node #%d) already uses IP address $ip but with no hardware address.\n",
+                             scalar($node->name()), $node->id());
+                    &eprint("You probably need to use autoconfig mode (-a or --autoconfig).  Aborting.\n");
+                    exit(1);
+                }
                 &wprintf("Node %s (node #%d, hardware address %s) already uses IP address $ip; skipping.\n",
-                         scalar($node->name()), $node->id(), ($node->get("_hwaddr")->[0] || "unknown"));
+                         scalar($node->name()), $node->id(), ($hwaddrs_aref->[0] || "unknown"));
                 $ip = $net->ip_unserialize(++$ipaddr_bin);
                 if ($ipaddr_bin > $ipaddr_max) {
                     &eprint("Unable to add new node $hwaddr -- Reached end of IP range (%s)\n",
