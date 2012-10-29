@@ -279,9 +279,8 @@ exec()
                 &eprint("Will not modify private object member \"$var\".\n");
                 next;
             }
-            @vals = &quotewords(',', 0, $val);
-            if (scalar(@vals)) {
-                $val = sprintf("\"%s\"", join("\", \"", @vals));
+            if (scalar($val)) {
+                $val = sprintf("\"%s\"", join("\", \"", &quotewords(',', 0, $val)));
             } else {
                 $val = "[ALL]";
             }
