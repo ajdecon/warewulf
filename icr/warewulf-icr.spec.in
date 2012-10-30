@@ -10,7 +10,7 @@ Group: System Environment/Clustering
 URL: http://warewulf.lbl.gov/
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: linux
-Requires: warewulf-common warewulf-provision
+Requires: warewulf-common warewulf-provision warewulf-provision-server warewulf-vnfs
 BuildRequires: warewulf-common
 Conflicts: warewulf < 3
 BuildRoot: %{?_tmppath}%{!?_tmppath:/var/tmp}/%{name}-%{version}-%{release}-root
