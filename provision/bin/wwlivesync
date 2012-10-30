@@ -10,6 +10,7 @@
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
+use Warewulf::File;
 use Warewulf::ParallelCmd;
 use Warewulf::Node;
 use Warewulf::DSO::Node;
@@ -23,7 +24,12 @@ use Getopt::Long;
 
 my $db = Warewulf::DataStore->new();
 my $pcmd = Warewulf::ParallelCmd->new();
+my $livesync_config = Warewulf::Config->new("livesync.conf");
 my $opt_lookup = "name";
+my @skiplist = $livesync_config->get("timeout");
+my $fanout = $livesync_config->get("max sync") || 8;
+my $timeout = $livesync_config->get("max sync") || 3600;
+my $skiplist_excludes_opts = "";
 my $opt_help;
 my $opt_debug;
 my $opt_verbose;
@@ -65,14 +71,31 @@ if (! @ARGV) {
 }
 
 if ($opt_help) {
-    print "USAGE: $0 <options> [nodes...]\n";
-    exit 0;
+    print "USAGE: $0 (options) [targets]\n";
+    print "\nSUMMARY:\n\n";
+    print "     The live sync command will spawn rsync commands to update the running node\n";
+    print "     operating system (VNFS) live. This command should only be used for minor VNFS\n";
+    print "     updates, as large updates including library load could potentially break binary\n";
+    print "     compatibility.\n\n";
+    print "\nOPTIONS:\n\n";
+    print "   -l, --lookup        Identify nodes by specified property (default: \"name\")\n";
+    print "       --verbose       Increase verbosity level\n";
+    print "       --quiet         Decrease verbosity level\n";
+    print "       --debug         Print debugging messages\n";
+    print "   -h, --help          Display this usage summary\n";
+    print "\nTARGETS:\n\n";
+    print "     The target(s) specify which node(s) will be affected by the chosen\n";
+    print "     action(s).  By default, node(s) will be identified by their name(s).\n";
+    print "     Use the --lookup option to specify another property (e.g., \"hwaddr\"\n";
+    print "     or \"groups\").\n\n";
+    print "     All targets can be bracket expanded as follows:\n\n";
+    print "         n00[0-99]       All nodes from n0000 through n0099 (inclusive)\n";
+    print "         n00[00,10-99]   n0000 and all nodes from n0010 through n0099\n\n";
+    print "\nEXAMPLES:\n\n";
+    print "   # wwlivesync n00[00-19]\n";
+    print "\n";
+    exit 1;
 }
-
-
-$pcmd->wtime(0);
-$pcmd->ktime(3600);
-$pcmd->fanout(4);
 
 $objSet = $db->get_objects("node", $opt_lookup, &expand_bracket(@ARGV));
 
@@ -81,9 +104,18 @@ if (! $objSet || ($objSet->count() == 0)) {
     exit 1;
 }
 
+$pcmd->wtime(0);
+$pcmd->ktime($timeout);
+$pcmd->fanout($fanout);
+
+foreach my $exclude (@skiplist) {
+    $skiplist_excludes_opts .= " --exclude='./$exclude'";
+}
+
 
 foreach my $o ($objSet->get_list()) {
-    my ($name, $vnfs_name, $vnfsid, $vnfs, $config, @excludes, $chroot, $excludes_opts, $cmd);
+    my ($name, $vnfs_name, $vnfsid, $vnfs, $vnfs_config, @excludes, $chroot,
+        $excludes_opts, $cmd);
 
     $name = $o->name();
     $vnfsid = $o->vnfsid();
@@ -96,14 +128,22 @@ foreach my $o ($objSet->get_list()) {
 
     $vnfs = $db->get_objects("vnfs", "_id", $vnfsid)->get_object(0);
 
+    foreach my $fileid ($o->fileids()) {
+        my $file = $db->get_objects("file", "_id", $fileid)->get_object(0);
+        my $path = $file->path();
+        if ($path) {
+            $excludes_opts .= " --exclude='./$path'";
+        }
+    }
+
     if (! $vnfs) {
         &wprint("Unknown VNFS ID '$vnfsid' set for node: $name\n");
         next;
     }
 
-    $config = Warewulf::Config->new("vnfs.conf", "vnfs/$name.conf");
-    @excludes = $config->get("excludes");
-    $chroot = $vnfs->chroot() || $config->get("chroot");
+    $vnfs_config = Warewulf::Config->new("vnfs.conf", "vnfs/$name.conf");
+    @excludes = $vnfs_config->get("excludes");
+    $chroot = $vnfs->chroot() || $vnfs_config->get("chroot");
 
     if (! $chroot) {
         &wprint("Unknown VNFS chroot location for VNFS: $vnfs_name\n");
@@ -114,7 +154,8 @@ foreach my $o ($objSet->get_list()) {
         $excludes_opts .= " --exclude='./$exclude'";
     }
 
-    $cmd = "cd $chroot; rsync -aqHP $excludes_opts . $name:/ 2>&1 && echo done";
+    $cmd = "echo 'cd $chroot; rsync -aqHP $excludes_opts $skiplist_excludes_opts . $name:/ 2>&1 && echo done'";
+    #$cmd = "cd $chroot; rsync -aqHP $excludes_opts $skiplist_excludes_opts . $name:/ 2>&1 && echo done";
 
     &iprint("Queuing command: $cmd\n");
     $pcmd->queue($cmd, "$name: ");
