@@ -9,6 +9,7 @@
 
 
 use CGI;
+use Sys::Syslog;
 use Warewulf::DataStore;
 use Warewulf::Node;
 use Warewulf::Logger;
@@ -20,6 +21,14 @@ my $q = CGI->new();
 my $hwaddr = $q->param('hwaddr');
 
 print $q->header();
+
+if (! $db) {
+    warn("wwprovision: Apache Could not connect to data store!\n");
+    openlog("wwprovision", "ndelay,pid", LOG_LOCAL0);
+    syslog("ERR", "Could not connect to data store!");
+    closelog;
+    exit;
+}
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     my $hwaddr = $1;
