@@ -15,12 +15,6 @@ if [ -f "/warewulf/config" ]; then
     . /warewulf/config
 fi
 
-PATH=${PATH}:/warewulf/bin
-export PATH
-
-LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/warewulf/lib:/warewulf/lib64
-export LD_LIBRARY_PATH
-
 START=0
 BACKOFF=2
 INTERVALS=30
