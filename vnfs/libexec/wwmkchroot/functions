@@ -140,7 +140,10 @@ configure_runlevel() {
 
 configure_timezone() {
     if [ -f "/etc/localtime" ]; then
-        cp /etc/localtime $CHROOTDIR/etc/localtime
+        cp -a /etc/localtime $CHROOTDIR/etc/localtime
+    fi
+    if [ -f "/etc/adjtime" ]; then
+        cp -a /etc/adjtime $CHROOTDIR/etc/adjtime
     fi
 }
 
