@@ -1,0 +1,9 @@
+Mon Aug 22 16:39:49-0500 2012                       Matias A Cabral (macabral)
+
+Add of first version of files for wwinit ICR and OFED options. The OFED target
+builds, install and performs a basic configuration the Open Fabric Alliance
+(http://www.openfabrics.org) InfiniBand support package. The ICR target
+performs several steps to help during the installation of cluster to have an
+Intel(R) Cluster Ready (http://software.intel.com/en-us/cluster-ready)
+compliant cluster. See icr/AUTHORS. 
+----------------------------------------------------------------------
