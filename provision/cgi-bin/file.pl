@@ -25,10 +25,16 @@ use Warewulf::Util;
 my $q = CGI->new();
 my $db = Warewulf::DataStore->new();
 
+my $tmpdir = "/tmp/warewulf";
 my $hwaddr = $q->param('hwaddr');
 my $fileid = $q->param('fileid');
 my $timestamp = $q->param('timestamp');
 my $node;
+
+if (! -d $tmpdir) {
+    mkpath($tmpdir);
+    chmod("0750", $tmpdir);
+}
 
 if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
     $hwaddr = $1;
@@ -76,11 +82,15 @@ if ($hwaddr =~ /^([a-zA-Z0-9:]+)$/) {
             my $fileObj = $db->get_objects("file", "_id", $fileid)->get_object(0);;
 
             if ($fileObj) {
-                my $cachefile = "/tmp/warewulf/files/". $fileObj->id() ."/". $fileObj->checksum();
+                my $fileID = $fileObj->id();
+                my $cachedir = "$tmpdir/files/$fileID/";
+                my $cachefile = "$cachedir/". $fileObj->checksum();
 
                 # Initially cache the file if it doesn't already exist locally
                 if (! -f $cachefile) {
-                    mkpath("/tmp/warewulf/files/". $fileObj->name());
+                    if (! -d $cachedir) {
+                        mkpath($cachedir);
+                    }
                     $fileObj->file_export($cachefile);
                 }
 

@@ -134,7 +134,7 @@ rm -rf $RPM_BUILD_ROOT
 %files server
 %defattr(-, root, root)
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/warewulf-httpd.conf
-%{_libexecdir}/warewulf/cgi-bin/
+%attr(0750, root, apache) %{_libexecdir}/warewulf/cgi-bin/
 %{perl_vendorlib}/Warewulf/Event/Bootstrap.pm
 %{perl_vendorlib}/Warewulf/Event/Dhcp.pm
 %{perl_vendorlib}/Warewulf/Event/Pxelinux.pm
