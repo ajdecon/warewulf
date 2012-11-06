@@ -134,7 +134,7 @@ uninst_os_ib() {
     if [ $WARN -eq 0 ]; then
         reply_ok;
     else
-        reply_warning;
+        reply_warn;
     fi
     return $RETVAL;
 }
