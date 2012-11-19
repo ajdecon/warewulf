@@ -9,16 +9,14 @@
 
 
 if [ ! -f "$HOME/.ssh/cluster" ]; then
-    echo "Configuring ssh for cluster access"
+    echo "Configuring SSH for cluster access"
     install -d -m 700 $HOME/.ssh
-    ssh-keygen -t dsa -f $HOME/.ssh/cluster -N '' > /dev/null 2>&1
+    ssh-keygen -t dsa -f $HOME/.ssh/cluster -N '' -C "Warewulf Cluster key" > /dev/null 2>&1
     cat $HOME/.ssh/cluster.pub >> $HOME/.ssh/authorized_keys
     chmod 0600 $HOME/.ssh/authorized_keys
 
+    echo "# Added by Warewulf  `date +%Y-%m-%d 2>/dev/null`"
     echo "Host *" >> $HOME/.ssh/config
-    echo "   IdentityFile ~/.ssh/identity" >> $HOME/.ssh/config
-    echo "   IdentityFile ~/.ssh/id_rsa" >> $HOME/.ssh/config
-    echo "   IdentityFile ~/.ssh/id_dsa" >> $HOME/.ssh/config
     echo "   IdentityFile ~/.ssh/cluster" >> $HOME/.ssh/config
     echo "   StrictHostKeyChecking=no" >> $HOME/.ssh/config
     chmod 0600 $HOME/.ssh/config
