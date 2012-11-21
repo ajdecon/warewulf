@@ -48,10 +48,10 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
                         fi
                     fi
 
-                    echo "# This file was written by Warewulf bootstrap (capability provision-localdisk)" > $NEWROOT/boot/grub/device.map
+                    echo "# This file was written by Warewulf bootstrap (capability setup-filesystems)" > $NEWROOT/boot/grub/device.map
                     echo "(hd0) $WWBOOTLOADER" >> $NEWROOT/boot/grub/device.map
 
-                    echo "# This file was written by Warewulf bootstrap (capability provision-localdisk)" > $NEWROOT/boot/grub/grub.conf
+                    echo "# This file was written by Warewulf bootstrap (capability setup-filesystems)" > $NEWROOT/boot/grub/grub.conf
                     echo "default 0" >>$NEWROOT/boot/grub/grub.conf
                     echo "timeout 10" >>$NEWROOT/boot/grub/grub.conf
                     echo "root (hd0,0)" >>$NEWROOT/boot/grub/grub.conf
