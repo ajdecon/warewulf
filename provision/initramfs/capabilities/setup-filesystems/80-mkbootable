@@ -16,12 +16,12 @@ if [ -n "$WWBOOTLOADER" -a -f "/tmp/rootdev" ]; then
     if [ -b "$WWBOOTLOADER" ]; then
         KERNEL=`cd $NEWROOT; find boot/vmlinuz-* 2>/dev/null | tail -n 1`
         if [ -n "$KERNEL" ]; then
-            KERNELVERSION=`echo "$KERNEL" | sed -e 's@.*/boot/vmlinuz-@@'`
+            KERNELVERSION=`echo "$KERNEL" | sed -e 's@.*boot/vmlinuz-@@'`
             if [ -x "$NEWROOT/sbin/dracut" ]; then
                 chroot $NEWROOT /sbin/dracut --force '' $KERNELVERSION
-                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* >/dev/null 2>&1 | tail -n 1`
+                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* 2>/dev/null | tail -n 1`
             elif [ -x "$NEWROOT/sbin/mkinitrd" ]; then
-                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* >/dev/null 2>&1 | tail -n 1`
+                INITRD=`cd $NEWROOT; find boot/initr*-${KERNELVERSION}.img* 2>/dev/null | tail -n 1`
                 if [ -n "$INITRD" ]; then
                     INITRD="boot/initramfs-$KERNELVERSION.img"
                 fi
