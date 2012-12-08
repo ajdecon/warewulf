@@ -271,9 +271,9 @@ if (-d $opt_chroot) {
                 &nprint("Done.\n");
             } else {
                 if ($opt_yes) {
-                    system("yes | $wwsh_bin vnfs import $output --name=$opt_name");
+                    system("yes | $wwsh_bin vnfs import $output --chroot=$opt_chroot --name=$opt_name");
                 } else {
-                    system("$wwsh_bin vnfs import $output --name=$opt_name");
+                    system("$wwsh_bin vnfs import $output --chroot=$opt_chroot --name=$opt_name");
                 }
                 unlink($output);
                 &nprint("Done.\n");

@@ -250,6 +250,16 @@ exec()
                                 &dprint("Creating a new Warewulf VNFS object\n");
                                 $obj = Warewulf::Vnfs->new();
                                 $obj->name($name);
+
+                                &dprint("Adding chroot attribute to VNFS object\n");
+                                if($opt_chroot) {
+                                    if(-d $opt_chroot) {
+                                        $obj->chroot($opt_chroot);
+                                    } else {
+                                        &eprint("Error: $opt_chroot does not exist\n");
+                                    }
+                                }
+
                                 &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
                                 $db->persist($obj);
                             }
@@ -351,3 +361,5 @@ exec()
 
 
 1;
+
+# vim:filetype=perl:syntax=perl:expandtab:ts=4:sw=4:
