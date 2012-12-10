@@ -18,6 +18,7 @@ use Warewulf::DataStore;
 use Warewulf::Util;
 use Warewulf::Vnfs;
 use Warewulf::DSO::Vnfs;
+use Warewulf::ObjectSet;
 use Getopt::Long;
 use File::Basename;
 use File::Path;
@@ -152,6 +153,7 @@ exec()
     my $opt_chroot;
     my $command;
     my $return_count = 0;
+    my $objSet;
 
     @ARGV = ();
     push(@ARGV, @_);
@@ -175,7 +177,8 @@ exec()
         if ($command eq "help") {
             print $self->help();
             return 1;
-        } elsif ($command eq "export") {
+        }
+        if ($command eq "export") {
             if (scalar(@ARGV) eq 2) {
                 my $vnfs = shift(@ARGV);
                 my $vnfs_path = shift(@ARGV);
@@ -218,14 +221,16 @@ exec()
                 &eprint("USAGE: vnfs export [vnfs name] [destination]\n");
                 return undef;
             }
-        } elsif ($command eq "import") {
+            return $return_count;
+        }
+
+        if ($command eq "import") {
             if (scalar(@ARGV) >= 1) {
                 foreach my $path (@ARGV) {
                     if ($path =~ /^([a-zA-Z0-9\-_\.\/]+)$/) {
                         $path = $1;
                         if (-f $path) {
                             my $name;
-                            my $objSet;
                             my $obj;
                             if ($opt_name) {
                                 $name = $opt_name;
@@ -251,22 +256,20 @@ exec()
                                 $obj = Warewulf::Vnfs->new();
                                 $obj->name($name);
 
-                                &dprint("Adding chroot attribute to VNFS object\n");
-                                if($opt_chroot) {
-                                    if(-d $opt_chroot) {
-                                        $obj->chroot($opt_chroot);
-                                    } else {
-                                        &eprint("Error: $opt_chroot does not exist\n");
-                                    }
-                                }
-
                                 &dprint("Persisting the new Warewulf VNFS object with name: $name\n");
                                 $db->persist($obj);
                             }
 
-                            $obj->vnfs_import($path);
+                            if ($obj->vnfs_import($path)) {
+                                $return_count ++;
+                                &nprint("VNFS '$name' has been imported\n");
+                            } else {
+                                &eprint("There was an error importing $path into the data store!\n");
+                                return undef;
+                            }
 
-                            $return_count ++;
+                            $objSet = Warewulf::ObjectSet->new();
+                            $objSet->add($obj);
 
                         } else {
                             &eprint("VNFS not Found: $path\n");
@@ -281,71 +284,80 @@ exec()
                 &eprint("USAGE: vnfs import [vnfs path]\n");
                 return undef;
             }
+
         } else {
             $objSet = $db->get_objects($opt_type || $entity_type, $opt_lookup, &expand_bracket(@ARGV));
+        }
 
-            if ($objSet->count() == 0) {
-                &eprint("No VNFS images found\n");
-                return undef;
+
+        if ($objSet->count() == 0) {
+            &eprint("No VNFS images found\n");
+            return undef;
+        }
+
+        if ($command eq "set" or $command eq "import") {
+            my $persist_count = 0;
+            my @changes;
+
+            if ($opt_chroot) {
+                if ($opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
+                    if (-d $opt_chroot) {
+                        foreach my $o ($objSet->get_list()) {
+                            $o->chroot($opt_chroot);
+                            $persist_count++;
+                        }
+                        push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "CHROOT", $opt_chroot));
+                    } else {
+                        &eprint("Chroot directory '$opt_chroot' does not exist\n");
+                    }
+                } else {
+                    &eprint("Option 'chroot' has illegal characters\n");
+                }
             }
 
-            if ($command eq "set") {
-                my $persist_count = 0;
-                my @changes;
-
-                if ($opt_chroot) {
-                    if ($opt_chroot =~ /^([a-zA-Z0-9\/\.\-_]+)$/) {
-                        if (-d $opt_chroot) {
-                            foreach my $o ($objSet->get_list()) {
-                                $o->chroot($opt_chroot);
-                                $persist_count++;
-                            }
-                            push(@changes, sprintf("%8s: %-20s = %s\n", "SET", "CHROOT", $opt_chroot));
-                        } else {
-                            &eprint("Chroot directory '$opt_chroot' does not exist\n");
-                        }
-                    } else {
-                        &eprint("Option 'chroot' has illegal characters\n");
-                    }
-                }
-
-                if ($persist_count > 0) {
-                    if ($self->confirm_changes($term, $objSet->count(), "VNFS(s)", @changes)) {
-                        $return_count = $db->persist($objSet);
-                        &iprint("Updated $return_count object(s).\n");
-                    }
-                }
-
-            } elsif ($command eq "delete") {
-                my $object_count = $objSet->count();
-                if ($term->interactive()) {
-                    print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
-                    foreach my $o ($objSet->get_list()) {
-                        printf("     DEL: %-20s = %s\n", "VNFS", $o->name());
-                    }
-                    print "\n";
-                    my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
-                    if ($yesno ne "y" and $yesno ne "yes") {
-                        &nprint("No update performed\n");
+            if ($persist_count > 0) {
+                if ($term->interactive() and $command ne "import") {
+                    if (! $self->confirm_changes($term, $objSet->count(), "VNFS(s)", @changes)) {
                         return undef;
                     }
                 }
-                $return_count = $db->del_object($objSet);
-            } elsif ($command eq "list" or $command eq "print") {
-                &nprint("VNFS NAME            SIZE (M) CHROOT LOCATION\n");
-                foreach my $obj ($objSet->get_list()) {
-                    printf("%-20s %-8.1f %s\n",
-                        $obj->name() || "UNDEF",
-                        ($obj->size() ? ($obj->size()/(1024*1024)) : ("0")),
-                        $obj->chroot() || "UNDEF"
-                    );
-                    $return_count ++;
-                }
-            } else {
-                &eprint("Invalid command: $command\n");
-                return undef;
+
+                $return_count = $db->persist($objSet);
+                &iprint("Updated $return_count object(s).\n");
             }
+
+        } elsif ($command eq "delete") {
+            my $object_count = $objSet->count();
+            if ($term->interactive()) {
+                print "Are you sure you want to delete $object_count VNFS images(s):\n\n";
+                foreach my $o ($objSet->get_list()) {
+                    printf("     DEL: %-20s = %s\n", "VNFS", $o->name());
+                }
+                print "\n";
+                my $yesno = lc($term->get_input("Yes/No> ", "no", "yes"));
+                if ($yesno ne "y" and $yesno ne "yes") {
+                    &nprint("No update performed\n");
+                    return undef;
+                }
+            }
+            $return_count = $db->del_object($objSet);
+        } elsif ($command eq "list" or $command eq "print") {
+            &nprint("VNFS NAME            SIZE (M) CHROOT LOCATION\n");
+            foreach my $obj ($objSet->get_list()) {
+                printf("%-20s %-8.1f %s\n",
+                    $obj->name() || "UNDEF",
+                    ($obj->size() ? ($obj->size()/(1024*1024)) : ("0")),
+                    $obj->chroot() || "UNDEF"
+                );
+                $return_count ++;
+            }
+        } else {
+            &eprint("Invalid command: $command\n");
+            return undef;
         }
+
+
+
     } else {
         &eprint("You must provide a command!\n\n");
         print $self->help();
