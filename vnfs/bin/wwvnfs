@@ -10,10 +10,11 @@
 use Warewulf::Util;
 use Warewulf::Logger;
 use Warewulf::Config;
-use File::Path;
-use File::Basename;
-use Getopt::Long;
 use Cwd;
+use File::Basename;
+use File::Copy;
+use File::Path;
+use Getopt::Long;
 
 my $config = Warewulf::Config->new("vnfs.conf");
 my $randstring = &rand_string("12");
@@ -266,14 +267,17 @@ if (-d $opt_chroot) {
                     mkpath($dirname);
                 }
                 &dprint("Moving $output to $opt_output\n");
-                rename($output, $opt_output);
-                &nprint("Wrote VNFS image to $opt_output\n");
-                &nprint("Done.\n");
+                if (move($output, $opt_output)) {
+                    &nprint("Wrote VNFS image to $opt_output\n");
+                } else {
+                    &eprint("Could not move temporary file to final destination!\n");
+                    &eprint("$!\n");
+                }
             } else {
                 if ($opt_yes) {
-                    system("yes | $wwsh_bin vnfs import $output --chroot=$opt_chroot --name=$opt_name");
+                    system("yes | $wwsh_bin vnfs import $output --chroot='$opt_chroot' --name='$opt_name'");
                 } else {
-                    system("$wwsh_bin vnfs import $output --chroot=$opt_chroot --name=$opt_name");
+                    system("$wwsh_bin vnfs import $output --chroot='$opt_chroot' --name='$opt_name'");
                 }
                 unlink($output);
                 &nprint("Done.\n");
