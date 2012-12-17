@@ -26,9 +26,9 @@ my $db = Warewulf::DataStore->new();
 my $pcmd = Warewulf::ParallelCmd->new();
 my $livesync_config = Warewulf::Config->new("livesync.conf");
 my $opt_lookup = "name";
-my @skiplist = $livesync_config->get("timeout");
+my @skiplist = $livesync_config->get("skip list");
 my $fanout = $livesync_config->get("max sync") || 8;
-my $timeout = $livesync_config->get("max sync") || 3600;
+my $timeout = $livesync_config->get("timeout") || 3600;
 my $skiplist_excludes_opts = "";
 my $opt_help;
 my $opt_debug;
@@ -109,7 +109,8 @@ $pcmd->ktime($timeout);
 $pcmd->fanout($fanout);
 
 foreach my $exclude (@skiplist) {
-    $skiplist_excludes_opts .= " --exclude='./$exclude'";
+    $exclude =~ s/^\///;
+    $skiplist_excludes_opts .= " --exclude='$exclude'";
 }
 
 
@@ -130,9 +131,11 @@ foreach my $o ($objSet->get_list()) {
 
     foreach my $fileid ($o->fileids()) {
         my $file = $db->get_objects("file", "_id", $fileid)->get_object(0);
-        my $path = $file->path();
-        if ($path) {
-            $excludes_opts .= " --exclude='./$path'";
+        if ($file) {
+            my $path = $file->path();
+            if ($path) {
+                $excludes_opts .= " --exclude='./$path'";
+            }
         }
     }
 
@@ -151,7 +154,8 @@ foreach my $o ($objSet->get_list()) {
     }
 
     foreach my $exclude (@excludes) {
-        $excludes_opts .= " --exclude='./$exclude'";
+        $exclude =~ s/^\///;
+        $excludes_opts .= " --exclude='$exclude'";
     }
 
     $cmd = "echo 'cd $chroot; rsync -aqHP $excludes_opts $skiplist_excludes_opts . $name:/ 2>&1 && echo done'";
